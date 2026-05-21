@@ -1,5 +1,20 @@
 # Changelog - Brawl Stars 2
 
+## v1.1.0 (2026-05-21)
+
+### Novo
+- Controles touch para celular (joystick esquerdo = mover, joystick direito = mirar e atirar)
+- Layout responsivo: se adapta a qualquer tela (celular, tablet, PC)
+- Renderer redimensiona automaticamente
+- Meta tags para fullscreen no celular (PWA-ready)
+- Minimap reposicionado no mobile pra nao atrapalhar
+
+### Melhorias
+- Menu responsivo (grid 2 colunas no celular)
+- Toque na tela volta ao menu no game over
+
+---
+
 ## v1.0.0 (2026-05-21)
 
 ### Novo

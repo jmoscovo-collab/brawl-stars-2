@@ -2,12 +2,21 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Brawl Stars 2</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #0a0a1a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Arial', sans-serif; }
-        #game-container { display: none; width: 900px; height: 600px; position: relative; cursor: crosshair; }
-        #game-container canvas { border-radius: 8px; }
+        body { background: #0a0a1a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Arial', sans-serif; touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+        #game-container { display: none; width: 100vw; height: 100vh; position: relative; cursor: crosshair; }
+        #game-container canvas { border-radius: 0; width: 100% !important; height: 100% !important; }
+        @media (min-width: 901px) { #game-container { width: 900px; height: 600px; } #game-container canvas { border-radius: 8px; width: 900px !important; height: 600px !important; } }
+        #joystick-move { position: absolute; bottom: 30px; left: 30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); z-index: 15; display: none; touch-action: none; }
+        #joystick-move .stick { position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; border-radius: 50%; background: rgba(255,255,255,0.4); }
+        #joystick-shoot { position: absolute; bottom: 30px; right: 30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,0,0,0.15); border: 2px solid rgba(255,80,80,0.4); z-index: 15; display: none; touch-action: none; }
+        #joystick-shoot .stick { position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; border-radius: 50%; background: rgba(255,80,80,0.5); }
+        @media (max-width: 900px), (pointer: coarse) { #joystick-move, #joystick-shoot { display: block; } }
         #hud { position: absolute; top: 0; left: 0; right: 0; padding: 10px 20px; display: flex; justify-content: space-between; pointer-events: none; z-index: 10; }
         #hud div { color: #fff; font: bold 16px monospace; text-shadow: 0 0 5px #000, 0 0 10px #000; }
         #overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; background: rgba(0,0,0,0.75); z-index: 20; flex-direction: column; align-items: center; justify-content: center; }
@@ -15,10 +24,12 @@
         #overlay h1 { font-size: 48px; font-family: monospace; margin-bottom: 15px; }
         #overlay p { color: #fff; font: 22px monospace; margin: 8px; }
         #overlay .sub { color: #aaa; font-size: 16px; margin-top: 20px; cursor: pointer; }
-        #minimap { position: absolute; bottom: 10px; right: 10px; width: 140px; height: 105px; background: rgba(0,0,0,0.6); border: 1px solid #444; border-radius: 4px; z-index: 10; pointer-events: none; }
+        #minimap { position: absolute; top: 10px; right: 10px; width: 120px; height: 90px; background: rgba(0,0,0,0.6); border: 1px solid #444; border-radius: 4px; z-index: 10; pointer-events: none; }
+        @media (max-width: 900px) { #minimap { width: 90px; height: 68px; top: auto; bottom: 160px; right: 10px; } }
         #minimap canvas { width: 100%; height: 100%; }
         .version { position: absolute; bottom: 5px; right: 10px; color: rgba(255,255,255,0.3); font: 11px monospace; pointer-events: none; z-index: 30; }
         #menu .version { position: absolute; bottom: 65px; right: 10px; }
+        @media (max-width: 900px) { #menu { width: 100vw; height: 100vh; border-radius: 0; border: none; } .game-title { font-size: 36px !important; } #btn-play { padding: 14px 50px; font-size: 18px; } .brawler-grid { grid-template-columns: repeat(2, 1fr) !important; } .shop-grid { grid-template-columns: repeat(2, 1fr) !important; } }
 
         #menu {
             width: 900px; height: 600px;
@@ -104,7 +115,7 @@
         <div id="panel-brawlers"><button class="close-panel" onclick="closePanel()">✕</button><div class="panel-title">BRAWLERS</div><div class="brawler-grid" id="brawler-grid"></div></div>
         <div id="panel-shop"><button class="close-panel" onclick="closePanel()">✕</button><div class="panel-title">LOJA</div><div class="shop-grid" id="shop-grid"></div></div>
         <div id="panel-trophies"><button class="close-panel" onclick="closePanel()">✕</button><div class="panel-title">ESTRADA DE TROFEUS</div><div class="trophy-road" id="trophy-road"></div></div>
-        <div class="version">v1.0.0</div>
+        <div class="version">v1.1.0</div>
         <div class="menu-bottom">
             <button class="nav-btn" onclick="openPanel('shop')"><span class="nav-icon">🛒</span>LOJA</button>
             <button class="nav-btn" onclick="openPanel('brawlers')"><span class="nav-icon">🤖</span>BRAWLERS</button>
@@ -121,7 +132,9 @@
         </div>
         <div id="overlay"><h1 id="overlay-title"></h1><p id="overlay-text1"></p><p id="overlay-text2"></p><p class="sub" id="overlay-sub"></p></div>
         <div id="minimap"><canvas id="minimap-canvas" width="140" height="105"></canvas></div>
-        <div class="version">v1.0.0</div>
+        <div id="joystick-move"><div class="stick" id="stick-move"></div></div>
+        <div id="joystick-shoot"><div class="stick" id="stick-shoot"></div></div>
+        <div class="version">v1.1.0</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -584,6 +597,7 @@ function startGame() {
     spawnEnemies();
     gameRunning = true;
     document.getElementById('overlay').classList.remove('show');
+    resizeGame();
 }
 
 function backToMenu() {
@@ -632,7 +646,7 @@ function spawnParticle3D(x, z, color) {
 function update() {
     if (!gameRunning || gameOver || victory) return;
 
-    // Player movement (water slows)
+    // Player movement (water slows) — keyboard + touch
     const playerInWater = isInWater(player.x, player.z);
     const currentSpeed = playerInWater ? player.speed * 0.5 : player.speed;
     let dx = 0, dz = 0;
@@ -640,10 +654,21 @@ function update() {
     if (keys['KeyS']||keys['ArrowDown']) dz += 1;
     if (keys['KeyA']||keys['ArrowLeft']) dx -= 1;
     if (keys['KeyD']||keys['ArrowRight']) dx += 1;
+    // Touch joystick
+    if (touchMove.active) { dx += touchMove.dx; dz += touchMove.dz; }
     if (dx || dz) {
         const len = Math.sqrt(dx*dx+dz*dz);
         player.x += (dx/len) * currentSpeed;
         player.z += (dz/len) * currentSpeed;
+    }
+    // Touch shoot
+    if (touchShoot.active && touchShoot.shooting && (touchShoot.dx !== 0 || touchShoot.dz !== 0)) {
+        if (player.shootCooldown <= 0) {
+            const angle = Math.atan2(touchShoot.dz, touchShoot.dx);
+            const b = brawlers[selectedBrawler];
+            fireBullets(player.x, player.z, angle, b.attack, b.dmg, 'player', b.color);
+            player.shootCooldown = b.attack==='zap'?8 : b.attack==='bomb'?25 : b.attack==='cannon'?22 : 15;
+        }
     }
     const half = MAP_SIZE/2 - 1;
     player.x = Math.max(-half, Math.min(half, player.x));
@@ -888,6 +913,114 @@ function drawMinimap() {
     }
     mc.strokeStyle = '#333'; mc.strokeRect(0, 0, 140, 105);
 }
+
+// === TOUCH CONTROLS ===
+const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+const touchMove = { active: false, dx: 0, dz: 0, id: null };
+const touchShoot = { active: false, dx: 0, dz: 0, id: null, shooting: false };
+
+function setupTouchControls() {
+    const joyMove = document.getElementById('joystick-move');
+    const stickMove = document.getElementById('stick-move');
+    const joyShoot = document.getElementById('joystick-shoot');
+    const stickShoot = document.getElementById('stick-shoot');
+
+    function handleMoveStart(e) {
+        e.preventDefault();
+        const t = e.changedTouches[0];
+        touchMove.active = true;
+        touchMove.id = t.identifier;
+    }
+    function handleMoveMove(e) {
+        e.preventDefault();
+        for (const t of e.changedTouches) {
+            if (t.identifier === touchMove.id) {
+                const rect = joyMove.getBoundingClientRect();
+                const cx = rect.left + rect.width/2;
+                const cy = rect.top + rect.height/2;
+                let dx = t.clientX - cx, dy = t.clientY - cy;
+                const maxR = rect.width/2 - 10;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist > maxR) { dx = (dx/dist)*maxR; dy = (dy/dist)*maxR; }
+                stickMove.style.transform = `translate(${dx}px, ${dy}px)`;
+                touchMove.dx = dx / maxR;
+                touchMove.dz = dy / maxR;
+            }
+        }
+    }
+    function handleMoveEnd(e) {
+        for (const t of e.changedTouches) {
+            if (t.identifier === touchMove.id) {
+                touchMove.active = false;
+                touchMove.dx = 0; touchMove.dz = 0;
+                stickMove.style.transform = '';
+                touchMove.id = null;
+            }
+        }
+    }
+
+    function handleShootStart(e) {
+        e.preventDefault();
+        const t = e.changedTouches[0];
+        touchShoot.active = true;
+        touchShoot.id = t.identifier;
+        touchShoot.shooting = true;
+    }
+    function handleShootMove(e) {
+        e.preventDefault();
+        for (const t of e.changedTouches) {
+            if (t.identifier === touchShoot.id) {
+                const rect = joyShoot.getBoundingClientRect();
+                const cx = rect.left + rect.width/2;
+                const cy = rect.top + rect.height/2;
+                let dx = t.clientX - cx, dy = t.clientY - cy;
+                const maxR = rect.width/2 - 10;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist > maxR) { dx = (dx/dist)*maxR; dy = (dy/dist)*maxR; }
+                stickShoot.style.transform = `translate(${dx}px, ${dy}px)`;
+                touchShoot.dx = dx / maxR;
+                touchShoot.dz = dy / maxR;
+            }
+        }
+    }
+    function handleShootEnd(e) {
+        for (const t of e.changedTouches) {
+            if (t.identifier === touchShoot.id) {
+                touchShoot.active = false;
+                touchShoot.shooting = false;
+                touchShoot.dx = 0; touchShoot.dz = 0;
+                stickShoot.style.transform = '';
+                touchShoot.id = null;
+            }
+        }
+    }
+
+    joyMove.addEventListener('touchstart', handleMoveStart, { passive: false });
+    joyMove.addEventListener('touchmove', handleMoveMove, { passive: false });
+    joyMove.addEventListener('touchend', handleMoveEnd);
+    joyMove.addEventListener('touchcancel', handleMoveEnd);
+
+    joyShoot.addEventListener('touchstart', handleShootStart, { passive: false });
+    joyShoot.addEventListener('touchmove', handleShootMove, { passive: false });
+    joyShoot.addEventListener('touchend', handleShootEnd);
+    joyShoot.addEventListener('touchcancel', handleShootEnd);
+
+    // Tap anywhere else to go back to menu on game over
+    container.addEventListener('touchstart', (e) => {
+        if (gameOver || victory) { backToMenu(); e.preventDefault(); }
+    }, { passive: false });
+}
+setupTouchControls();
+
+// Resize renderer for mobile
+function resizeGame() {
+    const w = container.clientWidth || 900;
+    const h = container.clientHeight || 600;
+    renderer.setSize(w, h);
+    cam.aspect = w / h;
+    cam.updateProjectionMatrix();
+}
+window.addEventListener('resize', resizeGame);
 
 function animate() {
     requestAnimationFrame(animate);
