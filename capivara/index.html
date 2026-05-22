@@ -98,36 +98,41 @@ function generateLevel() {
     platforms = [];
     coins = [];
     moedas = 0;
-    totalMoedas = 5 + fase * 2;
-    player.x = 50; player.y = 300; player.vx = 0; player.vy = 0;
+    totalMoedas = 5 + Math.floor(fase * 1.5);
+    player.x = 50; player.y = 350; player.vx = 0; player.vy = 0;
 
-    // Ground with gaps
+    // Ground — always starts at 0 with solid floor, small gaps
     const groundY = 460;
     let gx = 0;
+    // First platform always under player
+    platforms.push({ x: 0, y: groundY, w: 150, h: 40, color: '#5d4037' });
+    gx = 150;
     while (gx < 800) {
-        const w = 60 + Math.random() * 120;
+        const gap = 25 + Math.random() * Math.min(30, 15 + fase * 3);
+        gx += gap;
+        const w = 70 + Math.random() * 100;
         platforms.push({ x: gx, y: groundY, w, h: 40, color: '#5d4037' });
-        gx += w + 30 + Math.random() * (20 + fase * 5);
+        gx += w;
     }
 
     // Floating platforms
-    const numPlats = 6 + fase * 2;
+    const numPlats = 5 + fase;
     for (let i = 0; i < numPlats; i++) {
-        const x = Math.random() * 700;
-        const y = 150 + Math.random() * 250;
-        const w = 50 + Math.random() * 80;
+        const x = 50 + Math.random() * 650;
+        const y = 200 + Math.random() * 200;
+        const w = 60 + Math.random() * 70;
         platforms.push({ x, y, w, h: 15, color: '#795548' });
     }
 
-    // Coins
+    // Coins — placed on platforms
     for (let i = 0; i < totalMoedas; i++) {
         const p = platforms[Math.floor(Math.random() * platforms.length)];
-        coins.push({ x: p.x + Math.random() * (p.w - 20), y: p.y - 30, collected: false });
+        coins.push({ x: p.x + 10 + Math.random() * Math.max(10, p.w - 30), y: p.y - 30, collected: false });
     }
 
-    // Monster (capivara)
-    const monsterSpeed = 1 + fase * 0.4;
-    monster = { x: 700, y: groundY - 40, w: 40, h: 40, speed: monsterSpeed, vx: -monsterSpeed };
+    // Monster (capivara) — starts far from player
+    const monsterSpeed = 0.8 + fase * 0.3;
+    monster = { x: 700, y: groundY - 40, w: 40, h: 40, speed: monsterSpeed, vy: 0, onGround: false };
 }
 
 function update() {
@@ -184,16 +189,35 @@ function update() {
         }
     }
 
-    // Monster AI — chases player
-    const dx = player.x - monster.x;
-    const dz = player.y - monster.y;
-    const dist = Math.sqrt(dx*dx + dz*dz);
-    if (dist > 0) {
-        monster.x += (dx / dist) * monster.speed;
-        monster.y += (dz / dist) * monster.speed * 0.3;
+    // Monster AI — walks on ground chasing player
+    // Gravity
+    monster.vy = (monster.vy || 0) + GRAVITY;
+    monster.y += monster.vy;
+    monster.onGround = false;
+
+    // Monster platform collision
+    for (const p of platforms) {
+        if (monster.x + monster.w > p.x && monster.x < p.x + p.w &&
+            monster.y + monster.h > p.y && monster.y + monster.h < p.y + p.h + 10 && monster.vy >= 0) {
+            monster.y = p.y - monster.h;
+            monster.vy = 0;
+            monster.onGround = true;
+        }
     }
-    // Keep monster on platforms somewhat
-    monster.y = Math.min(monster.y, 430);
+
+    // Chase player horizontally
+    if (player.x > monster.x + 5) monster.x += monster.speed;
+    else if (player.x < monster.x - 5) monster.x -= monster.speed;
+
+    // Jump if player is above and monster is on ground
+    if (monster.onGround && player.y < monster.y - 50) {
+        monster.vy = JUMP * 0.8;
+    }
+
+    // Keep in bounds
+    if (monster.x < 0) monster.x = 0;
+    if (monster.x > 760) monster.x = 760;
+    if (monster.y > 550) { monster.y = 420; monster.vy = 0; monster.x = 700; }
 
     // Monster hits player
     if (Math.abs(player.x - monster.x) < 30 && Math.abs(player.y - monster.y) < 35) {
