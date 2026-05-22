@@ -115,7 +115,7 @@
         <div id="panel-brawlers"><button class="close-panel" onclick="closePanel()">✕</button><div class="panel-title">BRAWLERS</div><div class="brawler-grid" id="brawler-grid"></div></div>
         <div id="panel-shop"><button class="close-panel" onclick="closePanel()">✕</button><div class="panel-title">LOJA</div><div class="shop-grid" id="shop-grid"></div></div>
         <div id="panel-trophies"><button class="close-panel" onclick="closePanel()">✕</button><div class="panel-title">ESTRADA DE TROFEUS</div><div class="trophy-road" id="trophy-road"></div></div>
-        <div class="version">v1.1.0</div>
+        <div class="version">v1.2.0</div>
         <div class="menu-bottom">
             <button class="nav-btn" onclick="openPanel('shop')"><span class="nav-icon">🛒</span>LOJA</button>
             <button class="nav-btn" onclick="openPanel('brawlers')"><span class="nav-icon">🤖</span>BRAWLERS</button>
@@ -134,7 +134,7 @@
         <div id="minimap"><canvas id="minimap-canvas" width="140" height="105"></canvas></div>
         <div id="joystick-move"><div class="stick" id="stick-move"></div></div>
         <div id="joystick-shoot"><div class="stick" id="stick-shoot"></div></div>
-        <div class="version">v1.1.0</div>
+        <div class="version">v1.2.0</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -223,8 +223,8 @@ document.getElementById('btn-play').onclick=()=>{
 // === THREE.JS SETUP ===
 const container = document.getElementById('game-container');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x111122);
-scene.fog = new THREE.Fog(0x111122, 80, 200);
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0x87ceeb, 100, 220);
 
 const cam = new THREE.PerspectiveCamera(50, 900/600, 0.1, 500);
 cam.position.set(0, 45, 30);
@@ -234,51 +234,57 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(900, 600);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
 container.insertBefore(renderer.domElement, container.firstChild);
 
-// Lights
-const ambLight = new THREE.AmbientLight(0x404060, 0.6);
+// Lights — sol realista
+const ambLight = new THREE.AmbientLight(0x6688aa, 0.4);
 scene.add(ambLight);
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-dirLight.position.set(30, 50, 20);
+const dirLight = new THREE.DirectionalLight(0xfff4e0, 1.2);
+dirLight.position.set(40, 60, 30);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.set(2048, 2048);
 dirLight.shadow.camera.left = -80; dirLight.shadow.camera.right = 80;
 dirLight.shadow.camera.top = 80; dirLight.shadow.camera.bottom = -80;
+dirLight.shadow.bias = -0.001;
 scene.add(dirLight);
-const hemiLight = new THREE.HemisphereLight(0x8888ff, 0x444400, 0.3);
+const hemiLight = new THREE.HemisphereLight(0x99ccff, 0x445522, 0.5);
 scene.add(hemiLight);
 
 // Map
 const MAP_SIZE = 120;
-const floorGeo = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE);
-const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a3a1a, roughness: 0.9 });
+const floorGeo = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE, 40, 40);
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x3d8c40, roughness: 0.95 });
 const floor = new THREE.Mesh(floorGeo, floorMat);
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
 scene.add(floor);
 
-// Grid on floor
-const gridHelper = new THREE.GridHelper(MAP_SIZE, 30, 0x224422, 0x1a2a1a);
-gridHelper.position.y = 0.01;
-scene.add(gridHelper);
+// Subtle grass variation with a darker grid pattern
+const gridGeo = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE);
+const gridMat = new THREE.MeshBasicMaterial({ color: 0x2d6e30, transparent: true, opacity: 0.15 });
+const gridMesh = new THREE.Mesh(gridGeo, gridMat);
+gridMesh.rotation.x = -Math.PI / 2;
+gridMesh.position.y = 0.01;
+scene.add(gridMesh);
 
-// Walls
-const wallMat = new THREE.MeshStandardMaterial({ color: 0x553333, roughness: 0.7 });
+// Walls (border) — stone look
+const wallMat = new THREE.MeshStandardMaterial({ color: 0x665555, roughness: 0.8, metalness: 0.1 });
 function addWall(x, z, w, d) {
-    const geo = new THREE.BoxGeometry(w, 3, d);
+    const geo = new THREE.BoxGeometry(w, 4, d);
     const mesh = new THREE.Mesh(geo, wallMat);
-    mesh.position.set(x, 1.5, z);
+    mesh.position.set(x, 2, z);
     mesh.castShadow = true; mesh.receiveShadow = true;
     scene.add(mesh);
     return { x: x-w/2, z: z-d/2, w, d, mesh };
 }
 const halfMap = MAP_SIZE/2;
 const walls = [
-    addWall(0, -halfMap, MAP_SIZE, 1),
-    addWall(0, halfMap, MAP_SIZE, 1),
-    addWall(-halfMap, 0, 1, MAP_SIZE),
-    addWall(halfMap, 0, 1, MAP_SIZE),
+    addWall(0, -halfMap, MAP_SIZE, 1.5),
+    addWall(0, halfMap, MAP_SIZE, 1.5),
+    addWall(-halfMap, 0, 1.5, MAP_SIZE),
+    addWall(halfMap, 0, 1.5, MAP_SIZE),
 ];
 
 // === MAP ELEMENTS ===
@@ -304,12 +310,12 @@ function generateMapElements() {
 
     const half = MAP_SIZE/2 - 5;
 
-    // PAREDES (bloqueiam movimento e tiros)
-    const wallColor = new THREE.MeshStandardMaterial({ color: 0x665544, roughness: 0.7 });
+    // PAREDES internas (pedra/concreto realista)
+    const wallColor = new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.85, metalness: 0.05 });
     for (let i = 0; i < 20; i++) {
         const w = 2 + Math.random() * 5;
         const d = 2 + Math.random() * 5;
-        const h = 2.5;
+        const h = 3;
         const x = (Math.random() - 0.5) * (MAP_SIZE - 15);
         const z = (Math.random() - 0.5) * (MAP_SIZE - 15);
         const geo = new THREE.BoxGeometry(w, h, d);
@@ -321,31 +327,41 @@ function generateMapElements() {
         obstacleData.push({ x: x-w/2, z: z-d/2, w, d, h, type: 'wall' });
     }
 
-    // AGUA (deixa lento)
-    const waterMat = new THREE.MeshStandardMaterial({ color: 0x2244aa, roughness: 0.2, transparent: true, opacity: 0.6 });
+    // AGUA (BLOQUEIA — ninguem pode andar)
+    const waterMat = new THREE.MeshStandardMaterial({ color: 0x1a6baa, roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.75 });
     for (let i = 0; i < 8; i++) {
         const w = 6 + Math.random() * 8;
         const d = 6 + Math.random() * 8;
         const x = (Math.random() - 0.5) * (MAP_SIZE - 20);
         const z = (Math.random() - 0.5) * (MAP_SIZE - 20);
-        const geo = new THREE.BoxGeometry(w, 0.15, d);
+        // Pool depth visual
+        const geo = new THREE.BoxGeometry(w, 0.4, d);
         const mesh = new THREE.Mesh(geo, waterMat);
-        mesh.position.set(x, 0.08, z);
+        mesh.position.set(x, -0.1, z);
+        mesh.receiveShadow = true;
         scene.add(mesh);
+        // Edge/border around water
+        const edgeGeo = new THREE.BoxGeometry(w + 0.5, 0.3, d + 0.5);
+        const edgeMat = new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.9 });
+        const edge = new THREE.Mesh(edgeGeo, edgeMat);
+        edge.position.set(x, 0.05, z);
+        scene.add(edge);
         waterMeshes.push(mesh);
+        waterMeshes.push(edge);
         waterData.push({ x: x-w/2, z: z-d/2, w, d });
     }
 
-    // MOITAS (esconde quem entra)
-    const bushMat = new THREE.MeshStandardMaterial({ color: 0x226622, roughness: 0.9, transparent: true, opacity: 0.85 });
+    // MOITAS (arbustos verdes realistas)
+    const bushMat = new THREE.MeshStandardMaterial({ color: 0x2d8c2d, roughness: 0.95, transparent: true, opacity: 0.9 });
     for (let i = 0; i < 12; i++) {
         const w = 4 + Math.random() * 5;
         const d = 4 + Math.random() * 5;
         const x = (Math.random() - 0.5) * (MAP_SIZE - 15);
         const z = (Math.random() - 0.5) * (MAP_SIZE - 15);
-        const geo = new THREE.BoxGeometry(w, 1.8, d);
+        const geo = new THREE.BoxGeometry(w, 2, d);
         const mesh = new THREE.Mesh(geo, bushMat);
-        mesh.position.set(x, 0.9, z);
+        mesh.position.set(x, 1, z);
+        mesh.castShadow = true;
         scene.add(mesh);
         bushMeshes.push(mesh);
         bushData.push({ x: x-w/2, z: z-d/2, w, d });
@@ -376,6 +392,29 @@ function isInWater(x, z) {
         if (x > w.x && x < w.x + w.w && z > w.z && z < w.z + w.d) return true;
     }
     return false;
+}
+
+function pushFromWater(x, z, r) {
+    for (const w of waterData) {
+        const cx = Math.max(w.x, Math.min(w.x + w.w, x));
+        const cz = Math.max(w.z, Math.min(w.z + w.d, z));
+        const dx = x - cx, dz = z - cz;
+        const dist = Math.sqrt(dx*dx + dz*dz);
+        if (dist < r && dist > 0) {
+            x += (dx/dist) * (r - dist);
+            z += (dz/dist) * (r - dist);
+        } else if (dist === 0) {
+            // Inside water — push to nearest edge
+            const toLeft = x - w.x, toRight = (w.x + w.w) - x;
+            const toTop = z - w.z, toBottom = (w.z + w.d) - z;
+            const minDist = Math.min(toLeft, toRight, toTop, toBottom);
+            if (minDist === toLeft) x = w.x - r;
+            else if (minDist === toRight) x = w.x + w.w + r;
+            else if (minDist === toTop) z = w.z - r;
+            else z = w.z + w.d + r;
+        }
+    }
+    return { x, z };
 }
 
 function isInBush(x, z) {
@@ -527,14 +566,23 @@ function shootPlayer() {
     player.shootCooldown = b.attack==='zap'?8 : b.attack==='bomb'?25 : b.attack==='cannon'?22 : 15;
 }
 
+function findSafeSpawn() {
+    for (let tries = 0; tries < 50; tries++) {
+        const x = (Math.random()-0.5) * (MAP_SIZE-20);
+        const z = (Math.random()-0.5) * (MAP_SIZE-20);
+        if (!isInWater(x, z) && !collideObstacles(x, z, 1.5)) return { x, z };
+    }
+    return { x: 0, z: 0 };
+}
+
 function spawnEnemies() {
     enemyObjects.forEach(o => scene.remove(o.mesh));
     enemyObjects = []; enemies = [];
     for (let i = 0; i < 9; i++) {
         const bi = Math.floor(Math.random() * brawlers.length);
         const b = brawlers[bi];
-        const x = (Math.random()-0.5) * (MAP_SIZE-20);
-        const z = (Math.random()-0.5) * (MAP_SIZE-20);
+        const spawn = findSafeSpawn();
+        const x = spawn.x, z = spawn.z;
         const mesh = createRobot(b.color, b.mitico ? 1.4 : 1, b.mitico);
         mesh.position.set(x, 0, z);
         scene.add(mesh);
@@ -575,7 +623,6 @@ function findClosestTarget(e) {
 
 function startGame() {
     const b = brawlers[selectedBrawler];
-    player.x = 0; player.z = 0;
     player.hp = b.hp; player.maxHp = b.hp;
     player.speed = b.speed * 0.05;
     player.dmg = b.dmg; player.attack = b.attack;
@@ -589,11 +636,15 @@ function startGame() {
     gParticles.forEach(p => scene.remove(p.mesh));
     gParticles = [];
 
+    generateMapElements();
+
+    const pSpawn = findSafeSpawn();
+    player.x = pSpawn.x; player.z = pSpawn.z;
+
     playerObj = createRobot(b.color, 1.2, b.mitico);
-    playerObj.position.set(0, 0, 0);
+    playerObj.position.set(player.x, 0, player.z);
     scene.add(playerObj);
 
-    generateMapElements();
     spawnEnemies();
     gameRunning = true;
     document.getElementById('overlay').classList.remove('show');
@@ -646,9 +697,7 @@ function spawnParticle3D(x, z, color) {
 function update() {
     if (!gameRunning || gameOver || victory) return;
 
-    // Player movement (water slows) — keyboard + touch
-    const playerInWater = isInWater(player.x, player.z);
-    const currentSpeed = playerInWater ? player.speed * 0.5 : player.speed;
+    // Player movement — keyboard + touch
     let dx = 0, dz = 0;
     if (keys['KeyW']||keys['ArrowUp']) dz -= 1;
     if (keys['KeyS']||keys['ArrowDown']) dz += 1;
@@ -658,8 +707,8 @@ function update() {
     if (touchMove.active) { dx += touchMove.dx; dz += touchMove.dz; }
     if (dx || dz) {
         const len = Math.sqrt(dx*dx+dz*dz);
-        player.x += (dx/len) * currentSpeed;
-        player.z += (dz/len) * currentSpeed;
+        player.x += (dx/len) * player.speed;
+        player.z += (dz/len) * player.speed;
     }
     // Touch shoot
     if (touchShoot.active && touchShoot.shooting && (touchShoot.dx !== 0 || touchShoot.dz !== 0)) {
@@ -675,6 +724,8 @@ function update() {
     player.z = Math.max(-half, Math.min(half, player.z));
     const pushed = pushFromObstacles(player.x, player.z, 0.8);
     player.x = pushed.x; player.z = pushed.z;
+    const pushedW = pushFromWater(player.x, player.z, 1.0);
+    player.x = pushedW.x; player.z = pushedW.z;
 
     playerObj.position.set(player.x, 0, player.z);
 
@@ -700,8 +751,7 @@ function update() {
         const e = enemies[ei];
         if (!e.alive) continue;
 
-        // Water slows down
-        e.speed = isInWater(e.x, e.z) ? e.baseSpeed * 0.5 : e.baseSpeed;
+        e.speed = e.baseSpeed;
         // Bush hides
         e.hidden = isInBush(e.x, e.z);
         e.mesh.visible = !e.hidden || Math.sqrt((player.x-e.x)**2+(player.z-e.z)**2) < 5;
@@ -728,6 +778,8 @@ function update() {
         e.z = Math.max(-half, Math.min(half, e.z));
         const ep = pushFromObstacles(e.x, e.z, 0.6);
         e.x = ep.x; e.z = ep.z;
+        const ew = pushFromWater(e.x, e.z, 0.8);
+        e.x = ew.x; e.z = ew.z;
         e.mesh.position.set(e.x, 0, e.z);
 
         // Face target
@@ -890,11 +942,11 @@ function showOverlay() {
 
 function drawMinimap() {
     const mc = document.getElementById('minimap-canvas').getContext('2d');
-    mc.fillStyle = '#111'; mc.fillRect(0, 0, 140, 105);
+    mc.fillStyle = '#1a3a1a'; mc.fillRect(0, 0, 140, 105);
     const scale = 140 / MAP_SIZE;
     const cx = 70, cy = 52;
-    // water
-    mc.fillStyle = 'rgba(30,60,150,0.5)';
+    // water (solid — blocked area)
+    mc.fillStyle = 'rgba(20,80,180,0.8)';
     for (const w of waterData) mc.fillRect(cx + (w.x+w.w/2)*scale - w.w*scale/2, cy + (w.z+w.d/2)*scale - w.d*scale/2, w.w*scale, w.d*scale);
     // bushes
     mc.fillStyle = 'rgba(30,100,30,0.5)';

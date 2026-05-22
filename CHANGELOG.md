@@ -1,5 +1,24 @@
 # Changelog - Brawl Stars 2
 
+## v1.2.0 (2026-05-21)
+
+### Novo
+- Agua agora BLOQUEIA passagem (ninguem pode andar na agua — igual parede)
+- Borda visual ao redor da agua (pedra)
+- Spawn seguro: jogador e inimigos nunca nascem dentro da agua ou paredes
+
+### Melhorias (Realismo)
+- Ceu azul realista no fundo (em vez de escuro)
+- Luz do sol com tom quente e sombras nítidas
+- Chao verde como grama (em vez de verde escuro)
+- Paredes de pedra com aparencia solida
+- Moitas mais verdes e com sombra
+- Agua com profundidade visual e brilho
+- Tone mapping cinematico (ACES)
+- Neblina suave no horizonte
+
+---
+
 ## v1.1.0 (2026-05-21)
 
 ### Novo
