@@ -197,13 +197,10 @@ const SKINS = [
 function loadProgress() {
     try {
         const data = JSON.parse(localStorage.getItem('capivara_run_progress'));
-        if (data) {
-            data.unlockedSkins = ['cogumelo', 'arvore', 'estrela', 'trofeu'];
-            return data;
-        }
-        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo', 'arvore', 'estrela', 'trofeu'] };
+        if (data) return data;
+        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'] };
     } catch(e) {
-        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo', 'arvore', 'estrela', 'trofeu'] };
+        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'] };
     }
 }
 function saveProgress() { localStorage.setItem('capivara_run_progress', JSON.stringify(progress)); }
@@ -1143,6 +1140,27 @@ document.getElementById('skins-back').onclick = () => {
     document.getElementById('skins-screen').style.display = 'none';
     document.getElementById('menu').classList.remove('hidden');
 };
+
+// Código secreto: digitar DAVI desbloqueia todas as skins
+let secretCode = '';
+document.addEventListener('keydown', e => {
+    if (document.getElementById('skins-screen').style.display === 'flex') {
+        secretCode += e.key.toUpperCase();
+        if (secretCode.includes('DAVI')) {
+            secretCode = '';
+            progress.unlockedSkins = ['cogumelo', 'arvore', 'estrela', 'trofeu'];
+            saveProgress();
+            renderSkinsScreen();
+            sfxUnlock();
+            const msg = document.createElement('div');
+            msg.className = 'unlock-msg';
+            msg.innerHTML = '🔓 TODAS SKINS DESBLOQUEADAS!<br><span style="font-size:14px">Bem-vindo, Davi!</span>';
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), 2500);
+        }
+        if (secretCode.length > 10) secretCode = secretCode.slice(-4);
+    }
+});
 
 // Device selection
 let isMobile = false;
