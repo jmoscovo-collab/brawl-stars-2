@@ -103,6 +103,14 @@
         #upgrade-box2:hover { border-color: #ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.3); transform: scale(1.05); }
         #upgrade-box2.locked { opacity: 0.4; cursor: not-allowed; }
         #upgrade-box2.locked:hover { border-color: #444; box-shadow: none; transform: none; }
+        #upgrade-box3 { background: rgba(0,0,0,0.4); border: 3px solid #444; border-radius: 12px; padding: 20px; text-align: center; width: 160px; cursor: pointer; transition: all 0.2s; }
+        #upgrade-box3:hover { border-color: #ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.3); transform: scale(1.05); }
+        #upgrade-box3.locked { opacity: 0.4; cursor: not-allowed; }
+        #upgrade-box3.locked:hover { border-color: #444; box-shadow: none; transform: none; }
+        #upgrade-box3 .up-title { color: #00e5ff; font-size: 16px; font-weight: bold; margin-bottom: 8px; }
+        #upgrade-box3 .up-desc { color: #aaa; font-size: 12px; margin-bottom: 10px; }
+        #upgrade-box3 .up-cost { color: #ff5722; font-size: 14px; font-weight: bold; }
+        #upgrade-box3 .up-level { color: #4caf50; font-size: 12px; margin-top: 8px; }
         #click-power { color: #aaa; font-size: 14px; margin-top: 10px; }
         #btn-academia { margin-top: 15px; padding: 12px 30px; background: #7c4dff; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; font-family: monospace; }
         #btn-academia:hover { transform: scale(1.05); background: #651fff; }
@@ -150,9 +158,15 @@
             <div class="up-cost">Custo: 100</div>
             <div class="up-level" id="up-level">Nível: 0</div>
         </div>
+        <div id="upgrade-box3" class="locked">
+            <div class="up-title">⚡ SUPER</div>
+            <div class="up-desc">+1.000 por clique</div>
+            <div class="up-cost" id="up-cost3">Custo: 10.000</div>
+            <div class="up-level" id="up-level3">Nível: 0</div>
+        </div>
         <div id="upgrade-box2" class="locked">
             <div class="up-title">🚀 MEGA</div>
-            <div class="up-desc">+1.000 por clique</div>
+            <div class="up-desc">+10.000 por clique</div>
             <div class="up-cost" id="up-cost2">Custo: 100.067</div>
             <div class="up-level" id="up-level2">Nível: 0</div>
         </div>
@@ -624,24 +638,45 @@ document.getElementById('academia-back').onclick = () => {
     stopAutoSpeed();
 };
 
-// Mega upgrade box
+// Super upgrade box (10,000 = +1,000)
+let superLevel = 0;
+let superCost = 10000;
+const upgradeBox3 = document.getElementById('upgrade-box3');
+
+function updateUpgradeBox3() {
+    if (score >= superCost) upgradeBox3.classList.remove('locked');
+    else upgradeBox3.classList.add('locked');
+}
+
+upgradeBox3.addEventListener('click', () => {
+    if (score >= superCost) {
+        score -= superCost;
+        superLevel++;
+        clickPower += 1000;
+        superCost = 10000 * (superLevel + 1);
+        scoreEl.textContent = score;
+        document.getElementById('up-level3').textContent = `Nível: ${superLevel}`;
+        document.getElementById('click-power').textContent = `Clique: +${clickPower}`;
+        document.getElementById('up-cost3').textContent = `Custo: ${superCost.toLocaleString()}`;
+        updateUpgradeBox3();
+    }
+});
+
+// Mega upgrade box (100,067 = +10,000)
 let megaLevel = 0;
 let megaCost = 100067;
 const upgradeBox2 = document.getElementById('upgrade-box2');
 
 function updateUpgradeBox2() {
-    if (score >= megaCost) {
-        upgradeBox2.classList.remove('locked');
-    } else {
-        upgradeBox2.classList.add('locked');
-    }
+    if (score >= megaCost) upgradeBox2.classList.remove('locked');
+    else upgradeBox2.classList.add('locked');
 }
 
 upgradeBox2.addEventListener('click', () => {
     if (score >= megaCost) {
         score -= megaCost;
         megaLevel++;
-        clickPower += 1000;
+        clickPower += 10000;
         megaCost = 100067 * (megaLevel + 1);
         scoreEl.textContent = score;
         document.getElementById('up-level2').textContent = `Nível: ${megaLevel}`;
@@ -650,10 +685,6 @@ upgradeBox2.addEventListener('click', () => {
         updateUpgradeBox2();
     }
 });
-
-function checkMegaUpgrade() {
-    updateUpgradeBox2();
-}
 
 // === CORRIDA MODE 3D ===
 let corridaFase = 1;
@@ -1044,6 +1075,7 @@ function doClick(x, y) {
 
     updateUpgradeBox();
     updateUpgradeBox2();
+    updateUpgradeBox3();
 
     const effect = document.createElement('div');
     effect.className = 'click-effect';
