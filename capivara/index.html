@@ -124,12 +124,6 @@
         #name-screen button { padding: 12px 40px; font-size: 18px; background: #4caf50; color: #fff; border: none; border-radius: 25px; cursor: pointer; }
         #name-screen button:hover { transform: scale(1.05); }
         .player-name-display { position: absolute; top: 35px; left: 15px; font-size: 16px; font-weight: bold; font-family: monospace; z-index: 50; text-shadow: 1px 1px 3px #000; }
-        #friend-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,10,40,0.97); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px; z-index: 9998; }
-        #friend-screen h2 { color: #fff; font-size: 28px; text-shadow: 2px 2px 0 #2196f3; }
-        #friend-screen p { color: #aaa; font-size: 14px; text-align: center; }
-        #friend-list { color: #ccc; font-size: 14px; text-align: center; max-height: 150px; overflow-y: auto; }
-        #friend-list div { padding: 5px 0; }
-        .btn-friend { background: #2196f3; }
         #free-spin-btn { margin-top: 10px; padding: 15px 25px; background: linear-gradient(135deg, #ff9800, #ff5722); border: none; border-radius: 15px; cursor: pointer; text-align: center; transition: all 0.2s; }
         #free-spin-btn:hover { transform: scale(1.05); }
         #free-spin-btn.disabled { opacity: 0.5; cursor: not-allowed; background: #555; }
@@ -205,7 +199,6 @@
             <button class="btn-5p" id="btn-4p">4 JOGADORES</button>
             <button class="btn-modes" id="btn-modes">MODOS <span class="tag-novo">NOVO</span></button>
             <button class="btn-skins" id="btn-skins">SKINS</button>
-            <button class="btn-friend" id="btn-friend">AMIZADE</button>
             <button class="btn-loja" id="btn-loja">🛒 LOJA</button>
             <div class="controls-info">
                 P1: WASD | P2: Setas | P3: FGHT | P4: JKLI
@@ -259,15 +252,6 @@
         <h2>Qual é seu nome?</h2>
         <input type="text" id="name-input" maxlength="15" placeholder="Digite seu nome...">
         <button id="name-confirm">JOGAR!</button>
-    </div>
-    <div id="friend-screen">
-        <h2>👥 AMIZADE</h2>
-        <p>Digite o nome do amigo para adicionar:</p>
-        <input type="text" id="friend-name-input" maxlength="15" placeholder="Nome do amigo..." style="padding:12px 20px;font-size:18px;border-radius:15px;border:3px solid #2196f3;background:rgba(30,30,70,0.9);color:#fff;text-align:center;font-family:monospace;width:250px;outline:none;">
-        <button id="friend-add-btn" style="padding:12px 40px;font-size:18px;background:#4caf50;color:#fff;border:none;border-radius:25px;cursor:pointer;font-weight:bold;">ADICIONAR</button>
-        <div id="friend-msg" style="color:#4caf50;font-size:14px;min-height:20px;"></div>
-        <div id="friend-list"></div>
-        <button id="friend-back" style="padding:12px 40px;font-size:18px;background:#ff9800;color:#fff;border:none;border-radius:25px;cursor:pointer;">VOLTAR</button>
     </div>
     <div class="player-name-display" id="player-name-display"></div>
     <div id="roulette-overlay">
@@ -1554,54 +1538,7 @@ document.getElementById('name-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('name-confirm').click();
 });
 
-// Friend system — add by name
-function showFriendScreen() {
-    document.getElementById('menu').classList.add('hidden');
-    document.getElementById('friend-screen').style.display = 'flex';
-    document.getElementById('friend-msg').textContent = '';
-    document.getElementById('friend-name-input').value = '';
-    renderFriendList();
-}
-function removeFriend(name) {
-    const friends = JSON.parse(localStorage.getItem('capivara_friends') || '[]');
-    const idx = friends.indexOf(name);
-    if (idx !== -1) friends.splice(idx, 1);
-    localStorage.setItem('capivara_friends', JSON.stringify(friends));
-    renderFriendList();
-}
-function renderFriendList() {
-    const friends = JSON.parse(localStorage.getItem('capivara_friends') || '[]');
-    const list = document.getElementById('friend-list');
-    if (friends.length === 0) {
-        list.innerHTML = '<div style="color:#888">Nenhum amigo ainda...</div>';
-    } else {
-        list.innerHTML = friends.map(f => `<div style="display:flex;align-items:center;justify-content:center;gap:10px;">👤 ${f} <span onclick="removeFriend('${f}')" style="color:#f44336;cursor:pointer;font-size:18px;font-weight:bold;">✕</span></div>`).join('');
-    }
-}
-document.getElementById('friend-add-btn').onclick = () => {
-    const input = document.getElementById('friend-name-input');
-    const name = input.value.trim();
-    const msg = document.getElementById('friend-msg');
-    if (!name) { msg.textContent = 'Digite um nome!'; msg.style.color = '#f44336'; return; }
-    if (name.toLowerCase() === (playerName || '').toLowerCase()) { msg.textContent = 'Não pode adicionar a si mesmo!'; msg.style.color = '#f44336'; return; }
-    const friends = JSON.parse(localStorage.getItem('capivara_friends') || '[]');
-    if (friends.includes(name)) { msg.textContent = 'Já é seu amigo!'; msg.style.color = '#ff9800'; return; }
-    friends.push(name);
-    localStorage.setItem('capivara_friends', JSON.stringify(friends));
-    msg.textContent = '✅ ' + name + ' adicionado!';
-    msg.style.color = '#4caf50';
-    input.value = '';
-    renderFriendList();
-};
-document.getElementById('friend-name-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('friend-add-btn').click();
-});
 
-document.getElementById('btn-friend').onclick = showFriendScreen;
-document.getElementById('friend-back').onclick = () => {
-    document.getElementById('friend-screen').style.display = 'none';
-    document.getElementById('menu').classList.remove('hidden');
-};
 
 // Free spin roulette (1 per hour)
 function getSpinTime() { return parseInt(localStorage.getItem('capivara_free_spin_time') || '0'); }
