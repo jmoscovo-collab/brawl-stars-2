@@ -693,6 +693,7 @@ let raceScene, raceCamera, raceRenderer;
 let racePlayer, raceEnemies, raceFinishLine;
 let racePlayerMesh, raceEnemyMeshes = [];
 let raceTrackLength = 100;
+let raceTrackGroup = null;
 let raceBoost = 0;
 let raceCamX = 0, raceCamY = 4;
 
@@ -704,24 +705,10 @@ const RACE_ENEMIES = [
     { name: 'Foguete', color: 0x9c27b0, baseSpeed: 0.19 },
 ];
 
-function initRace3D() {
+function buildRaceTrack() {
     const THREE = window.THREE;
-    raceScene = new THREE.Scene();
-    raceScene.background = new THREE.Color(0x87ceeb);
-    raceScene.fog = new THREE.Fog(0x87ceeb, 50, 120);
-
-    raceCamera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
-    raceRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('corrida-3d'), antialias: true });
-    raceRenderer.setSize(window.innerWidth, window.innerHeight);
-    raceRenderer.shadowMap.enabled = true;
-
-    // Lights
-    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-    raceScene.add(ambient);
-    const sun = new THREE.DirectionalLight(0xffffff, 1);
-    sun.position.set(10, 20, 10);
-    sun.castShadow = true;
-    raceScene.add(sun);
+    if (raceTrackGroup) raceScene.remove(raceTrackGroup);
+    raceTrackGroup = new THREE.Group();
 
     // Ground/track
     const trackGeo = new THREE.PlaneGeometry(20, raceTrackLength + 20);
@@ -730,7 +717,7 @@ function initRace3D() {
     track.rotation.x = -Math.PI / 2;
     track.position.z = -raceTrackLength / 2;
     track.receiveShadow = true;
-    raceScene.add(track);
+    raceTrackGroup.add(track);
 
     // Lane lines
     for (let i = -3; i <= 3; i++) {
@@ -738,7 +725,7 @@ function initRace3D() {
         const lineMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
         const line = new THREE.Mesh(lineGeo, lineMat);
         line.position.set(i * 2, 0.01, -raceTrackLength / 2);
-        raceScene.add(line);
+        raceTrackGroup.add(line);
     }
 
     // Dashes on lanes
@@ -748,7 +735,7 @@ function initRace3D() {
             const dashMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, transparent: true, opacity: 0.5 });
             const dash = new THREE.Mesh(dashGeo, dashMat);
             dash.position.set(i * 2 + 1, 0.01, z);
-            raceScene.add(dash);
+            raceTrackGroup.add(dash);
         }
     }
 
@@ -765,7 +752,7 @@ function initRace3D() {
         }
     }
     finishGroup.position.z = -raceTrackLength;
-    raceScene.add(finishGroup);
+    raceTrackGroup.add(finishGroup);
     raceFinishLine = finishGroup;
 
     // Finish arch poles
@@ -773,14 +760,14 @@ function initRace3D() {
     const poleGeo = new THREE.CylinderGeometry(0.15, 0.15, 5, 8);
     const poleL = new THREE.Mesh(poleGeo, poleMat);
     poleL.position.set(-6, 2.5, -raceTrackLength);
-    raceScene.add(poleL);
+    raceTrackGroup.add(poleL);
     const poleR = poleL.clone();
     poleR.position.x = 6;
-    raceScene.add(poleR);
+    raceTrackGroup.add(poleR);
     const archGeo = new THREE.BoxGeometry(12.3, 0.4, 0.4);
     const arch = new THREE.Mesh(archGeo, poleMat);
     arch.position.set(0, 5, -raceTrackLength);
-    raceScene.add(arch);
+    raceTrackGroup.add(arch);
 
     // Grass sides
     const grassMat = new THREE.MeshStandardMaterial({ color: 0x4caf50 });
@@ -788,10 +775,10 @@ function initRace3D() {
     const grassL = new THREE.Mesh(grassGeo, grassMat);
     grassL.rotation.x = -Math.PI / 2;
     grassL.position.set(-25, -0.01, -raceTrackLength / 2);
-    raceScene.add(grassL);
+    raceTrackGroup.add(grassL);
     const grassR = grassL.clone();
     grassR.position.x = 25;
-    raceScene.add(grassR);
+    raceTrackGroup.add(grassR);
 
     // Trees along sides
     for (let z = 0; z > -raceTrackLength; z -= 10) {
@@ -801,15 +788,40 @@ function initRace3D() {
             const trunk = new THREE.Mesh(trunkGeo, trunkMat);
             trunk.position.set(side + Math.random() * 3, 1.5, z + Math.random() * 3);
             trunk.castShadow = true;
-            raceScene.add(trunk);
-            const leavesGeo = new THREE.SphereGeometry(1.5, 8, 8);
-            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32 });
-            const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-            leaves.position.set(trunk.position.x, 3.5, trunk.position.z);
-            leaves.castShadow = true;
-            raceScene.add(leaves);
+            raceTrackGroup.add(trunk);
+            const leafGeo = new THREE.SphereGeometry(1.5, 8, 8);
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32 });
+            const leaf = new THREE.Mesh(leafGeo, leafMat);
+            leaf.position.set(trunk.position.x, 4, trunk.position.z);
+            leaf.castShadow = true;
+            raceTrackGroup.add(leaf);
         }
     }
+
+    raceScene.add(raceTrackGroup);
+    raceScene.fog = new THREE.Fog(0x87ceeb, 50, raceTrackLength + 30);
+}
+
+function initRace3D() {
+    const THREE = window.THREE;
+    raceScene = new THREE.Scene();
+    raceScene.background = new THREE.Color(0x87ceeb);
+    raceScene.fog = new THREE.Fog(0x87ceeb, 50, 120);
+
+    raceCamera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
+    raceRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('corrida-3d'), antialias: true });
+    raceRenderer.setSize(window.innerWidth, window.innerHeight);
+    raceRenderer.shadowMap.enabled = true;
+
+    // Lights
+    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+    raceScene.add(ambient);
+    const sun = new THREE.DirectionalLight(0xffffff, 1);
+    sun.position.set(10, 20, 10);
+    sun.castShadow = true;
+    raceScene.add(sun);
+
+    buildRaceTrack();
 }
 
 function createRacePlayer3D() {
@@ -905,6 +917,10 @@ function startRace() {
     if (!raceScene) initRace3D();
     raceBoost = 0;
 
+    // Pista fica mais longa a cada fase
+    raceTrackLength = 100 + corridaFase * 30;
+    buildRaceTrack();
+
     // Remove old meshes
     if (racePlayerMesh) raceScene.remove(racePlayerMesh);
     raceEnemyMeshes.forEach(m => raceScene.remove(m));
@@ -917,12 +933,12 @@ function startRace() {
     racePlayerMesh.position.set(0, 0, 0);
     raceScene.add(racePlayerMesh);
 
-    // Enemies
+    // Enemies — ficam MUITO mais rápidos a cada fase
     raceEnemies = [];
     const numEnemies = Math.min(corridaFase + 1, 5);
     for (let i = 0; i < numEnemies; i++) {
         const e = RACE_ENEMIES[i % RACE_ENEMIES.length];
-        const spd = e.baseSpeed + (corridaFase - 1) * 0.03 + Math.random() * 0.02;
+        const spd = e.baseSpeed + (corridaFase - 1) * 0.06 + Math.random() * 0.03;
         const lane = (i + 1) * 2 - (numEnemies);
         raceEnemies.push({ z: 0, speed: spd, finished: false, lane, data: e });
         const mesh = createRaceEnemy3D(e);
