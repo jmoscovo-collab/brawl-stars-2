@@ -122,6 +122,18 @@
         .est-btn.coming-soon { opacity: 0.4; border-style: dashed; cursor: default; }
         #academia-back { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 12px 40px; font-size: 18px; background: #ff9800; color: #fff; border: none; border-radius: 25px; cursor: pointer; font-family: monospace; pointer-events: auto; }
         #academia-back:hover { transform: translateX(-50%) scale(1.05); }
+        #btn-corrida { margin-top: 8px; padding: 12px 30px; background: #f44336; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; font-family: monospace; }
+        #btn-corrida:hover { transform: scale(1.05); background: #d32f2f; }
+        #corrida-screen { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #87ceeb; z-index: 600; overflow: hidden; }
+        #corrida-canvas { width: 100%; height: 100%; display: block; }
+        #corrida-hud { position: absolute; top: 10px; left: 0; right: 0; display: flex; justify-content: space-around; color: #fff; font-size: 18px; font-weight: bold; font-family: monospace; text-shadow: 1px 1px 3px #000; pointer-events: none; }
+        #corrida-back { position: absolute; top: 10px; left: 10px; padding: 8px 16px; background: rgba(0,0,0,0.5); color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-family: monospace; z-index: 601; }
+        #corrida-result { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); flex-direction: column; align-items: center; justify-content: center; gap: 15px; z-index: 602; }
+        #corrida-result h1 { font-size: 40px; color: #fff; text-shadow: 2px 2px 0 #000; }
+        #corrida-result p { color: #aaa; font-size: 18px; }
+        #corrida-result button { padding: 12px 30px; font-size: 16px; font-weight: bold; border: none; border-radius: 20px; cursor: pointer; font-family: monospace; }
+        .btn-next { background: #4caf50; color: #fff; }
+        .btn-back-race { background: #ff9800; color: #fff; }
     </style>
 </head>
 <body>
@@ -147,7 +159,23 @@
     </div>
     <div id="click-power">Clique: +1</div>
     <button id="btn-academia">🏋️ ACADEMIA</button>
+    <button id="btn-corrida">🏁 CORRIDA</button>
     <div class="best" id="best">Recorde: 0</div>
+
+    <div id="corrida-screen">
+        <canvas id="corrida-canvas"></canvas>
+        <button id="corrida-back">← Voltar</button>
+        <div id="corrida-hud">
+            <span id="corrida-fase">Fase 1</span>
+            <span id="corrida-pos">Posição: 1º</span>
+        </div>
+        <div id="corrida-result">
+            <h1 id="corrida-result-title"></h1>
+            <p id="corrida-result-text"></p>
+            <button class="btn-next" id="corrida-next">PRÓXIMA FASE</button>
+            <button class="btn-back-race" id="corrida-menu">VOLTAR AO MENU</button>
+        </div>
+    </div>
 
     <div id="academia-screen">
         <canvas id="academia-3d"></canvas>
@@ -261,13 +289,13 @@ drawCogumelo();
 
 // Academia
 const ESTEIRAS = [
-    { name: 'Esteira 1', req: 0, bonus: 2, color: 0x4caf50 },
-    { name: 'Esteira 2', req: 800, bonus: 6, color: 0x2196f3 },
-    { name: 'Esteira 3', req: 5000, bonus: 20, color: 0xff9800 },
-    { name: 'Esteira 4', req: 50000, bonus: 50, color: 0xe91e63 },
-    { name: 'Esteira 5', req: 200000, bonus: 100, color: 0x9c27b0 },
-    { name: 'Esteira 6', req: 500000, bonus: 200, color: 0x00bcd4 },
-    { name: 'Esteira 7', req: 1000000, bonus: 400, color: 0xffd700 },
+    { name: 'Esteira 1', req: 0, bonus: 10, color: 0x4caf50 },
+    { name: 'Esteira 2', req: 800, bonus: 30, color: 0x2196f3 },
+    { name: 'Esteira 3', req: 5000, bonus: 100, color: 0xff9800 },
+    { name: 'Esteira 4', req: 50000, bonus: 250, color: 0xe91e63 },
+    { name: 'Esteira 5', req: 200000, bonus: 500, color: 0x9c27b0 },
+    { name: 'Esteira 6', req: 500000, bonus: 1000, color: 0x00bcd4 },
+    { name: 'Esteira 7', req: 1000000, bonus: 2000, color: 0xffd700 },
 ];
 let currentEsteira = 0;
 let speed = 0;
@@ -626,6 +654,189 @@ upgradeBox2.addEventListener('click', () => {
 function checkMegaUpgrade() {
     updateUpgradeBox2();
 }
+
+// === CORRIDA MODE ===
+let corridaFase = 1;
+let corridaRunning = false;
+let corridaCanvas, corridaCtx;
+let racePlayer, raceEnemies, raceFinish, raceFrame;
+
+const RACE_ENEMIES = [
+    { name: 'Tartaruga', color: '#4caf50', baseSpeed: 1.5 },
+    { name: 'Coelho', color: '#ff9800', baseSpeed: 2.5 },
+    { name: 'Raposa', color: '#f44336', baseSpeed: 3.2 },
+    { name: 'Guepardo', color: '#ffd700', baseSpeed: 4.0 },
+    { name: 'Foguete', color: '#9c27b0', baseSpeed: 5.0 },
+];
+
+function startRace() {
+    corridaCanvas = document.getElementById('corrida-canvas');
+    corridaCanvas.width = window.innerWidth;
+    corridaCanvas.height = window.innerHeight;
+    corridaCtx = corridaCanvas.getContext('2d');
+    raceFinish = corridaCanvas.width - 80;
+    raceFrame = 0;
+
+    const playerSpeed = 2 + (speed / 10000);
+    racePlayer = { x: 50, y: corridaCanvas.height / 2 - 60, speed: playerSpeed, finished: false };
+
+    raceEnemies = [];
+    const numEnemies = Math.min(corridaFase + 1, 5);
+    for (let i = 0; i < numEnemies; i++) {
+        const e = RACE_ENEMIES[i % RACE_ENEMIES.length];
+        const spd = e.baseSpeed + (corridaFase - 1) * 0.5 + Math.random() * 0.5;
+        raceEnemies.push({
+            x: 50, y: corridaCanvas.height / 2 - 60 + (i + 1) * 70,
+            speed: spd, name: e.name, color: e.color, finished: false
+        });
+    }
+
+    corridaRunning = true;
+    document.getElementById('corrida-result').style.display = 'none';
+    document.getElementById('corrida-fase').textContent = `Fase ${corridaFase}`;
+    raceLoop();
+}
+
+function raceLoop() {
+    if (!corridaRunning) return;
+    requestAnimationFrame(raceLoop);
+    raceFrame++;
+    const ctx = corridaCtx;
+    const w = corridaCanvas.width, h = corridaCanvas.height;
+
+    // Background
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#87ceeb');
+    grad.addColorStop(1, '#e0f7fa');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Track lanes
+    const laneH = 60;
+    const startY = racePlayer.y - 15;
+    for (let i = 0; i < raceEnemies.length + 1; i++) {
+        const y = startY + i * 70;
+        ctx.fillStyle = i % 2 === 0 ? '#d4a373' : '#c8956c';
+        ctx.fillRect(0, y, w, laneH);
+        ctx.strokeStyle = '#fff';
+        ctx.setLineDash([20, 15]);
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // Finish line
+    ctx.fillStyle = '#000';
+    for (let fy = startY; fy < startY + (raceEnemies.length + 1) * 70; fy += 15) {
+        const fx = raceFinish;
+        ctx.fillStyle = (Math.floor(fy / 15) % 2 === 0) ? '#000' : '#fff';
+        ctx.fillRect(fx, fy, 15, 15);
+        ctx.fillStyle = (Math.floor(fy / 15) % 2 === 0) ? '#fff' : '#000';
+        ctx.fillRect(fx + 15, fy, 15, 15);
+    }
+
+    // Move player (uses speed from academia!)
+    if (!racePlayer.finished) {
+        racePlayer.x += racePlayer.speed + Math.random() * 0.5;
+        if (racePlayer.x >= raceFinish) { racePlayer.finished = true; }
+    }
+
+    // Move enemies
+    for (const e of raceEnemies) {
+        if (!e.finished) {
+            e.x += e.speed + Math.random() * 0.8 - 0.3;
+            if (e.x >= raceFinish) { e.finished = true; }
+        }
+    }
+
+    // Draw player (cogumelo)
+    ctx.save();
+    ctx.translate(racePlayer.x, racePlayer.y + 25);
+    ctx.scale(0.8, 0.8);
+    // Stem
+    ctx.fillStyle = '#f5f5dc';
+    ctx.fillRect(-7, 2, 14, 18);
+    // Cap
+    ctx.fillStyle = '#e53935';
+    ctx.beginPath(); ctx.ellipse(0, -4, 16, 14, 0, Math.PI, 0); ctx.fill();
+    // Spots
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-7, -10, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(5, -12, 3, 0, Math.PI * 2); ctx.fill();
+    // Eyes
+    ctx.fillStyle = '#333';
+    ctx.beginPath(); ctx.arc(-4, 6, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(4, 6, 2.5, 0, Math.PI * 2); ctx.fill();
+    // Legs running
+    const legA = Math.sin(raceFrame * 0.3) * 4;
+    ctx.fillStyle = '#8d6e63';
+    ctx.fillRect(-6, 20 + legA, 5, 6);
+    ctx.fillRect(1, 20 - legA, 5, 6);
+    ctx.restore();
+    // Name
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('VOCÊ', racePlayer.x, racePlayer.y + 5);
+
+    // Draw enemies
+    for (const e of raceEnemies) {
+        ctx.fillStyle = e.color;
+        ctx.beginPath(); ctx.ellipse(e.x, e.y + 30, 18, 14, 0, 0, Math.PI * 2); ctx.fill();
+        // Eyes
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(e.x - 5, e.y + 27, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(e.x + 5, e.y + 27, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(e.x - 5, e.y + 27, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(e.x + 5, e.y + 27, 2, 0, Math.PI * 2); ctx.fill();
+        // Legs
+        const el = Math.sin(raceFrame * 0.25 + raceEnemies.indexOf(e)) * 3;
+        ctx.fillStyle = e.color;
+        ctx.fillRect(e.x - 10, e.y + 42 + el, 6, 8);
+        ctx.fillRect(e.x + 4, e.y + 42 - el, 6, 8);
+        // Name
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(e.name, e.x, e.y + 8);
+    }
+
+    // Update position
+    let pos = 1;
+    for (const e of raceEnemies) { if (e.x > racePlayer.x) pos++; }
+    document.getElementById('corrida-pos').textContent = `Posição: ${pos}º`;
+
+    // Check if race is over
+    if (racePlayer.finished || raceEnemies.every(e => e.finished)) {
+        corridaRunning = false;
+        const won = pos === 1;
+        document.getElementById('corrida-result').style.display = 'flex';
+        document.getElementById('corrida-result-title').textContent = won ? '🏆 VOCÊ VENCEU!' : '💀 PERDEU!';
+        document.getElementById('corrida-result-title').style.color = won ? '#ffd700' : '#f44336';
+        document.getElementById('corrida-result-text').textContent = `Posição: ${pos}º de ${raceEnemies.length + 1} | Fase ${corridaFase}`;
+        if (won) {
+            score += corridaFase * 500;
+            scoreEl.textContent = score;
+            document.getElementById('corrida-next').style.display = 'inline-block';
+        } else {
+            document.getElementById('corrida-next').style.display = 'none';
+        }
+    }
+}
+
+document.getElementById('btn-corrida').onclick = () => {
+    document.getElementById('corrida-screen').style.display = 'block';
+    corridaFase = 1;
+    startRace();
+};
+document.getElementById('corrida-back').onclick = () => {
+    document.getElementById('corrida-screen').style.display = 'none';
+    corridaRunning = false;
+};
+document.getElementById('corrida-next').onclick = () => {
+    corridaFase++;
+    startRace();
+};
+document.getElementById('corrida-menu').onclick = () => {
+    document.getElementById('corrida-screen').style.display = 'none';
+    corridaRunning = false;
+};
 
 // Click logic
 function doClick(x, y) {
