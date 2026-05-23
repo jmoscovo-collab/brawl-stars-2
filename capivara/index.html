@@ -280,10 +280,10 @@ const SKINS = [
 function loadProgress() {
     try {
         const data = JSON.parse(localStorage.getItem('capivara_run_progress'));
-        if (data) { if (data.gems === undefined) data.gems = 0; return data; }
-        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'], gems: 0 };
+        if (data) { if (data.gems === undefined) data.gems = 200; return data; }
+        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'], gems: 200 };
     } catch(e) {
-        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'], gems: 0 };
+        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'], gems: 200 };
     }
 }
 function saveProgress() { localStorage.setItem('capivara_run_progress', JSON.stringify(progress)); }
@@ -1186,10 +1186,11 @@ function renderSkinsScreen() {
         const selected = progress.selectedSkin === skin.id;
         const card = document.createElement('div');
         card.className = 'skin-card' + (selected ? ' selected' : '') + (!unlocked ? ' locked' : '');
+        let reqLabel = unlocked ? '✓ Desbloqueada' : (skin.req === -1 ? '📦 Disponível na Caixa' : '🔒 ' + skin.reqText);
         card.innerHTML = `
             <div class="skin-icon">${skin.icon}</div>
             <div class="skin-name">${skin.name}</div>
-            <div class="skin-req ${unlocked ? 'unlocked' : ''}">${unlocked ? '✓ Desbloqueada' : '🔒 ' + skin.reqText}</div>
+            <div class="skin-req ${unlocked ? 'unlocked' : ''}">${reqLabel}</div>
         `;
         if (unlocked) {
             card.onclick = () => { progress.selectedSkin = skin.id; saveProgress(); renderSkinsScreen(); };
