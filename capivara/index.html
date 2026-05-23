@@ -127,8 +127,6 @@
         #friend-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,10,40,0.97); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px; z-index: 9998; }
         #friend-screen h2 { color: #fff; font-size: 28px; text-shadow: 2px 2px 0 #2196f3; }
         #friend-screen p { color: #aaa; font-size: 14px; text-align: center; }
-        #friend-qr { background: #fff; padding: 15px; border-radius: 15px; display: inline-block; }
-        #friend-qr img { display: block; width: 150px; height: 150px; }
         #friend-list { color: #ccc; font-size: 14px; text-align: center; max-height: 150px; overflow-y: auto; }
         #friend-list div { padding: 5px 0; }
         .btn-friend { background: #2196f3; }
@@ -264,8 +262,10 @@
     </div>
     <div id="friend-screen">
         <h2>👥 AMIZADE</h2>
-        <p>Escaneie o QR Code para adicionar como amigo!</p>
-        <div id="friend-qr"><img id="qr-img" alt="QR Code"></div>
+        <p>Digite o nome do amigo para adicionar:</p>
+        <input type="text" id="friend-name-input" maxlength="15" placeholder="Nome do amigo..." style="padding:12px 20px;font-size:18px;border-radius:15px;border:3px solid #2196f3;background:rgba(30,30,70,0.9);color:#fff;text-align:center;font-family:monospace;width:250px;outline:none;">
+        <button id="friend-add-btn" style="padding:12px 40px;font-size:18px;background:#4caf50;color:#fff;border:none;border-radius:25px;cursor:pointer;font-weight:bold;">ADICIONAR</button>
+        <div id="friend-msg" style="color:#4caf50;font-size:14px;min-height:20px;"></div>
         <div id="friend-list"></div>
         <button id="friend-back" style="padding:12px 40px;font-size:18px;background:#ff9800;color:#fff;border:none;border-radius:25px;cursor:pointer;">VOLTAR</button>
     </div>
@@ -1536,14 +1536,15 @@ document.getElementById('name-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('name-confirm').click();
 });
 
-// Friend system with QR
+// Friend system — add by name
 function showFriendScreen() {
     document.getElementById('menu').classList.add('hidden');
     document.getElementById('friend-screen').style.display = 'flex';
-    const name = playerName || 'Jogador';
-    const friendUrl = 'https://cogumelogames.com.br/capivara/?amigo=' + encodeURIComponent(name);
-    document.getElementById('qr-img').src = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(friendUrl);
-    // Show friend list
+    document.getElementById('friend-msg').textContent = '';
+    document.getElementById('friend-name-input').value = '';
+    renderFriendList();
+}
+function renderFriendList() {
     const friends = JSON.parse(localStorage.getItem('capivara_friends') || '[]');
     const list = document.getElementById('friend-list');
     if (friends.length === 0) {
@@ -1552,44 +1553,25 @@ function showFriendScreen() {
         list.innerHTML = friends.map(f => '<div>👤 ' + f + '</div>').join('');
     }
 }
-
-// Auto-add friend from URL — roda imediatamente
-const _urlParams = new URLSearchParams(window.location.search);
-const _amigoParam = _urlParams.get('amigo');
-if (_amigoParam && _amigoParam.toLowerCase() !== (playerName || '').toLowerCase()) {
+document.getElementById('friend-add-btn').onclick = () => {
+    const input = document.getElementById('friend-name-input');
+    const name = input.value.trim();
+    const msg = document.getElementById('friend-msg');
+    if (!name) { msg.textContent = 'Digite um nome!'; msg.style.color = '#f44336'; return; }
+    if (name.toLowerCase() === (playerName || '').toLowerCase()) { msg.textContent = 'Não pode adicionar a si mesmo!'; msg.style.color = '#f44336'; return; }
     const friends = JSON.parse(localStorage.getItem('capivara_friends') || '[]');
-    if (!friends.includes(_amigoParam)) {
-        friends.push(_amigoParam);
-        localStorage.setItem('capivara_friends', JSON.stringify(friends));
-    }
-    window.history.replaceState({}, '', window.location.pathname);
-    // Esconde TUDO e mostra só a mensagem de amizade
-    document.getElementById('device-screen').style.display = 'none';
-    const msg = document.createElement('div');
-    msg.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:99999;font-family:monospace;';
-    const meuNome = localStorage.getItem('capivara_player_name') || '';
-    const linkDeVolta = 'https://cogumelogames.com.br/capivara/?amigo=' + encodeURIComponent(meuNome || 'Amigo');
-    const whatsLink = 'https://wa.me/?text=' + encodeURIComponent('Aceita minha amizade no Capivara Run! 🐾 ' + linkDeVolta);
-    msg.innerHTML = `
-        <div style="font-size:80px">🎉</div>
-        <div style="color:#fff;font-size:32px;font-weight:bold;text-shadow:2px 2px 0 #2196f3;">AMIZADE ACEITA!</div>
-        <div style="color:#4caf50;font-size:24px;font-weight:bold;">Você e ${_amigoParam} agora são amigos!</div>
-        <div style="color:#fff;font-size:16px;margin-top:15px;text-align:center;line-height:1.6;">Agora manda o link abaixo pro <b>${_amigoParam}</b><br>pra ele te adicionar de volta!</div>
-        <a href="${whatsLink}" target="_blank" style="margin-top:10px;padding:14px 40px;font-size:18px;background:#25d366;color:#fff;border:none;border-radius:30px;cursor:pointer;font-weight:bold;text-decoration:none;display:inline-block;">📱 Enviar pelo WhatsApp</a>
-        <button id="friend-copy-btn" style="padding:10px 30px;font-size:14px;background:#2196f3;color:#fff;border:none;border-radius:20px;cursor:pointer;">📋 Copiar link</button>
-        <button id="friend-accept-btn" style="margin-top:15px;padding:14px 50px;font-size:20px;background:linear-gradient(135deg,#4caf50,#00e676);color:#fff;border:none;border-radius:30px;cursor:pointer;font-weight:bold;box-shadow:0 5px 20px rgba(76,175,80,0.4);">JOGAR! 🎮</button>
-    `;
-    document.body.appendChild(msg);
-    msg.querySelector('#friend-copy-btn').onclick = () => {
-        navigator.clipboard.writeText(linkDeVolta).then(() => {
-            msg.querySelector('#friend-copy-btn').textContent = '✅ Copiado!';
-        });
-    };
-    msg.querySelector('#friend-accept-btn').onclick = () => {
-        msg.remove();
-        document.getElementById('device-screen').style.display = 'flex';
-    };
-}
+    if (friends.includes(name)) { msg.textContent = 'Já é seu amigo!'; msg.style.color = '#ff9800'; return; }
+    friends.push(name);
+    localStorage.setItem('capivara_friends', JSON.stringify(friends));
+    msg.textContent = '✅ ' + name + ' adicionado!';
+    msg.style.color = '#4caf50';
+    input.value = '';
+    renderFriendList();
+};
+document.getElementById('friend-name-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('friend-add-btn').click();
+});
+
 document.getElementById('btn-friend').onclick = showFriendScreen;
 document.getElementById('friend-back').onclick = () => {
     document.getElementById('friend-screen').style.display = 'none';
