@@ -126,8 +126,23 @@ renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 1.3;
 renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.physicallyCorrectLights = true;
+
+// Environment map for realistic reflections
+const envScene = new THREE.Scene();
+const envCam = new THREE.CubeCamera(0.1, 100, new THREE.WebGLCubeRenderTarget(256));
+const envColors = [0x88bbdd, 0x6699bb, 0xaaddff, 0x334422, 0x223311, 0x556644];
+for (let i = 0; i < 6; i++) {
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), new THREE.MeshBasicMaterial({ color: envColors[i] }));
+    const dirs = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+    p.position.set(dirs[i][0]*25, dirs[i][1]*25, dirs[i][2]*25);
+    p.lookAt(0,0,0);
+    envScene.add(p);
+}
+envCam.update(renderer, envScene);
+const envMap = envCam.renderTarget.texture;
 
 let scene, camera, sunLight, hemiLight;
 
@@ -156,10 +171,20 @@ function setupScene(track) {
     scene.add(sunLight);
     scene.add(sunLight.target);
 
-    // Fill light (opposite side)
-    const fillLight = new THREE.DirectionalLight(0x8899bb, 0.3);
-    fillLight.position.set(20, 20, 10);
+    // Fill light (opposite side for soft shadows)
+    const fillLight = new THREE.DirectionalLight(0x8899bb, 0.35);
+    fillLight.position.set(20, 15, 10);
     scene.add(fillLight);
+
+    // Ground bounce light (warm)
+    const bounceLight = new THREE.DirectionalLight(0xaa8866, 0.15);
+    bounceLight.position.set(0, -5, 0);
+    scene.add(bounceLight);
+
+    // Rim light (back light for car silhouette)
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
+    rimLight.position.set(0, 10, 40);
+    scene.add(rimLight);
 
     // Ground (higher res)
     const groundGeo = new THREE.PlaneGeometry(800, 800, 4, 4);
@@ -223,13 +248,23 @@ function buildRoad(track) {
         const z = -i * ROAD_SEG_LEN;
         const group = new THREE.Group();
 
-        const roadGeo = new THREE.PlaneGeometry(ROAD_WIDTH, ROAD_SEG_LEN, 2, 2);
-        const roadMat = new THREE.MeshStandardMaterial({ color: track.road, roughness: 0.82, metalness: 0.08 });
+        const roadGeo = new THREE.PlaneGeometry(ROAD_WIDTH, ROAD_SEG_LEN, 4, 4);
+        const roadMat = new THREE.MeshStandardMaterial({ color: track.road, roughness: 0.88, metalness: 0.05 });
         const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI / 2;
         road.position.set(0, 0.01, z);
         road.receiveShadow = true;
         group.add(road);
+
+        // Tire marks / oil stains (random dark patches)
+        if (Math.random() < 0.4) {
+            const markGeo = new THREE.PlaneGeometry(0.3, 4 + Math.random() * 6);
+            const markMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1a, transparent: true, opacity: 0.3 });
+            const mark = new THREE.Mesh(markGeo, markMat);
+            mark.rotation.x = -Math.PI / 2;
+            mark.position.set((Math.random() - 0.5) * 8, 0.015, z + (Math.random() - 0.5) * ROAD_SEG_LEN);
+            group.add(mark);
+        }
 
         const dashGeo = new THREE.PlaneGeometry(0.15, 2.5);
         const dashMat = new THREE.MeshBasicMaterial({ color: 0xdddddd });
@@ -286,10 +321,10 @@ function buildRoad(track) {
 function createCarMesh(color, scale) {
     const s = scale || 1;
     const group = new THREE.Group();
-    const bodyMat = new THREE.MeshStandardMaterial({ color, metalness: 0.9, roughness: 0.1 });
-    const chromeMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 1.0, roughness: 0.05 });
-    const darkMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, metalness: 0.3, roughness: 0.5 });
-    const glassMat = new THREE.MeshStandardMaterial({ color: 0x3388aa, metalness: 0.95, roughness: 0.02, transparent: true, opacity: 0.55 });
+    const bodyMat = new THREE.MeshStandardMaterial({ color, metalness: 0.92, roughness: 0.08, envMap, envMapIntensity: 1.2 });
+    const chromeMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, metalness: 1.0, roughness: 0.02, envMap, envMapIntensity: 2.0 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, metalness: 0.4, roughness: 0.4, envMap, envMapIntensity: 0.5 });
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x2266aa, metalness: 0.98, roughness: 0.01, transparent: true, opacity: 0.45, envMap, envMapIntensity: 2.5 });
 
     // Main body (lower, wider, sculpted)
     const bodyGeo = new THREE.BoxGeometry(2.3 * s, 0.55 * s, 5.0 * s);
@@ -748,10 +783,14 @@ function gameLoop() {
     if (newLap > playerLap) playerLap = newLap;
     if (playerLap >= currentTrack.laps) { endRace(true); return; }
 
-    // Car visual
+    // Car visual (suspension: roll in curves, pitch on accel/brake, road vibration)
+    const vibration = playerSpeed > 2 ? (Math.random() - 0.5) * 0.01 * (playerSpeed / currentCar.speed) : 0;
     playerMesh.position.x = playerX;
-    playerMesh.rotation.y = playerSteer * 0.25;
-    playerMesh.rotation.z = -playerSteer * 0.03;
+    playerMesh.position.y = vibration;
+    playerMesh.rotation.y = playerSteer * 0.2;
+    playerMesh.rotation.z = -playerSteer * 0.06;
+    const pitching = (keys['KeyW'] || keys['ArrowUp']) ? -0.02 : (keys['KeyS'] || keys['ArrowDown']) ? 0.03 : 0;
+    playerMesh.rotation.x += (pitching - playerMesh.rotation.x) * 0.1;
 
     // Road movement
     for (const seg of roadSegments) {
@@ -804,12 +843,13 @@ function gameLoop() {
         return;
     }
 
-    // Camera
-    const camH = 4.5 + playerSpeed * 0.4;
-    const camD = 10 + playerSpeed * 0.5;
-    camera.position.lerp(new THREE.Vector3(playerX * 0.35, camH, camD), 0.06);
-    camera.lookAt(playerX * 0.4, 1, -18);
-    camera.fov = 55 + playerSpeed * 4;
+    // Camera (low, cinematic — like real racing games)
+    const camH = 2.8 + playerSpeed * 0.25;
+    const camD = 8 + playerSpeed * 0.6;
+    const camLateral = playerSteer * -1.5;
+    camera.position.lerp(new THREE.Vector3(playerX * 0.4 + camLateral, camH, camD), 0.045);
+    camera.lookAt(playerX * 0.5, 0.8, -22);
+    camera.fov = 60 + playerSpeed * 5;
     camera.updateProjectionMatrix();
 
     sunLight.position.set(playerX - 30, 50, -20);
