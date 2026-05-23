@@ -247,7 +247,7 @@
         </div>
         <button id="shop-back">VOLTAR</button>
     </div>
-    <div id="gem-counter"><span class="gem-icon">💎</span> <span id="gem-count">0</span></div>
+    <div id="gem-counter"><span class="gem-icon">🪙</span> <span id="coin-count">0</span> &nbsp; <span class="gem-icon">💎</span> <span id="gem-count">0</span></div>
     <div id="name-screen">
         <h2>Qual é seu nome?</h2>
         <input type="text" id="name-input" maxlength="15" placeholder="Digite seu nome...">
@@ -305,17 +305,19 @@ function loadProgress() {
         const data = JSON.parse(localStorage.getItem('capivara_run_progress'));
         if (data) {
             if (data.gems === undefined) data.gems = 0;
+            if (data.coins === undefined) data.coins = 0;
             if (!data.gotInitialGems) { data.gems += 200; data.gotInitialGems = true; }
             return data;
         }
-        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'], gems: 200, gotInitialGems: true };
+        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'], gems: 200, gotInitialGems: true, coins: 0 };
     } catch(e) {
-        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'], gems: 200, gotInitialGems: true };
+        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'], gems: 200, gotInitialGems: true, coins: 0 };
     }
 }
 function saveProgress() { localStorage.setItem('capivara_run_progress', JSON.stringify(progress)); }
 function updateGemDisplay() {
     document.getElementById('gem-count').textContent = progress.gems;
+    document.getElementById('coin-count').textContent = progress.coins;
     const shopCount = document.getElementById('shop-gem-count');
     if (shopCount) shopCount.textContent = progress.gems;
 }
@@ -524,7 +526,7 @@ function update() {
             if (Math.abs(pl.x + 15 - c.x - 8) < 22 && Math.abs(pl.y + 17 - c.y - 8) < 22) {
                 c.collected = true;
                 moedas++;
-                progress.gems++;
+                progress.coins++;
                 saveProgress();
                 updateGemDisplay();
                 sfxCoin();
