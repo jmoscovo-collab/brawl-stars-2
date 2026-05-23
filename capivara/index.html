@@ -1567,14 +1567,24 @@ if (_amigoParam && _amigoParam.toLowerCase() !== (playerName || '').toLowerCase(
     document.getElementById('device-screen').style.display = 'none';
     const msg = document.createElement('div');
     msg.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:99999;font-family:monospace;';
+    const meuNome = localStorage.getItem('capivara_player_name') || '';
+    const linkDeVolta = 'https://cogumelogames.com.br/capivara/?amigo=' + encodeURIComponent(meuNome || 'Amigo');
+    const whatsLink = 'https://wa.me/?text=' + encodeURIComponent('Aceita minha amizade no Capivara Run! 🐾 ' + linkDeVolta);
     msg.innerHTML = `
         <div style="font-size:80px">🎉</div>
         <div style="color:#fff;font-size:32px;font-weight:bold;text-shadow:2px 2px 0 #2196f3;">AMIZADE ACEITA!</div>
         <div style="color:#4caf50;font-size:24px;font-weight:bold;">Você e ${_amigoParam} agora são amigos!</div>
-        <div style="color:#aaa;font-size:16px;margin-top:10px;">Agora vocês aparecem na lista de amigos!</div>
-        <button id="friend-accept-btn" style="margin-top:30px;padding:14px 50px;font-size:20px;background:linear-gradient(135deg,#4caf50,#00e676);color:#fff;border:none;border-radius:30px;cursor:pointer;font-weight:bold;box-shadow:0 5px 20px rgba(76,175,80,0.4);">JOGAR! 🎮</button>
+        <div style="color:#fff;font-size:16px;margin-top:15px;text-align:center;line-height:1.6;">Agora manda o link abaixo pro <b>${_amigoParam}</b><br>pra ele te adicionar de volta!</div>
+        <a href="${whatsLink}" target="_blank" style="margin-top:10px;padding:14px 40px;font-size:18px;background:#25d366;color:#fff;border:none;border-radius:30px;cursor:pointer;font-weight:bold;text-decoration:none;display:inline-block;">📱 Enviar pelo WhatsApp</a>
+        <button id="friend-copy-btn" style="padding:10px 30px;font-size:14px;background:#2196f3;color:#fff;border:none;border-radius:20px;cursor:pointer;">📋 Copiar link</button>
+        <button id="friend-accept-btn" style="margin-top:15px;padding:14px 50px;font-size:20px;background:linear-gradient(135deg,#4caf50,#00e676);color:#fff;border:none;border-radius:30px;cursor:pointer;font-weight:bold;box-shadow:0 5px 20px rgba(76,175,80,0.4);">JOGAR! 🎮</button>
     `;
     document.body.appendChild(msg);
+    msg.querySelector('#friend-copy-btn').onclick = () => {
+        navigator.clipboard.writeText(linkDeVolta).then(() => {
+            msg.querySelector('#friend-copy-btn').textContent = '✅ Copiado!';
+        });
+    };
     msg.querySelector('#friend-accept-btn').onclick = () => {
         msg.remove();
         document.getElementById('device-screen').style.display = 'flex';
