@@ -1521,6 +1521,24 @@ function showNameScreen() {
 document.getElementById('name-confirm').onclick = () => {
     const name = document.getElementById('name-input').value.trim();
     if (!name) return;
+    const registeredNames = JSON.parse(localStorage.getItem('capivara_registered_names') || '[]');
+    if (registeredNames.includes(name.toLowerCase()) && name.toLowerCase() !== (playerName || '').toLowerCase()) {
+        let errEl = document.getElementById('name-error');
+        if (!errEl) {
+            errEl = document.createElement('div');
+            errEl.id = 'name-error';
+            errEl.style.cssText = 'color:#f44336;font-size:14px;font-weight:bold;font-family:monospace;';
+            document.getElementById('name-confirm').before(errEl);
+        }
+        errEl.textContent = '⚠️ Já existe alguém com este nome!';
+        return;
+    }
+    // Remove nome antigo e registra novo
+    const oldName = (playerName || '').toLowerCase();
+    const idx = registeredNames.indexOf(oldName);
+    if (idx !== -1) registeredNames.splice(idx, 1);
+    if (!registeredNames.includes(name.toLowerCase())) registeredNames.push(name.toLowerCase());
+    localStorage.setItem('capivara_registered_names', JSON.stringify(registeredNames));
     playerName = name;
     localStorage.setItem('capivara_player_name', playerName);
     document.getElementById('name-screen').style.display = 'none';
