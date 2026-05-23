@@ -102,22 +102,22 @@
         #click-power { color: #aaa; font-size: 14px; margin-top: 10px; }
         #btn-academia { margin-top: 15px; padding: 12px 30px; background: #7c4dff; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; font-family: monospace; }
         #btn-academia:hover { transform: scale(1.05); background: #651fff; }
-        #academia-screen { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); flex-direction: column; align-items: center; padding: 20px; overflow-y: auto; z-index: 500; }
-        #academia-screen h1 { font-size: 32px; color: #fff; margin-bottom: 5px; text-shadow: 2px 2px 0 #7c4dff; }
-        #academia-screen .speed-display { color: #aaa; font-size: 16px; margin-bottom: 20px; }
-        .esteiras { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; max-width: 800px; width: 100%; }
-        .esteira-card { background: rgba(30, 30, 70, 0.9); border: 3px solid #444; border-radius: 15px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
-        .esteira-card:hover { border-color: #7c4dff; transform: scale(1.03); }
-        .esteira-card.locked { opacity: 0.4; cursor: not-allowed; }
-        .esteira-card.locked:hover { border-color: #444; transform: none; }
-        .esteira-card.active { border-color: #4caf50; box-shadow: 0 0 15px rgba(76,175,80,0.4); }
-        .esteira-card .est-icon { font-size: 40px; margin-bottom: 8px; }
-        .esteira-card .est-name { color: #fff; font-size: 16px; font-weight: bold; margin-bottom: 5px; }
-        .esteira-card .est-req { color: #aaa; font-size: 12px; }
-        .esteira-card .est-bonus { color: #4caf50; font-size: 12px; margin-top: 5px; }
-        .esteira-card.coming-soon { opacity: 0.5; cursor: default; border-style: dashed; }
-        #academia-back { margin-top: 20px; padding: 12px 40px; font-size: 18px; background: #ff9800; color: #fff; border: none; border-radius: 25px; cursor: pointer; font-family: monospace; }
-        #academia-back:hover { transform: scale(1.05); }
+        #academia-screen { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 500; }
+        #academia-3d { width: 100%; height: 100%; }
+        #academia-ui { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
+        #academia-ui h1 { font-size: 28px; color: #fff; margin-top: 15px; text-shadow: 2px 2px 4px #000; pointer-events: none; }
+        #academia-ui .speed-display { color: #ddd; font-size: 16px; text-shadow: 1px 1px 3px #000; margin-top: 5px; }
+        #esteira-hud { position: absolute; bottom: 80px; left: 0; right: 0; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 0 10px; pointer-events: auto; }
+        .est-btn { padding: 8px 14px; background: rgba(30,30,70,0.85); border: 2px solid #444; border-radius: 10px; color: #fff; font-size: 12px; font-family: monospace; cursor: pointer; text-align: center; min-width: 80px; transition: all 0.2s; }
+        .est-btn:hover { border-color: #7c4dff; transform: scale(1.05); }
+        .est-btn.locked { opacity: 0.35; cursor: not-allowed; }
+        .est-btn.locked:hover { border-color: #444; transform: none; }
+        .est-btn.active { border-color: #4caf50; box-shadow: 0 0 10px rgba(76,175,80,0.5); }
+        .est-btn .est-b-name { font-weight: bold; font-size: 11px; }
+        .est-btn .est-b-req { color: #aaa; font-size: 10px; }
+        .est-btn.coming-soon { opacity: 0.4; border-style: dashed; cursor: default; }
+        #academia-back { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 12px 40px; font-size: 18px; background: #ff9800; color: #fff; border: none; border-radius: 25px; cursor: pointer; font-family: monospace; pointer-events: auto; }
+        #academia-back:hover { transform: translateX(-50%) scale(1.05); }
     </style>
 </head>
 <body>
@@ -140,9 +140,12 @@
     <div class="best" id="best">Recorde: 0</div>
 
     <div id="academia-screen">
-        <h1>🏋️ ACADEMIA</h1>
-        <div class="speed-display">Velocidade: <span id="speed-val">0</span></div>
-        <div class="esteiras" id="esteiras-grid"></div>
+        <canvas id="academia-3d"></canvas>
+        <div id="academia-ui">
+            <h1>🏋️ ACADEMIA</h1>
+            <div class="speed-display">Velocidade: <span id="speed-val">0</span></div>
+        </div>
+        <div id="esteira-hud"></div>
         <button id="academia-back">VOLTAR</button>
     </div>
 
@@ -248,55 +251,202 @@ drawCogumelo();
 
 // Academia
 const ESTEIRAS = [
-    { name: 'Esteira 1', icon: '🏃', req: 0, bonus: 1, desc: 'Grátis!' },
-    { name: 'Esteira 2', icon: '🏃‍♂️', req: 800, bonus: 3, desc: '800 velocidade' },
-    { name: 'Esteira 3', icon: '⚡', req: 5000, bonus: 10, desc: '5.000 velocidade' },
-    { name: 'Esteira 4', icon: '🔥', req: 50000, bonus: 25, desc: '50.000 velocidade' },
-    { name: 'Esteira 5', icon: '💨', req: 200000, bonus: 50, desc: '200.000 velocidade' },
-    { name: 'Esteira 6', icon: '🚀', req: 500000, bonus: 100, desc: '500.000 velocidade' },
-    { name: 'Esteira 7', icon: '☄️', req: 1000000, bonus: 200, desc: '1.000.000 velocidade' },
+    { name: 'Esteira 1', req: 0, bonus: 1, color: 0x4caf50 },
+    { name: 'Esteira 2', req: 800, bonus: 3, color: 0x2196f3 },
+    { name: 'Esteira 3', req: 5000, bonus: 10, color: 0xff9800 },
+    { name: 'Esteira 4', req: 50000, bonus: 25, color: 0xe91e63 },
+    { name: 'Esteira 5', req: 200000, bonus: 50, color: 0x9c27b0 },
+    { name: 'Esteira 6', req: 500000, bonus: 100, color: 0x00bcd4 },
+    { name: 'Esteira 7', req: 1000000, bonus: 200, color: 0xffd700 },
 ];
 let currentEsteira = 0;
 let speed = 0;
+let academiaScene, academiaCamera, academiaRenderer, academiaBelts = [];
+let academiaRunning = false;
+
+function initAcademia3D() {
+    if (academiaScene) return;
+    const THREE = window.THREE;
+    academiaScene = new THREE.Scene();
+    academiaScene.background = new THREE.Color(0x1a1a2e);
+    academiaScene.fog = new THREE.Fog(0x1a1a2e, 15, 30);
+
+    academiaCamera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    academiaCamera.position.set(0, 5, 10);
+    academiaCamera.lookAt(0, 1, 0);
+
+    academiaRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('academia-3d'), antialias: true });
+    academiaRenderer.setSize(window.innerWidth, window.innerHeight);
+    academiaRenderer.shadowMap.enabled = true;
+
+    // Lights
+    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+    academiaScene.add(ambient);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(5, 10, 5);
+    dirLight.castShadow = true;
+    academiaScene.add(dirLight);
+    const pointLight = new THREE.PointLight(0x7c4dff, 0.5, 20);
+    pointLight.position.set(0, 6, 0);
+    academiaScene.add(pointLight);
+
+    // Floor
+    const floorGeo = new THREE.PlaneGeometry(30, 20);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x2a2a4a, roughness: 0.8 });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    academiaScene.add(floor);
+
+    // Walls
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x222244, roughness: 0.9 });
+    const backWall = new THREE.Mesh(new THREE.PlaneGeometry(30, 8), wallMat);
+    backWall.position.set(0, 4, -10);
+    academiaScene.add(backWall);
+
+    // Mirrors on wall
+    const mirrorMat = new THREE.MeshStandardMaterial({ color: 0x88aacc, metalness: 0.8, roughness: 0.2 });
+    for (let i = -2; i <= 2; i++) {
+        const mirror = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 3.5), mirrorMat);
+        mirror.position.set(i * 3.5, 4, -9.9);
+        academiaScene.add(mirror);
+    }
+
+    // Create treadmills
+    for (let i = 0; i < ESTEIRAS.length; i++) {
+        const est = ESTEIRAS[i];
+        const group = new THREE.Group();
+        const x = (i - 3) * 2.2;
+        group.position.set(x, 0, 0);
+
+        // Base
+        const baseGeo = new THREE.BoxGeometry(1.2, 0.3, 3);
+        const baseMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        const base = new THREE.Mesh(baseGeo, baseMat);
+        base.position.y = 0.15;
+        base.castShadow = true;
+        group.add(base);
+
+        // Belt
+        const beltGeo = new THREE.BoxGeometry(1, 0.05, 2.6);
+        const beltMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+        const belt = new THREE.Mesh(beltGeo, beltMat);
+        belt.position.y = 0.32;
+        group.add(belt);
+
+        // Front/back rollers
+        const rollerGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.1, 12);
+        const rollerMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.5 });
+        const roller1 = new THREE.Mesh(rollerGeo, rollerMat);
+        roller1.rotation.z = Math.PI / 2;
+        roller1.position.set(0, 0.2, 1.3);
+        group.add(roller1);
+        const roller2 = roller1.clone();
+        roller2.position.z = -1.3;
+        group.add(roller2);
+
+        // Handle bars
+        const barMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.6 });
+        const barGeo = new THREE.CylinderGeometry(0.03, 0.03, 2.5, 8);
+        const leftBar = new THREE.Mesh(barGeo, barMat);
+        leftBar.position.set(-0.5, 1.55, -0.3);
+        group.add(leftBar);
+        const rightBar = leftBar.clone();
+        rightBar.position.x = 0.5;
+        group.add(rightBar);
+
+        // Top handle
+        const topGeo = new THREE.CylinderGeometry(0.03, 0.03, 1.1, 8);
+        const topBar = new THREE.Mesh(topGeo, barMat);
+        topBar.rotation.z = Math.PI / 2;
+        topBar.position.set(0, 2.8, -0.3);
+        group.add(topBar);
+
+        // Display panel
+        const panelGeo = new THREE.BoxGeometry(0.6, 0.4, 0.05);
+        const panelMat = new THREE.MeshStandardMaterial({ color: est.color, emissive: est.color, emissiveIntensity: 0.3 });
+        const panel = new THREE.Mesh(panelGeo, panelMat);
+        panel.position.set(0, 2.5, -0.35);
+        group.add(panel);
+
+        // Glow indicator
+        const glowGeo = new THREE.SphereGeometry(0.08, 8, 8);
+        const glowMat = new THREE.MeshStandardMaterial({ color: est.color, emissive: est.color, emissiveIntensity: 0.8 });
+        const glow = new THREE.Mesh(glowGeo, glowMat);
+        glow.position.set(0, 3, -0.3);
+        group.add(glow);
+
+        academiaScene.add(group);
+        academiaBelts.push({ group, belt, roller1, roller2, glow, est, index: i });
+    }
+}
+
+function animateAcademia() {
+    if (!academiaRunning) return;
+    requestAnimationFrame(animateAcademia);
+
+    for (const b of academiaBelts) {
+        const unlocked = speed >= b.est.req;
+        const active = currentEsteira === b.index;
+
+        if (active && unlocked) {
+            b.belt.material.color.setHex(0x222222);
+            b.roller1.rotation.x += 0.1;
+            b.roller2.rotation.x += 0.1;
+            b.glow.material.emissiveIntensity = 0.5 + Math.sin(Date.now() * 0.005) * 0.5;
+        } else if (unlocked) {
+            b.belt.material.color.setHex(0x1a1a1a);
+            b.glow.material.emissiveIntensity = 0.3;
+        } else {
+            b.belt.material.color.setHex(0x0a0a0a);
+            b.glow.material.emissiveIntensity = 0.05;
+            b.group.children.forEach(c => { if (c.material) c.material.opacity = 0.5; });
+        }
+    }
+
+    academiaCamera.position.x = Math.sin(Date.now() * 0.0003) * 2;
+    academiaCamera.lookAt(0, 1.5, 0);
+    academiaRenderer.render(academiaScene, academiaCamera);
+}
 
 function renderEsteiras() {
-    const grid = document.getElementById('esteiras-grid');
-    grid.innerHTML = '';
+    const hud = document.getElementById('esteira-hud');
+    hud.innerHTML = '';
     document.getElementById('speed-val').textContent = speed.toLocaleString();
     for (let i = 0; i < ESTEIRAS.length; i++) {
         const est = ESTEIRAS[i];
         const unlocked = speed >= est.req;
         const active = currentEsteira === i;
-        const card = document.createElement('div');
-        card.className = 'esteira-card' + (!unlocked ? ' locked' : '') + (active ? ' active' : '');
-        card.innerHTML = `
-            <div class="est-icon">${est.icon}</div>
-            <div class="est-name">${est.name}</div>
-            <div class="est-req">${est.req === 0 ? '🆓 Grátis' : '🔒 ' + est.req.toLocaleString() + ' vel.'}</div>
-            <div class="est-bonus">+${est.bonus} vel/clique</div>
-        `;
-        if (unlocked) {
-            card.onclick = () => { currentEsteira = i; renderEsteiras(); };
-        }
-        grid.appendChild(card);
+        const btn = document.createElement('div');
+        btn.className = 'est-btn' + (!unlocked ? ' locked' : '') + (active ? ' active' : '');
+        btn.innerHTML = `<div class="est-b-name">${est.name}</div><div class="est-b-req">${est.req === 0 ? '🆓' : est.req.toLocaleString()}</div>`;
+        if (unlocked) btn.onclick = () => { currentEsteira = i; renderEsteiras(); };
+        hud.appendChild(btn);
     }
-    // Coming soon card
     const soon = document.createElement('div');
-    soon.className = 'esteira-card coming-soon';
-    soon.innerHTML = `
-        <div class="est-icon">🔮</div>
-        <div class="est-name">???</div>
-        <div class="est-req">Na próxima atualização...</div>
-    `;
-    grid.appendChild(soon);
+    soon.className = 'est-btn coming-soon';
+    soon.innerHTML = '<div class="est-b-name">???</div><div class="est-b-req">Em breve...</div>';
+    hud.appendChild(soon);
 }
 
 document.getElementById('btn-academia').onclick = () => {
-    document.getElementById('academia-screen').style.display = 'flex';
-    renderEsteiras();
+    document.getElementById('academia-screen').style.display = 'block';
+    if (!window.THREE) {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+        s.onload = () => { initAcademia3D(); academiaRunning = true; animateAcademia(); renderEsteiras(); };
+        document.head.appendChild(s);
+    } else {
+        if (!academiaScene) initAcademia3D();
+        academiaRunning = true;
+        academiaRenderer.setSize(window.innerWidth, window.innerHeight);
+        animateAcademia();
+        renderEsteiras();
+    }
 };
 document.getElementById('academia-back').onclick = () => {
     document.getElementById('academia-screen').style.display = 'none';
+    academiaRunning = false;
 };
 
 capiDiv.addEventListener('click', (e) => {
