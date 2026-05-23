@@ -107,6 +107,16 @@
         #rotate-msg .icon { font-size: 80px; animation: rotatePhone 2s infinite; }
         @keyframes rotatePhone { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(90deg); } }
         #rotate-msg p { font-size: 20px; }
+        #roulette-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 9000; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+        #roulette-overlay h2 { color: #fff; font-size: 28px; text-shadow: 2px 2px 0 #ff5722; }
+        .roulette-strip { display: flex; overflow: hidden; width: 300px; height: 90px; border: 4px solid #ff5722; border-radius: 15px; background: rgba(30,30,70,0.95); position: relative; }
+        .roulette-strip::before { content: '▼'; position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 20px; color: #ff5722; z-index: 2; }
+        .roulette-inner { display: flex; transition: transform 3s cubic-bezier(0.2, 0.8, 0.3, 1); }
+        .roulette-item { min-width: 100px; height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 40px; border-right: 2px solid #333; }
+        .roulette-item span { font-size: 12px; color: #ccc; margin-top: 4px; }
+        .roulette-result { color: #4caf50; font-size: 22px; font-weight: bold; min-height: 30px; }
+        .roulette-close { padding: 12px 40px; font-size: 18px; background: #4caf50; color: #fff; border: none; border-radius: 25px; cursor: pointer; display: none; }
+        .roulette-close:hover { transform: scale(1.05); }
         @media (max-width: 600px) {
             #device-screen h1 { font-size: 24px; }
             #device-screen p { font-size: 14px; }
@@ -222,6 +232,12 @@
         <button id="shop-back">VOLTAR</button>
     </div>
     <div id="gem-counter"><span class="gem-icon">💎</span> <span id="gem-count">0</span></div>
+    <div id="roulette-overlay">
+        <h2>📦 CAIXA DE SKIN</h2>
+        <div class="roulette-strip"><div class="roulette-inner" id="roulette-inner"></div></div>
+        <div class="roulette-result" id="roulette-result"></div>
+        <button class="roulette-close" id="roulette-close">FECHAR</button>
+    </div>
     <div id="hud" class="hidden">
         <span id="hud-fase">Fase 1</span>
         <span id="hud-moedas">Moedas: 0/5</span>
@@ -256,6 +272,9 @@ const SKINS = [
     { id: 'arvore', name: 'Árvore', icon: '🌳', req: 2, reqText: 'Passe 2 fases seguidas' },
     { id: 'estrela', name: 'Estrela', icon: '⭐', req: 5, reqText: 'Passe 5 fases seguidas' },
     { id: 'trofeu', name: 'Troféu', icon: '🏆', req: 10, reqText: 'Passe 10 fases seguidas' },
+    { id: 'dragao', name: 'Dragão', icon: '🐉', req: -1, reqText: 'Só na Caixa de Skin' },
+    { id: 'alienigena', name: 'Alienígena', icon: '👽', req: -1, reqText: 'Só na Caixa de Skin' },
+    { id: 'fantasma', name: 'Fantasma', icon: '👻', req: -1, reqText: 'Só na Caixa de Skin' },
 ];
 
 function loadProgress() {
@@ -1222,29 +1241,70 @@ document.getElementById('shop-back').onclick = () => {
 };
 document.getElementById('shop-skin-box').onclick = () => {
     if (progress.gems < 150) return;
-    progress.gems -= 150;
     const locked = SKINS.filter(s => !progress.unlockedSkins.includes(s.id));
-    if (locked.length > 0) {
-        const skin = locked[Math.floor(Math.random() * locked.length)];
-        progress.unlockedSkins.push(skin.id);
-        sfxUnlock();
-        const msg = document.createElement('div');
-        msg.className = 'unlock-msg';
-        msg.innerHTML = `📦 NOVA SKIN!<br><span style="font-size:30px">${skin.icon}</span><br><span style="font-size:16px">${skin.name}</span>`;
-        document.body.appendChild(msg);
-        setTimeout(() => msg.remove(), 2500);
-    } else {
+    if (locked.length === 0) {
         sfxCoin();
         const msg = document.createElement('div');
         msg.className = 'unlock-msg';
         msg.innerHTML = '📦 Você já tem todas as skins!<br><span style="font-size:14px">+50 💎 de volta</span>';
         document.body.appendChild(msg);
         setTimeout(() => msg.remove(), 2500);
-        progress.gems += 50;
+        progress.gems -= 100;
+        saveProgress(); updateGemDisplay(); updateShopItems();
+        return;
     }
-    saveProgress();
-    updateGemDisplay();
-    updateShopItems();
+    progress.gems -= 150;
+    saveProgress(); updateGemDisplay(); updateShopItems();
+    openRoulette(locked);
+};
+
+function openRoulette(locked) {
+    const overlay = document.getElementById('roulette-overlay');
+    const inner = document.getElementById('roulette-inner');
+    const result = document.getElementById('roulette-result');
+    const closeBtn = document.getElementById('roulette-close');
+    overlay.style.display = 'flex';
+    result.textContent = '';
+    closeBtn.style.display = 'none';
+    inner.style.transition = 'none';
+    inner.style.transform = 'translateX(0)';
+
+    const winSkin = locked[Math.floor(Math.random() * locked.length)];
+    const allSkins = SKINS.filter(s => s.id !== 'cogumelo');
+    const items = [];
+    for (let i = 0; i < 30; i++) {
+        items.push(allSkins[Math.floor(Math.random() * allSkins.length)]);
+    }
+    const winIndex = 22;
+    items[winIndex] = winSkin;
+
+    inner.innerHTML = '';
+    for (const s of items) {
+        const div = document.createElement('div');
+        div.className = 'roulette-item';
+        div.innerHTML = `${s.icon}<span>${s.name}</span>`;
+        inner.appendChild(div);
+    }
+
+    setTimeout(() => {
+        const offset = winIndex * 100 - 100;
+        inner.style.transition = 'transform 3s cubic-bezier(0.2, 0.8, 0.3, 1)';
+        inner.style.transform = `translateX(-${offset}px)`;
+    }, 100);
+
+    setTimeout(() => {
+        progress.unlockedSkins.push(winSkin.id);
+        saveProgress();
+        sfxUnlock();
+        result.textContent = `🎉 ${winSkin.icon} ${winSkin.name}!`;
+        closeBtn.style.display = 'block';
+        updateGemDisplay();
+        updateShopItems();
+    }, 3300);
+}
+document.getElementById('roulette-close').onclick = () => {
+    document.getElementById('roulette-overlay').style.display = 'none';
+    renderSkinsScreen();
 };
 function updateShopItems() {
     const box = document.getElementById('shop-skin-box');
@@ -1259,7 +1319,7 @@ document.addEventListener('keydown', e => {
         secretCode += e.key.toUpperCase();
         if (secretCode.includes('DAVI')) {
             secretCode = '';
-            progress.unlockedSkins = ['cogumelo', 'arvore', 'estrela', 'trofeu'];
+            progress.unlockedSkins = ['cogumelo', 'arvore', 'estrela', 'trofeu', 'dragao', 'alienigena', 'fantasma'];
             progress.gems = 999999;
             saveProgress();
             updateGemDisplay();
