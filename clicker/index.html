@@ -125,7 +125,7 @@
         #btn-corrida { margin-top: 8px; padding: 12px 30px; background: #f44336; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; font-family: monospace; }
         #btn-corrida:hover { transform: scale(1.05); background: #d32f2f; }
         #corrida-screen { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #87ceeb; z-index: 600; overflow: hidden; }
-        #corrida-canvas { width: 100%; height: 100%; display: block; }
+        #corrida-3d { width: 100%; height: 100%; display: block; }
         #corrida-hud { position: absolute; top: 10px; left: 0; right: 0; display: flex; justify-content: space-around; color: #fff; font-size: 18px; font-weight: bold; font-family: monospace; text-shadow: 1px 1px 3px #000; pointer-events: none; }
         #corrida-back { position: absolute; top: 10px; left: 10px; padding: 8px 16px; background: rgba(0,0,0,0.5); color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-family: monospace; z-index: 601; }
         #corrida-result { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); flex-direction: column; align-items: center; justify-content: center; gap: 15px; z-index: 602; }
@@ -163,7 +163,7 @@
     <div class="best" id="best">Recorde: 0</div>
 
     <div id="corrida-screen">
-        <canvas id="corrida-canvas"></canvas>
+        <canvas id="corrida-3d"></canvas>
         <button id="corrida-back">← Voltar</button>
         <div id="corrida-hud">
             <span id="corrida-fase">Fase 1</span>
@@ -655,154 +655,280 @@ function checkMegaUpgrade() {
     updateUpgradeBox2();
 }
 
-// === CORRIDA MODE ===
+// === CORRIDA MODE 3D ===
 let corridaFase = 1;
 let corridaRunning = false;
-let corridaCanvas, corridaCtx;
-let racePlayer, raceEnemies, raceFinish, raceFrame;
+let raceScene, raceCamera, raceRenderer;
+let racePlayer, raceEnemies, raceFinishLine;
+let racePlayerMesh, raceEnemyMeshes = [];
+let raceTrackLength = 100;
 
 const RACE_ENEMIES = [
-    { name: 'Tartaruga', color: '#4caf50', baseSpeed: 1.5 },
-    { name: 'Coelho', color: '#ff9800', baseSpeed: 2.5 },
-    { name: 'Raposa', color: '#f44336', baseSpeed: 3.2 },
-    { name: 'Guepardo', color: '#ffd700', baseSpeed: 4.0 },
-    { name: 'Foguete', color: '#9c27b0', baseSpeed: 5.0 },
+    { name: 'Tartaruga', color: 0x4caf50, baseSpeed: 0.06 },
+    { name: 'Coelho', color: 0xff9800, baseSpeed: 0.09 },
+    { name: 'Raposa', color: 0xf44336, baseSpeed: 0.12 },
+    { name: 'Guepardo', color: 0xffd700, baseSpeed: 0.15 },
+    { name: 'Foguete', color: 0x9c27b0, baseSpeed: 0.19 },
 ];
 
+function initRace3D() {
+    const THREE = window.THREE;
+    raceScene = new THREE.Scene();
+    raceScene.background = new THREE.Color(0x87ceeb);
+    raceScene.fog = new THREE.Fog(0x87ceeb, 50, 120);
+
+    raceCamera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+    raceRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('corrida-3d'), antialias: true });
+    raceRenderer.setSize(window.innerWidth, window.innerHeight);
+    raceRenderer.shadowMap.enabled = true;
+
+    // Lights
+    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+    raceScene.add(ambient);
+    const sun = new THREE.DirectionalLight(0xffffff, 1);
+    sun.position.set(10, 20, 10);
+    sun.castShadow = true;
+    raceScene.add(sun);
+
+    // Ground/track
+    const trackGeo = new THREE.PlaneGeometry(20, raceTrackLength + 20);
+    const trackMat = new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.9 });
+    const track = new THREE.Mesh(trackGeo, trackMat);
+    track.rotation.x = -Math.PI / 2;
+    track.position.z = -raceTrackLength / 2;
+    track.receiveShadow = true;
+    raceScene.add(track);
+
+    // Lane lines
+    for (let i = -3; i <= 3; i++) {
+        const lineGeo = new THREE.BoxGeometry(0.1, 0.02, raceTrackLength);
+        const lineMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+        const line = new THREE.Mesh(lineGeo, lineMat);
+        line.position.set(i * 2, 0.01, -raceTrackLength / 2);
+        raceScene.add(line);
+    }
+
+    // Dashes on lanes
+    for (let z = 0; z > -raceTrackLength; z -= 4) {
+        for (let i = -2; i <= 2; i++) {
+            const dashGeo = new THREE.BoxGeometry(0.08, 0.02, 1.5);
+            const dashMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, transparent: true, opacity: 0.5 });
+            const dash = new THREE.Mesh(dashGeo, dashMat);
+            dash.position.set(i * 2 + 1, 0.01, z);
+            raceScene.add(dash);
+        }
+    }
+
+    // Finish line
+    const finishGroup = new THREE.Group();
+    for (let x = -5; x <= 5; x += 0.8) {
+        for (let y = 0; y < 4; y += 0.8) {
+            const sqGeo = new THREE.BoxGeometry(0.8, 0.8, 0.1);
+            const isBlack = (Math.floor(x / 0.8) + Math.floor(y / 0.8)) % 2 === 0;
+            const sqMat = new THREE.MeshStandardMaterial({ color: isBlack ? 0x000000 : 0xffffff });
+            const sq = new THREE.Mesh(sqGeo, sqMat);
+            sq.position.set(x, y + 0.4, 0);
+            finishGroup.add(sq);
+        }
+    }
+    finishGroup.position.z = -raceTrackLength;
+    raceScene.add(finishGroup);
+    raceFinishLine = finishGroup;
+
+    // Finish arch poles
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+    const poleGeo = new THREE.CylinderGeometry(0.15, 0.15, 5, 8);
+    const poleL = new THREE.Mesh(poleGeo, poleMat);
+    poleL.position.set(-6, 2.5, -raceTrackLength);
+    raceScene.add(poleL);
+    const poleR = poleL.clone();
+    poleR.position.x = 6;
+    raceScene.add(poleR);
+    const archGeo = new THREE.BoxGeometry(12.3, 0.4, 0.4);
+    const arch = new THREE.Mesh(archGeo, poleMat);
+    arch.position.set(0, 5, -raceTrackLength);
+    raceScene.add(arch);
+
+    // Grass sides
+    const grassMat = new THREE.MeshStandardMaterial({ color: 0x4caf50 });
+    const grassGeo = new THREE.PlaneGeometry(30, raceTrackLength + 20);
+    const grassL = new THREE.Mesh(grassGeo, grassMat);
+    grassL.rotation.x = -Math.PI / 2;
+    grassL.position.set(-25, -0.01, -raceTrackLength / 2);
+    raceScene.add(grassL);
+    const grassR = grassL.clone();
+    grassR.position.x = 25;
+    raceScene.add(grassR);
+
+    // Trees along sides
+    for (let z = 0; z > -raceTrackLength; z -= 10) {
+        for (const side of [-12, 12]) {
+            const trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, 3, 8);
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037 });
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.set(side + Math.random() * 3, 1.5, z + Math.random() * 3);
+            trunk.castShadow = true;
+            raceScene.add(trunk);
+            const leavesGeo = new THREE.SphereGeometry(1.5, 8, 8);
+            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32 });
+            const leaves = new THREE.Mesh(leavesGeo, leavesMat);
+            leaves.position.set(trunk.position.x, 3.5, trunk.position.z);
+            leaves.castShadow = true;
+            raceScene.add(leaves);
+        }
+    }
+}
+
+function createRacePlayer3D() {
+    const THREE = window.THREE;
+    const group = new THREE.Group();
+    // Stem
+    const stemGeo = new THREE.CylinderGeometry(0.3, 0.35, 0.8, 12);
+    const stemMat = new THREE.MeshStandardMaterial({ color: 0xf5f5dc });
+    const stem = new THREE.Mesh(stemGeo, stemMat);
+    stem.position.y = 0.4;
+    stem.castShadow = true;
+    group.add(stem);
+    // Cap
+    const capGeo = new THREE.SphereGeometry(0.6, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+    const capMat = new THREE.MeshStandardMaterial({ color: 0xe53935 });
+    const cap = new THREE.Mesh(capGeo, capMat);
+    cap.position.y = 0.8;
+    cap.castShadow = true;
+    group.add(cap);
+    // Spots
+    const spotMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    [[0.3, 1.1, 0.2], [-0.2, 1.2, -0.1], [0, 0.95, 0.4]].forEach(p => {
+        const s = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), spotMat);
+        s.position.set(...p); group.add(s);
+    });
+    // Eyes
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), eyeMat);
+    eyeL.position.set(-0.12, 0.55, 0.3); group.add(eyeL);
+    const eyeR = eyeL.clone(); eyeR.position.x = 0.12; group.add(eyeR);
+    // Legs
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63 });
+    const legGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.4, 8);
+    const legL = new THREE.Mesh(legGeo, legMat); legL.position.set(-0.15, 0.05, 0); group.add(legL);
+    const legR = new THREE.Mesh(legGeo, legMat); legR.position.set(0.15, 0.05, 0); group.add(legR);
+    group.userData = { legL, legR };
+    return group;
+}
+
+function createRaceEnemy3D(enemyData) {
+    const THREE = window.THREE;
+    const group = new THREE.Group();
+    // Body
+    const bodyGeo = new THREE.SphereGeometry(0.5, 12, 12);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: enemyData.color });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 0.5;
+    body.scale.set(1, 0.8, 1.2);
+    body.castShadow = true;
+    group.add(body);
+    // Eyes
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), eyeMat);
+    eyeL.position.set(-0.15, 0.6, 0.4); group.add(eyeL);
+    const eyeR = eyeL.clone(); eyeR.position.x = 0.15; group.add(eyeR);
+    const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+    const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), pupilMat);
+    pupilL.position.set(-0.15, 0.6, 0.48); group.add(pupilL);
+    const pupilR = pupilL.clone(); pupilR.position.x = 0.15; group.add(pupilR);
+    // Legs
+    const legMat = new THREE.MeshStandardMaterial({ color: enemyData.color });
+    const legGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.35, 8);
+    const legL = new THREE.Mesh(legGeo, legMat); legL.position.set(-0.2, 0.05, 0); group.add(legL);
+    const legR = new THREE.Mesh(legGeo, legMat); legR.position.set(0.2, 0.05, 0); group.add(legR);
+    group.userData = { legL, legR };
+    return group;
+}
+
 function startRace() {
-    corridaCanvas = document.getElementById('corrida-canvas');
-    corridaCanvas.width = window.innerWidth;
-    corridaCanvas.height = window.innerHeight;
-    corridaCtx = corridaCanvas.getContext('2d');
-    raceFinish = corridaCanvas.width - 80;
-    raceFrame = 0;
+    if (!raceScene) initRace3D();
 
-    const playerSpeed = 2 + (speed / 10000);
-    racePlayer = { x: 50, y: corridaCanvas.height / 2 - 60, speed: playerSpeed, finished: false };
+    // Remove old meshes
+    if (racePlayerMesh) raceScene.remove(racePlayerMesh);
+    raceEnemyMeshes.forEach(m => raceScene.remove(m));
+    raceEnemyMeshes = [];
 
+    // Player speed based on academia velocity
+    const playerSpeed = 0.05 + (speed / 50000);
+    racePlayer = { z: 0, speed: playerSpeed, finished: false, lane: 0 };
+    racePlayerMesh = createRacePlayer3D();
+    racePlayerMesh.position.set(0, 0, 0);
+    raceScene.add(racePlayerMesh);
+
+    // Enemies
     raceEnemies = [];
     const numEnemies = Math.min(corridaFase + 1, 5);
     for (let i = 0; i < numEnemies; i++) {
         const e = RACE_ENEMIES[i % RACE_ENEMIES.length];
-        const spd = e.baseSpeed + (corridaFase - 1) * 0.5 + Math.random() * 0.5;
-        raceEnemies.push({
-            x: 50, y: corridaCanvas.height / 2 - 60 + (i + 1) * 70,
-            speed: spd, name: e.name, color: e.color, finished: false
-        });
+        const spd = e.baseSpeed + (corridaFase - 1) * 0.02 + Math.random() * 0.02;
+        const lane = (i + 1) * 2 - (numEnemies);
+        raceEnemies.push({ z: 0, speed: spd, finished: false, lane, data: e });
+        const mesh = createRaceEnemy3D(e);
+        mesh.position.set(lane, 0, 0);
+        raceScene.add(mesh);
+        raceEnemyMeshes.push(mesh);
     }
 
     corridaRunning = true;
     document.getElementById('corrida-result').style.display = 'none';
     document.getElementById('corrida-fase').textContent = `Fase ${corridaFase}`;
-    raceLoop();
+    raceRenderer.setSize(window.innerWidth, window.innerHeight);
+    raceCamera.aspect = window.innerWidth / window.innerHeight;
+    raceCamera.updateProjectionMatrix();
+    raceLoop3D();
 }
 
-function raceLoop() {
+function raceLoop3D() {
     if (!corridaRunning) return;
-    requestAnimationFrame(raceLoop);
-    raceFrame++;
-    const ctx = corridaCtx;
-    const w = corridaCanvas.width, h = corridaCanvas.height;
+    requestAnimationFrame(raceLoop3D);
 
-    // Background
-    const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, '#87ceeb');
-    grad.addColorStop(1, '#e0f7fa');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, w, h);
+    const t = Date.now();
 
-    // Track lanes
-    const laneH = 60;
-    const startY = racePlayer.y - 15;
-    for (let i = 0; i < raceEnemies.length + 1; i++) {
-        const y = startY + i * 70;
-        ctx.fillStyle = i % 2 === 0 ? '#d4a373' : '#c8956c';
-        ctx.fillRect(0, y, w, laneH);
-        ctx.strokeStyle = '#fff';
-        ctx.setLineDash([20, 15]);
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-        ctx.setLineDash([]);
-    }
-
-    // Finish line
-    ctx.fillStyle = '#000';
-    for (let fy = startY; fy < startY + (raceEnemies.length + 1) * 70; fy += 15) {
-        const fx = raceFinish;
-        ctx.fillStyle = (Math.floor(fy / 15) % 2 === 0) ? '#000' : '#fff';
-        ctx.fillRect(fx, fy, 15, 15);
-        ctx.fillStyle = (Math.floor(fy / 15) % 2 === 0) ? '#fff' : '#000';
-        ctx.fillRect(fx + 15, fy, 15, 15);
-    }
-
-    // Move player (uses speed from academia!)
+    // Move player
     if (!racePlayer.finished) {
-        racePlayer.x += racePlayer.speed + Math.random() * 0.5;
-        if (racePlayer.x >= raceFinish) { racePlayer.finished = true; }
+        racePlayer.z -= racePlayer.speed;
+        if (racePlayer.z <= -raceTrackLength) racePlayer.finished = true;
     }
+    racePlayerMesh.position.z = racePlayer.z;
+    // Legs animation
+    const pLegSpeed = racePlayer.speed * 80;
+    racePlayerMesh.userData.legL.rotation.x = Math.sin(t * 0.01 * pLegSpeed) * 0.6;
+    racePlayerMesh.userData.legR.rotation.x = -Math.sin(t * 0.01 * pLegSpeed) * 0.6;
+    // Bounce
+    racePlayerMesh.position.y = Math.abs(Math.sin(t * 0.008 * pLegSpeed)) * 0.15;
 
     // Move enemies
-    for (const e of raceEnemies) {
+    for (let i = 0; i < raceEnemies.length; i++) {
+        const e = raceEnemies[i];
         if (!e.finished) {
-            e.x += e.speed + Math.random() * 0.8 - 0.3;
-            if (e.x >= raceFinish) { e.finished = true; }
+            e.z -= e.speed + (Math.random() - 0.4) * 0.01;
+            if (e.z <= -raceTrackLength) e.finished = true;
         }
+        raceEnemyMeshes[i].position.z = e.z;
+        raceEnemyMeshes[i].position.x = e.lane;
+        const eLegSpd = e.speed * 60;
+        raceEnemyMeshes[i].userData.legL.rotation.x = Math.sin(t * 0.01 * eLegSpd + i) * 0.5;
+        raceEnemyMeshes[i].userData.legR.rotation.x = -Math.sin(t * 0.01 * eLegSpd + i) * 0.5;
+        raceEnemyMeshes[i].position.y = Math.abs(Math.sin(t * 0.007 * eLegSpd + i)) * 0.1;
     }
 
-    // Draw player (cogumelo)
-    ctx.save();
-    ctx.translate(racePlayer.x, racePlayer.y + 25);
-    ctx.scale(0.8, 0.8);
-    // Stem
-    ctx.fillStyle = '#f5f5dc';
-    ctx.fillRect(-7, 2, 14, 18);
-    // Cap
-    ctx.fillStyle = '#e53935';
-    ctx.beginPath(); ctx.ellipse(0, -4, 16, 14, 0, Math.PI, 0); ctx.fill();
-    // Spots
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(-7, -10, 4, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(5, -12, 3, 0, Math.PI * 2); ctx.fill();
-    // Eyes
-    ctx.fillStyle = '#333';
-    ctx.beginPath(); ctx.arc(-4, 6, 2.5, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(4, 6, 2.5, 0, Math.PI * 2); ctx.fill();
-    // Legs running
-    const legA = Math.sin(raceFrame * 0.3) * 4;
-    ctx.fillStyle = '#8d6e63';
-    ctx.fillRect(-6, 20 + legA, 5, 6);
-    ctx.fillRect(1, 20 - legA, 5, 6);
-    ctx.restore();
-    // Name
-    ctx.fillStyle = '#fff'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
-    ctx.fillText('VOCÊ', racePlayer.x, racePlayer.y + 5);
+    // Camera follows player from behind
+    raceCamera.position.set(0, 4, racePlayer.z + 8);
+    raceCamera.lookAt(0, 0.5, racePlayer.z - 10);
 
-    // Draw enemies
-    for (const e of raceEnemies) {
-        ctx.fillStyle = e.color;
-        ctx.beginPath(); ctx.ellipse(e.x, e.y + 30, 18, 14, 0, 0, Math.PI * 2); ctx.fill();
-        // Eyes
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(e.x - 5, e.y + 27, 4, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(e.x + 5, e.y + 27, 4, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#000';
-        ctx.beginPath(); ctx.arc(e.x - 5, e.y + 27, 2, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(e.x + 5, e.y + 27, 2, 0, Math.PI * 2); ctx.fill();
-        // Legs
-        const el = Math.sin(raceFrame * 0.25 + raceEnemies.indexOf(e)) * 3;
-        ctx.fillStyle = e.color;
-        ctx.fillRect(e.x - 10, e.y + 42 + el, 6, 8);
-        ctx.fillRect(e.x + 4, e.y + 42 - el, 6, 8);
-        // Name
-        ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
-        ctx.fillText(e.name, e.x, e.y + 8);
-    }
-
-    // Update position
+    // Position HUD
     let pos = 1;
-    for (const e of raceEnemies) { if (e.x > racePlayer.x) pos++; }
+    for (const e of raceEnemies) { if (e.z < racePlayer.z) pos++; }
     document.getElementById('corrida-pos').textContent = `Posição: ${pos}º`;
 
-    // Check if race is over
+    raceRenderer.render(raceScene, raceCamera);
+
+    // Check finish
     if (racePlayer.finished || raceEnemies.every(e => e.finished)) {
         corridaRunning = false;
         const won = pos === 1;
@@ -823,7 +949,14 @@ function raceLoop() {
 document.getElementById('btn-corrida').onclick = () => {
     document.getElementById('corrida-screen').style.display = 'block';
     corridaFase = 1;
-    startRace();
+    if (!window.THREE) {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+        s.onload = () => startRace();
+        document.head.appendChild(s);
+    } else {
+        startRace();
+    }
 };
 document.getElementById('corrida-back').onclick = () => {
     document.getElementById('corrida-screen').style.display = 'none';
