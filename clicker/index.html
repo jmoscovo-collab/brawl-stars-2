@@ -526,7 +526,8 @@ document.getElementById('academia-back').onclick = () => {
     stopAutoSpeed();
 };
 
-capiDiv.addEventListener('click', (e) => {
+// Click logic
+function doClick(x, y) {
     score += clickPower;
     speed += ESTEIRAS[currentEsteira].bonus;
     scoreEl.textContent = score;
@@ -540,14 +541,24 @@ capiDiv.addEventListener('click', (e) => {
 
     updateUpgradeBox();
 
-    // floating effect
     const effect = document.createElement('div');
     effect.className = 'click-effect';
     effect.textContent = `+${clickPower}`;
-    effect.style.left = (e.offsetX - 10) + 'px';
-    effect.style.top = (e.offsetY - 20) + 'px';
+    effect.style.left = (x - 10) + 'px';
+    effect.style.top = (y - 20) + 'px';
     capiDiv.appendChild(effect);
     setTimeout(() => effect.remove(), 800);
+}
+
+// All mouse buttons (left, right, middle)
+capiDiv.addEventListener('contextmenu', e => e.preventDefault());
+capiDiv.addEventListener('mousedown', (e) => { e.preventDefault(); doClick(e.offsetX, e.offsetY); });
+
+// All keyboard keys
+document.addEventListener('keydown', (e) => {
+    if (document.getElementById('academia-screen').style.display === 'block') return;
+    e.preventDefault();
+    doClick(80 + Math.random() * 40, 80 + Math.random() * 40);
 });
     </script>
 </body>
