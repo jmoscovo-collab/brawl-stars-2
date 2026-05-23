@@ -1553,32 +1553,33 @@ function showFriendScreen() {
     }
 }
 
-// Auto-add friend from URL
-(function checkFriendUrl() {
-    const params = new URLSearchParams(window.location.search);
-    const amigo = params.get('amigo');
-    if (amigo) {
-        const friends = JSON.parse(localStorage.getItem('capivara_friends') || '[]');
-        if (!friends.includes(amigo)) {
-            friends.push(amigo);
-            localStorage.setItem('capivara_friends', JSON.stringify(friends));
-        }
-        window.history.replaceState({}, '', window.location.pathname);
-        // Mostra mensagem de amizade aceita
-        setTimeout(() => {
-            const msg = document.createElement('div');
-            msg.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(10,10,40,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:99999;font-family:monospace;';
-            msg.innerHTML = `
-                <div style="font-size:60px">🎉</div>
-                <div style="color:#fff;font-size:28px;font-weight:bold;text-shadow:2px 2px 0 #2196f3;">AMIZADE ACEITA!</div>
-                <div style="color:#4caf50;font-size:22px;font-weight:bold;">Você e ${amigo} agora são amigos!</div>
-                <div style="color:#aaa;font-size:14px;margin-top:10px;">Vocês aparecerão na lista de amigos um do outro</div>
-                <button onclick="this.parentElement.remove()" style="margin-top:20px;padding:12px 40px;font-size:18px;background:#4caf50;color:#fff;border:none;border-radius:25px;cursor:pointer;font-weight:bold;">JOGAR!</button>
-            `;
-            document.body.appendChild(msg);
-        }, 500);
+// Auto-add friend from URL — roda imediatamente
+const _urlParams = new URLSearchParams(window.location.search);
+const _amigoParam = _urlParams.get('amigo');
+if (_amigoParam) {
+    const friends = JSON.parse(localStorage.getItem('capivara_friends') || '[]');
+    if (!friends.includes(_amigoParam)) {
+        friends.push(_amigoParam);
+        localStorage.setItem('capivara_friends', JSON.stringify(friends));
     }
-})();
+    window.history.replaceState({}, '', window.location.pathname);
+    // Esconde TUDO e mostra só a mensagem de amizade
+    document.getElementById('device-screen').style.display = 'none';
+    const msg = document.createElement('div');
+    msg.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:99999;font-family:monospace;';
+    msg.innerHTML = `
+        <div style="font-size:80px">🎉</div>
+        <div style="color:#fff;font-size:32px;font-weight:bold;text-shadow:2px 2px 0 #2196f3;">AMIZADE ACEITA!</div>
+        <div style="color:#4caf50;font-size:24px;font-weight:bold;">Você e ${_amigoParam} agora são amigos!</div>
+        <div style="color:#aaa;font-size:16px;margin-top:10px;">Agora vocês aparecem na lista de amigos!</div>
+        <button id="friend-accept-btn" style="margin-top:30px;padding:14px 50px;font-size:20px;background:linear-gradient(135deg,#4caf50,#00e676);color:#fff;border:none;border-radius:30px;cursor:pointer;font-weight:bold;box-shadow:0 5px 20px rgba(76,175,80,0.4);">JOGAR! 🎮</button>
+    `;
+    document.body.appendChild(msg);
+    msg.querySelector('#friend-accept-btn').onclick = () => {
+        msg.remove();
+        document.getElementById('device-screen').style.display = 'flex';
+    };
+}
 document.getElementById('btn-friend').onclick = showFriendScreen;
 document.getElementById('friend-back').onclick = () => {
     document.getElementById('friend-screen').style.display = 'none';
