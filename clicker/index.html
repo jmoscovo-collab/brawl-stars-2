@@ -959,18 +959,48 @@ function raceLoop3D() {
     // Check finish
     if (racePlayer.finished || raceEnemies.every(e => e.finished)) {
         corridaRunning = false;
-        const won = pos === 1;
         document.getElementById('corrida-result').style.display = 'flex';
-        document.getElementById('corrida-result-title').textContent = won ? '🏆 VOCÊ VENCEU!' : '💀 PERDEU!';
-        document.getElementById('corrida-result-title').style.color = won ? '#ffd700' : '#f44336';
-        document.getElementById('corrida-result-text').textContent = `Posição: ${pos}º de ${raceEnemies.length + 1} | Fase ${corridaFase}`;
-        if (won) {
-            score += corridaFase * 500;
-            scoreEl.textContent = score;
+        let title = '', color = '', reward = '';
+
+        if (pos === 1) {
+            // 1º lugar: 5x pontos e velocidade
+            const bonusPts = score * 5;
+            const bonusSpd = speed * 5;
+            score += bonusPts;
+            speed += bonusSpd;
+            title = '🏆 1º LUGAR!';
+            color = '#ffd700';
+            reward = `+${bonusPts.toLocaleString()} pontos | +${bonusSpd.toLocaleString()} velocidade`;
+            document.getElementById('corrida-next').style.display = 'inline-block';
+        } else if (pos === 2) {
+            // 2º lugar: 2x velocidade, sem pontos
+            const bonusSpd = speed * 2;
+            speed += bonusSpd;
+            title = '🥈 2º LUGAR';
+            color = '#b0bec5';
+            reward = `+${bonusSpd.toLocaleString()} velocidade (sem pontos)`;
+            document.getElementById('corrida-next').style.display = 'inline-block';
+        } else if (pos === 3) {
+            // 3º lugar: nada
+            title = '😐 3º LUGAR';
+            color = '#ff9800';
+            reward = 'Nenhuma recompensa...';
             document.getElementById('corrida-next').style.display = 'inline-block';
         } else {
+            // 4º+ lugar: perde metade
+            score = Math.floor(score / 2);
+            speed = Math.floor(speed / 2);
+            title = '💀 ' + pos + 'º LUGAR';
+            color = '#f44336';
+            reward = 'Perdeu metade dos pontos e velocidade!';
             document.getElementById('corrida-next').style.display = 'none';
         }
+
+        scoreEl.textContent = score;
+        document.getElementById('speed-val').textContent = speed.toLocaleString();
+        document.getElementById('corrida-result-title').textContent = title;
+        document.getElementById('corrida-result-title').style.color = color;
+        document.getElementById('corrida-result-text').textContent = `${reward} | Fase ${corridaFase}`;
     }
 }
 
