@@ -662,6 +662,8 @@ let raceScene, raceCamera, raceRenderer;
 let racePlayer, raceEnemies, raceFinishLine;
 let racePlayerMesh, raceEnemyMeshes = [];
 let raceTrackLength = 100;
+let raceBoost = 0;
+let raceCamX = 0, raceCamY = 4;
 
 const RACE_ENEMIES = [
     { name: 'Tartaruga', color: 0x4caf50, baseSpeed: 0.06 },
@@ -845,8 +847,32 @@ function createRaceEnemy3D(enemyData) {
     return group;
 }
 
+// Race click boost — any mouse button gives speed burst
+document.getElementById('corrida-3d').addEventListener('contextmenu', e => e.preventDefault());
+document.getElementById('corrida-3d').addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    if (corridaRunning && !racePlayer.finished) {
+        raceBoost += 0.3;
+    }
+});
+document.addEventListener('keydown', (e) => {
+    if (corridaRunning && !racePlayer.finished) {
+        raceBoost += 0.3;
+    }
+});
+
+// Camera control — move mouse to look around
+document.getElementById('corrida-3d').addEventListener('mousemove', (e) => {
+    if (!corridaRunning) return;
+    const cx = (e.clientX / window.innerWidth - 0.5) * 8;
+    const cy = 2 + (1 - e.clientY / window.innerHeight) * 6;
+    raceCamX = cx;
+    raceCamY = cy;
+});
+
 function startRace() {
     if (!raceScene) initRace3D();
+    raceBoost = 0;
 
     // Remove old meshes
     if (racePlayerMesh) raceScene.remove(racePlayerMesh);
@@ -889,9 +915,11 @@ function raceLoop3D() {
 
     const t = Date.now();
 
-    // Move player
+    // Move player (speed + boost from clicking)
     if (!racePlayer.finished) {
-        racePlayer.z -= racePlayer.speed;
+        racePlayer.z -= racePlayer.speed + raceBoost * 0.05;
+        if (raceBoost > 0) raceBoost *= 0.95;
+        if (raceBoost < 0.01) raceBoost = 0;
         if (racePlayer.z <= -raceTrackLength) racePlayer.finished = true;
     }
     racePlayerMesh.position.z = racePlayer.z;
@@ -917,8 +945,8 @@ function raceLoop3D() {
         raceEnemyMeshes[i].position.y = Math.abs(Math.sin(t * 0.007 * eLegSpd + i)) * 0.1;
     }
 
-    // Camera follows player from behind
-    raceCamera.position.set(0, 4, racePlayer.z + 8);
+    // Camera follows player — mouse controls angle
+    raceCamera.position.set(raceCamX, raceCamY, racePlayer.z + 8);
     raceCamera.lookAt(0, 0.5, racePlayer.z - 10);
 
     // Position HUD
