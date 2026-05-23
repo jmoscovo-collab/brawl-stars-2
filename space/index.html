@@ -55,19 +55,14 @@
         <div class="best" id="menu-best"></div>
         <div class="car-select" id="car-select"></div>
         <button id="start-btn">ACELERAR! 🏎️</button>
-        <div class="controls-hint">← → ou A/D = Trocar faixa | ↑ ou W = Acelerar | ↓ ou S = Frear</div>
+        <div class="controls-hint">W = Acelerar | S = Frear | A/D = Virar | Livre — sem game over!</div>
     </div>
     <div id="hud" style="display:none">
         <span id="hud-score">0 m</span>
-        <span id="hud-dodge">Desvios: 0</span>
+        <span id="hud-dodge"></span>
     </div>
     <div id="speedometer" style="display:none">0 km/h</div>
-    <div id="gameover">
-        <h1>BATEU! 💥</h1>
-        <p id="go-score"></p>
-        <p id="go-record" class="new-record" style="display:none">NOVO RECORDE!</p>
-        <button id="go-btn">TENTAR DE NOVO</button>
-    </div>
+    <div id="gameover" style="display:none"></div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
 const canvas = document.getElementById('game');
@@ -388,8 +383,8 @@ const TRAFFIC_COLORS = [0x333333, 0x1a1a88, 0x881a1a, 0x1a6622, 0xeeeeee, 0x5555
 
 // Game state
 let playerCar, trafficCars = [], playing = false;
-let playerLane = 1, targetLane = 1, playerX = 0;
-let speed = 0, maxSpeed = 2.5, distance = 0, dodges = 0;
+let playerX = 0, playerAngle = 0, steerAngle = 0;
+let speed = 0, maxSpeed = 4.0, distance = 0;
 let spawnTimer = 0;
 let keys = {};
 let best = parseInt(localStorage.getItem('street_drive_best') || '0');
@@ -397,24 +392,14 @@ let cameraShake = 0;
 
 if (best > 0) document.getElementById('menu-best').textContent = `Recorde: ${best} m`;
 
-document.addEventListener('keydown', e => {
-    if (!playing) return;
-    keys[e.code] = true;
-    if (e.code === 'KeyA' || e.code === 'ArrowLeft') { targetLane = Math.max(0, targetLane - 1); }
-    if (e.code === 'KeyD' || e.code === 'ArrowRight') { targetLane = Math.min(2, targetLane + 1); }
-});
+document.addEventListener('keydown', e => { keys[e.code] = true; });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
 
-// Touch
-let touchStartX = 0;
-canvas.addEventListener('touchstart', e => { e.preventDefault(); touchStartX = e.touches[0].clientX; });
-canvas.addEventListener('touchend', e => {
-    e.preventDefault();
-    if (!playing) return;
-    const dx = e.changedTouches[0].clientX - touchStartX;
-    if (dx > 40) targetLane = Math.min(2, targetLane + 1);
-    else if (dx < -40) targetLane = Math.max(0, targetLane - 1);
-});
+// Touch steering
+let touchActive = false, touchX = 0;
+canvas.addEventListener('touchstart', e => { e.preventDefault(); touchActive = true; touchX = e.touches[0].clientX; });
+canvas.addEventListener('touchmove', e => { e.preventDefault(); if (touchActive) touchX = e.touches[0].clientX; });
+canvas.addEventListener('touchend', e => { e.preventDefault(); touchActive = false; });
 
 // Ground
 const groundGeo = new THREE.PlaneGeometry(600, 600);
@@ -441,8 +426,8 @@ function startGame() {
     playerCar.position.set(0, 0, 0);
     scene.add(playerCar);
 
-    playerLane = 1; targetLane = 1; playerX = 0;
-    speed = 0; maxSpeed = 2.5; distance = 0; dodges = 0;
+    playerX = 0; playerAngle = 0; steerAngle = 0;
+    speed = 0; maxSpeed = 4.0; distance = 0;
     spawnTimer = 0; cameraShake = 0;
     keys = {};
     playing = true;
@@ -453,28 +438,41 @@ function gameLoop() {
     if (!playing) return;
     requestAnimationFrame(gameLoop);
 
-    // Acceleration
+    // Acceleration / braking
     if (keys['KeyW'] || keys['ArrowUp']) {
-        speed = Math.min(speed + 0.015, maxSpeed);
+        speed = Math.min(speed + 0.018, maxSpeed);
     } else if (keys['KeyS'] || keys['ArrowDown']) {
-        speed = Math.max(speed - 0.03, 0.5);
+        speed = Math.max(speed - 0.035, -1);
     } else {
-        if (speed < 1.5) speed += 0.004;
+        speed *= 0.995;
+        if (Math.abs(speed) < 0.01) speed = 0;
     }
 
-    // Max speed increases
-    maxSpeed = 2.5 + distance * 0.0008;
-    if (maxSpeed > 5.5) maxSpeed = 5.5;
+    // Steering
+    const turnPower = 0.03 * (speed / maxSpeed);
+    if (keys['KeyA'] || keys['ArrowLeft']) steerAngle = Math.min(steerAngle + 0.04, 1);
+    else if (keys['KeyD'] || keys['ArrowRight']) steerAngle = Math.max(steerAngle - 0.04, -1);
+    else steerAngle *= 0.9;
 
-    // Lane switching (smooth)
-    const laneX = LANES[targetLane];
-    playerX += (laneX - playerX) * 0.09;
+    // Touch steering
+    if (touchActive) {
+        const center = window.innerWidth / 2;
+        const touchSteer = (touchX - center) / (center * 0.6);
+        steerAngle = -Math.max(-1, Math.min(1, touchSteer));
+        if (speed < 0.5) speed = Math.min(speed + 0.01, maxSpeed);
+    }
+
+    // Apply steering to position
+    playerAngle += steerAngle * turnPower;
+    playerX += -steerAngle * speed * 0.12;
+    playerX = Math.max(-25, Math.min(25, playerX));
+
+    // Car rotation
     playerCar.position.x = playerX;
-    playerCar.rotation.y = (laneX - playerX) * 0.06;
-    // Slight tilt when turning
-    playerCar.rotation.z = (laneX - playerX) * 0.02;
+    playerCar.rotation.y = steerAngle * 0.3;
+    playerCar.rotation.z = -steerAngle * 0.04;
 
-    distance += speed * 0.5;
+    distance += Math.abs(speed) * 0.5;
 
     // Move road
     for (const seg of roadSegments) {
@@ -484,94 +482,56 @@ function gameLoop() {
         }
     }
 
-    // Spawn traffic
+    // Spawn traffic (passive — just cars on the road, no collision)
     spawnTimer++;
-    const spawnRate = Math.max(18, 45 - distance * 0.015);
-    if (spawnTimer >= spawnRate) {
+    if (spawnTimer >= 60) {
         spawnTimer = 0;
         const lane = Math.floor(Math.random() * 3);
         const color = TRAFFIC_COLORS[Math.floor(Math.random() * TRAFFIC_COLORS.length)];
         const mesh = createCar(color, false);
         mesh.position.set(LANES[lane], 0, -150 - Math.random() * 40);
         scene.add(mesh);
-        trafficCars.push({ mesh, lane, passed: false, speed: 0.3 + Math.random() * 0.5 });
+        trafficCars.push({ mesh, lane, speed: 0.3 + Math.random() * 0.4 });
     }
 
-    // Move traffic
+    // Move traffic (no collision — just visual)
     for (let i = trafficCars.length - 1; i >= 0; i--) {
         const t = trafficCars[i];
         t.mesh.position.z += speed - t.speed;
-
-        // Collision
-        const dx = Math.abs(t.mesh.position.x - playerX);
-        const dz = t.mesh.position.z;
-        if (dx < 2.0 && dz > -5.5 && dz < 4.5) {
-            cameraShake = 10;
-            endGame();
-            return;
-        }
-
-        // Passed
-        if (!t.passed && t.mesh.position.z > 6) {
-            t.passed = true;
-            dodges++;
-        }
-
-        // Remove
-        if (t.mesh.position.z > 35) {
+        if (t.mesh.position.z > 40) {
             scene.remove(t.mesh);
             trafficCars.splice(i, 1);
         }
     }
 
-    // Camera
-    const camHeight = 4.5 + speed * 0.3;
-    const camDist = 10 + speed * 0.5;
-    const shakeX = cameraShake > 0 ? (Math.random() - 0.5) * cameraShake * 0.05 : 0;
-    const shakeY = cameraShake > 0 ? (Math.random() - 0.5) * cameraShake * 0.03 : 0;
-    if (cameraShake > 0) cameraShake -= 0.5;
-    const camTarget = new THREE.Vector3(playerX * 0.3 + shakeX, camHeight + shakeY, camDist);
-    camera.position.lerp(camTarget, 0.06);
-    camera.lookAt(playerX * 0.4, 1, -20);
+    // Camera — smooth follow behind car
+    const camHeight = 4.5 + Math.abs(speed) * 0.4;
+    const camDist = 10 + Math.abs(speed) * 0.6;
+    const camTarget = new THREE.Vector3(playerX * 0.4, camHeight, camDist);
+    camera.position.lerp(camTarget, 0.05);
+    camera.lookAt(playerX * 0.5, 1, -20);
 
-    // FOV increases with speed (sense of speed)
-    camera.fov = 55 + speed * 4;
+    // FOV increases with speed
+    camera.fov = 55 + Math.abs(speed) * 5;
     camera.updateProjectionMatrix();
 
-    // Speed lines effect
-    const speedRatio = speed / maxSpeed;
-    document.getElementById('speed-lines').style.opacity = speedRatio > 0.7 ? (speedRatio - 0.7) * 2 : 0;
+    // Speed lines
+    const speedRatio = Math.abs(speed) / maxSpeed;
+    document.getElementById('speed-lines').style.opacity = speedRatio > 0.6 ? (speedRatio - 0.6) * 2.5 : 0;
 
-    // Sun shadow follows player
+    // Sun follows
     sunLight.position.set(playerX - 30, 50, -20);
     sunLight.target.position.set(playerX, 0, -10);
 
     // HUD
     document.getElementById('hud-score').textContent = Math.floor(distance) + ' m';
-    document.getElementById('hud-dodge').textContent = 'Desvios: ' + dodges;
-    document.getElementById('speedometer').textContent = Math.floor(speed * 80) + ' km/h';
+    document.getElementById('hud-dodge').textContent = '';
+    document.getElementById('speedometer').textContent = Math.floor(Math.abs(speed) * 80) + ' km/h';
 
     renderer.render(scene, camera);
 }
 
-function endGame() {
-    playing = false;
-    const dist = Math.floor(distance);
-    let newRecord = false;
-    if (dist > best) {
-        best = dist;
-        localStorage.setItem('street_drive_best', best);
-        newRecord = true;
-    }
-    document.getElementById('go-score').textContent = `Distância: ${dist} m | Desvios: ${dodges} | Recorde: ${best} m`;
-    document.getElementById('go-record').style.display = newRecord ? 'block' : 'none';
-    document.getElementById('gameover').style.display = 'flex';
-    document.getElementById('hud').style.display = 'none';
-    document.getElementById('speedometer').style.display = 'none';
-}
-
 document.getElementById('start-btn').onclick = startGame;
-document.getElementById('go-btn').onclick = startGame;
 
 // Menu ambient render
 function menuRender() {
