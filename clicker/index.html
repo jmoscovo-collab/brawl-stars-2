@@ -95,10 +95,14 @@
         #upgrade-box:hover { border-color: #ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.3); transform: scale(1.05); }
         #upgrade-box.locked { opacity: 0.4; cursor: not-allowed; }
         #upgrade-box.locked:hover { border-color: #444; box-shadow: none; transform: none; }
-        #upgrade-box .up-title { color: #ffd700; font-size: 16px; font-weight: bold; margin-bottom: 8px; }
-        #upgrade-box .up-desc { color: #aaa; font-size: 12px; margin-bottom: 10px; }
-        #upgrade-box .up-cost { color: #ff5722; font-size: 14px; font-weight: bold; }
-        #upgrade-box .up-level { color: #4caf50; font-size: 12px; margin-top: 8px; }
+        #upgrade-box .up-title, #upgrade-box2 .up-title { color: #ffd700; font-size: 16px; font-weight: bold; margin-bottom: 8px; }
+        #upgrade-box .up-desc, #upgrade-box2 .up-desc { color: #aaa; font-size: 12px; margin-bottom: 10px; }
+        #upgrade-box .up-cost, #upgrade-box2 .up-cost { color: #ff5722; font-size: 14px; font-weight: bold; }
+        #upgrade-box .up-level, #upgrade-box2 .up-level { color: #4caf50; font-size: 12px; margin-top: 8px; }
+        #upgrade-box2 { background: rgba(0,0,0,0.4); border: 3px solid #444; border-radius: 12px; padding: 20px; text-align: center; width: 160px; cursor: pointer; transition: all 0.2s; }
+        #upgrade-box2:hover { border-color: #ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.3); transform: scale(1.05); }
+        #upgrade-box2.locked { opacity: 0.4; cursor: not-allowed; }
+        #upgrade-box2.locked:hover { border-color: #444; box-shadow: none; transform: none; }
         #click-power { color: #aaa; font-size: 14px; margin-top: 10px; }
         #btn-academia { margin-top: 15px; padding: 12px 30px; background: #7c4dff; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; font-family: monospace; }
         #btn-academia:hover { transform: scale(1.05); background: #651fff; }
@@ -133,6 +137,12 @@
             <div class="up-desc">+5 por clique</div>
             <div class="up-cost">Custo: 100</div>
             <div class="up-level" id="up-level">Nível: 0</div>
+        </div>
+        <div id="upgrade-box2" class="locked">
+            <div class="up-title">🚀 MEGA</div>
+            <div class="up-desc">+1.000 por clique</div>
+            <div class="up-cost" id="up-cost2">Custo: 100.067</div>
+            <div class="up-level" id="up-level2">Nível: 0</div>
         </div>
     </div>
     <div id="click-power">Clique: +1</div>
@@ -586,20 +596,35 @@ document.getElementById('academia-back').onclick = () => {
     stopAutoSpeed();
 };
 
-// Mega upgrade at 100,067
-let megaUpgradeUsed = false;
+// Mega upgrade box
+let megaLevel = 0;
+let megaCost = 100067;
+const upgradeBox2 = document.getElementById('upgrade-box2');
+
+function updateUpgradeBox2() {
+    if (score >= megaCost) {
+        upgradeBox2.classList.remove('locked');
+    } else {
+        upgradeBox2.classList.add('locked');
+    }
+}
+
+upgradeBox2.addEventListener('click', () => {
+    if (score >= megaCost) {
+        score -= megaCost;
+        megaLevel++;
+        clickPower += 1000;
+        megaCost = 100067 * (megaLevel + 1);
+        scoreEl.textContent = score;
+        document.getElementById('up-level2').textContent = `Nível: ${megaLevel}`;
+        document.getElementById('click-power').textContent = `Clique: +${clickPower}`;
+        document.getElementById('up-cost2').textContent = `Custo: ${megaCost.toLocaleString()}`;
+        updateUpgradeBox2();
+    }
+});
 
 function checkMegaUpgrade() {
-    if (!megaUpgradeUsed && score >= 100067) {
-        megaUpgradeUsed = true;
-        clickPower += 1000;
-        document.getElementById('click-power').textContent = `Clique: +${clickPower}`;
-        const msg = document.createElement('div');
-        msg.className = 'unlock-msg';
-        msg.innerHTML = '🚀 MEGA UPGRADE!<br><span style="font-size:16px">+1.000 por clique!</span>';
-        document.body.appendChild(msg);
-        setTimeout(() => msg.remove(), 2500);
-    }
+    updateUpgradeBox2();
 }
 
 // Click logic
@@ -616,7 +641,7 @@ function doClick(x, y) {
     }
 
     updateUpgradeBox();
-    checkMegaUpgrade();
+    updateUpgradeBox2();
 
     const effect = document.createElement('div');
     effect.className = 'click-effect';
