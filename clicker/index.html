@@ -100,6 +100,24 @@
         #upgrade-box .up-cost { color: #ff5722; font-size: 14px; font-weight: bold; }
         #upgrade-box .up-level { color: #4caf50; font-size: 12px; margin-top: 8px; }
         #click-power { color: #aaa; font-size: 14px; margin-top: 10px; }
+        #btn-academia { margin-top: 15px; padding: 12px 30px; background: #7c4dff; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; font-family: monospace; }
+        #btn-academia:hover { transform: scale(1.05); background: #651fff; }
+        #academia-screen { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); flex-direction: column; align-items: center; padding: 20px; overflow-y: auto; z-index: 500; }
+        #academia-screen h1 { font-size: 32px; color: #fff; margin-bottom: 5px; text-shadow: 2px 2px 0 #7c4dff; }
+        #academia-screen .speed-display { color: #aaa; font-size: 16px; margin-bottom: 20px; }
+        .esteiras { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; max-width: 800px; width: 100%; }
+        .esteira-card { background: rgba(30, 30, 70, 0.9); border: 3px solid #444; border-radius: 15px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .esteira-card:hover { border-color: #7c4dff; transform: scale(1.03); }
+        .esteira-card.locked { opacity: 0.4; cursor: not-allowed; }
+        .esteira-card.locked:hover { border-color: #444; transform: none; }
+        .esteira-card.active { border-color: #4caf50; box-shadow: 0 0 15px rgba(76,175,80,0.4); }
+        .esteira-card .est-icon { font-size: 40px; margin-bottom: 8px; }
+        .esteira-card .est-name { color: #fff; font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+        .esteira-card .est-req { color: #aaa; font-size: 12px; }
+        .esteira-card .est-bonus { color: #4caf50; font-size: 12px; margin-top: 5px; }
+        .esteira-card.coming-soon { opacity: 0.5; cursor: default; border-style: dashed; }
+        #academia-back { margin-top: 20px; padding: 12px 40px; font-size: 18px; background: #ff9800; color: #fff; border: none; border-radius: 25px; cursor: pointer; font-family: monospace; }
+        #academia-back:hover { transform: scale(1.05); }
     </style>
 </head>
 <body>
@@ -118,7 +136,15 @@
         </div>
     </div>
     <div id="click-power">Clique: +1</div>
+    <button id="btn-academia">🏋️ ACADEMIA</button>
     <div class="best" id="best">Recorde: 0</div>
+
+    <div id="academia-screen">
+        <h1>🏋️ ACADEMIA</h1>
+        <div class="speed-display">Velocidade: <span id="speed-val">0</span></div>
+        <div class="esteiras" id="esteiras-grid"></div>
+        <button id="academia-back">VOLTAR</button>
+    </div>
 
     <script>
 let score = 0;
@@ -220,9 +246,64 @@ function drawCogumelo() {
 
 drawCogumelo();
 
+// Academia
+const ESTEIRAS = [
+    { name: 'Esteira 1', icon: '🏃', req: 0, bonus: 1, desc: 'Grátis!' },
+    { name: 'Esteira 2', icon: '🏃‍♂️', req: 800, bonus: 3, desc: '800 velocidade' },
+    { name: 'Esteira 3', icon: '⚡', req: 5000, bonus: 10, desc: '5.000 velocidade' },
+    { name: 'Esteira 4', icon: '🔥', req: 50000, bonus: 25, desc: '50.000 velocidade' },
+    { name: 'Esteira 5', icon: '💨', req: 200000, bonus: 50, desc: '200.000 velocidade' },
+    { name: 'Esteira 6', icon: '🚀', req: 500000, bonus: 100, desc: '500.000 velocidade' },
+    { name: 'Esteira 7', icon: '☄️', req: 1000000, bonus: 200, desc: '1.000.000 velocidade' },
+];
+let currentEsteira = 0;
+let speed = 0;
+
+function renderEsteiras() {
+    const grid = document.getElementById('esteiras-grid');
+    grid.innerHTML = '';
+    document.getElementById('speed-val').textContent = speed.toLocaleString();
+    for (let i = 0; i < ESTEIRAS.length; i++) {
+        const est = ESTEIRAS[i];
+        const unlocked = speed >= est.req;
+        const active = currentEsteira === i;
+        const card = document.createElement('div');
+        card.className = 'esteira-card' + (!unlocked ? ' locked' : '') + (active ? ' active' : '');
+        card.innerHTML = `
+            <div class="est-icon">${est.icon}</div>
+            <div class="est-name">${est.name}</div>
+            <div class="est-req">${est.req === 0 ? '🆓 Grátis' : '🔒 ' + est.req.toLocaleString() + ' vel.'}</div>
+            <div class="est-bonus">+${est.bonus} vel/clique</div>
+        `;
+        if (unlocked) {
+            card.onclick = () => { currentEsteira = i; renderEsteiras(); };
+        }
+        grid.appendChild(card);
+    }
+    // Coming soon card
+    const soon = document.createElement('div');
+    soon.className = 'esteira-card coming-soon';
+    soon.innerHTML = `
+        <div class="est-icon">🔮</div>
+        <div class="est-name">???</div>
+        <div class="est-req">Na próxima atualização...</div>
+    `;
+    grid.appendChild(soon);
+}
+
+document.getElementById('btn-academia').onclick = () => {
+    document.getElementById('academia-screen').style.display = 'flex';
+    renderEsteiras();
+};
+document.getElementById('academia-back').onclick = () => {
+    document.getElementById('academia-screen').style.display = 'none';
+};
+
 capiDiv.addEventListener('click', (e) => {
     score += clickPower;
+    speed += ESTEIRAS[currentEsteira].bonus;
     scoreEl.textContent = score;
+    document.getElementById('speed-val').textContent = speed.toLocaleString();
 
     if (score > best) {
         best = score;
