@@ -263,6 +263,8 @@ let currentEsteira = 0;
 let speed = 0;
 let academiaScene, academiaCamera, academiaRenderer, academiaBelts = [];
 let academiaRunning = false;
+let cogumeloMesh = null;
+let autoSpeedInterval = null;
 
 function initAcademia3D() {
     if (academiaScene) return;
@@ -379,11 +381,57 @@ function initAcademia3D() {
         academiaScene.add(group);
         academiaBelts.push({ group, belt, roller1, roller2, glow, est, index: i });
     }
+
+    // Cogumelo 3D
+    const coguGroup = new THREE.Group();
+    // Stem
+    const stemGeo = new THREE.CylinderGeometry(0.2, 0.25, 0.6, 12);
+    const stemMat = new THREE.MeshStandardMaterial({ color: 0xf5f5dc });
+    const stem = new THREE.Mesh(stemGeo, stemMat);
+    stem.position.y = 0.3;
+    stem.castShadow = true;
+    coguGroup.add(stem);
+    // Cap
+    const capGeo = new THREE.SphereGeometry(0.4, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+    const capMat = new THREE.MeshStandardMaterial({ color: 0xe53935 });
+    const cap = new THREE.Mesh(capGeo, capMat);
+    cap.position.y = 0.6;
+    cap.castShadow = true;
+    coguGroup.add(cap);
+    // Spots
+    const spotMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const spotGeo = new THREE.SphereGeometry(0.08, 8, 8);
+    const spots = [[-0.2, 0.85, 0.15], [0.15, 0.9, -0.1], [0, 0.75, 0.25]];
+    spots.forEach(p => { const s = new THREE.Mesh(spotGeo, spotMat); s.position.set(...p); coguGroup.add(s); });
+    // Eyes
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+    const eyeGeo = new THREE.SphereGeometry(0.05, 8, 8);
+    const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+    eyeL.position.set(-0.08, 0.4, 0.2);
+    coguGroup.add(eyeL);
+    const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+    eyeR.position.set(0.08, 0.4, 0.2);
+    coguGroup.add(eyeR);
+    // Legs
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63 });
+    const legGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.3, 8);
+    const legL = new THREE.Mesh(legGeo, legMat);
+    legL.position.set(-0.1, 0.05, 0);
+    coguGroup.add(legL);
+    const legR = new THREE.Mesh(legGeo, legMat);
+    legR.position.set(0.1, 0.05, 0);
+    coguGroup.add(legR);
+
+    coguGroup.position.set(0, 0.35, 0);
+    cogumeloMesh = { group: coguGroup, legL, legR };
+    academiaScene.add(coguGroup);
 }
 
 function animateAcademia() {
     if (!academiaRunning) return;
     requestAnimationFrame(animateAcademia);
+
+    const t = Date.now();
 
     for (const b of academiaBelts) {
         const unlocked = speed >= b.est.req;
@@ -391,22 +439,49 @@ function animateAcademia() {
 
         if (active && unlocked) {
             b.belt.material.color.setHex(0x222222);
-            b.roller1.rotation.x += 0.1;
-            b.roller2.rotation.x += 0.1;
-            b.glow.material.emissiveIntensity = 0.5 + Math.sin(Date.now() * 0.005) * 0.5;
+            b.roller1.rotation.x += 0.15;
+            b.roller2.rotation.x += 0.15;
+            b.glow.material.emissiveIntensity = 0.5 + Math.sin(t * 0.005) * 0.5;
         } else if (unlocked) {
             b.belt.material.color.setHex(0x1a1a1a);
             b.glow.material.emissiveIntensity = 0.3;
         } else {
             b.belt.material.color.setHex(0x0a0a0a);
             b.glow.material.emissiveIntensity = 0.05;
-            b.group.children.forEach(c => { if (c.material) c.material.opacity = 0.5; });
         }
     }
 
-    academiaCamera.position.x = Math.sin(Date.now() * 0.0003) * 2;
+    // Move cogumelo to active treadmill
+    if (cogumeloMesh) {
+        const targetX = (currentEsteira - 3) * 2.2;
+        cogumeloMesh.group.position.x += (targetX - cogumeloMesh.group.position.x) * 0.08;
+        // Running animation — legs swing
+        const legSpeed = 0.012 * (ESTEIRAS[currentEsteira].bonus + 2);
+        const legSwing = Math.sin(t * legSpeed) * 0.4;
+        cogumeloMesh.legL.rotation.x = legSwing;
+        cogumeloMesh.legR.rotation.x = -legSwing;
+        // Bounce
+        cogumeloMesh.group.position.y = 0.35 + Math.abs(Math.sin(t * legSpeed)) * 0.08;
+    }
+
+    academiaCamera.position.x = Math.sin(t * 0.0003) * 2;
     academiaCamera.lookAt(0, 1.5, 0);
     academiaRenderer.render(academiaScene, academiaCamera);
+}
+
+function startAutoSpeed() {
+    if (autoSpeedInterval) clearInterval(autoSpeedInterval);
+    autoSpeedInterval = setInterval(() => {
+        if (academiaRunning) {
+            speed += ESTEIRAS[currentEsteira].bonus;
+            document.getElementById('speed-val').textContent = speed.toLocaleString();
+            renderEsteiras();
+        }
+    }, 500);
+}
+
+function stopAutoSpeed() {
+    if (autoSpeedInterval) { clearInterval(autoSpeedInterval); autoSpeedInterval = null; }
 }
 
 function renderEsteiras() {
@@ -434,19 +509,21 @@ document.getElementById('btn-academia').onclick = () => {
     if (!window.THREE) {
         const s = document.createElement('script');
         s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-        s.onload = () => { initAcademia3D(); academiaRunning = true; animateAcademia(); renderEsteiras(); };
+        s.onload = () => { initAcademia3D(); academiaRunning = true; animateAcademia(); startAutoSpeed(); renderEsteiras(); };
         document.head.appendChild(s);
     } else {
         if (!academiaScene) initAcademia3D();
         academiaRunning = true;
         academiaRenderer.setSize(window.innerWidth, window.innerHeight);
         animateAcademia();
+        startAutoSpeed();
         renderEsteiras();
     }
 };
 document.getElementById('academia-back').onclick = () => {
     document.getElementById('academia-screen').style.display = 'none';
     academiaRunning = false;
+    stopAutoSpeed();
 };
 
 capiDiv.addEventListener('click', (e) => {
