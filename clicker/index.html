@@ -81,21 +81,76 @@
             font-family: monospace;
         }
         .back-btn:hover { background: rgba(255,255,255,0.25); }
+        .game-area { display: flex; align-items: center; gap: 40px; }
+        #upgrade-box {
+            background: rgba(0,0,0,0.4);
+            border: 3px solid #444;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            width: 160px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        #upgrade-box:hover { border-color: #ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.3); transform: scale(1.05); }
+        #upgrade-box.locked { opacity: 0.4; cursor: not-allowed; }
+        #upgrade-box.locked:hover { border-color: #444; box-shadow: none; transform: none; }
+        #upgrade-box .up-title { color: #ffd700; font-size: 16px; font-weight: bold; margin-bottom: 8px; }
+        #upgrade-box .up-desc { color: #aaa; font-size: 12px; margin-bottom: 10px; }
+        #upgrade-box .up-cost { color: #ff5722; font-size: 14px; font-weight: bold; }
+        #upgrade-box .up-level { color: #4caf50; font-size: 12px; margin-top: 8px; }
+        #click-power { color: #aaa; font-size: 14px; margin-top: 10px; }
     </style>
 </head>
 <body>
     <a href="/" class="back-btn">← Voltar</a>
     <div class="title">🍄 Cogumelo Clicker</div>
     <div id="score">0</div>
-    <div id="capivara">
-        <canvas id="capi-canvas" width="200" height="200"></canvas>
+    <div class="game-area">
+        <div id="capivara">
+            <canvas id="capi-canvas" width="200" height="200"></canvas>
+        </div>
+        <div id="upgrade-box" class="locked">
+            <div class="up-title">⬆️ UPGRADE</div>
+            <div class="up-desc">+5 por clique</div>
+            <div class="up-cost">Custo: 100</div>
+            <div class="up-level" id="up-level">Nível: 0</div>
+        </div>
     </div>
+    <div id="click-power">Clique: +1</div>
     <div class="best" id="best">Recorde: 0</div>
 
     <script>
 let score = 0;
+let clickPower = 1;
+let upgradeLevel = 0;
+let upgradeCost = 100;
 let best = parseInt(localStorage.getItem('capivara_clicker_best') || '0');
 document.getElementById('best').textContent = `Recorde: ${best}`;
+
+const upgradeBox = document.getElementById('upgrade-box');
+
+function updateUpgradeBox() {
+    if (score >= upgradeCost) {
+        upgradeBox.classList.remove('locked');
+    } else {
+        upgradeBox.classList.add('locked');
+    }
+}
+
+upgradeBox.addEventListener('click', () => {
+    if (score >= upgradeCost) {
+        score -= upgradeCost;
+        upgradeLevel++;
+        clickPower += 5;
+        upgradeCost = 100 * (upgradeLevel + 1);
+        scoreEl.textContent = score;
+        document.getElementById('up-level').textContent = `Nível: ${upgradeLevel}`;
+        document.getElementById('click-power').textContent = `Clique: +${clickPower}`;
+        document.querySelector('.up-cost').textContent = `Custo: ${upgradeCost}`;
+        updateUpgradeBox();
+    }
+});
 
 const capiDiv = document.getElementById('capivara');
 const scoreEl = document.getElementById('score');
@@ -166,7 +221,7 @@ function drawCogumelo() {
 drawCogumelo();
 
 capiDiv.addEventListener('click', (e) => {
-    score++;
+    score += clickPower;
     scoreEl.textContent = score;
 
     if (score > best) {
@@ -175,10 +230,12 @@ capiDiv.addEventListener('click', (e) => {
         document.getElementById('best').textContent = `Recorde: ${best}`;
     }
 
-    // +1 floating effect
+    updateUpgradeBox();
+
+    // floating effect
     const effect = document.createElement('div');
     effect.className = 'click-effect';
-    effect.textContent = '+1';
+    effect.textContent = `+${clickPower}`;
     effect.style.left = (e.offsetX - 10) + 'px';
     effect.style.top = (e.offsetY - 20) + 'px';
     capiDiv.appendChild(effect);
