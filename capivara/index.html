@@ -279,10 +279,14 @@ const SKINS = [
 function loadProgress() {
     try {
         const data = JSON.parse(localStorage.getItem('capivara_run_progress'));
-        if (data) { if (data.gems === undefined) data.gems = 200; return data; }
-        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'], gems: 200 };
+        if (data) {
+            if (data.gems === undefined) data.gems = 0;
+            if (!data.gotInitialGems) { data.gems += 200; data.gotInitialGems = true; }
+            return data;
+        }
+        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'], gems: 200, gotInitialGems: true };
     } catch(e) {
-        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'], gems: 200 };
+        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'], gems: 200, gotInitialGems: true };
     }
 }
 function saveProgress() { localStorage.setItem('capivara_run_progress', JSON.stringify(progress)); }
