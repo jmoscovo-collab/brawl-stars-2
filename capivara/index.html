@@ -1562,13 +1562,20 @@ function showFriendScreen() {
     document.getElementById('friend-name-input').value = '';
     renderFriendList();
 }
+function removeFriend(name) {
+    const friends = JSON.parse(localStorage.getItem('capivara_friends') || '[]');
+    const idx = friends.indexOf(name);
+    if (idx !== -1) friends.splice(idx, 1);
+    localStorage.setItem('capivara_friends', JSON.stringify(friends));
+    renderFriendList();
+}
 function renderFriendList() {
     const friends = JSON.parse(localStorage.getItem('capivara_friends') || '[]');
     const list = document.getElementById('friend-list');
     if (friends.length === 0) {
         list.innerHTML = '<div style="color:#888">Nenhum amigo ainda...</div>';
     } else {
-        list.innerHTML = friends.map(f => '<div>👤 ' + f + '</div>').join('');
+        list.innerHTML = friends.map(f => `<div style="display:flex;align-items:center;justify-content:center;gap:10px;">👤 ${f} <span onclick="removeFriend('${f}')" style="color:#f44336;cursor:pointer;font-size:18px;font-weight:bold;">✕</span></div>`).join('');
     }
 }
 document.getElementById('friend-add-btn').onclick = () => {
