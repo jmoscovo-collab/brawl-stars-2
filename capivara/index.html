@@ -127,8 +127,8 @@
         #friend-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,10,40,0.97); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px; z-index: 9998; }
         #friend-screen h2 { color: #fff; font-size: 28px; text-shadow: 2px 2px 0 #2196f3; }
         #friend-screen p { color: #aaa; font-size: 14px; text-align: center; }
-        #friend-qr { background: #fff; padding: 15px; border-radius: 15px; }
-        #friend-qr canvas { display: block; }
+        #friend-qr { background: #fff; padding: 15px; border-radius: 15px; display: inline-block; }
+        #friend-qr img { display: block; width: 150px; height: 150px; }
         #friend-list { color: #ccc; font-size: 14px; text-align: center; max-height: 150px; overflow-y: auto; }
         #friend-list div { padding: 5px 0; }
         .btn-friend { background: #2196f3; }
@@ -265,7 +265,7 @@
     <div id="friend-screen">
         <h2>👥 AMIZADE</h2>
         <p>Escaneie o QR Code para adicionar como amigo!</p>
-        <div id="friend-qr"><canvas id="qr-canvas" width="150" height="150"></canvas></div>
+        <div id="friend-qr"><img id="qr-img" alt="QR Code"></div>
         <div id="friend-list"></div>
         <button id="friend-back" style="padding:12px 40px;font-size:18px;background:#ff9800;color:#fff;border:none;border-radius:25px;cursor:pointer;">VOLTAR</button>
     </div>
@@ -1537,52 +1537,12 @@ document.getElementById('name-input').addEventListener('keydown', e => {
 });
 
 // Friend system with QR
-function generateQR(canvas, text) {
-    const ctx = canvas.getContext('2d');
-    const size = 150;
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, size, size);
-    // Simple visual QR-like pattern based on text hash
-    ctx.fillStyle = '#000';
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
-    const grid = 15;
-    const cellSize = size / grid;
-    // Border pattern
-    for (let i = 0; i < grid; i++) {
-        ctx.fillRect(i * cellSize, 0, cellSize, cellSize);
-        ctx.fillRect(i * cellSize, (grid-1) * cellSize, cellSize, cellSize);
-        ctx.fillRect(0, i * cellSize, cellSize, cellSize);
-        ctx.fillRect((grid-1) * cellSize, i * cellSize, cellSize, cellSize);
-    }
-    // Corner squares
-    for (let cy = 0; cy < 3; cy++) for (let cx = 0; cx < 3; cx++) {
-        ctx.fillRect((1+cx) * cellSize, (1+cy) * cellSize, cellSize, cellSize);
-        ctx.fillRect((grid-4+cx) * cellSize, (1+cy) * cellSize, cellSize, cellSize);
-        ctx.fillRect((1+cx) * cellSize, (grid-4+cy) * cellSize, cellSize, cellSize);
-    }
-    // Data cells from hash
-    let seed = Math.abs(hash);
-    for (let y = 4; y < grid-4; y++) {
-        for (let x = 4; x < grid-4; x++) {
-            seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-            if (seed % 3 === 0) ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-        }
-    }
-    // Player name in center
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(4*cellSize, 6*cellSize, 7*cellSize, 3*cellSize);
-    ctx.fillStyle = '#000';
-    ctx.font = 'bold 10px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(text.slice(0, 10), size/2, size/2 + 4);
-}
-
 function showFriendScreen() {
     document.getElementById('menu').classList.add('hidden');
     document.getElementById('friend-screen').style.display = 'flex';
-    const qrCanvas = document.getElementById('qr-canvas');
-    generateQR(qrCanvas, playerName || 'Jogador');
+    const name = playerName || 'Jogador';
+    const friendUrl = 'https://cogumelogames.com.br/capivara/?amigo=' + encodeURIComponent(name);
+    document.getElementById('qr-img').src = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(friendUrl);
     // Show friend list
     const friends = JSON.parse(localStorage.getItem('capivara_friends') || '[]');
     const list = document.getElementById('friend-list');
@@ -1592,6 +1552,20 @@ function showFriendScreen() {
         list.innerHTML = friends.map(f => '<div>👤 ' + f + '</div>').join('');
     }
 }
+
+// Auto-add friend from URL
+(function checkFriendUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const amigo = params.get('amigo');
+    if (amigo && amigo !== playerName) {
+        const friends = JSON.parse(localStorage.getItem('capivara_friends') || '[]');
+        if (!friends.includes(amigo)) {
+            friends.push(amigo);
+            localStorage.setItem('capivara_friends', JSON.stringify(friends));
+        }
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+})();
 document.getElementById('btn-friend').onclick = showFriendScreen;
 document.getElementById('friend-back').onclick = () => {
     document.getElementById('friend-screen').style.display = 'none';
