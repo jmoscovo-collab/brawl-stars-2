@@ -59,12 +59,19 @@
         #skins-back { padding: 12px 40px; font-size: 18px; background: #ff9800; color: #fff; border: none; border-radius: 25px; cursor: pointer; margin-top: 15px; }
         #skins-back:hover { transform: scale(1.05); }
         .btn-loja { background: #ff5722; min-width: 60px !important; padding: 13px 20px !important; border-radius: 10px !important; }
-        #gem-counter { position: absolute; top: 10px; right: 15px; color: #fff; font-size: 16px; font-weight: bold; font-family: monospace; text-shadow: 1px 1px 3px #000; z-index: 50; }
+        #gem-counter { position: absolute; top: 10px; right: 15px; color: #fff; font-size: 16px; font-weight: bold; font-family: monospace; text-shadow: 1px 1px 3px #000; z-index: 50; background: rgba(0,0,0,0.4); padding: 5px 12px; border-radius: 15px; }
         #gem-counter .gem-icon { color: #00e5ff; }
         #shop-screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 10, 40, 0.97); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px; pointer-events: auto; z-index: 100; }
         #shop-screen h1 { font-size: 36px; color: #fff; text-shadow: 2px 2px 0 #ff5722; }
-        #shop-screen .shop-gems { font-size: 22px; color: #00e5ff; font-weight: bold; }
+        #shop-screen .shop-gems { font-size: 22px; color: #00e5ff; font-weight: bold; margin-bottom: 10px; }
         #shop-screen .shop-msg { color: #aaa; font-size: 16px; text-align: center; padding: 20px; }
+        .shop-item { background: rgba(30, 30, 70, 0.9); border: 3px solid #444; border-radius: 15px; padding: 25px; text-align: center; cursor: pointer; transition: all 0.2s; min-width: 200px; }
+        .shop-item:hover { border-color: #ff5722; transform: scale(1.05); box-shadow: 0 0 20px rgba(255,87,34,0.3); }
+        .shop-item.cant-afford { opacity: 0.5; cursor: not-allowed; }
+        .shop-item.cant-afford:hover { border-color: #444; transform: none; box-shadow: none; }
+        .shop-item .item-icon { font-size: 50px; margin-bottom: 10px; }
+        .shop-item .item-name { color: #fff; font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+        .shop-item .item-price { color: #00e5ff; font-size: 14px; }
         #shop-back { padding: 12px 40px; font-size: 18px; background: #ff9800; color: #fff; border: none; border-radius: 25px; cursor: pointer; }
         #shop-back:hover { transform: scale(1.05); }
         .controls-info { color: #888; font-size: 11px; margin-top: 8px; line-height: 1.6; text-align: center; }
@@ -170,8 +177,12 @@
     </div>
     <div id="shop-screen">
         <h1>🛒 LOJA</h1>
-        <div class="shop-gems">💎 <span id="shop-gem-count">0</span> gemas</div>
-        <div class="shop-msg">Em breve novos itens! Fique ligado...</div>
+        <div class="shop-gems">💎 <span id="shop-gem-count">0</span> diamantes</div>
+        <div class="shop-item" id="shop-skin-box">
+            <div class="item-icon">📦</div>
+            <div class="item-name">Caixa de Skin</div>
+            <div class="item-price">💎 150 diamantes</div>
+        </div>
         <button id="shop-back">VOLTAR</button>
     </div>
     <div id="gem-counter"><span class="gem-icon">💎</span> <span id="gem-count">0</span></div>
@@ -1167,11 +1178,43 @@ document.getElementById('btn-loja').onclick = () => {
     document.getElementById('menu').classList.add('hidden');
     document.getElementById('shop-screen').style.display = 'flex';
     updateGemDisplay();
+    updateShopItems();
 };
 document.getElementById('shop-back').onclick = () => {
     document.getElementById('shop-screen').style.display = 'none';
     document.getElementById('menu').classList.remove('hidden');
 };
+document.getElementById('shop-skin-box').onclick = () => {
+    if (progress.gems < 150) return;
+    progress.gems -= 150;
+    const locked = SKINS.filter(s => !progress.unlockedSkins.includes(s.id));
+    if (locked.length > 0) {
+        const skin = locked[Math.floor(Math.random() * locked.length)];
+        progress.unlockedSkins.push(skin.id);
+        sfxUnlock();
+        const msg = document.createElement('div');
+        msg.className = 'unlock-msg';
+        msg.innerHTML = `📦 NOVA SKIN!<br><span style="font-size:30px">${skin.icon}</span><br><span style="font-size:16px">${skin.name}</span>`;
+        document.body.appendChild(msg);
+        setTimeout(() => msg.remove(), 2500);
+    } else {
+        sfxCoin();
+        const msg = document.createElement('div');
+        msg.className = 'unlock-msg';
+        msg.innerHTML = '📦 Você já tem todas as skins!<br><span style="font-size:14px">+50 💎 de volta</span>';
+        document.body.appendChild(msg);
+        setTimeout(() => msg.remove(), 2500);
+        progress.gems += 50;
+    }
+    saveProgress();
+    updateGemDisplay();
+    updateShopItems();
+};
+function updateShopItems() {
+    const box = document.getElementById('shop-skin-box');
+    if (progress.gems < 150) box.classList.add('cant-afford');
+    else box.classList.remove('cant-afford');
+}
 
 // Código secreto: digitar DAVI desbloqueia todas as skins + 999999 gemas
 let secretCode = '';
@@ -1188,7 +1231,7 @@ document.addEventListener('keydown', e => {
             sfxUnlock();
             const msg = document.createElement('div');
             msg.className = 'unlock-msg';
-            msg.innerHTML = '🔓 TUDO DESBLOQUEADO!<br><span style="font-size:14px">999999 💎 | Bem-vindo, Davi!</span>';
+            msg.innerHTML = '🔓 TUDO DESBLOQUEADO!<br><span style="font-size:14px">999999 💎 diamantes | Bem-vindo, Davi!</span>';
             document.body.appendChild(msg);
             setTimeout(() => msg.remove(), 2500);
         }
