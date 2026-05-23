@@ -122,40 +122,48 @@ function saveProgress() { localStorage.setItem('street_drive_progress', JSON.str
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
+renderer.toneMappingExposure = 1.2;
+renderer.outputEncoding = THREE.sRGBEncoding;
 
 let scene, camera, sunLight, hemiLight;
 
 function setupScene(track) {
     scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(track.sky, 0.005);
+    scene.fog = new THREE.FogExp2(track.sky, 0.003);
     renderer.setClearColor(track.sky);
 
-    camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
+    camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 600);
 
-    hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
+    hemiLight = new THREE.HemisphereLight(0xddeeff, 0x446633, 0.6);
     scene.add(hemiLight);
-    sunLight = new THREE.DirectionalLight(track.id === 'noite' ? 0x4466aa : 0xfff4e0, track.id === 'noite' ? 0.4 : 1.2);
-    sunLight.position.set(-30, 50, -20);
+    sunLight = new THREE.DirectionalLight(track.id === 'noite' ? 0x4466aa : 0xfff4e0, track.id === 'noite' ? 0.5 : 1.4);
+    sunLight.position.set(-30, 60, -25);
     sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 2048;
-    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.mapSize.width = 4096;
+    sunLight.shadow.mapSize.height = 4096;
     sunLight.shadow.camera.near = 1;
-    sunLight.shadow.camera.far = 200;
-    sunLight.shadow.camera.left = -60;
-    sunLight.shadow.camera.right = 60;
-    sunLight.shadow.camera.top = 60;
-    sunLight.shadow.camera.bottom = -60;
+    sunLight.shadow.camera.far = 250;
+    sunLight.shadow.camera.left = -80;
+    sunLight.shadow.camera.right = 80;
+    sunLight.shadow.camera.top = 80;
+    sunLight.shadow.camera.bottom = -80;
+    sunLight.shadow.bias = -0.0005;
+    sunLight.shadow.normalBias = 0.02;
     scene.add(sunLight);
     scene.add(sunLight.target);
 
-    // Ground
-    const groundGeo = new THREE.PlaneGeometry(600, 600);
-    const groundMat = new THREE.MeshStandardMaterial({ color: track.ground, roughness: 0.95 });
+    // Fill light (opposite side)
+    const fillLight = new THREE.DirectionalLight(0x8899bb, 0.3);
+    fillLight.position.set(20, 20, 10);
+    scene.add(fillLight);
+
+    // Ground (higher res)
+    const groundGeo = new THREE.PlaneGeometry(800, 800, 4, 4);
+    const groundMat = new THREE.MeshStandardMaterial({ color: track.ground, roughness: 0.92, metalness: 0.02 });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.05;
@@ -166,34 +174,44 @@ function setupScene(track) {
 // === ROAD ===
 const ROAD_WIDTH = 14;
 const ROAD_SEG_LEN = 24;
-const VISIBLE_SEGMENTS = 20;
+const VISIBLE_SEGMENTS = 26;
 let roadSegments = [];
 
 function createTree(track) {
     const group = new THREE.Group();
-    const trunkH = 1.5 + Math.random();
-    const trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, trunkH, 6);
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c3d1e, roughness: 0.9 });
+    const trunkH = 1.5 + Math.random() * 1.2;
+    const trunkGeo = new THREE.CylinderGeometry(0.15, 0.35, trunkH, 10);
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a2e14, roughness: 0.95, metalness: 0.0 });
     const trunk = new THREE.Mesh(trunkGeo, trunkMat);
     trunk.position.y = trunkH / 2;
     trunk.castShadow = true;
     group.add(trunk);
-    const leavesH = 2.5 + Math.random() * 1.5;
-    const leavesGeo = new THREE.ConeGeometry(1.2 + Math.random() * 0.6, leavesH, 7);
-    let leafColor = 0x2d6b2d;
+
+    let leafColor = 0x2d6b2d + Math.floor(Math.random() * 0x0a1a0a);
     if (track.id === 'neve') leafColor = 0x1a4a1a;
     if (track.id === 'vulcao') leafColor = 0x4a3a1a;
     if (track.id === 'praia') leafColor = 0x3a8a2a;
-    const leavesMat = new THREE.MeshStandardMaterial({ color: leafColor, roughness: 0.8, flatShading: true });
-    const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-    leaves.position.y = trunkH + leavesH / 2 - 0.3;
-    leaves.castShadow = true;
-    group.add(leaves);
+
+    // Multiple layers of leaves for fuller look
+    const layers = 2 + Math.floor(Math.random() * 2);
+    for (let l = 0; l < layers; l++) {
+        const lH = (2.5 - l * 0.6) + Math.random() * 0.5;
+        const lR = (1.5 - l * 0.3) + Math.random() * 0.3;
+        const leavesGeo = new THREE.ConeGeometry(lR, lH, 10);
+        const leavesMat = new THREE.MeshStandardMaterial({ color: leafColor - l * 0x050505, roughness: 0.75, flatShading: true });
+        const leaves = new THREE.Mesh(leavesGeo, leavesMat);
+        leaves.position.y = trunkH + l * 1.2 + lH / 2 - 0.5;
+        leaves.castShadow = true;
+        leaves.receiveShadow = true;
+        group.add(leaves);
+    }
+
     if (track.id === 'neve') {
-        const snowGeo = new THREE.ConeGeometry(1.3, 0.5, 7);
-        const snowMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+        const snowGeo = new THREE.SphereGeometry(1.0, 8, 6);
+        const snowMat = new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.4, metalness: 0.05 });
         const snow = new THREE.Mesh(snowGeo, snowMat);
-        snow.position.y = trunkH + leavesH - 0.3;
+        snow.position.y = trunkH + layers * 1.2 + 0.5;
+        snow.scale.set(1, 0.4, 1);
         group.add(snow);
     }
     return group;
@@ -205,8 +223,8 @@ function buildRoad(track) {
         const z = -i * ROAD_SEG_LEN;
         const group = new THREE.Group();
 
-        const roadGeo = new THREE.PlaneGeometry(ROAD_WIDTH, ROAD_SEG_LEN);
-        const roadMat = new THREE.MeshStandardMaterial({ color: track.road, roughness: 0.85, metalness: 0.05 });
+        const roadGeo = new THREE.PlaneGeometry(ROAD_WIDTH, ROAD_SEG_LEN, 2, 2);
+        const roadMat = new THREE.MeshStandardMaterial({ color: track.road, roughness: 0.82, metalness: 0.08 });
         const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI / 2;
         road.position.set(0, 0.01, z);
@@ -252,10 +270,10 @@ function buildRoad(track) {
         railR.position.set(ROAD_WIDTH / 2 + 1, 0.4, z);
         group.add(railR);
 
-        for (let t = 0; t < 2; t++) {
+        for (let t = 0; t < 4; t++) {
             const tree = createTree(track);
-            const side = Math.random() > 0.5 ? 1 : -1;
-            tree.position.set(side * (ROAD_WIDTH / 2 + 3 + Math.random() * 10), 0, z + (Math.random() - 0.5) * ROAD_SEG_LEN);
+            const side = t < 2 ? -1 : 1;
+            tree.position.set(side * (ROAD_WIDTH / 2 + 2.5 + Math.random() * 12), 0, z + (Math.random() - 0.5) * ROAD_SEG_LEN);
             group.add(tree);
         }
 
@@ -435,31 +453,44 @@ function createCarMesh(color, scale) {
     mGlassR.rotation.y = -Math.PI / 2;
     group.add(mGlassR);
 
-    // Wheels (tire + rim + brake disc)
+    // Wheels (tire + rim + brake disc + caliper)
     const wheelPositions = [[-1.1, 0.35, 1.6], [1.1, 0.35, 1.6], [-1.1, 0.35, -1.6], [1.1, 0.35, -1.6]];
     for (const [wx, wy, wz] of wheelPositions) {
-        // Tire
-        const tireGeo = new THREE.TorusGeometry(0.36 * s, 0.14 * s, 10, 18);
-        const tireMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.85 });
+        // Tire (high poly)
+        const tireGeo = new THREE.TorusGeometry(0.36 * s, 0.14 * s, 14, 28);
+        const tireMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9, metalness: 0.0 });
         const tire = new THREE.Mesh(tireGeo, tireMat);
         tire.rotation.y = Math.PI / 2;
         tire.position.set(wx * s, wy * s, wz * s);
         tire.castShadow = true;
         group.add(tire);
-        // Rim (5-spoke style)
-        const rimGeo = new THREE.CylinderGeometry(0.24 * s, 0.24 * s, 0.22 * s, 5);
-        const rimMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, metalness: 0.98, roughness: 0.05 });
+        // Rim (multi-spoke)
+        const rimGeo = new THREE.CylinderGeometry(0.26 * s, 0.26 * s, 0.18 * s, 7);
+        const rimMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 1.0, roughness: 0.03 });
         const rim = new THREE.Mesh(rimGeo, rimMat);
         rim.rotation.z = Math.PI / 2;
         rim.position.set(wx * s, wy * s, wz * s);
         group.add(rim);
-        // Brake disc (visible behind rim)
-        const brakeGeo = new THREE.CylinderGeometry(0.18 * s, 0.18 * s, 0.05 * s, 12);
-        const brakeMat = new THREE.MeshStandardMaterial({ color: 0x666666, metalness: 0.7 });
+        // Rim center cap
+        const capGeo = new THREE.CylinderGeometry(0.08 * s, 0.08 * s, 0.2 * s, 12);
+        const capMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.9, roughness: 0.1 });
+        const cap = new THREE.Mesh(capGeo, capMat);
+        cap.rotation.z = Math.PI / 2;
+        cap.position.set(wx * s, wy * s, wz * s);
+        group.add(cap);
+        // Brake disc (drilled)
+        const brakeGeo = new THREE.CylinderGeometry(0.2 * s, 0.2 * s, 0.04 * s, 16);
+        const brakeMat = new THREE.MeshStandardMaterial({ color: 0x777777, metalness: 0.8, roughness: 0.3 });
         const brake = new THREE.Mesh(brakeGeo, brakeMat);
         brake.rotation.z = Math.PI / 2;
         brake.position.set(wx * s, wy * s, wz * s);
         group.add(brake);
+        // Brake caliper (red)
+        const calGeo = new THREE.BoxGeometry(0.1 * s, 0.12 * s, 0.15 * s);
+        const calMat = new THREE.MeshStandardMaterial({ color: 0xcc2200, metalness: 0.5, roughness: 0.4 });
+        const caliper = new THREE.Mesh(calGeo, calMat);
+        caliper.position.set(wx * s, wy * s + 0.15 * s, wz * s);
+        group.add(caliper);
     }
 
     // Exhaust tips (dual)
