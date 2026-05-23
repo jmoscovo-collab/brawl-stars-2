@@ -117,6 +117,27 @@
         .roulette-result { color: #4caf50; font-size: 22px; font-weight: bold; min-height: 30px; }
         .roulette-close { padding: 12px 40px; font-size: 18px; background: #4caf50; color: #fff; border: none; border-radius: 25px; cursor: pointer; display: none; }
         .roulette-close:hover { transform: scale(1.05); }
+        #name-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px; z-index: 9998; }
+        #name-screen h2 { color: #fff; font-size: 26px; text-shadow: 2px 2px 0 #9c27b0; }
+        #name-screen input { padding: 12px 20px; font-size: 20px; border-radius: 15px; border: 3px solid #9c27b0; background: rgba(30,30,70,0.9); color: #fff; text-align: center; font-family: monospace; width: 250px; outline: none; }
+        #name-screen input:focus { border-color: #00bcd4; }
+        #name-screen button { padding: 12px 40px; font-size: 18px; background: #4caf50; color: #fff; border: none; border-radius: 25px; cursor: pointer; }
+        #name-screen button:hover { transform: scale(1.05); }
+        .player-name-display { position: absolute; top: 35px; left: 15px; font-size: 16px; font-weight: bold; font-family: monospace; z-index: 50; text-shadow: 1px 1px 3px #000; }
+        #friend-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,10,40,0.97); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px; z-index: 9998; }
+        #friend-screen h2 { color: #fff; font-size: 28px; text-shadow: 2px 2px 0 #2196f3; }
+        #friend-screen p { color: #aaa; font-size: 14px; text-align: center; }
+        #friend-qr { background: #fff; padding: 15px; border-radius: 15px; }
+        #friend-qr canvas { display: block; }
+        #friend-list { color: #ccc; font-size: 14px; text-align: center; max-height: 150px; overflow-y: auto; }
+        #friend-list div { padding: 5px 0; }
+        .btn-friend { background: #2196f3; }
+        #free-spin-btn { margin-top: 10px; padding: 15px 25px; background: linear-gradient(135deg, #ff9800, #ff5722); border: none; border-radius: 15px; cursor: pointer; text-align: center; transition: all 0.2s; }
+        #free-spin-btn:hover { transform: scale(1.05); }
+        #free-spin-btn.disabled { opacity: 0.5; cursor: not-allowed; background: #555; }
+        #free-spin-btn.disabled:hover { transform: none; }
+        #free-spin-btn .spin-title { color: #fff; font-size: 16px; font-weight: bold; }
+        #free-spin-btn .spin-timer { color: #ffccbc; font-size: 12px; margin-top: 4px; }
         @media (max-width: 600px) {
             #device-screen h1 { font-size: 24px; }
             #device-screen p { font-size: 14px; }
@@ -186,6 +207,7 @@
             <button class="btn-5p" id="btn-4p">4 JOGADORES</button>
             <button class="btn-modes" id="btn-modes">MODOS <span class="tag-novo">NOVO</span></button>
             <button class="btn-skins" id="btn-skins">SKINS</button>
+            <button class="btn-friend" id="btn-friend">AMIZADE</button>
             <button class="btn-loja" id="btn-loja">🛒 LOJA</button>
             <div class="controls-info">
                 P1: WASD | P2: Setas | P3: FGHT | P4: JKLI
@@ -228,9 +250,26 @@
             <div class="item-name">Caixa de Skin</div>
             <div class="item-price">💎 150 diamantes</div>
         </div>
+        <div id="free-spin-btn">
+            <div class="spin-title">🎰 GIRO GRÁTIS</div>
+            <div class="spin-timer" id="spin-timer">Disponível!</div>
+        </div>
         <button id="shop-back">VOLTAR</button>
     </div>
     <div id="gem-counter"><span class="gem-icon">💎</span> <span id="gem-count">0</span></div>
+    <div id="name-screen">
+        <h2>Qual é seu nome?</h2>
+        <input type="text" id="name-input" maxlength="15" placeholder="Digite seu nome...">
+        <button id="name-confirm">JOGAR!</button>
+    </div>
+    <div id="friend-screen">
+        <h2>👥 AMIZADE</h2>
+        <p>Escaneie o QR Code para adicionar como amigo!</p>
+        <div id="friend-qr"><canvas id="qr-canvas" width="150" height="150"></canvas></div>
+        <div id="friend-list"></div>
+        <button id="friend-back" style="padding:12px 40px;font-size:18px;background:#ff9800;color:#fff;border:none;border-radius:25px;cursor:pointer;">VOLTAR</button>
+    </div>
+    <div class="player-name-display" id="player-name-display"></div>
     <div id="roulette-overlay">
         <h2>📦 CAIXA DE SKIN</h2>
         <div class="roulette-strip"><div class="roulette-inner" id="roulette-inner"></div></div>
@@ -274,6 +313,7 @@ const SKINS = [
     { id: 'dragao', name: 'Dragão', icon: '🐉', req: -1, reqText: 'Só na Caixa de Skin' },
     { id: 'alienigena', name: 'Alienígena', icon: '👽', req: -1, reqText: 'Só na Caixa de Skin' },
     { id: 'fantasma', name: 'Fantasma', icon: '👻', req: -1, reqText: 'Só na Caixa de Skin' },
+    { id: 'fenix', name: 'Fênix', icon: '🔥', req: -2, reqText: 'Giro Grátis (1% de chance!)' },
 ];
 
 function loadProgress() {
@@ -906,6 +946,51 @@ function drawPlayerSkin(pl) {
         // Mouth — spooky O
         ctx.fillStyle = '#333';
         ctx.beginPath(); ctx.ellipse(0, 8, 3, 4, 0, 0, Math.PI*2); ctx.fill();
+    } else if (skin === 'fenix') {
+        // Fire aura
+        const flicker = Math.sin(frameCount * 0.15) * 2;
+        ctx.fillStyle = 'rgba(255,87,34,0.3)';
+        ctx.beginPath(); ctx.ellipse(0, 2, 16 + flicker, 20 + flicker, 0, 0, Math.PI*2); ctx.fill();
+        // Body
+        const bodyGrad = ctx.createRadialGradient(0, 0, 3, 0, 0, 14);
+        bodyGrad.addColorStop(0, '#ffeb3b');
+        bodyGrad.addColorStop(0.5, '#ff9800');
+        bodyGrad.addColorStop(1, '#f44336');
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath(); ctx.ellipse(0, 2, 11, 14, 0, 0, Math.PI*2); ctx.fill();
+        // Wings spread
+        ctx.fillStyle = '#ff5722';
+        ctx.beginPath(); ctx.moveTo(-9, 0); ctx.quadraticCurveTo(-20, -8, -16, -16); ctx.quadraticCurveTo(-12, -10, -8, -4); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(9, 0); ctx.quadraticCurveTo(20, -8, 16, -16); ctx.quadraticCurveTo(12, -10, 8, -4); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#ffab00';
+        ctx.beginPath(); ctx.moveTo(-7, 0); ctx.quadraticCurveTo(-15, -5, -12, -12); ctx.quadraticCurveTo(-9, -7, -6, -2); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(7, 0); ctx.quadraticCurveTo(15, -5, 12, -12); ctx.quadraticCurveTo(9, -7, 6, -2); ctx.closePath(); ctx.fill();
+        // Tail feathers
+        ctx.fillStyle = '#ff5722';
+        ctx.beginPath(); ctx.moveTo(-3, 14); ctx.quadraticCurveTo(-6, 24, -2, 22); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(0, 14); ctx.quadraticCurveTo(0, 26, 2, 22); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(3, 14); ctx.quadraticCurveTo(6, 24, 4, 22); ctx.closePath(); ctx.fill();
+        // Head crest
+        ctx.fillStyle = '#f44336';
+        ctx.beginPath(); ctx.moveTo(-3, -12); ctx.lineTo(-5, -20); ctx.lineTo(-1, -14); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, -22); ctx.lineTo(2, -14); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(3, -12); ctx.lineTo(5, -20); ctx.lineTo(1, -14); ctx.closePath(); ctx.fill();
+        // Eyes
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(-4, -4, 3, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(4, -4, 3, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#f44336';
+        ctx.beginPath(); ctx.arc(-4, -4, 1.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(4, -4, 1.5, 0, Math.PI*2); ctx.fill();
+        // Beak
+        ctx.fillStyle = '#ff8f00';
+        ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(0, 4); ctx.lineTo(2, 0); ctx.closePath(); ctx.fill();
+        // Sparkles
+        ctx.fillStyle = '#fff';
+        const s = Math.sin(frameCount * 0.12) * 3;
+        ctx.beginPath(); ctx.arc(-12 + s, -12, 1.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(12 - s, -10, 1.2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, -18 + s, 1.3, 0, Math.PI*2); ctx.fill();
     }
 
     // Feet
@@ -1375,6 +1460,7 @@ function openRoulette(locked) {
 }
 document.getElementById('roulette-close').onclick = () => {
     document.getElementById('roulette-overlay').style.display = 'none';
+    document.querySelector('#roulette-overlay h2').textContent = '📦 CAIXA DE SKIN';
     renderSkinsScreen();
 };
 function updateShopItems() {
@@ -1390,7 +1476,7 @@ document.addEventListener('keydown', e => {
         secretCode += e.key.toUpperCase();
         if (secretCode.includes('DAVI')) {
             secretCode = '';
-            progress.unlockedSkins = ['cogumelo', 'arvore', 'estrela', 'trofeu', 'dragao', 'alienigena', 'fantasma'];
+            progress.unlockedSkins = ['cogumelo', 'arvore', 'estrela', 'trofeu', 'dragao', 'alienigena', 'fantasma', 'fenix'];
             progress.gems = 999999;
             saveProgress();
             updateGemDisplay();
@@ -1406,10 +1492,227 @@ document.addEventListener('keydown', e => {
     }
 });
 
+// Player name system
+let playerName = localStorage.getItem('capivara_player_name') || '';
+function showNameDisplay() {
+    const el = document.getElementById('player-name-display');
+    if (!playerName) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    if (playerName.toLowerCase() === 'davi') {
+        let colorIdx = 0;
+        const colors = ['#ff0000','#ff8800','#ffff00','#00ff00','#00ccff','#9900ff','#ff00ff'];
+        setInterval(() => {
+            colorIdx = (colorIdx + 1) % colors.length;
+            el.style.color = colors[colorIdx];
+        }, 200);
+        el.innerHTML = '🔨 ' + playerName;
+    } else {
+        el.style.color = '#fff';
+        el.textContent = playerName;
+    }
+}
+
+function showNameScreen() {
+    document.getElementById('name-screen').style.display = 'flex';
+    const input = document.getElementById('name-input');
+    if (playerName) input.value = playerName;
+    input.focus();
+}
+document.getElementById('name-confirm').onclick = () => {
+    const name = document.getElementById('name-input').value.trim();
+    if (!name) return;
+    playerName = name;
+    localStorage.setItem('capivara_player_name', playerName);
+    document.getElementById('name-screen').style.display = 'none';
+    showNameDisplay();
+    if (isMobile) {
+        document.getElementById('touch-controls').classList.add('active');
+        try { screen.orientation.lock('landscape').catch(()=>{}); } catch(e) {}
+    }
+    resize();
+    gameLoop();
+};
+document.getElementById('name-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('name-confirm').click();
+});
+
+// Friend system with QR
+function generateQR(canvas, text) {
+    const ctx = canvas.getContext('2d');
+    const size = 150;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, size, size);
+    // Simple visual QR-like pattern based on text hash
+    ctx.fillStyle = '#000';
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+    const grid = 15;
+    const cellSize = size / grid;
+    // Border pattern
+    for (let i = 0; i < grid; i++) {
+        ctx.fillRect(i * cellSize, 0, cellSize, cellSize);
+        ctx.fillRect(i * cellSize, (grid-1) * cellSize, cellSize, cellSize);
+        ctx.fillRect(0, i * cellSize, cellSize, cellSize);
+        ctx.fillRect((grid-1) * cellSize, i * cellSize, cellSize, cellSize);
+    }
+    // Corner squares
+    for (let cy = 0; cy < 3; cy++) for (let cx = 0; cx < 3; cx++) {
+        ctx.fillRect((1+cx) * cellSize, (1+cy) * cellSize, cellSize, cellSize);
+        ctx.fillRect((grid-4+cx) * cellSize, (1+cy) * cellSize, cellSize, cellSize);
+        ctx.fillRect((1+cx) * cellSize, (grid-4+cy) * cellSize, cellSize, cellSize);
+    }
+    // Data cells from hash
+    let seed = Math.abs(hash);
+    for (let y = 4; y < grid-4; y++) {
+        for (let x = 4; x < grid-4; x++) {
+            seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+            if (seed % 3 === 0) ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        }
+    }
+    // Player name in center
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(4*cellSize, 6*cellSize, 7*cellSize, 3*cellSize);
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(text.slice(0, 10), size/2, size/2 + 4);
+}
+
+function showFriendScreen() {
+    document.getElementById('menu').classList.add('hidden');
+    document.getElementById('friend-screen').style.display = 'flex';
+    const qrCanvas = document.getElementById('qr-canvas');
+    generateQR(qrCanvas, playerName || 'Jogador');
+    // Show friend list
+    const friends = JSON.parse(localStorage.getItem('capivara_friends') || '[]');
+    const list = document.getElementById('friend-list');
+    if (friends.length === 0) {
+        list.innerHTML = '<div style="color:#888">Nenhum amigo ainda...</div>';
+    } else {
+        list.innerHTML = friends.map(f => '<div>👤 ' + f + '</div>').join('');
+    }
+}
+document.getElementById('btn-friend').onclick = showFriendScreen;
+document.getElementById('friend-back').onclick = () => {
+    document.getElementById('friend-screen').style.display = 'none';
+    document.getElementById('menu').classList.remove('hidden');
+};
+
+// Free spin roulette (1 per hour)
+function getSpinTime() { return parseInt(localStorage.getItem('capivara_free_spin_time') || '0'); }
+function setSpinTime() { localStorage.setItem('capivara_free_spin_time', Date.now().toString()); }
+function canSpin() { return Date.now() - getSpinTime() >= 3600000; }
+
+function updateSpinBtn() {
+    const btn = document.getElementById('free-spin-btn');
+    const timer = document.getElementById('spin-timer');
+    if (canSpin()) {
+        btn.classList.remove('disabled');
+        timer.textContent = 'Disponível!';
+    } else {
+        btn.classList.add('disabled');
+        const remaining = 3600000 - (Date.now() - getSpinTime());
+        const min = Math.floor(remaining / 60000);
+        const sec = Math.floor((remaining % 60000) / 1000);
+        timer.textContent = `Próximo em ${min}m ${sec}s`;
+    }
+}
+setInterval(updateSpinBtn, 1000);
+
+const FREE_SPIN_REWARDS = [
+    { type: 'gems', amount: 10, label: '+10 💎', icon: '💎', weight: 36 },
+    { type: 'skin', label: 'FÊNIX 🔥', icon: '🔥', weight: 1 },
+    { type: 'respin', label: '+1 GIRO!', icon: '🎰', weight: 20 },
+    { type: 'gems', amount: 10, label: '+10 💎', icon: '💎', weight: 36 },
+    { type: 'respin', label: '+1 GIRO!', icon: '🎰', weight: 7 },
+];
+
+function pickFreeReward() {
+    const total = FREE_SPIN_REWARDS.reduce((s, r) => s + r.weight, 0);
+    let roll = Math.random() * total;
+    for (const r of FREE_SPIN_REWARDS) {
+        roll -= r.weight;
+        if (roll <= 0) return r;
+    }
+    return FREE_SPIN_REWARDS[0];
+}
+
+document.getElementById('free-spin-btn').onclick = () => {
+    if (!canSpin()) return;
+    setSpinTime();
+    updateSpinBtn();
+    const reward = pickFreeReward();
+    openFreeRoulette(reward);
+};
+
+function openFreeRoulette(winReward) {
+    const overlay = document.getElementById('roulette-overlay');
+    const inner = document.getElementById('roulette-inner');
+    const result = document.getElementById('roulette-result');
+    const closeBtn = document.getElementById('roulette-close');
+    document.querySelector('#roulette-overlay h2').textContent = '🎰 GIRO GRÁTIS';
+    overlay.style.display = 'flex';
+    result.textContent = '';
+    closeBtn.style.display = 'none';
+    inner.style.transition = 'none';
+    inner.style.transform = 'translateX(0)';
+
+    const allRewards = [
+        { icon: '💎', label: '+10 💎' },
+        { icon: '🎰', label: '+1 GIRO' },
+        { icon: '💎', label: '+10 💎' },
+        { icon: '🔥', label: 'FÊNIX' },
+        { icon: '💎', label: '+10 💎' },
+        { icon: '🎰', label: '+1 GIRO' },
+    ];
+    const items = [];
+    for (let i = 0; i < 30; i++) items.push(allRewards[Math.floor(Math.random() * allRewards.length)]);
+    const winIndex = 22;
+    items[winIndex] = { icon: winReward.icon, label: winReward.label };
+
+    inner.innerHTML = '';
+    for (const s of items) {
+        const div = document.createElement('div');
+        div.className = 'roulette-item';
+        div.innerHTML = `${s.icon}<span>${s.label}</span>`;
+        inner.appendChild(div);
+    }
+
+    setTimeout(() => {
+        const offset = winIndex * 100 - 100;
+        inner.style.transition = 'transform 3s cubic-bezier(0.2, 0.8, 0.3, 1)';
+        inner.style.transform = `translateX(-${offset}px)`;
+    }, 100);
+
+    setTimeout(() => {
+        if (winReward.type === 'gems') {
+            progress.gems += winReward.amount;
+        } else if (winReward.type === 'skin') {
+            if (!progress.unlockedSkins.includes('fenix')) {
+                progress.unlockedSkins.push('fenix');
+                result.textContent = '🔥 FÊNIX DESBLOQUEADA! (1% de sorte!)';
+            } else {
+                progress.gems += 50;
+                result.textContent = '🔥 Já tem a Fênix! +50 💎';
+            }
+        } else if (winReward.type === 'respin') {
+            localStorage.setItem('capivara_free_spin_time', '0');
+            updateSpinBtn();
+        }
+        if (winReward.type !== 'skin') result.textContent = `🎉 ${winReward.label}`;
+        sfxUnlock();
+        saveProgress();
+        updateGemDisplay();
+        closeBtn.style.display = 'block';
+    }, 3300);
+}
+
 // Device selection
 let isMobile = false;
 document.getElementById('btn-pc').onclick = () => {
     document.getElementById('device-screen').style.display = 'none';
+    if (!playerName) { showNameScreen(); return; }
+    showNameDisplay();
     resize();
     gameLoop();
 };
@@ -1417,6 +1720,8 @@ document.getElementById('btn-mobile').onclick = () => {
     isMobile = true;
     document.body.classList.add('mobile-mode');
     document.getElementById('device-screen').style.display = 'none';
+    if (!playerName) { showNameScreen(); return; }
+    showNameDisplay();
     document.getElementById('touch-controls').classList.add('active');
     try { screen.orientation.lock('landscape').catch(()=>{}); } catch(e) {}
     resize();
