@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Turbo Racing — Cogumelo Games</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #111; overflow: hidden; font-family: 'Arial', sans-serif; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #menu { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #0a0a2a 0%, #1a0533 50%, #0d1b2a 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; z-index: 100; }
+        #menu h1 { font-size: 48px; font-weight: 900; background: linear-gradient(to right, #ff4444, #ff8800, #ffff00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: none; letter-spacing: 2px; }
+        #menu .subtitle { color: #888; font-size: 14px; letter-spacing: 3px; margin-bottom: 20px; }
+        .car-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; max-width: 600px; width: 90%; }
+        .car-card { background: rgba(20, 20, 50, 0.9); border: 3px solid #333; border-radius: 15px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .car-card:hover { border-color: #ff8800; transform: scale(1.03); box-shadow: 0 0 20px rgba(255,136,0,0.3); }
+        .car-card.selected { border-color: #00ff88; box-shadow: 0 0 20px rgba(0,255,136,0.4); }
+        .car-card .car-icon { font-size: 40px; margin-bottom: 8px; }
+        .car-card .car-name { color: #fff; font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+        .car-card .car-desc { color: #aaa; font-size: 11px; margin-bottom: 10px; }
+        .car-stats { display: flex; flex-direction: column; gap: 4px; }
+        .stat-row { display: flex; align-items: center; gap: 8px; }
+        .stat-label { color: #888; font-size: 10px; width: 60px; text-align: right; }
+        .stat-bar { flex: 1; height: 6px; background: #222; border-radius: 3px; overflow: hidden; }
+        .stat-fill { height: 100%; border-radius: 3px; }
+        .stat-vel { background: #ff4444; }
+        .stat-ctrl { background: #4caf50; }
+        .stat-acc { background: #ff9800; }
+        .stat-res { background: #2196f3; }
+        #start-btn { padding: 14px 50px; font-size: 20px; font-weight: bold; background: linear-gradient(135deg, #ff4444, #ff8800); color: #fff; border: none; border-radius: 30px; cursor: pointer; margin-top: 15px; letter-spacing: 1px; }
+        #start-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(255,68,68,0.4); }
+        .controls-hint { color: #555; font-size: 11px; margin-top: 10px; }
+        #hud { position: fixed; top: 10px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: none; z-index: 50; font-family: monospace; }
+        #hud span { color: #fff; font-size: 16px; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.5); padding: 4px 12px; border-radius: 8px; }
+        #turbo-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 200px; height: 12px; background: rgba(0,0,0,0.6); border-radius: 6px; border: 1px solid #444; z-index: 50; overflow: hidden; }
+        #turbo-fill { height: 100%; background: linear-gradient(90deg, #00ccff, #00ff88); border-radius: 6px; transition: width 0.1s; width: 100%; }
+        #turbo-label { position: fixed; bottom: 35px; left: 50%; transform: translateX(-50%); color: #00ccff; font-size: 11px; font-family: monospace; font-weight: bold; z-index: 50; text-shadow: 1px 1px 2px #000; }
+        #race-result { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 15px; z-index: 200; }
+        #race-result h1 { font-size: 42px; color: #fff; }
+        #race-result p { color: #aaa; font-size: 18px; }
+        #race-result button { padding: 12px 40px; font-size: 18px; background: #ff8800; color: #fff; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; }
+        #race-result button:hover { transform: scale(1.05); }
+        .pos-1 { color: #ffd700 !important; }
+        .pos-2 { color: #c0c0c0 !important; }
+        .pos-3 { color: #cd7f32 !important; }
+    </style>
+</head>
+<body>
+    <canvas id="game"></canvas>
+    <div id="menu">
+        <h1>TURBO RACING</h1>
+        <div class="subtitle">COGUMELO GAMES</div>
+        <div class="car-grid" id="car-grid"></div>
+        <button id="start-btn">CORRER!</button>
+        <div class="controls-hint">WASD = Mover | ESPAÇO = Turbo (6s)</div>
+    </div>
+    <div id="hud" style="display:none">
+        <span id="hud-pos">1º / 4</span>
+        <span id="hud-lap">Volta 1/3</span>
+        <span id="hud-time">0:00</span>
+    </div>
+    <div id="turbo-bar" style="display:none"><div id="turbo-fill"></div></div>
+    <div id="turbo-label" style="display:none">TURBO [ESPAÇO]</div>
+    <div id="race-result">
+        <h1 id="result-title">1º LUGAR!</h1>
+        <p id="result-time">Tempo: 2:05</p>
+        <button id="result-btn">MENU</button>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+const CARS = [
+    { id: 'speed', name: 'Relâmpago', icon: '⚡', desc: 'Velocidade máxima, difícil de controlar', color: 0xff2222, speed: 8, control: 4, accel: 5, resist: 3 },
+    { id: 'control', name: 'Preciso', icon: '🎯', desc: 'Lento mas domina qualquer curva', color: 0x2266ff, speed: 4, control: 9, accel: 5, resist: 4 },
+    { id: 'accel', name: 'Foguete', icon: '🚀', desc: 'Arranca forte e curva com estilo', color: 0xff8800, speed: 5, control: 6, accel: 9, resist: 3 },
+    { id: 'tank', name: 'Tanque', icon: '🛡️', desc: 'Pesado, estável, não sai da pista', color: 0x44cc44, speed: 4, control: 5, accel: 3, resist: 9 },
+];
+
+let selectedCar = 0;
+
+// Render car selection
+const carGrid = document.getElementById('car-grid');
+CARS.forEach((car, i) => {
+    const card = document.createElement('div');
+    card.className = 'car-card' + (i === 0 ? ' selected' : '');
+    card.innerHTML = `
+        <div class="car-icon">${car.icon}</div>
+        <div class="car-name">${car.name}</div>
+        <div class="car-desc">${car.desc}</div>
+        <div class="car-stats">
+            <div class="stat-row"><span class="stat-label">Veloc.</span><div class="stat-bar"><div class="stat-fill stat-vel" style="width:${car.speed*10}%"></div></div></div>
+            <div class="stat-row"><span class="stat-label">Controle</span><div class="stat-bar"><div class="stat-fill stat-ctrl" style="width:${car.control*10}%"></div></div></div>
+            <div class="stat-row"><span class="stat-label">Aceler.</span><div class="stat-bar"><div class="stat-fill stat-acc" style="width:${car.accel*10}%"></div></div></div>
+            <div class="stat-row"><span class="stat-label">Resist.</span><div class="stat-bar"><div class="stat-fill stat-res" style="width:${car.resist*10}%"></div></div></div>
+        </div>
+    `;
+    card.onclick = () => {
+        selectedCar = i;
+        document.querySelectorAll('.car-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+    };
+    carGrid.appendChild(card);
+});
+
+// Track definition — oval with curves (top-down 3D)
+const TRACK_POINTS = [];
+const TRACK_WIDTH = 12;
+const numPoints = 60;
+for (let i = 0; i < numPoints; i++) {
+    const t = (i / numPoints) * Math.PI * 2;
+    const rx = 80, ry = 50;
+    const wobble = Math.sin(t * 3) * 10 + Math.cos(t * 2) * 8;
+    const x = Math.cos(t) * (rx + wobble);
+    const z = Math.sin(t) * (ry + wobble * 0.7);
+    TRACK_POINTS.push({ x, z });
+}
+
+// Get track direction at point index
+function getTrackDir(idx) {
+    const next = (idx + 1) % TRACK_POINTS.length;
+    const dx = TRACK_POINTS[next].x - TRACK_POINTS[idx].x;
+    const dz = TRACK_POINTS[next].z - TRACK_POINTS[idx].z;
+    return Math.atan2(dz, dx);
+}
+
+// Find closest track point
+function closestTrackPoint(x, z) {
+    let minDist = Infinity, minIdx = 0;
+    for (let i = 0; i < TRACK_POINTS.length; i++) {
+        const dx = TRACK_POINTS[i].x - x;
+        const dz = TRACK_POINTS[i].z - z;
+        const d = dx * dx + dz * dz;
+        if (d < minDist) { minDist = d; minIdx = i; }
+    }
+    return minIdx;
+}
+
+// Three.js setup
+const canvas = document.getElementById('game');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.setClearColor(0x1a1a1a);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x1a1a1a, 80, 200);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
+
+// Lights
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight.position.set(30, 50, 20);
+dirLight.castShadow = true;
+dirLight.shadow.camera.near = 0.5;
+dirLight.shadow.camera.far = 200;
+dirLight.shadow.camera.left = -100;
+dirLight.shadow.camera.right = 100;
+dirLight.shadow.camera.top = 100;
+dirLight.shadow.camera.bottom = -100;
+scene.add(dirLight);
+
+// Ground
+const groundGeo = new THREE.PlaneGeometry(400, 400);
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x2d5a27, roughness: 0.9 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -0.1;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Build track mesh
+function buildTrack() {
+    const shape = new THREE.Shape();
+    const innerPts = [], outerPts = [];
+    for (let i = 0; i < TRACK_POINTS.length; i++) {
+        const p = TRACK_POINTS[i];
+        const dir = getTrackDir(i);
+        const nx = -Math.sin(dir) * TRACK_WIDTH / 2;
+        const nz = Math.cos(dir) * TRACK_WIDTH / 2;
+        innerPts.push(new THREE.Vector2(p.x - nx, p.z - nz));
+        outerPts.push(new THREE.Vector2(p.x + nx, p.z + nz));
+    }
+
+    // Track surface as a ribbon
+    const trackGeo = new THREE.BufferGeometry();
+    const vertices = [], indices = [];
+    for (let i = 0; i < TRACK_POINTS.length; i++) {
+        vertices.push(innerPts[i].x, 0, innerPts[i].y);
+        vertices.push(outerPts[i].x, 0, outerPts[i].y);
+    }
+    for (let i = 0; i < TRACK_POINTS.length; i++) {
+        const next = (i + 1) % TRACK_POINTS.length;
+        const a = i * 2, b = i * 2 + 1, c = next * 2, d = next * 2 + 1;
+        indices.push(a, b, c, b, d, c);
+    }
+    trackGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    trackGeo.setIndex(indices);
+    trackGeo.computeVertexNormals();
+
+    const trackMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.7 });
+    const trackMesh = new THREE.Mesh(trackGeo, trackMat);
+    trackMesh.position.y = 0.01;
+    trackMesh.receiveShadow = true;
+    scene.add(trackMesh);
+
+    // White border lines
+    const lineMatW = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    for (const pts of [innerPts, outerPts]) {
+        const lineGeo = new THREE.BufferGeometry();
+        const lineVerts = [];
+        for (let i = 0; i < pts.length; i++) {
+            const next = (i + 1) % pts.length;
+            const p1 = pts[i], p2 = pts[next];
+            const dx = p2.x - p1.x, dz = p2.y - p1.y;
+            const len = Math.sqrt(dx*dx + dz*dz);
+            const nx = -dz / len * 0.3, nz = dx / len * 0.3;
+            lineVerts.push(p1.x+nx, 0.02, p1.y+nz, p1.x-nx, 0.02, p1.y-nz, p2.x+nx, 0.02, p2.y+nz);
+            lineVerts.push(p1.x-nx, 0.02, p1.y-nz, p2.x-nx, 0.02, p2.y-nz, p2.x+nx, 0.02, p2.y+nz);
+        }
+        const lGeo = new THREE.BufferGeometry();
+        lGeo.setAttribute('position', new THREE.Float32BufferAttribute(lineVerts, 3));
+        const lMesh = new THREE.Mesh(lGeo, lineMatW);
+        scene.add(lMesh);
+    }
+
+    // Start/finish line
+    const startDir = getTrackDir(0);
+    const startGeo = new THREE.PlaneGeometry(TRACK_WIDTH, 2);
+    const startMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+    const startLine = new THREE.Mesh(startGeo, startMat);
+    startLine.rotation.x = -Math.PI / 2;
+    startLine.rotation.z = -startDir;
+    startLine.position.set(TRACK_POINTS[0].x, 0.03, TRACK_POINTS[0].z);
+    scene.add(startLine);
+}
+buildTrack();
+
+// Create car mesh
+function createCarMesh(color) {
+    const group = new THREE.Group();
+    // Body
+    const bodyGeo = new THREE.BoxGeometry(2.2, 0.8, 4);
+    const bodyMat = new THREE.MeshStandardMaterial({ color, metalness: 0.6, roughness: 0.3 });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 0.6;
+    body.castShadow = true;
+    group.add(body);
+    // Roof
+    const roofGeo = new THREE.BoxGeometry(1.6, 0.6, 2);
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.2 });
+    const roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.position.set(0, 1.1, -0.3);
+    roof.castShadow = true;
+    group.add(roof);
+    // Wheels
+    const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 12);
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+    const positions = [[-1.1, 0.4, 1.3], [1.1, 0.4, 1.3], [-1.1, 0.4, -1.3], [1.1, 0.4, -1.3]];
+    for (const [wx, wy, wz] of positions) {
+        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+        wheel.rotation.z = Math.PI / 2;
+        wheel.position.set(wx, wy, wz);
+        wheel.castShadow = true;
+        group.add(wheel);
+    }
+    return group;
+}
+
+// Race state
+let playerCar, aiCars = [], racing = false;
+let playerPos = { x: 0, z: 0, angle: 0, speed: 0, trackIdx: 0, lap: 0, lastCheckpoint: -1 };
+let aiPositions = [];
+let turboFuel = 100, turboActive = false, turboTimer = 0;
+let raceTime = 0, raceStartTime = 0;
+let totalLaps = 3;
+let keys = {};
+
+document.addEventListener('keydown', e => { keys[e.code] = true; });
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+function startRace() {
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('hud').style.display = 'flex';
+    document.getElementById('turbo-bar').style.display = 'block';
+    document.getElementById('turbo-label').style.display = 'block';
+    document.getElementById('race-result').style.display = 'none';
+
+    const car = CARS[selectedCar];
+
+    // Remove old cars
+    if (playerCar) scene.remove(playerCar);
+    aiCars.forEach(c => scene.remove(c));
+    aiCars = [];
+
+    // Player car at start
+    playerCar = createCarMesh(car.color);
+    const startAngle = getTrackDir(0);
+    playerPos = { x: TRACK_POINTS[0].x, z: TRACK_POINTS[0].z, angle: startAngle, speed: 0, trackIdx: 0, lap: 0, lastCheckpoint: -1, finished: false };
+    playerCar.position.set(playerPos.x, 0, playerPos.z);
+    playerCar.rotation.y = -startAngle + Math.PI / 2;
+    scene.add(playerCar);
+
+    // AI cars
+    aiPositions = [];
+    const aiColors = [0xcccccc, 0xff00ff, 0xffff00];
+    for (let i = 0; i < 3; i++) {
+        const aiMesh = createCarMesh(aiColors[i]);
+        const offset = (i + 1) * 3;
+        const idx = offset % TRACK_POINTS.length;
+        const aiAngle = getTrackDir(idx);
+        aiPositions.push({ x: TRACK_POINTS[idx].x, z: TRACK_POINTS[idx].z, angle: aiAngle, speed: 0.3 + Math.random() * 0.1, trackIdx: idx, lap: 0, lastCheckpoint: -1, finished: false, baseSpeed: 0.5 + Math.random() * 0.3 });
+        aiMesh.position.set(TRACK_POINTS[idx].x, 0, TRACK_POINTS[idx].z);
+        aiMesh.rotation.y = -aiAngle + Math.PI / 2;
+        scene.add(aiMesh);
+        aiCars.push(aiMesh);
+    }
+
+    turboFuel = 100;
+    turboActive = false;
+    turboTimer = 0;
+    raceStartTime = Date.now();
+    racing = true;
+    raceLoop();
+}
+
+function raceLoop() {
+    if (!racing) return;
+    requestAnimationFrame(raceLoop);
+
+    const car = CARS[selectedCar];
+    const dt = 1;
+
+    // Player input
+    const maxSpeed = (car.speed / 10) * 1.8;
+    const accelRate = (car.accel / 10) * 0.04;
+    const turnRate = (car.control / 10) * 0.045;
+
+    if (keys['KeyW'] || keys['ArrowUp']) {
+        playerPos.speed = Math.min(playerPos.speed + accelRate, maxSpeed);
+    } else if (keys['KeyS'] || keys['ArrowDown']) {
+        playerPos.speed = Math.max(playerPos.speed - 0.03, -maxSpeed * 0.3);
+    } else {
+        playerPos.speed *= 0.97;
+    }
+
+    if (keys['KeyA'] || keys['ArrowLeft']) playerPos.angle += turnRate * (0.3 + playerPos.speed / maxSpeed * 0.7);
+    if (keys['KeyD'] || keys['ArrowRight']) playerPos.angle -= turnRate * (0.3 + playerPos.speed / maxSpeed * 0.7);
+
+    // Turbo
+    if (keys['Space'] && turboFuel > 0 && !turboActive) {
+        turboActive = true;
+        turboTimer = 360; // 6 seconds at 60fps
+    }
+    if (turboActive) {
+        turboTimer--;
+        turboFuel = Math.max(0, turboFuel - (100 / 360));
+        playerPos.speed = Math.min(playerPos.speed + 0.02, maxSpeed * 1.5);
+        if (turboTimer <= 0) { turboActive = false; }
+    }
+    document.getElementById('turbo-fill').style.width = turboFuel + '%';
+
+    // Move player
+    playerPos.x += Math.cos(playerPos.angle) * playerPos.speed;
+    playerPos.z += Math.sin(playerPos.angle) * playerPos.speed;
+
+    // Track boundary — push back to track
+    const closestIdx = closestTrackPoint(playerPos.x, playerPos.z);
+    const tp = TRACK_POINTS[closestIdx];
+    const distToTrack = Math.sqrt((playerPos.x - tp.x) ** 2 + (playerPos.z - tp.z) ** 2);
+    if (distToTrack > TRACK_WIDTH * 0.7) {
+        const pushAngle = Math.atan2(tp.z - playerPos.z, tp.x - playerPos.x);
+        playerPos.x += Math.cos(pushAngle) * 0.5;
+        playerPos.z += Math.sin(pushAngle) * 0.5;
+        playerPos.speed *= 0.92;
+    }
+
+    // Lap detection
+    const prevIdx = playerPos.trackIdx;
+    playerPos.trackIdx = closestIdx;
+    if (prevIdx > TRACK_POINTS.length * 0.8 && closestIdx < TRACK_POINTS.length * 0.2) {
+        playerPos.lap++;
+        if (playerPos.lap >= totalLaps) { playerPos.finished = true; endRace(); return; }
+    }
+
+    // Update player mesh
+    playerCar.position.set(playerPos.x, 0, playerPos.z);
+    playerCar.rotation.y = -playerPos.angle + Math.PI / 2;
+
+    // AI movement
+    for (let i = 0; i < aiPositions.length; i++) {
+        const ai = aiPositions[i];
+        const targetIdx = (ai.trackIdx + 2) % TRACK_POINTS.length;
+        const target = TRACK_POINTS[targetIdx];
+        const aiAngle = Math.atan2(target.z - ai.z, target.x - ai.x);
+        ai.angle = aiAngle;
+        const aiSpeed = ai.baseSpeed + Math.sin(Date.now() * 0.001 + i) * 0.1;
+        ai.x += Math.cos(ai.angle) * aiSpeed;
+        ai.z += Math.sin(ai.angle) * aiSpeed;
+
+        const aiClosest = closestTrackPoint(ai.x, ai.z);
+        const prevAiIdx = ai.trackIdx;
+        ai.trackIdx = aiClosest;
+        if (prevAiIdx > TRACK_POINTS.length * 0.8 && aiClosest < TRACK_POINTS.length * 0.2) {
+            ai.lap++;
+            if (ai.lap >= totalLaps) ai.finished = true;
+        }
+
+        aiCars[i].position.set(ai.x, 0, ai.z);
+        aiCars[i].rotation.y = -ai.angle + Math.PI / 2;
+    }
+
+    // Camera — top-down angled follow
+    const camDist = 35;
+    const camHeight = 30;
+    const camX = playerPos.x - Math.cos(playerPos.angle) * camDist * 0.5;
+    const camZ = playerPos.z - Math.sin(playerPos.angle) * camDist * 0.5;
+    camera.position.lerp(new THREE.Vector3(camX, camHeight, camZ), 0.05);
+    camera.lookAt(playerPos.x, 0, playerPos.z);
+
+    // HUD
+    const positions = [{ idx: playerPos.trackIdx, lap: playerPos.lap, name: 'player' }, ...aiPositions.map((a, i) => ({ idx: a.trackIdx, lap: a.lap, name: 'ai' + i }))];
+    positions.sort((a, b) => (b.lap * 1000 + b.idx) - (a.lap * 1000 + a.idx));
+    const playerRank = positions.findIndex(p => p.name === 'player') + 1;
+    document.getElementById('hud-pos').textContent = `${playerRank}º / 4`;
+    document.getElementById('hud-lap').textContent = `Volta ${Math.min(playerPos.lap + 1, totalLaps)}/${totalLaps}`;
+    const elapsed = Math.floor((Date.now() - raceStartTime) / 1000);
+    const min = Math.floor(elapsed / 60);
+    const sec = elapsed % 60;
+    document.getElementById('hud-time').textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+
+    renderer.render(scene, camera);
+}
+
+function endRace() {
+    racing = false;
+    const elapsed = Math.floor((Date.now() - raceStartTime) / 1000);
+    const min = Math.floor(elapsed / 60);
+    const sec = elapsed % 60;
+
+    const positions = [{ idx: playerPos.trackIdx, lap: playerPos.lap, name: 'player' }, ...aiPositions.map((a, i) => ({ idx: a.trackIdx, lap: a.lap, name: 'ai' + i }))];
+    positions.sort((a, b) => (b.lap * 1000 + b.idx) - (a.lap * 1000 + a.idx));
+    const rank = positions.findIndex(p => p.name === 'player') + 1;
+
+    const titles = ['1º LUGAR! 🏆', '2º LUGAR!', '3º LUGAR!', '4º LUGAR...'];
+    const classes = ['pos-1', 'pos-2', 'pos-3', ''];
+    document.getElementById('result-title').textContent = titles[rank - 1];
+    document.getElementById('result-title').className = classes[rank - 1];
+    document.getElementById('result-time').textContent = `Tempo: ${min}:${sec.toString().padStart(2, '0')}`;
+    document.getElementById('race-result').style.display = 'flex';
+}
+
+document.getElementById('start-btn').onclick = startRace;
+document.getElementById('result-btn').onclick = () => {
+    document.getElementById('race-result').style.display = 'none';
+    document.getElementById('menu').style.display = 'flex';
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('turbo-bar').style.display = 'none';
+    document.getElementById('turbo-label').style.display = 'none';
+};
+
+// Resize
+window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+});
+    </script>
+</body>
+</html>
