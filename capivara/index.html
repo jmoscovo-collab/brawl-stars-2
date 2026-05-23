@@ -58,6 +58,15 @@
         .skin-req.unlocked { color: #4caf50; }
         #skins-back { padding: 12px 40px; font-size: 18px; background: #ff9800; color: #fff; border: none; border-radius: 25px; cursor: pointer; margin-top: 15px; }
         #skins-back:hover { transform: scale(1.05); }
+        .btn-loja { background: #ff5722; min-width: 60px !important; padding: 13px 20px !important; border-radius: 10px !important; }
+        #gem-counter { position: absolute; top: 10px; right: 15px; color: #fff; font-size: 16px; font-weight: bold; font-family: monospace; text-shadow: 1px 1px 3px #000; z-index: 50; }
+        #gem-counter .gem-icon { color: #00e5ff; }
+        #shop-screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 10, 40, 0.97); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px; pointer-events: auto; z-index: 100; }
+        #shop-screen h1 { font-size: 36px; color: #fff; text-shadow: 2px 2px 0 #ff5722; }
+        #shop-screen .shop-gems { font-size: 22px; color: #00e5ff; font-weight: bold; }
+        #shop-screen .shop-msg { color: #aaa; font-size: 16px; text-align: center; padding: 20px; }
+        #shop-back { padding: 12px 40px; font-size: 18px; background: #ff9800; color: #fff; border: none; border-radius: 25px; cursor: pointer; }
+        #shop-back:hover { transform: scale(1.05); }
         .controls-info { color: #888; font-size: 11px; margin-top: 8px; line-height: 1.6; text-align: center; }
         .version { position: absolute; bottom: 5px; right: 10px; color: rgba(255,255,255,0.3); font: 11px monospace; }
         .unlock-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(156, 39, 176, 0.95); color: #fff; padding: 20px 40px; border-radius: 15px; font-size: 22px; font-weight: bold; text-align: center; z-index: 50; animation: popIn 0.3s; pointer-events: none; }
@@ -124,6 +133,7 @@
             <button class="btn-5p" id="btn-4p">4 JOGADORES</button>
             <button class="btn-modes" id="btn-modes">MODOS <span class="tag-novo">NOVO</span></button>
             <button class="btn-skins" id="btn-skins">SKINS</button>
+            <button class="btn-loja" id="btn-loja">🛒 LOJA</button>
             <div class="controls-info">
                 P1: WASD | P2: Setas | P3: FGHT | P4: JKLI
             </div>
@@ -158,6 +168,13 @@
         <div style="margin-top:10px;padding:12px 30px;background:#555;color:#999;border-radius:20px;font-size:14px;font-weight:bold;cursor:default;">🔒 MAIS EM BREVE...</div>
         <button id="skins-back">VOLTAR</button>
     </div>
+    <div id="shop-screen">
+        <h1>🛒 LOJA</h1>
+        <div class="shop-gems">💎 <span id="shop-gem-count">0</span> gemas</div>
+        <div class="shop-msg">Em breve novos itens! Fique ligado...</div>
+        <button id="shop-back">VOLTAR</button>
+    </div>
+    <div id="gem-counter"><span class="gem-icon">💎</span> <span id="gem-count">0</span></div>
     <div id="hud" class="hidden">
         <span id="hud-fase">Fase 1</span>
         <span id="hud-moedas">Moedas: 0/5</span>
@@ -197,15 +214,21 @@ const SKINS = [
 function loadProgress() {
     try {
         const data = JSON.parse(localStorage.getItem('capivara_run_progress'));
-        if (data) return data;
-        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'] };
+        if (data) { if (data.gems === undefined) data.gems = 0; return data; }
+        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'], gems: 0 };
     } catch(e) {
-        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'] };
+        return { bestStreak: 0, selectedSkin: 'cogumelo', unlockedSkins: ['cogumelo'], gems: 0 };
     }
 }
 function saveProgress() { localStorage.setItem('capivara_run_progress', JSON.stringify(progress)); }
+function updateGemDisplay() {
+    document.getElementById('gem-count').textContent = progress.gems;
+    const shopCount = document.getElementById('shop-gem-count');
+    if (shopCount) shopCount.textContent = progress.gems;
+}
 let progress = loadProgress();
 let currentStreak = 0;
+setTimeout(() => updateGemDisplay(), 0);
 
 // Player controls config
 const CONTROLS = [
@@ -1140,8 +1163,17 @@ document.getElementById('skins-back').onclick = () => {
     document.getElementById('skins-screen').style.display = 'none';
     document.getElementById('menu').classList.remove('hidden');
 };
+document.getElementById('btn-loja').onclick = () => {
+    document.getElementById('menu').classList.add('hidden');
+    document.getElementById('shop-screen').style.display = 'flex';
+    updateGemDisplay();
+};
+document.getElementById('shop-back').onclick = () => {
+    document.getElementById('shop-screen').style.display = 'none';
+    document.getElementById('menu').classList.remove('hidden');
+};
 
-// Código secreto: digitar DAVI desbloqueia todas as skins
+// Código secreto: digitar DAVI desbloqueia todas as skins + 999999 gemas
 let secretCode = '';
 document.addEventListener('keydown', e => {
     if (document.getElementById('skins-screen').style.display === 'flex') {
@@ -1149,12 +1181,14 @@ document.addEventListener('keydown', e => {
         if (secretCode.includes('DAVI')) {
             secretCode = '';
             progress.unlockedSkins = ['cogumelo', 'arvore', 'estrela', 'trofeu'];
+            progress.gems = 999999;
             saveProgress();
+            updateGemDisplay();
             renderSkinsScreen();
             sfxUnlock();
             const msg = document.createElement('div');
             msg.className = 'unlock-msg';
-            msg.innerHTML = '🔓 TODAS SKINS DESBLOQUEADAS!<br><span style="font-size:14px">Bem-vindo, Davi!</span>';
+            msg.innerHTML = '🔓 TUDO DESBLOQUEADO!<br><span style="font-size:14px">999999 💎 | Bem-vindo, Davi!</span>';
             document.body.appendChild(msg);
             setTimeout(() => msg.remove(), 2500);
         }
