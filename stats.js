@@ -7,16 +7,7 @@ function initStats(gameName) {
     currentGame = gameName;
     playStartTime = Date.now();
 
-    playerName = localStorage.getItem('cogumelo_player_name');
-    if (!playerName) {
-        setTimeout(() => {
-            const name = prompt('🍄 Qual seu nome de jogador?');
-            playerName = (name && name.trim()) ? name.trim().substring(0, 20) : 'Anônimo';
-            localStorage.setItem('cogumelo_player_name', playerName);
-            updateStatsDisplay();
-        }, 1000);
-        playerName = 'Anônimo';
-    }
+    playerName = localStorage.getItem('cogumelo_player_name') || 'Anônimo';
 
     setInterval(savePlayTime, 10000);
     window.addEventListener('beforeunload', savePlayTime);
