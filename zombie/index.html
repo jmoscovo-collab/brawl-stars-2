@@ -193,8 +193,10 @@
         setupControls();
     }
 
+    let collectibles = [];
+
     function createCity() {
-        // Ground - gray visible
+        // Ground — cracked concrete
         const ground = new THREE.Mesh(
             new THREE.PlaneGeometry(120, 120),
             new THREE.MeshBasicMaterial({ color: 0x666666 })
@@ -202,77 +204,382 @@
         ground.rotation.x = -Math.PI / 2;
         scene.add(ground);
 
+        // Sidewalks
+        for (let side = -1; side <= 1; side += 2) {
+            const sidewalk = new THREE.Mesh(
+                new THREE.BoxGeometry(3, 0.15, 120),
+                new THREE.MeshBasicMaterial({ color: 0x888888 })
+            );
+            sidewalk.position.set(side * 5.5, 0.07, 0);
+            scene.add(sidewalk);
+        }
+
         // Road
         const road = new THREE.Mesh(
             new THREE.PlaneGeometry(8, 120),
-            new THREE.MeshBasicMaterial({ color: 0x555555 })
+            new THREE.MeshBasicMaterial({ color: 0x444444 })
         );
         road.rotation.x = -Math.PI / 2;
         road.position.y = 0.01;
         scene.add(road);
 
-        for (let i = -55; i < 55; i += 8) {
+        // Road lines
+        for (let i = -55; i < 55; i += 6) {
             const line = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.3, 3),
-                new THREE.MeshBasicMaterial({ color: 0xdddd00 })
+                new THREE.PlaneGeometry(0.25, 2.5),
+                new THREE.MeshBasicMaterial({ color: 0xcccc00 })
             );
             line.rotation.x = -Math.PI / 2;
             line.position.set(0, 0.02, i);
             scene.add(line);
         }
 
-        // Buildings - VISIBLE colors
-        const buildingColors = [0x889999, 0x998888, 0x888899, 0x7a8a8a, 0x8a7a8a];
-        for (let i = 0; i < 20; i++) {
-            const w = 5 + Math.random() * 10;
-            const h = 6 + Math.random() * 18;
-            const d = 5 + Math.random() * 10;
+        // === BUILDINGS with windows ===
+        const buildingColors = [0x889999, 0x998877, 0x7a8899, 0x8a7a7a, 0x77887a, 0x887788];
+        for (let i = 0; i < 18; i++) {
+            const w = 6 + Math.random() * 8;
+            const h = 8 + Math.random() * 16;
+            const d = 6 + Math.random() * 8;
+            const bColor = buildingColors[Math.floor(Math.random() * buildingColors.length)];
             const building = new THREE.Mesh(
                 new THREE.BoxGeometry(w, h, d),
-                new THREE.MeshBasicMaterial({ color: buildingColors[Math.floor(Math.random() * buildingColors.length)] })
+                new THREE.MeshBasicMaterial({ color: bColor })
             );
             let px, pz;
             do {
                 px = (Math.random() - 0.5) * 100;
                 pz = (Math.random() - 0.5) * 100;
-            } while (Math.abs(px) < 10 && Math.abs(pz) < 10);
+            } while (Math.abs(px) < 12 && Math.abs(pz) < 12);
             building.position.set(px, h / 2, pz);
             scene.add(building);
             buildings.push({ mesh: building, x: px, z: pz, w: w / 2 + 1, d: d / 2 + 1 });
+
+            // Windows on front face
+            const wCols = Math.floor(w / 2.5);
+            const wRows = Math.floor(h / 3.5);
+            for (let r = 0; r < wRows; r++) {
+                for (let c = 0; c < wCols; c++) {
+                    if (Math.random() > 0.6) continue;
+                    const broken = Math.random() > 0.5;
+                    const winColor = broken ? 0x334455 : 0x99bbcc;
+                    const win = new THREE.Mesh(
+                        new THREE.PlaneGeometry(1.2, 1.8),
+                        new THREE.MeshBasicMaterial({ color: winColor })
+                    );
+                    win.position.set(
+                        px - w/2 + 1.5 + c * 2.5,
+                        2.5 + r * 3.5,
+                        pz + d/2 + 0.05
+                    );
+                    scene.add(win);
+
+                    // Window frame
+                    const frame = new THREE.Mesh(
+                        new THREE.PlaneGeometry(1.4, 2.0),
+                        new THREE.MeshBasicMaterial({ color: 0x555555 })
+                    );
+                    frame.position.set(
+                        px - w/2 + 1.5 + c * 2.5,
+                        2.5 + r * 3.5,
+                        pz + d/2 + 0.04
+                    );
+                    scene.add(frame);
+
+                    // Broken glass crack (diagonal line)
+                    if (broken) {
+                        const crack = new THREE.Mesh(
+                            new THREE.PlaneGeometry(0.05, 1.5),
+                            new THREE.MeshBasicMaterial({ color: 0x222233 })
+                        );
+                        crack.position.set(
+                            px - w/2 + 1.5 + c * 2.5,
+                            2.5 + r * 3.5,
+                            pz + d/2 + 0.06
+                        );
+                        crack.rotation.z = 0.5 + Math.random() * 0.5;
+                        scene.add(crack);
+                    }
+                }
+            }
+
+            // Roof edge
+            const roofEdge = new THREE.Mesh(
+                new THREE.BoxGeometry(w + 0.3, 0.3, d + 0.3),
+                new THREE.MeshBasicMaterial({ color: 0x666666 })
+            );
+            roofEdge.position.set(px, h + 0.15, pz);
+            scene.add(roofEdge);
         }
 
-        // Abandoned cars - bright colors
-        for (let i = 0; i < 5; i++) {
-            const carGroup = new THREE.Group();
-            const carColors = [0xcc4444, 0x4488cc, 0x888888, 0xccaa44, 0x44aa66];
+        // === ABANDONED CARS — rusty, dented, detailed ===
+        for (let i = 0; i < 8; i++) {
+            const car = new THREE.Group();
+            const rustColors = [0x884422, 0x774433, 0x995533, 0x663322, 0x886644, 0x773311, 0x885522, 0x664422];
+            const paintColors = [0xaa3333, 0x3366aa, 0x666666, 0xaa8833, 0x338844, 0x884488, 0x558888, 0xaa6644];
+            const rusty = Math.random() > 0.4;
+            const mainColor = rusty ? rustColors[i] : paintColors[i];
+
+            // Body — slightly deformed
+            const bodyW = 1.8 + Math.random() * 0.4;
             const body = new THREE.Mesh(
-                new THREE.BoxGeometry(2, 1, 4),
-                new THREE.MeshBasicMaterial({ color: carColors[i] })
+                new THREE.BoxGeometry(bodyW, 0.9, 3.8),
+                new THREE.MeshBasicMaterial({ color: mainColor })
             );
-            body.position.y = 0.7;
-            carGroup.add(body);
-            const top = new THREE.Mesh(
-                new THREE.BoxGeometry(1.6, 0.8, 2),
-                new THREE.MeshBasicMaterial({ color: 0x666688 })
+            body.position.y = 0.6;
+            body.rotation.z = (Math.random() - 0.5) * 0.05;
+            car.add(body);
+
+            // Roof — dented
+            const roof = new THREE.Mesh(
+                new THREE.BoxGeometry(bodyW * 0.8, 0.6, 2.2),
+                new THREE.MeshBasicMaterial({ color: rusty ? 0x553322 : 0x555566 })
             );
-            top.position.y = 1.5;
-            carGroup.add(top);
-            carGroup.position.set(
-                (Math.random() > 0.5 ? 1 : -1) * (4 + Math.random() * 4),
-                0, -25 + i * 13
+            roof.position.set(0, 1.35, -0.2);
+            roof.rotation.z = (Math.random() - 0.5) * 0.03;
+            car.add(roof);
+
+            // Windshield
+            const windshield = new THREE.Mesh(
+                new THREE.PlaneGeometry(bodyW * 0.7, 0.5),
+                new THREE.MeshBasicMaterial({ color: 0x99aacc, side: THREE.DoubleSide })
             );
-            carGroup.rotation.y = (Math.random() - 0.5) * 0.4;
-            scene.add(carGroup);
+            windshield.position.set(0, 1.2, 0.95);
+            windshield.rotation.x = 0.3;
+            car.add(windshield);
+
+            // Wheels (flat tires)
+            for (let w = 0; w < 4; w++) {
+                const wheel = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.3, 0.3, 0.15, 12),
+                    new THREE.MeshBasicMaterial({ color: 0x222222 })
+                );
+                const wx = (w % 2 === 0 ? -1 : 1) * bodyW * 0.5;
+                const wz = (w < 2 ? 1 : -1) * 1.2;
+                wheel.position.set(wx, 0.25, wz);
+                wheel.rotation.z = Math.PI / 2;
+                // Flat tire — squished
+                wheel.scale.y = 0.7 + Math.random() * 0.3;
+                car.add(wheel);
+
+                // Hubcap
+                const hub = new THREE.Mesh(
+                    new THREE.CircleGeometry(0.15, 8),
+                    new THREE.MeshBasicMaterial({ color: 0x777777 })
+                );
+                hub.position.set(wx + (w%2===0?-0.08:0.08), 0.25, wz);
+                hub.rotation.y = (w%2===0?-1:1) * Math.PI/2;
+                car.add(hub);
+            }
+
+            // Rust patches
+            if (rusty) {
+                for (let r = 0; r < 3; r++) {
+                    const rust = new THREE.Mesh(
+                        new THREE.CircleGeometry(0.2 + Math.random()*0.2, 8),
+                        new THREE.MeshBasicMaterial({ color: 0x553311, side: THREE.DoubleSide })
+                    );
+                    rust.position.set(
+                        (Math.random()-0.5)*bodyW,
+                        0.4 + Math.random()*0.6,
+                        1.91
+                    );
+                    car.add(rust);
+                }
+            }
+
+            // Headlights (broken)
+            const hlMat = new THREE.MeshBasicMaterial({ color: 0xaaaa88 });
+            const hlL = new THREE.Mesh(new THREE.CircleGeometry(0.12, 8), hlMat);
+            hlL.position.set(-0.5, 0.6, 1.91);
+            car.add(hlL);
+            const hlR = new THREE.Mesh(new THREE.CircleGeometry(0.12, 8), hlMat);
+            hlR.position.set(0.5, 0.6, 1.91);
+            car.add(hlR);
+
+            // Position on street
+            car.position.set(
+                (Math.random() > 0.5 ? 1 : -1) * (2 + Math.random() * 5),
+                0,
+                -35 + i * 10 + Math.random() * 5
+            );
+            car.rotation.y = (Math.random() - 0.5) * 0.8;
+            scene.add(car);
         }
 
-        // Barrels
-        for (let i = 0; i < 6; i++) {
-            const barrel = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.4, 0.4, 1, 8),
-                new THREE.MeshBasicMaterial({ color: 0xaa6622 })
+        // === STREET LAMPS ===
+        for (let i = -40; i < 40; i += 12) {
+            const pole = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.08, 0.1, 5, 8),
+                new THREE.MeshBasicMaterial({ color: 0x555555 })
             );
-            barrel.position.set((Math.random()-0.5)*40, 0.5, (Math.random()-0.5)*40);
-            scene.add(barrel);
+            pole.position.set(7, 2.5, i);
+            scene.add(pole);
+
+            // Lamp arm
+            const arm = new THREE.Mesh(
+                new THREE.BoxGeometry(1.5, 0.08, 0.08),
+                new THREE.MeshBasicMaterial({ color: 0x555555 })
+            );
+            arm.position.set(6.25, 5, i);
+            scene.add(arm);
+
+            // Lamp head
+            const lamp = new THREE.Mesh(
+                new THREE.BoxGeometry(0.4, 0.15, 0.4),
+                new THREE.MeshBasicMaterial({ color: 0x777755 })
+            );
+            lamp.position.set(5.5, 4.95, i);
+            scene.add(lamp);
+        }
+
+        // === DUMPSTERS ===
+        for (let i = 0; i < 4; i++) {
+            const dumpster = new THREE.Group();
+            const dBody = new THREE.Mesh(
+                new THREE.BoxGeometry(1.5, 1, 1),
+                new THREE.MeshBasicMaterial({ color: 0x337733 })
+            );
+            dBody.position.y = 0.5;
+            dumpster.add(dBody);
+            // Lid
+            const lid = new THREE.Mesh(
+                new THREE.BoxGeometry(1.5, 0.08, 1),
+                new THREE.MeshBasicMaterial({ color: 0x225522 })
+            );
+            lid.position.set(0, 1.04, 0);
+            lid.rotation.x = Math.random() > 0.5 ? 0.5 : 0;
+            dumpster.add(lid);
+
+            dumpster.position.set(
+                (Math.random() > 0.5 ? 8 : -8) + (Math.random()-0.5)*3,
+                0, -30 + i * 20
+            );
+            scene.add(dumpster);
+        }
+
+        // === TRASH AND DEBRIS ===
+        for (let i = 0; i < 25; i++) {
+            const type = Math.floor(Math.random() * 4);
+            let obj;
+            if (type === 0) {
+                // Trash bag
+                obj = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.25 + Math.random()*0.15, 6, 6),
+                    new THREE.MeshBasicMaterial({ color: 0x222222 })
+                );
+            } else if (type === 1) {
+                // Brick
+                obj = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.3, 0.15, 0.15),
+                    new THREE.MeshBasicMaterial({ color: 0x884433 })
+                );
+            } else if (type === 2) {
+                // Pipe
+                obj = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.05, 0.05, 1 + Math.random(), 8),
+                    new THREE.MeshBasicMaterial({ color: 0x666666 })
+                );
+                obj.rotation.z = Math.PI / 2;
+            } else {
+                // Cardboard box
+                obj = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.5, 0.4, 0.5),
+                    new THREE.MeshBasicMaterial({ color: 0xaa8855 })
+                );
+            }
+            obj.position.set(
+                (Math.random()-0.5) * 50,
+                0.15,
+                (Math.random()-0.5) * 50
+            );
+            obj.rotation.y = Math.random() * Math.PI;
+            scene.add(obj);
+        }
+
+        // === FIRE BARRELS with glow ===
+        for (let i = 0; i < 5; i++) {
+            const barrelGroup = new THREE.Group();
+            const barrel = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.35, 0.4, 1, 12),
+                new THREE.MeshBasicMaterial({ color: 0x664411 })
+            );
+            barrel.position.y = 0.5;
+            barrelGroup.add(barrel);
+
+            // Fire glow on top
+            const fire = new THREE.Mesh(
+                new THREE.ConeGeometry(0.25, 0.4, 8),
+                new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.7 })
+            );
+            fire.position.y = 1.1;
+            barrelGroup.add(fire);
+            const fire2 = new THREE.Mesh(
+                new THREE.ConeGeometry(0.15, 0.3, 6),
+                new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.6 })
+            );
+            fire2.position.y = 1.2;
+            barrelGroup.add(fire2);
+
+            barrelGroup.position.set(
+                (Math.random()-0.5)*35,
+                0,
+                (Math.random()-0.5)*35
+            );
+            scene.add(barrelGroup);
+        }
+
+        // === COLLECTIBLES — health packs and ammo ===
+        spawnCollectibles();
+    }
+
+    function spawnCollectibles() {
+        // Health packs (green cross)
+        for (let i = 0; i < 8; i++) {
+            const pickup = new THREE.Group();
+            const base = new THREE.Mesh(
+                new THREE.BoxGeometry(0.4, 0.25, 0.4),
+                new THREE.MeshBasicMaterial({ color: 0xffffff })
+            );
+            base.position.y = 0.3;
+            pickup.add(base);
+            // Red cross
+            const crossH = new THREE.Mesh(
+                new THREE.BoxGeometry(0.3, 0.05, 0.1),
+                new THREE.MeshBasicMaterial({ color: 0xff0000 })
+            );
+            crossH.position.set(0, 0.38, 0.21);
+            pickup.add(crossH);
+            const crossV = new THREE.Mesh(
+                new THREE.BoxGeometry(0.1, 0.05, 0.3),
+                new THREE.MeshBasicMaterial({ color: 0xff0000 })
+            );
+            crossV.position.set(0, 0.38, 0.21);
+            pickup.add(crossV);
+
+            pickup.position.set(
+                (Math.random()-0.5) * 50,
+                0,
+                (Math.random()-0.5) * 50
+            );
+            pickup.userData = { type: 'health', amount: 25 };
+            scene.add(pickup);
+            collectibles.push(pickup);
+        }
+
+        // Score gems (blue diamonds)
+        for (let i = 0; i < 12; i++) {
+            const gem = new THREE.Mesh(
+                new THREE.OctahedronGeometry(0.15, 0),
+                new THREE.MeshBasicMaterial({ color: 0x44aaff })
+            );
+            gem.position.set(
+                (Math.random()-0.5) * 50,
+                0.4,
+                (Math.random()-0.5) * 50
+            );
+            gem.userData = { type: 'score', amount: 50 };
+            scene.add(gem);
+            collectibles.push(gem);
         }
     }
 
@@ -776,8 +1083,8 @@
 
         if (keys['KeyW']) { dx -= Math.sin(playerAngle) * speed; dz -= Math.cos(playerAngle) * speed; }
         if (keys['KeyS']) { dx += Math.sin(playerAngle) * speed; dz += Math.cos(playerAngle) * speed; }
-        if (keys['KeyA']) { dx += Math.cos(playerAngle) * speed; dz -= Math.sin(playerAngle) * speed; }
-        if (keys['KeyD']) { dx -= Math.cos(playerAngle) * speed; dz += Math.sin(playerAngle) * speed; }
+        if (keys['KeyA']) { dx -= Math.cos(playerAngle) * speed; dz += Math.sin(playerAngle) * speed; }
+        if (keys['KeyD']) { dx += Math.cos(playerAngle) * speed; dz -= Math.sin(playerAngle) * speed; }
 
         // Collision with buildings
         let canMove = true;
@@ -803,6 +1110,37 @@
         camera.rotation.order = 'YXZ';
         camera.rotation.y = playerAngle;
         camera.rotation.x = cameraPitch;
+    }
+
+    function updateCollectibles() {
+        const t = clock.getElapsedTime();
+        for (let i = collectibles.length - 1; i >= 0; i--) {
+            const c = collectibles[i];
+            // Spin and bob
+            c.rotation.y = t * 2;
+            c.position.y = (c.userData.type === 'score' ? 0.4 : 0.3) + Math.sin(t * 3 + i) * 0.1;
+
+            // Check pickup
+            const dx = player.x - c.position.x;
+            const dz = player.z - c.position.z;
+            const dist = Math.sqrt(dx*dx + dz*dz);
+            if (dist < 1.5) {
+                if (c.userData.type === 'health') {
+                    player.health = Math.min(100, player.health + c.userData.amount);
+                    document.getElementById('health-bar').style.width = player.health + '%';
+                    if (player.health > 60) {
+                        document.getElementById('health-bar').style.background = 'linear-gradient(90deg, #00cc44, #44ff44)';
+                    } else if (player.health > 30) {
+                        document.getElementById('health-bar').style.background = 'linear-gradient(90deg, #ccaa00, #ffcc00)';
+                    }
+                } else if (c.userData.type === 'score') {
+                    score += c.userData.amount;
+                    document.getElementById('score-count').textContent = score;
+                }
+                scene.remove(c);
+                collectibles.splice(i, 1);
+            }
+        }
     }
 
     function updateZombies(dt) {
@@ -849,6 +1187,7 @@
 
         updatePlayer(dt);
         updateZombies(dt);
+        updateCollectibles();
 
         // Weapon bob
         if (keys['KeyW'] || keys['KeyS'] || keys['KeyA'] || keys['KeyD']) {
