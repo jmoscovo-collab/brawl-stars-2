@@ -276,62 +276,129 @@
         }
     }
 
-    function createWeapon() {
-        weaponGroup = new THREE.Group();
+    function buildAxe(level) {
+        const axe = new THREE.Group();
 
-        // Handle - thick wooden with grip
+        const handleColors = [0x6B3A00, 0x5a3000, 0x442200, 0x222244, 0x220022];
+        const bladeColors = [0x999999, 0xbbbbbb, 0xff5500, 0x3399ff, 0xaa00ff];
+        const gripColors = [0x3a2000, 0x554400, 0xff2200, 0x2266cc, 0x660088];
+        const collarColors = [0x777777, 0xaaaa66, 0xcc4400, 0x4488ff, 0x8800cc];
+
+        // Handle
         const handle = new THREE.Mesh(
             new THREE.CylinderGeometry(0.035, 0.05, 1.4, 12),
-            new THREE.MeshBasicMaterial({ color: 0x6B3A00 })
+            new THREE.MeshBasicMaterial({ color: handleColors[level] })
         );
         handle.rotation.z = Math.PI / 6;
-        weaponGroup.add(handle);
+        axe.add(handle);
 
         // Grip wrapping
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 6; i++) {
             const wrap = new THREE.Mesh(
-                new THREE.TorusGeometry(0.045, 0.008, 4, 12),
-                new THREE.MeshBasicMaterial({ color: 0x3a2000 })
+                new THREE.TorusGeometry(0.048, 0.01, 6, 12),
+                new THREE.MeshBasicMaterial({ color: gripColors[level] })
             );
-            wrap.position.y = -0.4 + i * 0.12;
+            wrap.position.y = -0.45 + i * 0.11;
             wrap.position.x = wrap.position.y * Math.tan(Math.PI / 6) * -0.15;
             wrap.rotation.z = Math.PI / 6;
-            weaponGroup.add(wrap);
+            axe.add(wrap);
         }
 
-        // Metal collar where blade meets handle
+        // Pommel (bottom knob)
+        const pommel = new THREE.Mesh(
+            new THREE.SphereGeometry(0.05, 8, 8),
+            new THREE.MeshBasicMaterial({ color: collarColors[level] })
+        );
+        pommel.position.set(-0.22, -0.55, 0);
+        axe.add(pommel);
+
+        // Metal collar
         const collar = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.06, 0.06, 0.08, 12),
-            new THREE.MeshBasicMaterial({ color: 0x777777 })
+            new THREE.CylinderGeometry(0.065, 0.065, 0.1, 12),
+            new THREE.MeshBasicMaterial({ color: collarColors[level] })
         );
         collar.position.set(0.18, 0.52, 0);
         collar.rotation.z = Math.PI / 6;
-        weaponGroup.add(collar);
+        axe.add(collar);
 
-        // Blade - curved axe shape
+        // Blade - gets bigger with each level
+        const scale = 1 + level * 0.15;
         const bladeShape = new THREE.Shape();
         bladeShape.moveTo(0, 0);
-        bladeShape.quadraticCurveTo(0.35, 0.1, 0.3, 0.35);
-        bladeShape.lineTo(0.25, 0.4);
-        bladeShape.quadraticCurveTo(0.15, 0.3, 0, 0.25);
-        bladeShape.quadraticCurveTo(-0.15, 0.3, -0.25, 0.4);
-        bladeShape.lineTo(-0.3, 0.35);
-        bladeShape.quadraticCurveTo(-0.35, 0.1, 0, 0);
-        const bladeGeo = new THREE.ExtrudeGeometry(bladeShape, { depth: 0.025, bevelEnabled: true, bevelThickness: 0.005, bevelSize: 0.005 });
-        const blade = new THREE.Mesh(bladeGeo, new THREE.MeshBasicMaterial({ color: 0xbbbbbb }));
-        blade.position.set(0.08, 0.45, -0.012);
+        bladeShape.quadraticCurveTo(0.35 * scale, 0.1, 0.3 * scale, 0.38 * scale);
+        bladeShape.lineTo(0.25 * scale, 0.42 * scale);
+        bladeShape.quadraticCurveTo(0.12, 0.3 * scale, 0, 0.25 * scale);
+        bladeShape.quadraticCurveTo(-0.12, 0.3 * scale, -0.25 * scale, 0.42 * scale);
+        bladeShape.lineTo(-0.3 * scale, 0.38 * scale);
+        bladeShape.quadraticCurveTo(-0.35 * scale, 0.1, 0, 0);
+        const bladeGeo = new THREE.ExtrudeGeometry(bladeShape, {
+            depth: 0.03, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008
+        });
+        const blade = new THREE.Mesh(bladeGeo, new THREE.MeshBasicMaterial({ color: bladeColors[level] }));
+        blade.position.set(0.08, 0.45, -0.015);
         blade.rotation.z = -Math.PI / 6;
-        weaponGroup.add(blade);
+        axe.add(blade);
 
-        // Blade edge highlight
+        // Edge highlight
         const edge = new THREE.Mesh(
-            new THREE.BoxGeometry(0.02, 0.35, 0.035),
-            new THREE.MeshBasicMaterial({ color: 0xdddddd })
+            new THREE.BoxGeometry(0.015, 0.38 * scale, 0.04),
+            new THREE.MeshBasicMaterial({ color: 0xffffff })
         );
-        edge.position.set(0.08, 0.65, 0);
+        edge.position.set(0.08, 0.67, 0);
         edge.rotation.z = -Math.PI / 6;
-        weaponGroup.add(edge);
+        axe.add(edge);
 
+        // Level 2+: decorations on blade
+        if (level >= 2) {
+            const gem = new THREE.Mesh(
+                new THREE.OctahedronGeometry(0.04, 0),
+                new THREE.MeshBasicMaterial({ color: bladeColors[level] })
+            );
+            gem.position.set(0.18, 0.55, 0.02);
+            gem.rotation.z = -Math.PI / 6;
+            axe.add(gem);
+        }
+
+        // Level 3+: second gem
+        if (level >= 3) {
+            const gem2 = new THREE.Mesh(
+                new THREE.OctahedronGeometry(0.03, 0),
+                new THREE.MeshBasicMaterial({ color: 0xffffff })
+            );
+            gem2.position.set(0.12, 0.48, 0.02);
+            gem2.rotation.z = -Math.PI / 6;
+            axe.add(gem2);
+        }
+
+        // Level 4: skull on collar
+        if (level >= 4) {
+            const skull = new THREE.Mesh(
+                new THREE.SphereGeometry(0.04, 8, 8),
+                new THREE.MeshBasicMaterial({ color: 0xeeeecc })
+            );
+            skull.position.set(0.18, 0.6, 0.03);
+            axe.add(skull);
+            const eyeL = new THREE.Mesh(
+                new THREE.SphereGeometry(0.012, 6, 6),
+                new THREE.MeshBasicMaterial({ color: 0xff0000 })
+            );
+            eyeL.position.set(0.17, 0.61, 0.065);
+            axe.add(eyeL);
+            const eyeR = new THREE.Mesh(
+                new THREE.SphereGeometry(0.012, 6, 6),
+                new THREE.MeshBasicMaterial({ color: 0xff0000 })
+            );
+            eyeR.position.set(0.19, 0.61, 0.065);
+            axe.add(eyeR);
+        }
+
+        return axe;
+    }
+
+    function createWeapon() {
+        weaponGroup = new THREE.Group();
+        const axe = buildAxe(0);
+        weaponGroup.add(axe);
         weaponGroup.position.set(0.4, -0.4, -0.6);
         camera.add(weaponGroup);
         scene.add(camera);
@@ -471,11 +538,12 @@
             currentWeapon = weaponLevel;
             document.getElementById('weapon-display').textContent = weapons[currentWeapon].name;
 
-            const colors = [0x888888, 0xaaaaaa, 0xff4400, 0x4444ff, 0x9900ff];
-            const blade = weaponGroup.children[1];
-            if (blade) {
-                blade.material.color.setHex(colors[currentWeapon]);
+            // Remove old axe, build new one
+            while (weaponGroup.children.length > 0) {
+                weaponGroup.remove(weaponGroup.children[0]);
             }
+            const newAxe = buildAxe(currentWeapon);
+            weaponGroup.add(newAxe);
         }
     }
 
@@ -714,10 +782,10 @@
         document.getElementById('weapon-display').textContent = weapons[0].name;
 
         // Reset weapon visual
-        const blade = weaponGroup.children[1];
-        if (blade) {
-            blade.material.color.setHex(0x888888);
+        while (weaponGroup.children.length > 0) {
+            weaponGroup.remove(weaponGroup.children[0]);
         }
+        weaponGroup.add(buildAxe(0));
 
         gameRunning = true;
         renderer.domElement.requestPointerLock();
