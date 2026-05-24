@@ -210,7 +210,8 @@ function updateStatsDisplay() {
 
     const gameNames = {
         home: '🍄 Home', capivara: '🐾 Capivara', clicker: '🍄 Clicker',
-        corrida: '🏎️ Turbo', space: '🚗 Street', brawl: '🤖 Brawl'
+        corrida: '🏎️ Turbo', space: '🚗 Street', brawl: '🤖 Brawl',
+        zombie: '🧟 Zombie'
     };
 
     let maxTime = 0, favGame = '-';
