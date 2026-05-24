@@ -176,8 +176,8 @@
 
     function init() {
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x111111);
-        scene.fog = new THREE.FogExp2(0x0a0a0a, 0.015);
+        scene.background = new THREE.Color(0x2a2a3a);
+        scene.fog = new THREE.FogExp2(0x2a2a3a, 0.008);
 
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
         camera.position.set(0, 1.7, 0);
@@ -188,16 +188,16 @@
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 0.5;
+        renderer.toneMappingExposure = 1.2;
         document.body.appendChild(renderer.domElement);
 
         clock = new THREE.Clock();
 
-        // Lighting - dark apocalyptic
-        const ambient = new THREE.AmbientLight(0x222233, 0.3);
+        // Lighting - brighter apocalyptic
+        const ambient = new THREE.AmbientLight(0x667788, 0.8);
         scene.add(ambient);
 
-        const moon = new THREE.DirectionalLight(0x4444ff, 0.4);
+        const moon = new THREE.DirectionalLight(0x8888ff, 1.2);
         moon.position.set(50, 80, 30);
         moon.castShadow = true;
         moon.shadow.mapSize.set(2048, 2048);
@@ -207,11 +207,15 @@
         moon.shadow.camera.bottom = -60;
         scene.add(moon);
 
-        const redLight = new THREE.PointLight(0xff2200, 1, 30);
+        const fillLight = new THREE.DirectionalLight(0xffeedd, 0.4);
+        fillLight.position.set(-30, 40, -20);
+        scene.add(fillLight);
+
+        const redLight = new THREE.PointLight(0xff2200, 1.5, 40);
         redLight.position.set(10, 5, 10);
         scene.add(redLight);
 
-        const greenLight = new THREE.PointLight(0x00ff44, 0.5, 20);
+        const greenLight = new THREE.PointLight(0x00ff44, 0.8, 25);
         greenLight.position.set(-15, 3, -10);
         scene.add(greenLight);
 
@@ -224,7 +228,7 @@
         // Ground - cracked asphalt
         const groundGeo = new THREE.PlaneGeometry(120, 120);
         const groundMat = new THREE.MeshStandardMaterial({
-            color: 0x222222, roughness: 0.95, metalness: 0.05
+            color: 0x444444, roughness: 0.95, metalness: 0.05
         });
         const ground = new THREE.Mesh(groundGeo, groundMat);
         ground.rotation.x = -Math.PI / 2;
@@ -233,7 +237,7 @@
 
         // Road markings
         const roadGeo = new THREE.PlaneGeometry(8, 120);
-        const roadMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 });
         const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI / 2;
         road.position.y = 0.01;
@@ -249,7 +253,7 @@
         }
 
         // Buildings
-        const buildingColors = [0x2a2a2a, 0x333333, 0x1f1f1f, 0x292929, 0x252525];
+        const buildingColors = [0x4a4a5a, 0x555566, 0x3f3f4f, 0x484858, 0x424252];
         for (let i = 0; i < 30; i++) {
             const w = 5 + Math.random() * 10;
             const h = 6 + Math.random() * 20;
@@ -703,9 +707,9 @@
         // Damage flash
         if (damageFlash > 0) {
             damageFlash -= dt;
-            scene.fog.color.setHex(0x330000);
+            scene.fog.color.setHex(0x440000);
         } else {
-            scene.fog.color.setHex(0x0a0a0a);
+            scene.fog.color.setHex(0x2a2a3a);
         }
 
         renderer.render(scene, camera);
