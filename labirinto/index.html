@@ -139,30 +139,79 @@ const CELL = 4;
 
 const wallGeo = new THREE.BoxGeometry(CELL, CELL, CELL);
 const wallMat = new THREE.MeshStandardMaterial({
-  color: 0x444455, roughness: 0.9,
+  color: 0x6a5a4a, roughness: 1.0,
 });
-// textura procedural simples (canvas) pra dar grão
+// textura tijolo úmido manchado de sangue
 const tex = (() => {
-  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const c = document.createElement('canvas'); c.width = c.height = 256;
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#3a3a48'; ctx.fillRect(0,0,128,128);
-  for (let i=0;i<400;i++){
-    ctx.fillStyle = `rgba(0,0,0,${Math.random()*0.4})`;
-    ctx.fillRect(Math.random()*128, Math.random()*128, 2, 2);
+  // base
+  ctx.fillStyle = '#4a3a2a'; ctx.fillRect(0,0,256,256);
+  // tijolos
+  for (let y=0; y<256; y+=32) {
+    const off = (y/32)%2 ? 32 : 0;
+    for (let x=-32; x<256; x+=64) {
+      const r = 60+Math.random()*30, g = 45+Math.random()*25, b = 35+Math.random()*20;
+      ctx.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
+      ctx.fillRect(x+off+1, y+1, 62, 30);
+      // mancha
+      if (Math.random() < 0.15) {
+        ctx.fillStyle = `rgba(20,5,5,${0.3+Math.random()*0.4})`;
+        ctx.beginPath();
+        ctx.arc(x+off+30, y+15, 8+Math.random()*12, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
   }
-  for (let y=0; y<128; y+=32){
-    ctx.fillStyle = '#222';
-    ctx.fillRect(0, y, 128, 1);
+  // mofo/manchas escuras
+  for (let i=0;i<80;i++){
+    ctx.fillStyle = `rgba(0,0,0,${Math.random()*0.5})`;
+    ctx.beginPath();
+    ctx.arc(Math.random()*256, Math.random()*256, 3+Math.random()*8, 0, Math.PI*2);
+    ctx.fill();
   }
-  for (let x=0; x<128; x+=32){
-    ctx.fillStyle = '#222';
-    ctx.fillRect(x, 0, 1, 128);
+  // sangue escorrendo
+  for (let i=0;i<6;i++){
+    const x = Math.random()*256;
+    ctx.fillStyle = 'rgba(80,5,5,0.6)';
+    ctx.fillRect(x, 0, 2+Math.random()*3, 30+Math.random()*100);
+  }
+  // ruído
+  for (let i=0;i<2000;i++){
+    ctx.fillStyle = `rgba(0,0,0,${Math.random()*0.3})`;
+    ctx.fillRect(Math.random()*256, Math.random()*256, 1, 1);
   }
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   return t;
 })();
 wallMat.map = tex;
+// textura chão de pedra ensanguentado
+const floorTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#1a1410'; ctx.fillRect(0,0,256,256);
+  for (let i=0; i<60; i++) {
+    const x=Math.random()*256, y=Math.random()*256, r=10+Math.random()*30;
+    ctx.fillStyle = `rgba(${20+Math.random()*30},${15+Math.random()*20},${10+Math.random()*15},0.7)`;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  }
+  // poças de sangue
+  for (let i=0; i<4; i++) {
+    ctx.fillStyle = `rgba(${60+Math.random()*40},5,5,0.7)`;
+    ctx.beginPath();
+    ctx.ellipse(Math.random()*256, Math.random()*256, 15+Math.random()*20, 10+Math.random()*15, Math.random()*Math.PI, 0, Math.PI*2);
+    ctx.fill();
+  }
+  for (let i=0;i<3000;i++){
+    ctx.fillStyle = `rgba(0,0,0,${Math.random()*0.4})`;
+    ctx.fillRect(Math.random()*256, Math.random()*256, 1, 1);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(8, 8);
+  return t;
+})();
 
 const walls = []; // pra colisão
 const openCells = [];
@@ -182,7 +231,7 @@ for (let z=0; z<MAZE_H; z++) {
 
 // chão
 const floorGeo = new THREE.PlaneGeometry(MAZE_W*CELL, MAZE_H*CELL);
-const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a22, roughness: 1 });
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x2a1a14, roughness: 1, map: floorTex });
 const floor = new THREE.Mesh(floorGeo, floorMat);
 floor.rotation.x = -Math.PI/2;
 floor.position.set((MAZE_W-1)*CELL/2, 0, (MAZE_H-1)*CELL/2);
@@ -196,7 +245,65 @@ ceil.position.set((MAZE_W-1)*CELL/2, CELL, (MAZE_H-1)*CELL/2);
 scene.add(ceil);
 
 // luz ambiente fraquinha
-scene.add(new THREE.AmbientLight(0x111122, 0.08));
+scene.add(new THREE.AmbientLight(0x221511, 0.1));
+
+// ===== TOCHAS nas paredes (tremulando) =====
+const torches = [];
+for (let i=0; i<8; i++) {
+  const c = openCells[Math.floor(Math.random()*openCells.length)];
+  const t = new THREE.PointLight(0xff7722, 1.5, 8, 2);
+  t.position.set(c.x*CELL, 2.5, c.z*CELL);
+  scene.add(t);
+  // chama visível
+  const flame = new THREE.Mesh(
+    new THREE.SphereGeometry(0.15, 8, 8),
+    new THREE.MeshBasicMaterial({color: 0xffaa33})
+  );
+  flame.position.copy(t.position);
+  scene.add(flame);
+  torches.push({light: t, flame, baseInt: 1.5});
+}
+
+// ===== ÁUDIO ambiente assustador =====
+let audioCtx = null;
+function startAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // drone grave
+  const o1 = audioCtx.createOscillator(); o1.type = 'sawtooth'; o1.frequency.value = 55;
+  const g1 = audioCtx.createGain(); g1.gain.value = 0.04;
+  const f1 = audioCtx.createBiquadFilter(); f1.type = 'lowpass'; f1.frequency.value = 200;
+  o1.connect(f1); f1.connect(g1); g1.connect(audioCtx.destination); o1.start();
+  // vento
+  const noiseBuf = audioCtx.createBuffer(1, audioCtx.sampleRate*2, audioCtx.sampleRate);
+  const data = noiseBuf.getChannelData(0);
+  for (let i=0; i<data.length; i++) data[i] = (Math.random()*2-1) * 0.3;
+  const noise = audioCtx.createBufferSource(); noise.buffer = noiseBuf; noise.loop = true;
+  const nf = audioCtx.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 400; nf.Q.value = 0.8;
+  const ng = audioCtx.createGain(); ng.gain.value = 0.08;
+  noise.connect(nf); nf.connect(ng); ng.connect(audioCtx.destination); noise.start();
+  // gemidos aleatórios
+  setInterval(() => {
+    if (!audioCtx || gameOver) return;
+    const o = audioCtx.createOscillator(); o.type = 'sine';
+    const f = 80 + Math.random()*60;
+    o.frequency.setValueAtTime(f, audioCtx.currentTime);
+    o.frequency.linearRampToValueAtTime(f*0.6, audioCtx.currentTime + 1.5);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0, audioCtx.currentTime);
+    g.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.3);
+    g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1.5);
+    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + 1.5);
+  }, 4000 + Math.random()*3000);
+}
+function playHit() {
+  if (!audioCtx) return;
+  const o = audioCtx.createOscillator(); o.type = 'square'; o.frequency.value = 120;
+  const g = audioCtx.createGain(); g.gain.value = 0.2;
+  g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
+  o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + 0.15);
+}
+controls.addEventListener('lock', startAudio);
 
 // lanterna do jogador (começa DESLIGADA)
 let lanternOn = false;
@@ -229,6 +336,7 @@ let axeSwing = 0;
 function swingAxe() {
   if (!controls.isLocked || gameOver || axeSwing > 0) return;
   axeSwing = 1;
+  playHit();
   const pp = controls.getObject().position;
   const dir = new THREE.Vector3();
   camera.getWorldDirection(dir);
@@ -454,6 +562,12 @@ function animate() {
           if (keysCollected >= 3) endGame(true);
         }
       }
+    });
+
+    // tochas tremulam
+    torches.forEach(t => {
+      t.light.intensity = t.baseInt + Math.sin(clock.elapsedTime*15 + t.flame.position.x)*0.4 + (Math.random()-0.5)*0.3;
+      t.flame.scale.setScalar(0.9 + Math.random()*0.3);
     });
 
     // animação machado
