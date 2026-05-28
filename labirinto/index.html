@@ -28,6 +28,51 @@
     display: flex; align-items: center; justify-content: center; z-index: 100;
     color: #fff; text-align: center; cursor: pointer;
   }
+  #device-screen {
+    position: absolute; inset: 0; background: #000;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 300; color: #fff;
+  }
+  #device-screen h1 { font-size: 42px; margin: 0 0 10px; color: #f44; text-shadow: 0 0 20px #f00;}
+  #device-screen p { font-size: 18px; margin: 0 0 30px;}
+  .device-options { display: flex; gap: 30px; }
+  .device-btn {
+    background: #222; border: 3px solid #555; border-radius: 16px;
+    padding: 30px 40px; cursor: pointer; transition: all 0.2s;
+    text-align: center;
+  }
+  .device-btn:hover { background: #333; border-color: #f44; transform: scale(1.05); }
+  .device-btn .icon { font-size: 64px; }
+  .device-btn .label { font-size: 18px; font-weight: bold; margin-top: 10px;}
+  #touch-controls {
+    position: absolute; inset: 0; pointer-events: none; z-index: 50;
+    display: none;
+  }
+  body.mobile-mode #touch-controls { display: block; }
+  #joystick {
+    position: absolute; bottom: 30px; left: 30px; width: 140px; height: 140px;
+    background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%; pointer-events: auto;
+  }
+  #joystick-knob {
+    position: absolute; top: 50%; left: 50%; width: 60px; height: 60px;
+    margin: -30px 0 0 -30px;
+    background: rgba(255,255,255,0.4); border-radius: 50%;
+  }
+  .touch-btn {
+    position: absolute; pointer-events: auto;
+    background: rgba(255,80,80,0.5); border: 2px solid #fff;
+    color: #fff; font-size: 24px; font-weight: bold;
+    border-radius: 50%; width: 80px; height: 80px;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none; -webkit-user-select: none;
+  }
+  #btn-attack { bottom: 110px; right: 30px; width: 100px; height: 100px; font-size: 40px; }
+  #btn-lantern { bottom: 30px; right: 50px; background: rgba(255,200,80,0.5); }
+  #look-area {
+    position: absolute; top: 0; right: 0; width: 60%; height: 70%;
+    pointer-events: auto;
+  }
   #blocker h1 { font-size: 48px; margin: 0 0 12px; color: #f44; text-shadow: 0 0 20px #f00;}
   #blocker p { font-size: 18px; max-width: 500px; line-height: 1.6;}
   .key { background: #333; padding: 2px 8px; border-radius: 4px; border: 1px solid #555; }
@@ -46,11 +91,33 @@
 </style>
 </head>
 <body>
+<div id="device-screen">
+  <h1>👻 LABIRINTO ASSOMBRADO</h1>
+  <p>Como você está jogando?</p>
+  <div class="device-options">
+    <div class="device-btn" id="btn-pc">
+      <div class="icon">🖥️</div>
+      <div class="label">COMPUTADOR</div>
+    </div>
+    <div class="device-btn" id="btn-mobile">
+      <div class="icon">📱</div>
+      <div class="label">CELULAR</div>
+    </div>
+  </div>
+</div>
+
+<div id="touch-controls">
+  <div id="joystick"><div id="joystick-knob"></div></div>
+  <div id="look-area"></div>
+  <div class="touch-btn" id="btn-attack">🪓</div>
+  <div class="touch-btn" id="btn-lantern">🔦</div>
+</div>
+
 <div id="info">
-  👻 Fantasmas: <span id="ghost-count">10</span> |
+  👻 Fantasmas: <span id="ghost-count">5</span> |
   🪓 <span id="axe-status">ESPAÇO p/ atacar</span> |
   🔑 Chaves: <span id="keys">0</span>/3 |
-  ❤️ Vida: <span id="hp">100</span> |
+  ❤️ Vida: <span id="hp">200</span> |
   🔦 <span id="lantern-status" style="color:#888">DESLIGADA</span> (F)
 </div>
 <div id="stamina"><div id="stamina-fill"></div></div>
@@ -103,14 +170,109 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 // Controles
+let isMobile = false;
 const controls = new PointerLockControls(camera, document.body);
 const blocker = document.getElementById('blocker');
-blocker.addEventListener('click', () => controls.lock());
+const deviceScreen = document.getElementById('device-screen');
+
+// Wrapper p/ controls.isLocked funcionar em mobile
+let mobileLocked = false;
+const origIsLocked = Object.getOwnPropertyDescriptor(PointerLockControls.prototype, 'isLocked');
+Object.defineProperty(controls, 'isLocked', {
+  get() { return isMobile ? mobileLocked : !!document.pointerLockElement; }
+});
+
+document.getElementById('btn-pc').onclick = () => {
+  deviceScreen.style.display = 'none';
+  blocker.style.display = 'flex';
+};
+document.getElementById('btn-mobile').onclick = () => {
+  isMobile = true;
+  document.body.classList.add('mobile-mode');
+  deviceScreen.style.display = 'none';
+  blocker.style.display = 'none';
+  mobileLocked = true;
+  startAudio();
+  // tela cheia se possível
+  if (document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().catch(()=>{});
+  }
+};
+
+blocker.addEventListener('click', () => { if (!isMobile) controls.lock(); });
 controls.addEventListener('lock', () => blocker.style.display = 'none');
 controls.addEventListener('unlock', () => {
-  if (!gameOver) blocker.style.display = 'flex';
+  if (!gameOver && !isMobile) blocker.style.display = 'flex';
 });
 scene.add(controls.getObject());
+
+// ===== TOUCH CONTROLS (mobile) =====
+const joyState = { dx: 0, dy: 0, active: false };
+const joystick = document.getElementById('joystick');
+const knob = document.getElementById('joystick-knob');
+let joyTouchId = null;
+joystick.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0]; joyTouchId = t.identifier; joyState.active = true;
+});
+addEventListener('touchmove', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyTouchId) {
+      const r = joystick.getBoundingClientRect();
+      const cx = r.left + r.width/2, cy = r.top + r.height/2;
+      let dx = t.clientX - cx, dy = t.clientY - cy;
+      const max = 50;
+      const len = Math.hypot(dx,dy);
+      if (len > max) { dx = dx/len*max; dy = dy/len*max; }
+      joyState.dx = dx/max; joyState.dy = dy/max;
+      knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    }
+  }
+}, {passive:false});
+addEventListener('touchend', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyTouchId) {
+      joyTouchId = null; joyState.active = false; joyState.dx = joyState.dy = 0;
+      knob.style.transform = 'translate(-50%,-50%)';
+      knob.style.transform = '';
+    }
+  }
+});
+
+// look (arraste na área direita pra olhar)
+const lookArea = document.getElementById('look-area');
+let lookTouchId = null, lookLastX = 0, lookLastY = 0;
+lookArea.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  lookTouchId = t.identifier; lookLastX = t.clientX; lookLastY = t.clientY;
+});
+lookArea.addEventListener('touchmove', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === lookTouchId) {
+      const dx = t.clientX - lookLastX, dy = t.clientY - lookLastY;
+      lookLastX = t.clientX; lookLastY = t.clientY;
+      // gira a câmera
+      const euler = new THREE.Euler(0,0,0,'YXZ');
+      euler.setFromQuaternion(camera.quaternion);
+      euler.y -= dx * 0.005;
+      euler.x -= dy * 0.005;
+      euler.x = Math.max(-Math.PI/2+0.1, Math.min(Math.PI/2-0.1, euler.x));
+      camera.quaternion.setFromEuler(euler);
+    }
+  }
+}, {passive:false});
+lookArea.addEventListener('touchend', e => {
+  for (const t of e.changedTouches) if (t.identifier === lookTouchId) lookTouchId = null;
+});
+
+document.getElementById('btn-attack').addEventListener('touchstart', e => {
+  e.preventDefault(); swingAxe();
+});
+document.getElementById('btn-lantern').addEventListener('touchstart', e => {
+  e.preventDefault(); toggleLantern();
+});
 
 // ===== Labirinto =====
 // 1 = parede, 0 = corredor
@@ -454,15 +616,16 @@ for (let i=0; i<NUM_GHOSTS_TOTAL; i++) {
 
 // ===== Movimento =====
 const keysDown = {};
+function toggleLantern() {
+  lanternOn = !lanternOn;
+  flashlight.intensity = lanternOn ? 30 : 0;
+  document.getElementById('lantern-status').textContent = lanternOn ? 'LIGADA' : 'DESLIGADA';
+  document.getElementById('lantern-status').style.color = lanternOn ? '#ff4' : '#888';
+}
 addEventListener('keydown', e => {
   keysDown[e.code] = true;
   if (e.code === 'Space') { e.preventDefault(); swingAxe(); }
-  if (e.code === 'KeyF') {
-    lanternOn = !lanternOn;
-    flashlight.intensity = lanternOn ? 30 : 0;
-    document.getElementById('lantern-status').textContent = lanternOn ? 'LIGADA' : 'DESLIGADA';
-    document.getElementById('lantern-status').style.color = lanternOn ? '#ff4' : '#888';
-  }
+  if (e.code === 'KeyF') toggleLantern();
 });
 addEventListener('keyup', e => keysDown[e.code] = false);
 
@@ -530,6 +693,10 @@ function animate() {
     if (keysDown['KeyS']) velocity.z += 1;
     if (keysDown['KeyA']) velocity.x -= 1;
     if (keysDown['KeyD']) velocity.x += 1;
+    if (isMobile && joyState.active) {
+      velocity.x = joyState.dx;
+      velocity.z = joyState.dy;
+    }
     velocity.normalize().multiplyScalar(speed * dt);
 
     if (velocity.lengthSq() > 0) {
