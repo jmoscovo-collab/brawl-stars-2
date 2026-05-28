@@ -48,7 +48,7 @@
 <body>
 <div id="info">
   👻 Fantasmas: <span id="ghost-count">10</span> |
-  🪓 <span id="axe-status">CLIQUE p/ atacar</span> |
+  🪓 <span id="axe-status">ESPAÇO p/ atacar</span> |
   🔑 Chaves: <span id="keys">0</span>/3 |
   ❤️ Vida: <span id="hp">100</span> |
   🔦 <span id="lantern-status" style="color:#888">DESLIGADA</span> (F)
@@ -65,7 +65,7 @@
       <span class="key">SHIFT</span> correr &nbsp;
       <span class="key">MOUSE</span> olhar &nbsp;
       <span class="key">F</span> lanterna &nbsp;
-      <span class="key">CLIQUE</span> atacar c/ machado 🪓<br><br>
+      <span class="key">ESPAÇO</span> atacar c/ machado 🪓<br><br>
       <b style="color:#ff4">CLIQUE PARA COMEÇAR</b>
     </p>
   </div>
@@ -209,6 +209,44 @@ camera.add(flashlight.target);
 flashlight.target.position.set(0,0,-1);
 scene.add(camera);
 
+// ===== MACHADO =====
+const axe = new THREE.Group();
+const handle = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.04, 0.04, 0.9, 8),
+  new THREE.MeshStandardMaterial({color: 0x6b3a1a, roughness: 0.9})
+);
+axe.add(handle);
+const blade = new THREE.Mesh(
+  new THREE.BoxGeometry(0.35, 0.25, 0.05),
+  new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.9, roughness: 0.3})
+);
+blade.position.set(0.18, 0.4, 0);
+axe.add(blade);
+axe.position.set(0.45, -0.4, -0.7);
+axe.rotation.set(0.2, -0.3, -0.3);
+camera.add(axe);
+let axeSwing = 0;
+function swingAxe() {
+  if (!controls.isLocked || gameOver || axeSwing > 0) return;
+  axeSwing = 1;
+  const pp = controls.getObject().position;
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  ghosts.forEach(g => {
+    if (g.dead) return;
+    const toG = new THREE.Vector3().subVectors(g.mesh.position, pp);
+    const dist = toG.length();
+    if (dist < 2.8) {
+      toG.normalize();
+      if (toG.dot(dir) > 0.45) {
+        g.mesh.userData.hp -= 1;
+        g.hitFlash = 0.3;
+        if (g.mesh.userData.hp <= 0) g.dead = true;
+      }
+    }
+  });
+}
+
 // posição inicial — primeira célula vazia
 const start = openCells[0];
 controls.getObject().position.set(start.x*CELL, 1.6, start.z*CELL);
@@ -310,6 +348,7 @@ for (let i=0; i<NUM_GHOSTS_TOTAL; i++) {
 const keysDown = {};
 addEventListener('keydown', e => {
   keysDown[e.code] = true;
+  if (e.code === 'Space') { e.preventDefault(); swingAxe(); }
   if (e.code === 'KeyF') {
     lanternOn = !lanternOn;
     flashlight.intensity = lanternOn ? 30 : 0;
@@ -417,8 +456,36 @@ function animate() {
       }
     });
 
+    // animação machado
+    if (axeSwing > 0) {
+      axeSwing -= dt * 4;
+      const t = Math.sin((1-axeSwing) * Math.PI);
+      axe.rotation.x = 0.2 - t * 1.4;
+      axe.rotation.z = -0.3 - t * 0.4;
+      if (axeSwing <= 0) { axeSwing = 0; axe.rotation.set(0.2, -0.3, -0.3); }
+    }
+
     // fantasmas perseguem
     ghosts.forEach(g => {
+      if (g.dead) {
+        if (g.mesh.parent) {
+          g.mesh.scale.multiplyScalar(0.92);
+          g.mesh.position.y += dt * 2;
+          if (g.mesh.scale.x < 0.05) {
+            scene.remove(g.mesh);
+            g.mesh.parent = null;
+            const alive = ghosts.filter(x => !x.dead).length;
+            document.getElementById('ghost-count').textContent = alive;
+          }
+        }
+        return;
+      }
+      if (g.hitFlash > 0) {
+        g.hitFlash -= dt;
+        g.mesh.children.forEach(c => { if (c.material && c.material.emissive) c.material.emissiveIntensity = 1.5; });
+      } else {
+        g.mesh.children.forEach(c => { if (c.material && c.material.emissive && c.material.emissive.r < 0.3) c.material.emissiveIntensity = 0.3; });
+      }
       const gp = g.mesh.position;
       const toPlayer = new THREE.Vector3().subVectors(pp, gp);
       toPlayer.y = 0;
