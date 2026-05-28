@@ -143,8 +143,55 @@
         .btn-next { background: #4caf50; color: #fff; }
         .btn-back-race { background: #ff9800; color: #fff; }
     </style>
+
+<style id="device-screen-style">
+#device-screen {
+  position: fixed; inset: 0; background: #000; z-index: 99999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: #fff; font-family: Arial, sans-serif; text-align: center;
+}
+#device-screen h1 { font-size: 38px; margin: 0 0 10px; color: #ffaa44; text-shadow: 0 0 20px #ffaa44;}
+#device-screen p { font-size: 18px; margin: 0 0 30px;}
+#device-screen .opts { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+#device-screen .opt {
+  background: #222; border: 3px solid #555; border-radius: 16px;
+  padding: 28px 36px; cursor: pointer; min-width: 160px;
+}
+#device-screen .opt:hover, #device-screen .opt:active { background: #333; border-color: #ffaa44; transform: scale(1.05); }
+#device-screen .ico { font-size: 56px; }
+#device-screen .lbl { font-size: 18px; font-weight: bold; margin-top: 8px;}
+#device-warn { color: #fa4; font-size: 14px; margin-top: 18px; min-height: 20px;}
+</style>
 </head>
 <body>
+
+<div id="device-screen">
+  <h1>🍄 COGUMELO CLICKER</h1>
+  <p>Como você está jogando?</p>
+  <div class="opts">
+    <div class="opt" id="ds-pc"><div class="ico">🖥️</div><div class="lbl">COMPUTADOR</div></div>
+    <div class="opt" id="ds-mobile"><div class="ico">📱</div><div class="lbl">CELULAR</div></div>
+  </div>
+  <div id="device-warn"></div>
+</div>
+<script>
+(function(){
+  var s = document.getElementById('device-screen');
+  var warn = document.getElementById('device-warn');
+  var isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  document.getElementById('ds-pc').onclick = function(){
+    if (isTouch) { warn.textContent = '⚠️ Seu aparelho parece ser celular. Mesmo assim, jogar no PC.'; setTimeout(function(){ s.remove(); }, 600); return; }
+    s.remove();
+  };
+  document.getElementById('ds-mobile').onclick = function(){
+    document.body.classList.add('mobile-mode');
+    if (!isTouch) { warn.textContent = '⚠️ Modo celular ativado (alguns controles podem não ter touch).'; }
+    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function(){});
+    setTimeout(function(){ s.remove(); }, 400);
+  };
+})();
+</script>
+
     <a href="/" class="back-btn">← Voltar</a>
     <div class="title">🍄 Cogumelo Clicker</div>
     <div id="score">0</div>
