@@ -149,11 +149,32 @@ const STORE_TIMER = "sugestoes_proximo";   // timestamp em que pode enviar de no
 const STORE_NIVEL = "sugestoes_nivel";     // quantas vezes já enviou (pra dobrar)
 const BASE_MS = 60 * 1000;                 // 1 minuto
 
-// ====== contador de caracteres ======
+// ====== contador de caracteres + código secreto ======
+const CODIGO_SECRETO = "davi<" + CHAVE_DAVI + ">/"; // ex: davi<cogumelo>/
 const txt = document.getElementById('texto');
+const nomeInput = document.getElementById('nome');
+
 txt.addEventListener('input', () => {
   document.getElementById('cont').textContent = txt.value.length;
+  checaCodigoSecreto();
 });
+nomeInput.addEventListener('input', checaCodigoSecreto);
+
+function checaCodigoSecreto() {
+  // se digitar o código mágico no nome OU na sugestão, abre o painel secreto!
+  if (txt.value.trim() === CODIGO_SECRETO || nomeInput.value.trim() === CODIGO_SECRETO) {
+    localStorage.setItem('eh_o_davi', 'sim');
+    txt.value = '';
+    nomeInput.value = '';
+    document.getElementById('cont').textContent = '0';
+    renderSecreto();
+    document.getElementById('secreto').style.display = 'block';
+    const aviso = document.getElementById('aviso');
+    aviso.className = 'aviso ok';
+    aviso.textContent = '👑 Bem-vindo, Davi! Painel secreto aberto!';
+    document.getElementById('botaoDavi').scrollIntoView({ behavior: 'smooth' });
+  }
+}
 
 // ====== enviar ======
 let timerInterval = null;
