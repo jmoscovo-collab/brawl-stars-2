@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💌 Enviar Sugestão — Cogumelo Games</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(135deg, #2a0533 0%, #1a0533 50%, #0d1b2a 100%);
+    min-height: 100vh; font-family: 'Arial', sans-serif; color: #fff;
+    display: flex; flex-direction: column; align-items: center; padding: 30px 18px;
+  }
+  a.back {
+    align-self: flex-start; color: #fff; text-decoration: none;
+    background: rgba(0,0,0,0.4); padding: 8px 16px; border-radius: 10px;
+    border: 1px solid #555; margin-bottom: 20px;
+  }
+  a.back:hover { background: #ff66cc; color: #000; }
+  .logo { font-size: 50px; }
+  h1 {
+    font-size: 32px; margin: 6px 0 4px;
+    background: linear-gradient(to right, #ff66cc, #ff99dd); -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; text-align: center;
+  }
+  .sub { color: #aaa; margin-bottom: 24px; text-align: center; }
+  .box {
+    background: rgba(20,10,40,0.85); border: 2px solid #ff66cc44;
+    border-radius: 20px; padding: 24px; width: 100%; max-width: 520px;
+    box-shadow: 0 10px 40px rgba(255,102,204,0.15);
+  }
+  label { display: block; margin-bottom: 8px; color: #ddd; font-size: 14px; }
+  input[type=text], textarea {
+    width: 100%; padding: 12px 14px; border-radius: 12px; border: 2px solid #444;
+    background: #15052a; color: #fff; font-size: 16px; font-family: inherit;
+    margin-bottom: 16px; resize: vertical;
+  }
+  input:focus, textarea:focus { outline: none; border-color: #ff66cc; }
+  textarea { min-height: 110px; }
+  .enviar {
+    width: 100%; padding: 15px; font-size: 20px; font-weight: bold;
+    background: linear-gradient(135deg, #ff3399, #ff66cc); color: #fff;
+    border: none; border-radius: 14px; cursor: pointer; font-family: inherit;
+    box-shadow: 0 6px 20px rgba(255,51,153,0.4); transition: transform .1s;
+  }
+  .enviar:hover:not(:disabled) { transform: scale(1.03); }
+  .enviar:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
+  .aviso { text-align: center; margin-top: 14px; font-size: 15px; min-height: 22px; }
+  .ok { color: #66ff99; }
+  .erro { color: #ff6688; }
+  .timer { color: #ffcc66; font-weight: bold; }
+  .contador { text-align: right; color: #888; font-size: 12px; margin-top: -10px; margin-bottom: 12px; }
+
+  /* área secreta do Davi */
+  .secreto {
+    margin-top: 40px; width: 100%; max-width: 520px; display: none;
+  }
+  .secreto-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 14px;
+  }
+  .secreto h2 { font-size: 22px; color: #66ff99; }
+  .msg-card {
+    background: rgba(0,40,20,0.6); border: 1px solid #66ff9933;
+    border-radius: 12px; padding: 14px; margin-bottom: 12px;
+  }
+  .msg-nome { color: #66ff99; font-weight: bold; font-size: 14px; }
+  .msg-data { color: #888; font-size: 11px; float: right; }
+  .msg-texto { color: #eee; margin-top: 6px; line-height: 1.4; white-space: pre-wrap; word-break: break-word; }
+  .vazio { color: #777; text-align: center; padding: 20px; }
+  .btn-mini {
+    background: #333; color: #fff; border: 1px solid #555; border-radius: 8px;
+    padding: 6px 12px; cursor: pointer; font-size: 13px;
+  }
+  .btn-mini:hover { background: #ff4444; }
+  .chave-hint { color: #555; font-size: 11px; text-align: center; margin-top: 50px; }
+</style>
+</head>
+<body>
+<a href="/" class="back">← Voltar pros jogos</a>
+<div class="logo">💌</div>
+<h1>Enviar Sugestão</h1>
+<div class="sub">Tem uma ideia? Me conta! O Davi lê tudo. 😄</div>
+
+<div class="box">
+  <label>Seu nome (ou apelido):</label>
+  <input type="text" id="nome" maxlength="30" placeholder="Ex: Lucas">
+
+  <label>Sua sugestão:</label>
+  <textarea id="texto" maxlength="500" placeholder="Escreve sua ideia aqui..."></textarea>
+  <div class="contador"><span id="cont">0</span>/500</div>
+
+  <button class="enviar" id="btnEnviar" onclick="enviar()">✍️ ENVIAR SUGESTÃO</button>
+  <div class="aviso" id="aviso"></div>
+</div>
+
+<!-- Área secreta: só aparece pro Davi -->
+<div class="secreto" id="secreto">
+  <div class="secreto-head">
+    <h2>🔒 Mensagens recebidas (<span id="qtd">0</span>)</h2>
+    <button class="btn-mini" onclick="limparTudo()">🗑️ Limpar tudo</button>
+  </div>
+  <div id="listaMsgs"></div>
+</div>
+
+<div class="chave-hint">v1</div>
+
+<script>
+// ====== CONFIG ======
+// Backend opcional (Google Apps Script). Enquanto vazio, salva só neste navegador.
+const BACKEND_URL = ""; // <- Julio cola a URL do Apps Script aqui depois
+
+const CHAVE_DAVI = "cogumelo"; // senha secreta do Davi pra ver as mensagens
+const STORE_MSGS = "sugestoes_msgs";
+const STORE_TIMER = "sugestoes_proximo";   // timestamp em que pode enviar de novo
+const STORE_NIVEL = "sugestoes_nivel";     // quantas vezes já enviou (pra dobrar)
+const BASE_MS = 60 * 1000;                 // 1 minuto
+
+// ====== contador de caracteres ======
+const txt = document.getElementById('texto');
+txt.addEventListener('input', () => {
+  document.getElementById('cont').textContent = txt.value.length;
+});
+
+// ====== enviar ======
+let timerInterval = null;
+
+function tempoEspera() {
+  const prox = parseInt(localStorage.getItem(STORE_TIMER) || '0');
+  return prox - Date.now();
+}
+
+function formataTempo(ms) {
+  const s = Math.ceil(ms / 1000);
+  const min = Math.floor(s / 60);
+  const seg = s % 60;
+  if (min > 0) return `${min}min ${seg}s`;
+  return `${seg}s`;
+}
+
+function atualizaBotao() {
+  const btn = document.getElementById('btnEnviar');
+  const aviso = document.getElementById('aviso');
+  const restante = tempoEspera();
+  if (restante > 0) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Aguarde...';
+    aviso.className = 'aviso timer';
+    aviso.textContent = `Você pode enviar de novo em ${formataTempo(restante)}`;
+  } else {
+    btn.disabled = false;
+    btn.textContent = '✍️ ENVIAR SUGESTÃO';
+    if (aviso.className.includes('timer')) { aviso.textContent = ''; }
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  }
+}
+
+function iniciaCountdown() {
+  atualizaBotao();
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(atualizaBotao, 1000);
+}
+
+async function enviar() {
+  const nome = (document.getElementById('nome').value || 'Anônimo').trim().slice(0, 30);
+  const texto = txt.value.trim();
+  const aviso = document.getElementById('aviso');
+
+  if (tempoEspera() > 0) { atualizaBotao(); return; }
+
+  if (texto.length < 2) {
+    aviso.className = 'aviso erro';
+    aviso.textContent = '✏️ Escreve sua sugestão primeiro!';
+    return;
+  }
+
+  const msg = { nome, texto, data: new Date().toLocaleString('pt-BR') };
+
+  // salva localmente sempre (pra você ver no seu navegador)
+  const lista = JSON.parse(localStorage.getItem(STORE_MSGS) || '[]');
+  lista.unshift(msg);
+  localStorage.setItem(STORE_MSGS, JSON.stringify(lista));
+
+  // tenta mandar pro backend (se configurado)
+  if (BACKEND_URL) {
+    try {
+      await fetch(BACKEND_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(msg)
+      });
+    } catch (e) { /* offline: já salvou local */ }
+  }
+
+  // tempo que DOBRA a cada envio: 1min, 2min, 4min, 8min...
+  let nivel = parseInt(localStorage.getItem(STORE_NIVEL) || '0');
+  const espera = BASE_MS * Math.pow(2, nivel);
+  nivel++;
+  localStorage.setItem(STORE_NIVEL, nivel);
+  localStorage.setItem(STORE_TIMER, Date.now() + espera);
+
+  txt.value = '';
+  document.getElementById('cont').textContent = '0';
+  aviso.className = 'aviso ok';
+  aviso.textContent = '✅ Sugestão enviada! Obrigado! 🍄';
+
+  renderSecreto();
+  setTimeout(iniciaCountdown, 1800);
+}
+
+// ====== área secreta do Davi ======
+function renderSecreto() {
+  const secreto = document.getElementById('secreto');
+  // só mostra se a senha estiver na URL: /sugestoes/?davi=cogumelo
+  const params = new URLSearchParams(location.search);
+  if (params.get('davi') !== CHAVE_DAVI) { secreto.style.display = 'none'; return; }
+
+  secreto.style.display = 'block';
+  const lista = JSON.parse(localStorage.getItem(STORE_MSGS) || '[]');
+  document.getElementById('qtd').textContent = lista.length;
+  const cont = document.getElementById('listaMsgs');
+  if (lista.length === 0) {
+    cont.innerHTML = '<div class="vazio">Nenhuma mensagem ainda... 📭</div>';
+    return;
+  }
+  cont.innerHTML = lista.map(m => `
+    <div class="msg-card">
+      <span class="msg-nome">👤 ${escapa(m.nome)}</span>
+      <span class="msg-data">${escapa(m.data)}</span>
+      <div class="msg-texto">${escapa(m.texto)}</div>
+    </div>
+  `).join('');
+}
+
+function escapa(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function limparTudo() {
+  if (confirm('Apagar TODAS as mensagens? Não dá pra desfazer!')) {
+    localStorage.removeItem(STORE_MSGS);
+    renderSecreto();
+  }
+}
+
+// ====== start ======
+iniciaCountdown();
+renderSecreto();
+</script>
+</body>
+</html>
