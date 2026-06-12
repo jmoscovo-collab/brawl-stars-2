@@ -51,9 +51,24 @@
   .timer { color: #ffcc66; font-weight: bold; }
   .contador { text-align: right; color: #888; font-size: 12px; margin-top: -10px; margin-bottom: 12px; }
 
+  /* BOTÃO GRANDÃO do Davi */
+  .botao-davi {
+    display: none; width: 100%; max-width: 800px; margin-bottom: 20px;
+    padding: 26px; font-size: 28px; font-weight: 900; cursor: pointer;
+    background: linear-gradient(135deg, #00cc66, #66ff99); color: #003311;
+    border: 4px solid #66ff99; border-radius: 20px; font-family: inherit;
+    box-shadow: 0 0 40px rgba(102,255,153,0.5);
+    animation: pulsa 1.5s infinite;
+  }
+  .botao-davi:hover { transform: scale(1.03); }
+  @keyframes pulsa {
+    0%,100% { box-shadow: 0 0 30px rgba(102,255,153,0.4); }
+    50% { box-shadow: 0 0 55px rgba(102,255,153,0.8); }
+  }
+
   /* área secreta do Davi — GRANDONA! */
   .secreto {
-    margin-top: 50px; width: 100%; max-width: 800px; display: none;
+    margin-top: 10px; width: 100%; max-width: 800px; display: none;
     background: rgba(0,30,15,0.7); border: 4px solid #66ff99;
     border-radius: 24px; padding: 30px;
     box-shadow: 0 0 50px rgba(102,255,153,0.4);
@@ -91,7 +106,12 @@
 <h1>Enviar Sugestão</h1>
 <div class="sub">Tem uma ideia? Me conta! O Davi lê tudo. 😄</div>
 
-<!-- Área secreta: só aparece pro Davi (logo no topo!) -->
+<!-- BOTÃO GRANDÃO secreto: só aparece pro Davi, em cima do enviar -->
+<button class="botao-davi" id="botaoDavi" onclick="toggleSecreto()">
+  👑 VER MENSAGENS (<span id="qtdBtn">0</span>) 👑
+</button>
+
+<!-- Área secreta: abre quando clica no botão -->
 <div class="secreto" id="secreto">
   <div class="secreto-banner">👑 PAINEL SECRETO DO DAVI 👑<small>Só você pode ver isso! 🤫</small></div>
   <div class="secreto-head">
@@ -222,8 +242,14 @@ async function enviar() {
   setTimeout(iniciaCountdown, 1800);
 }
 
-// ====== área secreta do Davi ======
+// ====== botão + área secreta do Davi ======
+function toggleSecreto() {
+  const secreto = document.getElementById('secreto');
+  secreto.style.display = secreto.style.display === 'block' ? 'none' : 'block';
+}
+
 function renderSecreto() {
+  const botao = document.getElementById('botaoDavi');
   const secreto = document.getElementById('secreto');
 
   // Se entrou com o link mágico ?davi=cogumelo, o computador LEMBRA pra sempre!
@@ -232,13 +258,14 @@ function renderSecreto() {
     localStorage.setItem('eh_o_davi', 'sim'); // marca este computador como o do Davi
   }
 
-  // mostra o painel se este for o computador do Davi
+  // mostra o BOTÃO só se este for o computador do Davi
   const ehODavi = localStorage.getItem('eh_o_davi') === 'sim';
-  if (!ehODavi) { secreto.style.display = 'none'; return; }
+  if (!ehODavi) { botao.style.display = 'none'; secreto.style.display = 'none'; return; }
 
-  secreto.style.display = 'block';
+  botao.style.display = 'block';
   const lista = JSON.parse(localStorage.getItem(STORE_MSGS) || '[]');
   document.getElementById('qtd').textContent = lista.length;
+  document.getElementById('qtdBtn').textContent = lista.length;
   const cont = document.getElementById('listaMsgs');
   if (lista.length === 0) {
     cont.innerHTML = '<div class="vazio">Nenhuma mensagem ainda... 📭</div>';
@@ -270,6 +297,7 @@ function sairModoDavi() {
   if (confirm('Esconder o painel? Pra ver de novo, entra com o link secreto ?davi=cogumelo')) {
     localStorage.removeItem('eh_o_davi');
     document.getElementById('secreto').style.display = 'none';
+    document.getElementById('botaoDavi').style.display = 'none';
   }
 }
 
