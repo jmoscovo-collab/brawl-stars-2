@@ -21,6 +21,11 @@
   #btn:hover{background:#a00;}
   #msg{position:fixed;top:12%;width:100%;text-align:center;color:#ffb000;font-family:'Courier New',monospace;
     font-size:26px;font-weight:bold;text-shadow:2px 2px 0 #000;pointer-events:none;opacity:0;transition:opacity .3s;}
+  .tbtn{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:50%;
+    background:rgba(255,255,255,.12);border:3px solid rgba(255,176,0,.5);color:#fff;
+    pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;}
+  .tbtn:active{background:rgba(255,176,0,.4);}
+  .tbtn.wsel.on{background:rgba(255,176,0,.55);border-color:#fff;}
 </style>
 </head>
 <body>
@@ -29,6 +34,28 @@
 <div id="flash"></div>
 <div id="pickupflash"></div>
 <div id="msg"></div>
+
+<!-- controles MOBILE (touch) -->
+<div id="touch" style="display:none;position:fixed;inset:0;z-index:9;pointer-events:none;font-family:'Courier New',monospace;">
+  <!-- joystick esquerdo (mover) -->
+  <div id="joy" style="position:absolute;left:24px;bottom:90px;width:130px;height:130px;border-radius:50%;
+    background:rgba(255,255,255,.08);border:3px solid rgba(255,176,0,.5);pointer-events:auto;touch-action:none;">
+    <div id="joyNub" style="position:absolute;left:35px;top:35px;width:60px;height:60px;border-radius:50%;
+      background:rgba(255,176,0,.55);"></div>
+  </div>
+  <!-- botão de tiro -->
+  <div id="btnFire" class="tbtn" style="right:30px;bottom:120px;width:110px;height:110px;font-size:40px;background:rgba(220,40,20,.4);border-color:#ff3020;">🔫</div>
+  <!-- pular -->
+  <div id="btnJump" class="tbtn" style="right:150px;bottom:70px;width:74px;height:74px;font-size:26px;">⬆️</div>
+  <!-- usar -->
+  <div id="btnUse" class="tbtn" style="right:30px;bottom:240px;width:74px;height:74px;font-size:24px;">✋</div>
+  <!-- mapa -->
+  <div id="btnMap" class="tbtn" style="right:24px;top:80px;width:64px;height:64px;font-size:24px;">🗺️</div>
+  <!-- trocar armas -->
+  <div id="btnW1" class="tbtn wsel" style="left:24px;top:80px;width:58px;height:58px;font-size:22px;">🥾</div>
+  <div id="btnW2" class="tbtn wsel" style="left:90px;top:80px;width:58px;height:58px;font-size:22px;">🔫</div>
+  <div id="btnW3" class="tbtn wsel" style="left:156px;top:80px;width:58px;height:58px;font-size:22px;">💥</div>
+</div>
 <div id="start">
   <h1>RUA SUJA 3D</h1>
   <h2>UM TRIBUTO À BUILD ENGINE</h2>
@@ -36,6 +63,7 @@
     <b>WASD</b> mover &nbsp;·&nbsp; <b>MOUSE</b> mirar &nbsp;·&nbsp; <b>CLIQUE</b> atirar<br>
     <b>SHIFT</b> correr (estilo anos 90: rápido!) &nbsp;·&nbsp; <b>ESPAÇO</b> pular<br>
     <b>1</b> coturno &nbsp; <b>2</b> pistola &nbsp; <b>3</b> escopeta &nbsp;·&nbsp; <b>E</b> usar portas/botões<br>
+    <b>TAB</b> ver o mapa 🗺️<br>
     Limpe o setor: elimine todos os mutantes e aperte o botão vermelho no beco.
   </div>
   <button id="btn">ENTRAR NA RUA</button>
@@ -335,7 +363,8 @@ scene.background=new THREE.Color('#1a0e24');
 scene.fog=new THREE.Fog('#1a0e24',24,80);
 const camera=new THREE.PerspectiveCamera(80,innerWidth/innerHeight,.1,200);
 const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('game3d'),antialias:false});
-const PIXEL_SCALE=3.2; // baixa resolução -> visual anos 90
+renderer.outputEncoding=THREE.sRGBEncoding;
+const PIXEL_SCALE=2.0; // resolução um pouco maior -> mais nítido mas ainda retrô
 function resize(){
   renderer.setSize(innerWidth/PIXEL_SCALE,innerHeight/PIXEL_SCALE,false);
   camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
@@ -343,8 +372,9 @@ function resize(){
 }
 addEventListener('resize',resize);
 
-scene.add(new THREE.AmbientLight(0x8877aa,.55));
-const moon=new THREE.DirectionalLight(0xaa99ff,.5); moon.position.set(-20,40,10); scene.add(moon);
+scene.add(new THREE.AmbientLight(0x9988bb,.8));
+const moon=new THREE.DirectionalLight(0xbbaaff,.7); moon.position.set(-20,40,10); scene.add(moon);
+const fill=new THREE.HemisphereLight(0x6655aa,0x332244,.5); scene.add(fill);
 
 // céu noturno com estrelas e lua
 {
@@ -392,12 +422,12 @@ for(let i=0;i<5;i++){
 // beco à direita com botão final
 building(15,4.5,12,3,16); building(15,-12.5,12,3,16);
 addBox(24,-4,6,14,10,matWrap(TEX.brickGray)); // fundo do beco
-// paredes-limite
-addBox(0,-44,60,2,12,matWrap(TEX.brickGray));
-addBox(0,44,60,2,12,matWrap(TEX.brickGray));
-addBox(-23,0,2,90,12,matWrap(TEX.brickRed));
-addBox(23,26,2,40,12,matWrap(TEX.brickRed));
-addBox(23,-30,2,32,12,matWrap(TEX.brickRed));
+// paredes-limite ALTAS fechando todo o mapa (sem "fim do mundo")
+addBox(0,-45,64,3,18,matWrap(TEX.brickGray));   // fundo (norte)
+addBox(0,45,64,3,18,matWrap(TEX.brickGray));    // frente (sul)
+addBox(-24,0,3,93,18,matWrap(TEX.brickRed));    // esquerda (oeste)
+addBox(24,26,3,42,18,matWrap(TEX.brickRed));    // direita superior
+addBox(24,-30,3,34,18,matWrap(TEX.brickRed));   // direita inferior
 
 // letreiros neon
 function neon(x,y,z,text,color,ry=0){
@@ -560,14 +590,16 @@ function say(t,dur=2200){
 
 // ---------- input ----------
 const keys={};
+let showMap=false;
 addEventListener('keydown',e=>{
   keys[e.code]=true;
   if(e.code==='Digit1')switchWeapon(1);
   if(e.code==='Digit2')switchWeapon(2);
   if(e.code==='Digit3')switchWeapon(3);
   if(e.code==='KeyE')useAction();
+  if(e.code==='Tab'){ showMap=true; e.preventDefault(); }
 });
-addEventListener('keyup',e=>keys[e.code]=false);
+addEventListener('keyup',e=>{ keys[e.code]=false; if(e.code==='Tab'){ showMap=false; e.preventDefault(); } });
 function switchWeapon(w){
   if(w===3&&player.ammoShell<=0&&player.weapon!==3){ say('Sem cartuchos para a escopeta.'); }
   player.weapon=w; sfx('click');
@@ -582,15 +614,76 @@ addEventListener('mousemove',e=>{
 });
 document.getElementById('btn').onclick=()=>{
   document.getElementById('start').style.display='none';
-  document.body.requestPointerLock?.call(document.body);
-  document.getElementById('game3d').requestPointerLock?.();
+  if(!IS_MOBILE){
+    document.body.requestPointerLock?.call(document.body);
+    document.getElementById('game3d').requestPointerLock?.();
+  }
   audio(); startMusic();
   say(quotes[0],2600);
 };
 document.getElementById('game3d').addEventListener('click',()=>{
-  if(!document.pointerLockElement && document.getElementById('start').style.display==='none')
+  if(!document.pointerLockElement && document.getElementById('start').style.display==='none' && !IS_MOBILE)
     document.getElementById('game3d').requestPointerLock();
 });
+
+// ---------- CONTROLES MOBILE (touch) ----------
+const IS_MOBILE = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || ('ontouchstart' in window && innerWidth<1100);
+const mob={ moveX:0, moveZ:0, firing:false, lookId:null, lookLX:0, lookLY:0 };
+if(IS_MOBILE){
+  document.getElementById('touch').style.display='block';
+  // joystick de movimento
+  const joy=document.getElementById('joy'), nub=document.getElementById('joyNub');
+  let joyId=null, joyCx=0, joyCy=0;
+  joy.addEventListener('touchstart',e=>{
+    e.preventDefault(); const t=e.changedTouches[0]; joyId=t.identifier;
+    const r=joy.getBoundingClientRect(); joyCx=r.left+r.width/2; joyCy=r.top+r.height/2;
+  },{passive:false});
+  joy.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){ if(t.identifier!==joyId) continue;
+      let dx=t.clientX-joyCx, dy=t.clientY-joyCy;
+      const d=Math.hypot(dx,dy), max=55;
+      if(d>max){ dx=dx/d*max; dy=dy/d*max; }
+      nub.style.left=(35+dx)+'px'; nub.style.top=(35+dy)+'px';
+      mob.moveX=dx/max; mob.moveZ=dy/max;
+    }
+  },{passive:false});
+  const joyEnd=e=>{ for(const t of e.changedTouches){ if(t.identifier===joyId){
+    joyId=null; mob.moveX=0; mob.moveZ=0; nub.style.left='35px'; nub.style.top='35px'; } } };
+  joy.addEventListener('touchend',joyEnd); joy.addEventListener('touchcancel',joyEnd);
+
+  // olhar: arrastar em qualquer lugar da tela (que não seja botão)
+  const g3d=document.getElementById('game3d');
+  g3d.addEventListener('touchstart',e=>{
+    const t=e.changedTouches[0];
+    if(mob.lookId===null){ mob.lookId=t.identifier; mob.lookLX=t.clientX; mob.lookLY=t.clientY; }
+  },{passive:false});
+  g3d.addEventListener('touchmove',e=>{
+    for(const t of e.changedTouches){ if(t.identifier!==mob.lookId) continue;
+      player.yaw-=(t.clientX-mob.lookLX)*.005;
+      player.pitch=clamp(player.pitch-(t.clientY-mob.lookLY)*.005,-1.2,1.2);
+      mob.lookLX=t.clientX; mob.lookLY=t.clientY;
+    }
+  },{passive:false});
+  const lookEnd=e=>{ for(const t of e.changedTouches){ if(t.identifier===mob.lookId) mob.lookId=null; } };
+  g3d.addEventListener('touchend',lookEnd); g3d.addEventListener('touchcancel',lookEnd);
+
+  // botões
+  const hold=(id,on,off)=>{ const el=document.getElementById(id);
+    el.addEventListener('touchstart',e=>{e.preventDefault();on();},{passive:false});
+    el.addEventListener('touchend',e=>{e.preventDefault();off&&off();},{passive:false});
+  };
+  hold('btnFire',()=>mob.firing=true,()=>mob.firing=false);
+  hold('btnJump',()=>{ if(player.onGround){ player.vy=5.2; player.onGround=false; } });
+  hold('btnUse',()=>useAction());
+  hold('btnMap',()=>showMap=true,()=>showMap=false);
+  const markW=w=>['btnW1','btnW2','btnW3'].forEach((id,i)=>
+    document.getElementById(id).classList.toggle('on',i+1===w));
+  hold('btnW1',()=>{switchWeapon(1);markW(1);});
+  hold('btnW2',()=>{switchWeapon(2);markW(2);});
+  hold('btnW3',()=>{switchWeapon(3);markW(3);});
+  markW(2);
+}
 
 // ---------- combate ----------
 const ray=new THREE.Raycaster();
@@ -687,16 +780,23 @@ let won=false;
 function winGame(){
   if(won) return; won=true;
   sfx('pickup'); sfx('boom');
-  say('FIM DE FASE! A rua está limpa... por enquanto.',999999);
+  say('🎉 FIM DE FASE! A rua está limpa!',999999);
+  // explosões comemorativas no beco
+  for(let i=0;i<6;i++) setTimeout(()=>explosion(new THREE.Vector3(rand(16,22),rand(.5,4),rand(-8,0))),i*250);
   setTimeout(()=>{
     const st=document.getElementById('start');
     st.style.display='flex';
-    st.querySelector('h1').textContent='SETOR LIMPO';
-    st.querySelector('h2').textContent='VOCÊ VENCEU — OBRIGADO POR JOGAR';
+    st.querySelector('h1').textContent='🏆 SETOR LIMPO!';
+    st.querySelector('h2').textContent='VOCÊ VENCEU O RUA SUJA 3D!';
+    const mortos=enemies.length;
+    st.querySelector('.keys').innerHTML=
+      `<b>🔫 ${mortos} mutantes</b> eliminados!<br>`+
+      `<b>❤️ Vida restante:</b> ${player.hp}<br><br>`+
+      `Você limpou a rua suja e salvou a cidade! 🌃`;
     document.getElementById('btn').textContent='JOGAR DE NOVO';
     document.getElementById('btn').onclick=()=>location.reload();
     document.exitPointerLock();
-  },2500);
+  },2800);
 }
 
 // ---------- IA inimiga ----------
@@ -771,10 +871,53 @@ function drawWeapon(t){
   }
   hctx.restore();
 }
+function drawMap(){
+  const w=hud.width,h=hud.height;
+  // fundo escuro
+  hctx.fillStyle='rgba(0,0,0,.78)'; hctx.fillRect(0,0,w,h);
+  // área do mapa: mundo x[-24,24] z[-45,45]
+  const sz=Math.min(w,h)*.8, cx=w/2, cy=h/2;
+  const scaleX=sz/52, scaleZ=sz/96;
+  const wx=x=>cx+x*scaleX, wz=z=>cy+z*scaleZ;
+  hctx.save();
+  // título
+  hctx.fillStyle='#ffb000'; hctx.font='bold 28px Courier New'; hctx.textAlign='center';
+  hctx.fillText('MAPA — RUA SUJA',cx,wz(-50)-12);
+  // paredes/prédios (colliders com mesh)
+  hctx.fillStyle='#44485a';
+  colliders.forEach(c=>{
+    if(c.minX===undefined) return;
+    const x1=wx(c.minX),z1=wz(c.minZ),ww=(c.maxX-c.minX)*scaleX,hh=(c.maxZ-c.minZ)*scaleZ;
+    hctx.fillRect(x1,z1,ww,hh);
+  });
+  // inimigos vivos (vermelho)
+  enemies.forEach(e=>{ if(e.dead) return;
+    hctx.fillStyle='#ff3020'; hctx.beginPath(); hctx.arc(wx(e.x),wz(e.z),5,0,7); hctx.fill();
+  });
+  // botão final (verde piscando)
+  hctx.fillStyle=enemies.every(e=>e.dead)?'#30ff50':'#c01010';
+  hctx.fillRect(wx(21.9)-4,wz(-4)-4,8,8);
+  // pickups (amarelo)
+  pickups.forEach(p=>{ if(p.taken) return;
+    hctx.fillStyle='#ffd060'; hctx.fillRect(wx(p.x)-3,wz(p.z)-3,6,6);
+  });
+  // jogador (seta azul apontando pra direção)
+  hctx.save();
+  hctx.translate(wx(player.x),wz(player.z)); hctx.rotate(-player.yaw);
+  hctx.fillStyle='#30c0ff'; hctx.beginPath();
+  hctx.moveTo(0,-9); hctx.lineTo(6,7); hctx.lineTo(-6,7); hctx.closePath(); hctx.fill();
+  hctx.restore();
+  // legenda
+  hctx.fillStyle='#ccc'; hctx.font='14px Courier New'; hctx.textAlign='center';
+  hctx.fillText('🔵 você   🔴 mutante   🟡 item   🟩 botão final',cx,wz(50)+24);
+  hctx.fillText('(segure TAB pra ver o mapa)',cx,wz(50)+44);
+  hctx.restore();
+}
 function drawHUD(){
   const w=hud.width,h=hud.height;
   hctx.clearRect(0,0,w,h);
   if(document.getElementById('start').style.display!=='none') return;
+  if(showMap){ drawMap(); return; }
   drawWeapon();
   // mira
   hctx.fillStyle='#0f0';
@@ -826,7 +969,8 @@ function loop(now){
   const dt=Math.min(.05,(now-last)/1000); last=now;
   const t=now/1000;
 
-  if(!player.dead&&document.pointerLockElement){
+  const ativo = IS_MOBILE ? document.getElementById('start').style.display==='none' : !!document.pointerLockElement;
+  if(!player.dead&&ativo){
     // movimento estilo Build: rápido, com corrida
     const run=keys['ShiftLeft']||keys['ShiftRight'];
     const sp=run?13:7.5;
@@ -835,6 +979,11 @@ function loop(now){
     if(keys['KeyS']){fx+=Math.sin(player.yaw); fz+=Math.cos(player.yaw);}
     if(keys['KeyA']){fx+=Math.cos(player.yaw)*-1; fz+=Math.sin(player.yaw);}
     if(keys['KeyD']){fx+=Math.cos(player.yaw); fz+=Math.sin(player.yaw)*-1;}
+    // joystick mobile (moveZ pra frente/trás, moveX pros lados)
+    if(IS_MOBILE&&(mob.moveX||mob.moveZ)){
+      fx+=Math.sin(player.yaw)*mob.moveZ + Math.cos(player.yaw)*mob.moveX;
+      fz+=Math.cos(player.yaw)*mob.moveZ - Math.sin(player.yaw)*mob.moveX;
+    }
     const len=Math.hypot(fx,fz)||1;
     velX=fx/len*sp; velZ=fz/len*sp;
     const nx=player.x+velX*dt, nz=player.z+velZ*dt;
@@ -847,7 +996,7 @@ function loop(now){
     if(player.y<=1.65){ player.y=1.65; player.vy=0; player.onGround=true; }
     // bob de caminhada
     if((Math.abs(velX)+Math.abs(velZ))>1&&player.onGround) player.bob+=dt*(run?13:9);
-    if(mouseDown) fire();
+    if(mouseDown||mob.firing) fire();
   }
   player.fireT=Math.max(0,player.fireT-dt);
   player.kicking=Math.max(0,player.kicking-dt*5);
