@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🥷 Cogumelo Ninja</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: #1a0a2e; font-family: 'Comic Sans MS', sans-serif;
+    color: #fff; touch-action: none;
+  }
+  canvas { display: block; cursor: crosshair; }
+  #hud {
+    position: absolute; top: 16px; left: 0; right: 0; z-index: 10;
+    display: flex; justify-content: space-between; padding: 0 24px;
+    font-size: 32px; font-weight: 900; pointer-events: none;
+    text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 0 8px #000;
+  }
+  #vidas { color: #ff5577; }
+  #score { color: #ffd700; }
+  #combo {
+    position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+    z-index: 10; font-size: 40px; font-weight: 900; color: #00ffaa;
+    text-shadow: 0 0 15px #00ffaa; opacity: 0; pointer-events: none;
+    transition: opacity .2s;
+  }
+  #msg {
+    position: absolute; inset: 0; z-index: 20; display: flex;
+    flex-direction: column; align-items: center; justify-content: flex-start;
+    background: rgba(10,5,25,0.92); text-align: center;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    touch-action: pan-y; padding: 24px 16px 60px;
+  }
+  #msg h1 {
+    font-size: 42px; margin-bottom: 8px;
+    background: linear-gradient(to right,#ff5577,#ffd700,#00ffaa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  #msg p { font-size: 18px; color: #fff; margin-bottom: 6px; }
+  #msg .big { font-size: 24px; color: #ffd700; margin: 10px 0; }
+  #msg button {
+    margin-top: 20px; padding: 16px 44px; font-size: 26px; font-weight: bold;
+    background: linear-gradient(135deg,#ff3366,#ff6699); color: #fff;
+    border: none; border-radius: 16px; cursor: pointer; font-family: inherit;
+    box-shadow: 0 6px 24px rgba(255,51,102,0.5);
+  }
+  #msg button:hover { transform: scale(1.05); }
+  .espadas-titulo { font-size: 24px; color: #fff; margin: 18px 0 10px; }
+  .espadas {
+    display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+    max-width: 620px; margin-bottom: 6px;
+  }
+  .espada-btn {
+    width: 130px; padding: 14px 10px; border-radius: 16px; cursor: pointer;
+    background: rgba(255,255,255,0.08); border: 3px solid #555;
+    color: #fff; font-family: inherit; font-size: 15px; transition: all .15s;
+  }
+  .espada-btn:hover { transform: scale(1.06); background: rgba(255,255,255,0.15); }
+  .espada-btn.sel { border-color: #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.6); background: rgba(255,215,0,0.12); }
+  .espada-btn.locked { opacity: 0.78; border-style: dashed; }
+  .espada-btn .ico { font-size: 40px; display: block; margin-bottom: 6px; }
+  .espada-btn .nm { font-weight: bold; display: block; margin-bottom: 6px; }
+  .tag-preco { font-size: 13px; color: #ffcc66; }
+  .tag-ok { font-size: 13px; color: #66ccff; }
+  .tag-eq { font-size: 13px; color: #66ff99; font-weight: bold; }
+  #visor3d {
+    width: 340px; height: 240px; border-radius: 18px;
+    background: radial-gradient(circle at 50% 40%, #2a2a44, #0a0a18);
+    border: 2px solid #ffd70044; box-shadow: 0 0 30px rgba(255,215,0,0.15);
+    margin: 6px 0;
+  }
+  #nomeEspada3d { font-size: 22px; font-weight: bold; color: #ffd700; margin-bottom: 8px; min-height: 26px; }
+  a.back {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 30; color: #fff; text-decoration: none; background: rgba(0,0,0,0.5);
+    padding: 8px 16px; border-radius: 10px; border: 1px solid #fff; display: none;
+  }
+</style>
+</head>
+<body>
+<div id="hud">
+  <div id="vidas">❤️❤️❤️❤️❤️</div>
+  <div id="score">🍄 0</div>
+</div>
+<div id="combo"></div>
+<canvas id="game"></canvas>
+<div id="msg">
+  <h1>🥷 Cogumelo Ninja</h1>
+  <button onclick="comecar()" style="margin-top:6px">▶ COMEÇAR! ⚔️</button>
+  <p style="margin-top:12px">Arraste pra CORTAR cogumelos e capivaras! 🍄🦫 — NÃO corte BOMBAS 💣</p>
+  <div class="big" id="recorde"></div>
+
+  <div class="espadas-titulo">⚔️ Loja de Espadas <span id="carteira" style="color:#ffd700">🍄 0</span></div>
+  <canvas id="visor3d" width="340" height="240"></canvas>
+  <div id="nomeEspada3d"></div>
+  <div id="lojaMsg" style="min-height:24px;font-size:17px;margin:6px 0"></div>
+  <div class="espadas" id="espadas"></div>
+
+  <button onclick="comecar()" style="margin-bottom:10px">▶ COMEÇAR! ⚔️</button>
+</div>
+<a href="/" class="back" id="backBtn">← Voltar</a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+resize();
+addEventListener('resize', resize);
+
+const FRUTAS = [
+  { emoji: '🍄', cor: '#ff4d6d', r: 56 },
+  { capivara: true, cor: '#a87b50', r: 58 },
+  { emoji: '🍄', cor: '#ff9f1c', r: 54 },
+  { capivara: true, cor: '#8d6e3f', r: 60 },
+  { emoji: '🍄', cor: '#9d6b4a', r: 56 },
+  { capivara: true, cor: '#b5895c', r: 56 },
+  { emoji: '🍄', cor: '#e63946', r: 56 },
+  { capivara: true, cor: '#7a5a3a', r: 58 },
+];
+const COGU = { capivara: true, cor: '#ffd700', r: 62 }; // capivara dourada = bônus
+
+let objetos, particulas, rastro, score, vidas, rodando, frame, combo, comboTimer, best;
+let spawnTimer, dificuldade;
+
+best = parseInt(localStorage.getItem('ninja_best') || '0');
+
+// ====== ESPADAS (compradas com cogumelos 🍄) ======
+// lamina/cabo/gema = cor 3D | metal = metalness | rug = roughness | emiss = brilho emitido
+const ESPADAS = [
+  { id: 'classica', nome: 'Clássica',  ico: '⚔️', brilho: 'rgba(0,255,200,0.5)',  larg: 16, preco: 0,
+    lamina: 0xcfd8e8, cabo: 0x5a3b1a, guarda: 0xb8860b, gema: 0x00ffcc, metal: 1.0, rug: 0.18, emiss: 0x000000 },
+  { id: 'fogo',     nome: 'Fogo',      ico: '🔥', brilho: 'rgba(255,100,0,0.6)',  larg: 18, preco: 100,
+    lamina: 0xff5522, cabo: 0x3a0a02, guarda: 0xff8800, gema: 0xffaa00, metal: 0.9, rug: 0.25, emiss: 0xff3300 },
+  { id: 'gelo',     nome: 'Gelo',      ico: '❄️', brilho: 'rgba(0,200,255,0.6)',  larg: 18, preco: 200,
+    lamina: 0xaee9ff, cabo: 0x12506b, guarda: 0x66ccff, gema: 0x00ddff, metal: 0.85, rug: 0.1, emiss: 0x1188cc },
+  { id: 'raio',     nome: 'Raio',      ico: '⚡', brilho: 'rgba(255,255,0,0.7)',  larg: 16, preco: 350,
+    lamina: 0xfff066, cabo: 0x333300, guarda: 0xffdd00, gema: 0xffff00, metal: 1.0, rug: 0.15, emiss: 0xaaaa00 },
+  { id: 'sombra',   nome: 'Sombra',    ico: '🌑', brilho: 'rgba(160,0,255,0.6)',  larg: 18, preco: 500,
+    lamina: 0x6a2aa0, cabo: 0x1a0a2a, guarda: 0x9d4edd, gema: 0xcc66ff, metal: 0.95, rug: 0.2, emiss: 0x5500aa },
+  { id: 'cogu',     nome: 'Cogumelo',  ico: '🍄', brilho: 'rgba(255,60,60,0.6)',  larg: 18, preco: 700,
+    lamina: 0xff5a5a, cabo: 0xfff3dc, guarda: 0xffffff, gema: 0xff2222, metal: 0.6, rug: 0.4, emiss: 0x330000 },
+  { id: 'arcoiris', nome: 'Arco-íris', ico: '🌈', brilho: 'rainbow',              larg: 20, preco: 1000,
+    lamina: 0xff66cc, cabo: 0x222222, guarda: 0xffffff, gema: 0x66ffcc, metal: 1.0, rug: 0.05, emiss: 0x000000, rainbow: true },
+  { id: 'real',     nome: 'Real',      ico: '👑', brilho: 'rgba(255,215,0,0.7)',  larg: 20, preco: 1500,
+    lamina: 0xffd700, cabo: 0x7a1f1f, guarda: 0xffe680, gema: 0xff0044, metal: 1.0, rug: 0.08, emiss: 0x332200 },
+];
+let espadaAtual = localStorage.getItem('ninja_espada') || 'classica';
+let espadaPreview = espadaAtual; // qual aparece no visor 3D
+let cogumelos = parseInt(localStorage.getItem('ninja_cogumelos') || '0');
+let compradas = JSON.parse(localStorage.getItem('ninja_compradas') || '["classica"]');
+
+function salvaCarteira() {
+  localStorage.setItem('ninja_cogumelos', cogumelos);
+  localStorage.setItem('ninja_compradas', JSON.stringify(compradas));
+}
+
+function montaEspadas() {
+  document.getElementById('carteira').textContent = '🍄 ' + cogumelos;
+  const cont = document.getElementById('espadas');
+  cont.innerHTML = ESPADAS.map(e => {
+    const temAcesso = compradas.includes(e.id);
+    const selecionada = e.id === espadaAtual;
+    let rodape;
+    if (selecionada) rodape = '<span class="tag-eq">✅ Em uso</span>';
+    else if (temAcesso) rodape = '<span class="tag-ok">Usar</span>';
+    else rodape = `<span class="tag-preco">🔒 ${e.preco}🍄</span>`;
+    return `
+    <div class="espada-btn ${selecionada ? 'sel' : ''} ${temAcesso ? '' : 'locked'}" onclick="clicaEspada('${e.id}')">
+      <span class="ico">${e.ico}</span>
+      <span class="nm">${e.nome}</span>
+      ${rodape}
+    </div>`;
+  }).join('');
+}
+
+function clicaEspada(id) {
+  const e = ESPADAS.find(x => x.id === id);
+  // sempre mostra a espada no visor 3D (mesmo trancada, pra ver antes de comprar)
+  espadaPreview = id;
+  if (compradas.includes(id)) {
+    // já tem: equipa
+    espadaAtual = id;
+    localStorage.setItem('ninja_espada', id);
+  } else {
+    // comprar
+    if (cogumelos >= e.preco) {
+      cogumelos -= e.preco;
+      compradas.push(id);
+      espadaAtual = id;
+      localStorage.setItem('ninja_espada', id);
+      salvaCarteira();
+      const msg = document.getElementById('lojaMsg');
+      msg.textContent = `✅ Comprou a espada ${e.nome}! Agora é sua!`;
+      msg.style.color = '#66ff99';
+    } else {
+      const falta = e.preco - cogumelos;
+      const msg = document.getElementById('lojaMsg');
+      msg.textContent = `🔒 Faltam ${falta}🍄 pra comprar a ${e.nome}. Joga mais pra ganhar!`;
+      msg.style.color = '#ff8888';
+    }
+  }
+  montaEspadas();
+  renderVisor(); // atualiza o visor 3D com a espada clicada
+}
+
+function getEspada() { return ESPADAS.find(e => e.id === espadaAtual) || ESPADAS[0]; }
+
+// ====== VISOR 3D DA ESPADA (Three.js realista) ======
+let v3Renderer, v3Scene, v3Camera, v3Sword, v3EnvMap, v3Light2;
+function initVisor3D() {
+  const cv = document.getElementById('visor3d');
+  v3Renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
+  v3Renderer.setSize(340, 240, false);
+  v3Renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  v3Renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  v3Renderer.toneMappingExposure = 1.15;
+  v3Renderer.outputEncoding = THREE.sRGBEncoding;
+
+  v3Scene = new THREE.Scene();
+  v3Camera = new THREE.PerspectiveCamera(40, 340/240, 0.1, 100);
+  v3Camera.position.set(0, 0, 9);
+
+  // ambiente reflexivo procedural (faz o metal refletir o mundo = realismo)
+  const pmrem = new THREE.PMREMGenerator(v3Renderer);
+  const envScene = new THREE.Scene();
+  const gradGeo = new THREE.SphereGeometry(50, 32, 16);
+  const gradMat = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    vertexShader: `varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader: `varying vec3 vP; void main(){ float h=normalize(vP).y*0.5+0.5;
+      vec3 c=mix(vec3(0.05,0.05,0.12), vec3(0.5,0.6,0.9), h);
+      c+=pow(max(0.0,1.0-abs(vP.x)/50.0),8.0)*vec3(1.0,0.9,0.7);
+      gl_FragColor=vec4(c,1.0);}`
+  });
+  envScene.add(new THREE.Mesh(gradGeo, gradMat));
+  // luzes-ponto no ambiente pra criar highlights no metal
+  for (const p of [[10,10,10,0xffffff],[-10,-5,8,0x88aaff],[0,12,-10,0xffddaa]]) {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(3,8,8),
+      new THREE.MeshBasicMaterial({ color: p[3] }));
+    m.position.set(p[0],p[1],p[2]); envScene.add(m);
+  }
+  v3EnvMap = pmrem.fromScene(envScene, 0.04).texture;
+  v3Scene.environment = v3EnvMap;
+
+  v3Scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+  const key = new THREE.DirectionalLight(0xffffff, 1.4); key.position.set(5,8,6); v3Scene.add(key);
+  v3Light2 = new THREE.PointLight(0xffffff, 1.2, 50); v3Light2.position.set(-4,-2,5); v3Scene.add(v3Light2);
+
+  renderVisor();
+}
+
+function construirEspada3D(esp) {
+  const g = new THREE.Group();
+  const matLamina = new THREE.MeshStandardMaterial({
+    color: esp.lamina, metalness: esp.metal, roughness: esp.rug,
+    emissive: esp.emiss, emissiveIntensity: 0.6, envMapIntensity: 1.4
+  });
+  const matCabo = new THREE.MeshStandardMaterial({ color: esp.cabo, metalness: 0.2, roughness: 0.8 });
+  const matGuarda = new THREE.MeshStandardMaterial({ color: esp.guarda, metalness: 1.0, roughness: 0.2, envMapIntensity: 1.5 });
+  const matGema = new THREE.MeshStandardMaterial({
+    color: esp.gema, metalness: 0.1, roughness: 0.05,
+    emissive: esp.gema, emissiveIntensity: 0.8, envMapIntensity: 2
+  });
+
+  // lâmina (caixa fininha com ponta)
+  const lamina = new THREE.Mesh(new THREE.BoxGeometry(0.32, 4.2, 0.12), matLamina);
+  lamina.position.y = 1.4;
+  g.add(lamina);
+  // ponta (cone)
+  const ponta = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.8, 4), matLamina);
+  ponta.position.y = 3.7; ponta.rotation.y = Math.PI/4;
+  g.add(ponta);
+  // sulco central brilhante
+  const sulco = new THREE.Mesh(new THREE.BoxGeometry(0.06, 4.0, 0.14), matGema);
+  sulco.position.y = 1.4; g.add(sulco);
+
+  // guarda (cruz)
+  const guarda = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.28, 0.32), matGuarda);
+  guarda.position.y = -0.7; g.add(guarda);
+  // bolinhas nas pontas da guarda
+  for (const sx of [-1, 1]) {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 12), matGuarda);
+    b.position.set(sx*0.8, -0.7, 0); g.add(b);
+  }
+
+  // cabo (cilindro)
+  const cabo = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 1.5, 16), matCabo);
+  cabo.position.y = -1.55; g.add(cabo);
+  // enrolamento do cabo (aneis)
+  for (let i = 0; i < 6; i++) {
+    const anel = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.03, 8, 16), matGuarda);
+    anel.position.y = -1.0 - i*0.22; anel.rotation.x = Math.PI/2; g.add(anel);
+  }
+
+  // pomo com gema
+  const pomo = new THREE.Mesh(new THREE.SphereGeometry(0.26, 20, 16), matGuarda);
+  pomo.position.y = -2.45; g.add(pomo);
+  const gema = new THREE.Mesh(new THREE.OctahedronGeometry(0.22), matGema);
+  gema.position.y = -2.45; gema.position.z = 0.18; g.add(gema);
+
+  g.userData.matLamina = matLamina;
+  g.userData.matGema = matGema;
+  g.userData.rainbow = esp.rainbow;
+  return g;
+}
+
+function renderVisor() {
+  const esp = ESPADAS.find(e => e.id === espadaPreview) || getEspada();
+  if (v3Sword) v3Scene.remove(v3Sword);
+  v3Sword = construirEspada3D(esp);
+  v3Sword.position.y = -0.3;
+  v3Scene.add(v3Sword);
+  document.getElementById('nomeEspada3d').textContent = esp.ico + ' ' + esp.nome;
+}
+
+let v3hue = 0;
+function loopVisor() {
+  requestAnimationFrame(loopVisor);
+  if (!v3Sword || document.getElementById('msg').style.display === 'none') return;
+  v3Sword.rotation.y += 0.02;
+  v3Sword.rotation.z = Math.sin(Date.now()*0.001) * 0.08;
+  // espada arco-íris muda de cor
+  if (v3Sword.userData.rainbow) {
+    v3hue = (v3hue + 0.6) % 360;
+    const c = new THREE.Color(`hsl(${v3hue},100%,60%)`);
+    v3Sword.userData.matLamina.color.copy(c);
+    v3Sword.userData.matLamina.emissive.copy(c).multiplyScalar(0.3);
+    v3Sword.userData.matGema.color.set(`hsl(${(v3hue+120)%360},100%,60%)`);
+    v3Sword.userData.matGema.emissive.set(`hsl(${(v3hue+120)%360},100%,60%)`);
+  }
+  v3Renderer.render(v3Scene, v3Camera);
+}
+
+montaEspadas();
+initVisor3D();
+loopVisor();
+
+function comecar() {
+  objetos = []; particulas = []; rastro = [];
+  score = 0; vidas = 5; rodando = true; frame = 0;
+  combo = 0; comboTimer = 0; spawnTimer = 0; dificuldade = 1;
+  document.getElementById('msg').style.display = 'none';
+  document.getElementById('backBtn').style.display = 'block';
+  atualizaHud();
+  loop();
+}
+
+function atualizaHud() {
+  document.getElementById('vidas').textContent = '❤️'.repeat(vidas) || '💀';
+  document.getElementById('score').textContent = '🍄 ' + score;
+}
+
+function spawnObjeto() {
+  // poucas bombas, frutas grandes e lentas
+  const sorte = Math.random();
+  let tipo;
+  if (sorte < 0.08 + dificuldade * 0.008) tipo = { bomba: true, emoji: '💣', cor: '#333', r: 52 };
+  else if (sorte < 0.16) tipo = { ...COGU, dourado: true };
+  else tipo = FRUTAS[Math.floor(Math.random() * FRUTAS.length)];
+
+  const x = W * (0.25 + Math.random() * 0.5);
+  const velX = (W/2 - x) * 0.003 + (Math.random() - 0.5) * 2.5;
+  const velY = -(11 + Math.random() * 3 + dificuldade * 0.25); // sobe mais devagar
+  objetos.push({
+    x, y: H + 60, vx: velX, vy: velY,
+    rot: 0, vr: (Math.random()-0.5)*0.2,
+    ...tipo, cortado: false
+  });
+}
+
+function explodir(x, y, cor, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const v = 2 + Math.random() * 7;
+    particulas.push({
+      x, y, vx: Math.cos(a)*v, vy: Math.sin(a)*v,
+      vida: 30, max: 30, cor, r: 3 + Math.random()*5
+    });
+  }
+}
+
+// ====== entrada (mouse + toque) ======
+let cortando = false;
+let mouseXY = { x: -100, y: -100, ang: 0 }; // posição da espada na mão
+function pos(e) {
+  const t = e.touches ? e.touches[0] : e;
+  return { x: t.clientX, y: t.clientY };
+}
+function inicioCorte(e) { cortando = true; rastro = []; segueMouse(e); }
+function segueMouse(e) {
+  const p = pos(e);
+  // ângulo do movimento (pra espada apontar pra direção do corte)
+  const dx = p.x - mouseXY.x, dy = p.y - mouseXY.y;
+  if (dx*dx + dy*dy > 9) mouseXY.ang = Math.atan2(dy, dx);
+  mouseXY.x = p.x; mouseXY.y = p.y;
+}
+function moveCorte(e) {
+  segueMouse(e);
+  if (!cortando || !rodando) return;
+  const p = pos(e);
+  rastro.push({ x: p.x, y: p.y, vida: 12 });
+  if (rastro.length > 14) rastro.shift();
+  // checa corte
+  for (const o of objetos) {
+    if (o.cortado) continue;
+    const dx = o.x - p.x, dy = o.y - p.y;
+    if (dx*dx + dy*dy < (o.r + 22) * (o.r + 22)) cortar(o);
+  }
+}
+function fimCorte() { cortando = false; }
+
+canvas.addEventListener('mousedown', e => { inicioCorte(e); moveCorte(e); });
+canvas.addEventListener('mousemove', moveCorte);
+addEventListener('mouseup', fimCorte);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); inicioCorte(e); moveCorte(e); }, {passive:false});
+canvas.addEventListener('touchmove', e => { e.preventDefault(); moveCorte(e); }, {passive:false});
+addEventListener('touchend', fimCorte);
+
+function cortar(o) {
+  o.cortado = true;
+  if (o.bomba) { bombaCortada(); return; }
+  explodir(o.x, o.y, o.cor, 18);
+  combo++;
+  comboTimer = 45;
+  const pts = (o.dourado ? 50 : 10) * Math.max(1, combo);
+  score += pts;
+  if (combo >= 3) mostraCombo();
+  atualizaHud();
+}
+
+function mostraCombo() {
+  const el = document.getElementById('combo');
+  el.textContent = `COMBO x${combo}! 🔥`;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.style.opacity = '0', 700);
+}
+
+function bombaCortada() {
+  // explosão grande e game over
+  explodir(W/2, H/2, '#ff6600', 60);
+  for (let i = 0; i < 8; i++) {
+    setTimeout(() => explodir(Math.random()*W, Math.random()*H, '#ffaa00', 20), i*40);
+  }
+  vidas = 0;
+  atualizaHud();
+  setTimeout(gameOver, 200);
+}
+
+// ====== desenha uma CAPIVARA de verdade (não emoji castor!) ======
+function desenhaCapivara(r, cor, dourada) {
+  const corpo = dourada ? '#ffd24d' : cor;
+  const escuro = dourada ? '#d4a017' : '#5a3f28';
+
+  // corpo (oval gordinho)
+  ctx.fillStyle = corpo;
+  ctx.beginPath();
+  ctx.ellipse(0, r*0.12, r*0.95, r*0.72, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // cabeça (focinho retangular arredondado, a marca da capivara)
+  ctx.beginPath();
+  ctx.ellipse(0, -r*0.55, r*0.62, r*0.5, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // focinho grande/quadrado
+  ctx.fillStyle = dourada ? '#e6b800' : '#6b4a30';
+  ctx.beginPath();
+  ctx.ellipse(0, -r*0.38, r*0.42, r*0.3, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // orelhinhas redondas
+  ctx.fillStyle = corpo;
+  for (const sx of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(sx*r*0.42, -r*0.92, r*0.16, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = escuro;
+    ctx.beginPath();
+    ctx.arc(sx*r*0.42, -r*0.9, r*0.08, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = corpo;
+  }
+
+  // olhos
+  ctx.fillStyle = '#1a1a1a';
+  for (const sx of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(sx*r*0.26, -r*0.62, r*0.09, 0, Math.PI*2);
+    ctx.fill();
+    // brilho
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(sx*r*0.26 + r*0.03, -r*0.65, r*0.03, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#1a1a1a';
+  }
+
+  // narinas
+  ctx.fillStyle = '#2a1a10';
+  for (const sx of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(sx*r*0.13, -r*0.4, r*0.05, r*0.07, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // boquinha sorrindo
+  ctx.strokeStyle = '#2a1a10';
+  ctx.lineWidth = r*0.05;
+  ctx.beginPath();
+  ctx.arc(0, -r*0.28, r*0.12, 0.2*Math.PI, 0.8*Math.PI);
+  ctx.stroke();
+
+  // patinhas
+  ctx.fillStyle = escuro;
+  for (const sx of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(sx*r*0.45, r*0.78, r*0.16, r*0.12, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // coroa se for dourada
+  if (dourada) {
+    ctx.fillStyle = '#fff200';
+    ctx.beginPath();
+    ctx.moveTo(-r*0.4, -r*1.05);
+    ctx.lineTo(-r*0.25, -r*1.35);
+    ctx.lineTo(-r*0.1, -r*1.1);
+    ctx.lineTo(0, -r*1.4);
+    ctx.lineTo(r*0.1, -r*1.1);
+    ctx.lineTo(r*0.25, -r*1.35);
+    ctx.lineTo(r*0.4, -r*1.05);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function loop() {
+  if (!rodando) return;
+  frame++;
+
+  // fundo claro (céu de dia)
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#aee7ff');
+  g.addColorStop(1, '#e3f6ff');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // sol
+  ctx.fillStyle = 'rgba(255,235,120,0.6)';
+  ctx.beginPath(); ctx.arc(W*0.85, H*0.18, 60, 0, Math.PI*2); ctx.fill();
+  // nuvens
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  for (const n of [[0.15,0.2,50],[0.45,0.12,40],[0.7,0.3,45]]) {
+    const cx = W*n[0], cy = H*n[1], cr = n[2];
+    ctx.beginPath();
+    ctx.arc(cx, cy, cr, 0, Math.PI*2);
+    ctx.arc(cx+cr*0.8, cy+8, cr*0.7, 0, Math.PI*2);
+    ctx.arc(cx-cr*0.8, cy+8, cr*0.7, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // spawn (mais espaçado = mais calmo)
+  spawnTimer--;
+  if (spawnTimer <= 0) {
+    const qtd = 1 + (Math.random() < 0.15 + dificuldade*0.02 ? 1 : 0);
+    for (let i = 0; i < qtd; i++) spawnObjeto();
+    spawnTimer = Math.max(45, 90 - dificuldade * 2);
+  }
+  dificuldade = 1 + score / 400;
+
+  // objetos
+  for (const o of objetos) {
+    o.vy += 0.20;            // gravidade leve = ficam mais no ar
+    o.x += o.vx; o.y += o.vy; o.rot += o.vr;
+
+    if (!o.cortado) {
+      // brilho cogumelo dourado
+      if (o.dourado) {
+        ctx.save();
+        ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 30;
+        ctx.fillStyle = 'rgba(255,215,0,0.3)';
+        ctx.beginPath(); ctx.arc(o.x, o.y, o.r+6, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+      }
+      ctx.save();
+      ctx.translate(o.x, o.y); ctx.rotate(o.rot);
+      if (o.capivara) {
+        desenhaCapivara(o.r, o.cor, o.dourado);
+      } else {
+        ctx.font = (o.r*2) + 'px serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(o.emoji, 0, 4);
+      }
+      ctx.restore();
+    }
+  }
+
+  // remove e checa frutas perdidas
+  objetos = objetos.filter(o => {
+    if (o.y > H + 80) {
+      if (!o.cortado && !o.bomba && !o.dourado) { perdeVida(); }
+      return false;
+    }
+    return o.x > -120 && o.x < W + 120;
+  });
+
+  // partículas
+  for (let i = particulas.length - 1; i >= 0; i--) {
+    const p = particulas[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.vida--;
+    ctx.globalAlpha = p.vida / p.max;
+    ctx.fillStyle = p.cor;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+    if (p.vida <= 0) particulas.splice(i, 1);
+  }
+
+  // rastro da espada
+  for (let i = rastro.length - 1; i >= 0; i--) rastro[i].vida--;
+  rastro = rastro.filter(r => r.vida > 0);
+  if (rastro.length > 1) {
+    const esp = getEspada();
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (let pass = 0; pass < 2; pass++) {
+      ctx.beginPath();
+      ctx.moveTo(rastro[0].x, rastro[0].y);
+      for (let i = 1; i < rastro.length; i++) ctx.lineTo(rastro[i].x, rastro[i].y);
+      if (pass === 0) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+        ctx.lineWidth = 6;
+      } else {
+        if (esp.brilho === 'rainbow') {
+          const grad = ctx.createLinearGradient(rastro[0].x, rastro[0].y, rastro[rastro.length-1].x, rastro[rastro.length-1].y);
+          grad.addColorStop(0, 'rgba(255,0,0,0.6)');
+          grad.addColorStop(0.25, 'rgba(255,200,0,0.6)');
+          grad.addColorStop(0.5, 'rgba(0,255,0,0.6)');
+          grad.addColorStop(0.75, 'rgba(0,150,255,0.6)');
+          grad.addColorStop(1, 'rgba(200,0,255,0.6)');
+          ctx.strokeStyle = grad;
+        } else {
+          ctx.strokeStyle = esp.brilho;
+        }
+        ctx.lineWidth = esp.larg;
+      }
+      ctx.stroke();
+    }
+  }
+
+  // ESPADA na mão (segue o mouse/dedo)
+  desenhaEspadaNaMao();
+
+  // combo timer
+  if (comboTimer > 0) { comboTimer--; if (comboTimer === 0) combo = 0; }
+
+  requestAnimationFrame(loop);
+}
+
+// desenha a espada 2D na ponta do mouse/dedo, apontando pra direção do corte
+function desenhaEspadaNaMao() {
+  if (mouseXY.x < 0) return;
+  const esp = getEspada();
+  // cor base da espada (tira o alpha do brilho ou usa cores fixas)
+  let corLamina, corGuarda = '#ffd700', corCabo = '#5a3b1a', corGema = '#00ffcc';
+  if (esp.lamina !== undefined) {
+    const hex = n => '#' + n.toString(16).padStart(6, '0');
+    corLamina = hex(esp.lamina); corGuarda = hex(esp.guarda);
+    corCabo = hex(esp.cabo); corGema = hex(esp.gema);
+  } else corLamina = '#cfd8e8';
+
+  // arco-íris muda de cor
+  if (esp.rainbow) {
+    const h = (Date.now() * 0.12) % 360;
+    corLamina = `hsl(${h},100%,60%)`;
+    corGema = `hsl(${(h+120)%360},100%,60%)`;
+  }
+
+  ctx.save();
+  ctx.translate(mouseXY.x, mouseXY.y);
+  // a lâmina aponta pra direção do movimento (+90° pq a lâmina é desenhada pra "cima")
+  ctx.rotate(mouseXY.ang + Math.PI/2);
+
+  const L = 90; // comprimento da lâmina
+  // brilho da lâmina
+  ctx.shadowColor = corLamina; ctx.shadowBlur = 18;
+
+  // lâmina (vai da mão pra frente)
+  const grad = ctx.createLinearGradient(0, 0, 0, -L);
+  grad.addColorStop(0, corLamina);
+  grad.addColorStop(0.5, '#ffffff');
+  grad.addColorStop(1, corLamina);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(-6, -8);
+  ctx.lineTo(-6, -L);
+  ctx.lineTo(0, -L - 18);   // ponta
+  ctx.lineTo(6, -L);
+  ctx.lineTo(6, -8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // guarda (cruz)
+  ctx.fillStyle = corGuarda;
+  ctx.fillRect(-20, -10, 40, 8);
+
+  // cabo
+  ctx.fillStyle = corCabo;
+  ctx.fillRect(-5, -2, 10, 28);
+
+  // pomo com gema
+  ctx.fillStyle = corGuarda;
+  ctx.beginPath(); ctx.arc(0, 28, 7, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = corGema;
+  ctx.shadowColor = corGema; ctx.shadowBlur = 12;
+  ctx.beginPath(); ctx.arc(0, 28, 4, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.restore();
+}
+
+function perdeVida() {
+  vidas--;
+  combo = 0;
+  atualizaHud();
+  // flash vermelho
+  ctx.fillStyle = 'rgba(255,0,0,0.25)';
+  ctx.fillRect(0, 0, W, H);
+  if (vidas <= 0) gameOver();
+}
+
+function gameOver() {
+  rodando = false;
+  const novoRecorde = score > best;
+  if (novoRecorde) { best = score; localStorage.setItem('ninja_best', best); }
+
+  // pontos viram cogumelos na carteira pra comprar espadas!
+  cogumelos += score;
+  salvaCarteira();
+  document.getElementById('lojaMsg').textContent = '';
+
+  const msg = document.getElementById('msg');
+  msg.querySelector('h1').textContent = '💥 Fim de Jogo!';
+  msg.querySelectorAll('p').forEach(p => p.style.display = 'none');
+  msg.querySelectorAll('button').forEach(b => b.textContent = '🚀 JOGAR DE NOVO');
+  document.getElementById('recorde').innerHTML =
+    `🍄 Ganhou: <b>${score}</b> cogumelos!<br>💰 Você tem: <b>${cogumelos}</b>🍄<br>⭐ Recorde: <b>${best}</b>` +
+    (novoRecorde ? '<br>🏆 NOVO RECORDE!' : '');
+  msg.style.display = 'flex';
+  document.getElementById('backBtn').style.display = 'block';
+  montaEspadas(); // atualiza loja com os cogumelos novos
+}
+
+document.getElementById('recorde').innerHTML = best > 0 ? `⭐ Recorde: ${best}` : '';
+</script>
+</body>
+</html>

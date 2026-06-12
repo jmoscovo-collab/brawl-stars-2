@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏃 Fuga da Prisão 3D</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body { background: #000; font-family: 'Comic Sans MS', sans-serif; color: #fff; touch-action: none; }
+  canvas { display: block; }
+  #hud {
+    position: absolute; top: 14px; left: 0; right: 0; z-index: 10;
+    display: flex; justify-content: space-between; padding: 0 22px;
+    font-size: 24px; font-weight: bold; pointer-events: none;
+    text-shadow: 2px 2px 5px #000;
+  }
+  #nivel { color: #ffd700; }
+  #status { color: #66ff99; }
+  #msg {
+    position: absolute; inset: 0; z-index: 20; display: flex;
+    flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(8,8,20,0.92); text-align: center; padding: 20px;
+  }
+  #msg h1 {
+    font-size: 46px; margin-bottom: 14px;
+    background: linear-gradient(to right,#ffd700,#ff9900,#ff5555);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  #msg p { font-size: 20px; color: #ddd; margin-bottom: 10px; max-width: 560px; }
+  #msg .key { color: #ffd700; font-weight: bold; }
+  #msg button {
+    margin-top: 20px; padding: 15px 44px; font-size: 24px; font-weight: bold;
+    background: linear-gradient(135deg,#ffaa00,#ffd700); color: #222;
+    border: none; border-radius: 14px; cursor: pointer; font-family: inherit;
+    box-shadow: 0 6px 20px rgba(255,170,0,0.5);
+  }
+  #msg button:hover { transform: scale(1.05); }
+  a.back {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 30; color: #fff; text-decoration: none; background: rgba(0,0,0,0.5);
+    padding: 7px 14px; border-radius: 9px; border: 1px solid #fff; display: none;
+  }
+</style>
+</head>
+<body>
+<div id="hud">
+  <div id="nivel">🏛️ Nível 1 <span style="color:#ff66ff;font-size:16px">v8</span></div>
+  <div id="status">🔑 0/1</div>
+</div>
+<canvas id="game"></canvas>
+<a href="/" class="back" id="backBtn">← Voltar (v9)</a>
+<div id="msg">
+  <h1>🏃 Fuga da Prisão 3D</h1>
+  <p>🦫 Você é a capivara presa! Pegue a <span class="key">🔑 chave</span> e fuja pela <span class="key">🚪 porta</span>!</p>
+  <p>👮 Os guardas têm um <b>holofote</b>. Se a luz te pegar = CADEIA de novo!</p>
+  <p>💡 Dica: ande quando o holofote olhar pro outro lado!</p>
+  <p class="key">⬆️⬇️⬅️➡️ ou WASD pra mover (ou arraste o dedo)</p>
+  <div id="recorde"></div>
+  <button onclick="iniciar()">FUGIR! 🏃</button>
+</div>
+
+<script>
+window.onerror = function(msg, src, lin, col) {
+  document.body.innerHTML += '<div style="position:fixed;top:0;left:0;right:0;z-index:999;'+
+    'background:#a00;color:#fff;padding:14px;font:14px monospace">ERRO: ' + msg +
+    '<br>linha ' + lin + '</div>';
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script>
+// ====== RENDERER / CENA ======
+const canvas = document.getElementById('game');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1d2e);
+scene.fog = new THREE.Fog(0x1a1d2e, 55, 95);
+
+const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 200);
+
+// ====== BLOOM (brilho de cinema nas luzes) ======
+// SEM bloom/HDR (pesados demais, deixavam preto). Render simples e robusto.
+function render3D() {
+  renderer.render(scene, camera);
+}
+
+addEventListener('resize', () => {
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+});
+
+// LUZ FORTE — impossível ficar preto
+scene.add(new THREE.AmbientLight(0xffffff, 1.4));
+const luar = new THREE.DirectionalLight(0xffffff, 0.8);
+luar.position.set(10, 40, 18);
+scene.add(luar);
+const cima = new THREE.DirectionalLight(0xffffff, 0.6);
+cima.position.set(0, 50, 0);
+scene.add(cima);
+
+const TILE = 4; // tamanho de cada bloco no mundo 3D
+
+// ====== POEIRA no ar (partículas que flutuam na luz) ======
+let poeira;
+function criarPoeira() {
+  const N = 400;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) {
+    pos[i*3]   = (Math.random()-0.5) * 90;
+    pos[i*3+1] = Math.random() * 8;
+    pos[i*3+2] = (Math.random()-0.5) * 60;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({ color: 0xfff0d0, size: 0.12, transparent: true, opacity: 0.5, depthWrite: false });
+  poeira = new THREE.Points(geo, mat);
+  scene.add(poeira);
+}
+criarPoeira();
+
+const NIVEIS = [
+  [
+    "####################",
+    "#P.....#.......#...#",
+    "#.####.#.#####.#.#.#",
+    "#.#..#...#...#...#.#",
+    "#.#.G#.###.#.#####.#",
+    "#.#..#.....#.....#.#",
+    "#.####.#####.###.#.#",
+    "#......#...#...#..K#",
+    "######.#.#.###.####.",
+    "#....#.#.#.....#...#",
+    "#.##.#.#.#####.#.#.#",
+    "#.#..........V...#D#",
+    "####################",
+  ],
+  [
+    "####################",
+    "#P...#......#.....K#",
+    "#.##.#.####.#.####.#",
+    "#.#..#.#..#.#....#.#",
+    "#.#.##.#.G#.####.#.#",
+    "#.#....#..#....#.#.#",
+    "#.######.####.#.#.#.",
+    "#........#....#...#.",
+    "#.######.#.######.#.",
+    "#.#....#.#.#....V..#",
+    "#.#.##.#.#.#.####.##",
+    "#...#....#......#.D#",
+    "####################",
+  ],
+  [
+    "####################",
+    "#P.#.....G......#..#",
+    "#..#.###.#####.#.#.#",
+    "##.#...#.....#.#.#.#",
+    "#..###.#####.#.#.#.#",
+    "#.G#.....#...#...#.#",
+    "#.##.###.#.#####.#.#",
+    "#....#.#.#.#...#..K#",
+    "####.#.#.#.#.#.####.",
+    "#..#.#...#...#V...#.",
+    "#.##.#######.####.#.",
+    "#............#...#D#",
+    "####################",
+  ],
+];
+
+let nivelIdx, grid, rows, cols, mundoGroup;
+let player, playerMesh, chaves, totalChaves, porta, portaMesh, guardas, rodando;
+let recorde = parseInt(localStorage.getItem('prisao_recorde3d') || '0');
+
+// converte coluna/linha do mapa pra posição no mundo 3D (centralizado)
+function mundoX(c) { return (c - cols/2) * TILE; }
+function mundoZ(r) { return (r - rows/2) * TILE; }
+
+// ====== TEXTURAS procedurais (desenhadas no canvas) ======
+function texturaTijolo() {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const c = cv.getContext('2d');
+  c.fillStyle = '#3a4055'; c.fillRect(0, 0, 128, 128);
+  // tijolos
+  for (let y = 0; y < 128; y += 24) {
+    const off = (y / 24) % 2 ? 24 : 0;
+    for (let x = -24; x < 128; x += 48) {
+      const b = 60 + Math.floor(Math.sin(x*y)*15);
+      c.fillStyle = `rgb(${b+20},${b+30},${b+55})`;
+      c.fillRect(x + off + 2, y + 2, 44, 20);
+    }
+  }
+  // argamassa escura (linhas)
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+function texturaConcreto() {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const c = cv.getContext('2d');
+  c.fillStyle = '#24242f'; c.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 1200; i++) {
+    const b = 30 + Math.floor(Math.random()*25);
+    c.fillStyle = `rgba(${b},${b},${b+8},0.5)`;
+    c.fillRect(Math.random()*128, Math.random()*128, 2, 2);
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+// normal map procedural (dá relevo de pedra de verdade)
+function normalDeTextura(srcCv, forca) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const c = cv.getContext('2d');
+  c.drawImage(srcCv, 0, 0);
+  const img = c.getImageData(0,0,128,128), d = img.data, out = c.createImageData(128,128), o = out.data;
+  const lum = (x,y) => { x=(x+128)%128; y=(y+128)%128; const i=(y*128+x)*4; return (d[i]+d[i+1]+d[i+2])/765; };
+  for (let y=0;y<128;y++) for (let x=0;x<128;x++) {
+    const dx=(lum(x-1,y)-lum(x+1,y))*forca, dy=(lum(x,y-1)-lum(x,y+1))*forca;
+    const i=(y*128+x)*4;
+    o[i]=128+dx*127; o[i+1]=128+dy*127; o[i+2]=255; o[i+3]=255;
+  }
+  c.putImageData(out,0,0);
+  const t = new THREE.CanvasTexture(cv); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t;
+}
+
+const tjCanvas = document.createElement('canvas'); tjCanvas.width=tjCanvas.height=128;
+const texParede = texturaTijolo();
+const texChao = texturaConcreto();
+texChao.repeat.set(8, 8);
+const normParede = normalDeTextura(texParede.image, 2.5);
+const normChao = normalDeTextura(texChao.image, 1.2); normChao.repeat.set(8,8);
+
+// ====== materiais SIMPLES (cor sólida + textura, sem efeito que buga) ======
+const matParede = new THREE.MeshStandardMaterial({ map: texParede, color: 0xb0b6d8, roughness: 0.9, metalness: 0.0 });
+const matChao = new THREE.MeshStandardMaterial({ map: texChao, color: 0x9aa0c0, roughness: 0.9, metalness: 0.0 });
+
+function criarCapivara() {
+  const g = new THREE.Group();
+  const corpoMat = new THREE.MeshStandardMaterial({ color: 0x9a6b43, roughness: 0.7 });
+  const escMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2a, roughness: 0.7 });
+
+  const corpo = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.0, 2.0), corpoMat);
+  corpo.position.y = 0.9; corpo.castShadow = true;
+  // arredonda um pouco
+  corpo.geometry = new THREE.SphereGeometry(1, 16, 12);
+  corpo.scale.set(0.8, 0.65, 1.1);
+  g.add(corpo);
+
+  const cabeca = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 12), corpoMat);
+  cabeca.position.set(0, 1.0, 1.0); cabeca.scale.set(1, 0.9, 1.1); cabeca.castShadow = true;
+  g.add(cabeca);
+  // focinho
+  const focinho = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 0.4), escMat);
+  focinho.position.set(0, 0.9, 1.5); g.add(focinho);
+  // orelhas
+  for (const sx of [-1, 1]) {
+    const o = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), corpoMat);
+    o.position.set(sx*0.35, 1.45, 0.85); g.add(o);
+  }
+  // olhos
+  for (const sx of [-1, 1]) {
+    const e = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+    e.position.set(sx*0.25, 1.15, 1.45); g.add(e);
+  }
+  // patinhas
+  for (const [px, pz] of [[-0.5,0.6],[0.5,0.6],[-0.5,-0.6],[0.5,-0.6]]) {
+    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.5, 8), escMat);
+    p.position.set(px, 0.25, pz); p.castShadow = true; g.add(p);
+  }
+  return g;
+}
+
+function criarGuarda() {
+  const g = new THREE.Group();
+  const azul = new THREE.MeshStandardMaterial({ color: 0x2244aa, roughness: 0.6 });
+  const pele = new THREE.MeshStandardMaterial({ color: 0xe0a878, roughness: 0.7 });
+  const preto = new THREE.MeshStandardMaterial({ color: 0x222222 });
+
+  const corpo = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 1.6, 12), azul);
+  corpo.position.y = 1.3; corpo.castShadow = true; g.add(corpo);
+  const cabeca = new THREE.Mesh(new THREE.SphereGeometry(0.45, 14, 12), pele);
+  cabeca.position.y = 2.4; cabeca.castShadow = true; g.add(cabeca);
+  // boné
+  const bone = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.5, 0.35, 12), azul);
+  bone.position.y = 2.7; g.add(bone);
+  const aba = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.08, 0.5), preto);
+  aba.position.set(0, 2.6, 0.45); g.add(aba);
+  // lanterna na frente (cilindro)
+  const lant = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.5, 10),
+    new THREE.MeshStandardMaterial({ color: 0xffee88, emissive: 0xffcc44, emissiveIntensity: 1 }));
+  lant.rotation.x = Math.PI/2; lant.position.set(0, 1.6, 0.7); g.add(lant);
+  g.userData.lanterna = lant;
+  return g;
+}
+
+function parseNivel(mapa) {
+  if (mundoGroup) scene.remove(mundoGroup);
+  mundoGroup = new THREE.Group();
+  scene.add(mundoGroup);
+
+  grid = []; guardas = []; chaves = []; totalChaves = 0;
+  rows = mapa.length; cols = mapa[0].length;
+
+  // chão único
+  const chao = new THREE.Mesh(new THREE.BoxGeometry(cols*TILE, 1, rows*TILE), matChao);
+  chao.position.set(0, -0.5, 0); chao.receiveShadow = true;
+  mundoGroup.add(chao);
+
+  for (let r = 0; r < rows; r++) {
+    const linha = [];
+    for (let c = 0; c < cols; c++) {
+      const ch = mapa[r][c];
+      linha.push(ch === '#' ? 1 : 0);
+      const x = mundoX(c) + TILE/2, z = mundoZ(r) + TILE/2;
+
+      if (ch === '#') {
+        const parede = new THREE.Mesh(new THREE.BoxGeometry(TILE, 3.2, TILE), matParede);
+        parede.position.set(x, 1.6, z);
+        parede.castShadow = true; parede.receiveShadow = true;
+        mundoGroup.add(parede);
+      }
+      if (ch === 'P') player = { c, r, x, z, ang: 0 };
+      if (ch === 'K') {
+        const km = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.12, 8, 16),
+          new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 1, roughness: 0.2, emissive: 0xaa8800, emissiveIntensity: 0.5 }));
+        km.position.set(x, 1.2, z); km.rotation.x = Math.PI/2;
+        const haste = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.7, 0.18),
+          new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 1, roughness: 0.2 }));
+        haste.position.set(x, 0.9, z);
+        mundoGroup.add(km); mundoGroup.add(haste);
+        chaves.push({ x, z, pega: false, mesh: km, mesh2: haste }); totalChaves++;
+      }
+      if (ch === 'D') {
+        portaMesh = new THREE.Mesh(new THREE.BoxGeometry(TILE*0.7, 3, 0.4),
+          new THREE.MeshStandardMaterial({ color: 0xaa6633, roughness: 0.6, emissive: 0x000000 }));
+        portaMesh.position.set(x, 1.5, z);
+        mundoGroup.add(portaMesh);
+        porta = { c, r, x, z };
+      }
+      if (ch === 'G' || ch === 'V') {
+        const gm = criarGuarda();
+        gm.position.set(x, 0, z);
+        mundoGroup.add(gm);
+        // holofote real (SpotLight)
+        const spot = new THREE.SpotLight(0xfff0c0, 6, 24, Math.PI/7, 0.45, 1.3);
+        spot.position.set(x, 1.7, z);
+        const alvo = new THREE.Object3D(); alvo.position.set(x, 0, z + 5);
+        mundoGroup.add(alvo); spot.target = alvo;
+        spot.castShadow = true;
+        spot.shadow.mapSize.set(1024, 1024);
+        spot.shadow.camera.near = 0.5;
+        spot.shadow.camera.far = 26;
+        spot.shadow.bias = -0.0005;
+        mundoGroup.add(spot);
+
+        // FACHO volumétrico (cone de luz que dá pra ver no ar)
+        const facho = new THREE.Mesh(
+          new THREE.ConeGeometry(3.2, 13, 24, 1, true),
+          new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.13,
+            side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+        );
+        facho.geometry.translate(0, -6.5, 0); // ponta na origem
+        facho.position.set(x, 1.7, z);
+
+        guardas.push({ x, z, dir: 0, ang: (ch==='V'?Math.PI/2:0), vel: 0.012,
+                       eixo: ch==='V'?'v':'h', mesh: gm, spot, alvo, facho });
+        mundoGroup.add(facho);
+      }
+    }
+    grid.push(linha);
+  }
+}
+
+function paredeEm(x, z) {
+  const c = Math.floor((x + cols*TILE/2) / TILE);
+  const r = Math.floor((z + rows*TILE/2) / TILE);
+  if (r < 0 || c < 0 || r >= rows || c >= cols) return true;
+  return grid[r][c] === 1;
+}
+
+function iniciar() {
+  nivelIdx = 0;
+  carregaNivel();
+  document.getElementById('msg').style.display = 'none';
+  document.getElementById('backBtn').style.display = 'block';
+  rodando = true;
+  loop();
+}
+
+function carregaNivel() {
+  parseNivel(NIVEIS[nivelIdx]);
+  if (playerMesh) scene.remove(playerMesh);
+  playerMesh = criarCapivara();
+  playerMesh.position.set(player.x, 0, player.z);
+  scene.add(playerMesh);
+  document.getElementById('nivel').textContent = '🏛️ Nível ' + (nivelIdx + 1);
+  atualizaHud();
+}
+
+function atualizaHud() {
+  const pegas = chaves.filter(k => k.pega).length;
+  document.getElementById('status').textContent = `🔑 ${pegas}/${totalChaves}`;
+}
+
+// ====== controles ======
+const teclas = {};
+addEventListener('keydown', e => {
+  teclas[e.key.toLowerCase()] = true;
+  if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault();
+});
+addEventListener('keyup', e => { teclas[e.key.toLowerCase()] = false; });
+
+let joyAtivo = false, joyBase = null, joyDir = { x: 0, y: 0 };
+canvas.addEventListener('touchstart', e => {
+  const t = e.touches[0]; joyBase = { x: t.clientX, y: t.clientY }; joyAtivo = true;
+}, {passive:true});
+canvas.addEventListener('touchmove', e => {
+  if (!joyAtivo) return;
+  const t = e.touches[0];
+  const dx = t.clientX - joyBase.x, dy = t.clientY - joyBase.y;
+  const d = Math.max(Math.hypot(dx, dy), 30);
+  joyDir = { x: dx/d, y: dy/d };
+}, {passive:true});
+canvas.addEventListener('touchend', () => { joyAtivo = false; joyDir = {x:0,y:0}; });
+
+const RAIO = 1.2;
+function moverPlayer() {
+  const vel = 0.16;
+  let mx = 0, mz = 0;
+  if (teclas['arrowup'] || teclas['w']) mz = -1;
+  if (teclas['arrowdown'] || teclas['s']) mz = 1;
+  if (teclas['arrowleft'] || teclas['a']) mx = -1;
+  if (teclas['arrowright'] || teclas['d']) mx = 1;
+  if (joyAtivo) { mx = joyDir.x; mz = joyDir.y; }
+
+  if (mx === 0 && mz === 0) return;
+  const len = Math.hypot(mx, mz) || 1;
+  mx /= len; mz /= len;
+
+  const passo = 0.2;
+  const px = player.x + mx * passo, pz = player.z + mz * passo;
+  if (!paredeEm(px + Math.sign(mx)*RAIO, player.z)) player.x = px;
+  if (!paredeEm(player.x, pz + Math.sign(mz)*RAIO)) player.z = pz;
+
+  player.ang = Math.atan2(mx, mz);
+}
+
+const VISAO = 20, CONE = Math.PI/7;
+function guardaVe(g) {
+  const dx = player.x - g.x, dz = player.z - g.z;
+  const dist = Math.hypot(dx, dz);
+  if (dist > VISAO) return false;
+  const angP = Math.atan2(dx, dz);
+  const diff = Math.abs(((angP - g.ang + Math.PI*3) % (Math.PI*2)) - Math.PI);
+  if (diff > CONE) return false;
+  const passos = Math.ceil(dist / 1);
+  for (let i = 1; i < passos; i++) {
+    const t = i / passos;
+    if (paredeEm(g.x + dx*t, g.z + dz*t)) return false;
+  }
+  return true;
+}
+
+function loop() {
+  if (!rodando) return;
+
+  moverPlayer();
+
+  // capivara
+  playerMesh.position.set(player.x, 0, player.z);
+  playerMesh.rotation.y = player.ang;
+
+  // câmera bem de cima (vista de mapa), levemente atrás
+  const camAlvo = new THREE.Vector3(player.x, 0, player.z);
+  camera.position.lerp(new THREE.Vector3(player.x, 34, player.z + 16), 0.12);
+  camera.lookAt(camAlvo);
+
+  // chaves giram
+  chaves.forEach(k => {
+    if (!k.pega) {
+      k.mesh.rotation.z += 0.05;
+      k.mesh.position.y = 1.2 + Math.sin(Date.now()*0.004 + k.x) * 0.15;
+      k.mesh2.position.y = 0.9 + Math.sin(Date.now()*0.004 + k.x) * 0.15;
+      if (Math.hypot(player.x-k.x, player.z-k.z) < 1.8) {
+        k.pega = true; k.mesh.visible = false; k.mesh2.visible = false; atualizaHud();
+      }
+    }
+  });
+
+  // porta abre?
+  const aberta = chaves.every(k => k.pega);
+  if (aberta) {
+    portaMesh.material.color.setHex(0x33dd55);
+    portaMesh.material.emissive.setHex(0x114411);
+  }
+
+  // guardas: viram o holofote + checam visão
+  let pego = false;
+  guardas.forEach(g => {
+    g.dir += g.vel;
+    const base = g.eixo === 'h' ? 0 : Math.PI/2;
+    g.ang = base + Math.sin(g.dir) * 1.2;
+    g.mesh.rotation.y = g.ang;
+    // move alvo do holofote pra direção que o guarda olha
+    g.alvo.position.set(g.x + Math.sin(g.ang)*8, 0, g.z + Math.cos(g.ang)*8);
+    const visto = guardaVe(g);
+    g.spot.color.setHex(visto ? 0xff5555 : 0xfff0c0);
+    g.spot.intensity = visto ? 9 : 6;
+    if (g.mesh.userData.lanterna)
+      g.mesh.userData.lanterna.material.emissive.setHex(visto ? 0xff4444 : 0xffcc44);
+    // facho volumétrico aponta junto + muda de cor
+    if (g.facho) {
+      g.facho.rotation.set(0, g.ang, 0);
+      g.facho.rotateX(Math.PI/2.4);
+      g.facho.material.color.setHex(visto ? 0xff5555 : 0xfff0c0);
+      g.facho.material.opacity = 0.1 + Math.sin(Date.now()*0.004)*0.03;
+    }
+    if (visto) pego = true;
+  });
+
+  // poeira flutuando
+  if (poeira) {
+    poeira.rotation.y += 0.0004;
+    const p = poeira.geometry.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      let y = p.getY(i) + 0.004 + Math.sin(Date.now()*0.001 + i)*0.001;
+      if (y > 8) y = 0;
+      p.setY(i, y);
+    }
+    p.needsUpdate = true;
+  }
+
+  render3D();
+
+  // venceu?
+  if (aberta && Math.hypot(player.x-porta.x, player.z-porta.z) < 2.2) { proximoNivel(); return; }
+  if (pego) { pegoPeloGuarda(); return; }
+
+  requestAnimationFrame(loop);
+}
+
+function proximoNivel() {
+  nivelIdx++;
+  if (nivelIdx >= NIVEIS.length) { ganhou(); return; }
+  if (nivelIdx > recorde) { recorde = nivelIdx; localStorage.setItem('prisao_recorde3d', recorde); }
+  rodando = false;
+  setTimeout(() => { carregaNivel(); rodando = true; loop(); }, 350);
+}
+
+function pegoPeloGuarda() {
+  rodando = false;
+  const msg = document.getElementById('msg');
+  msg.querySelector('h1').textContent = '🚨 PEGO!';
+  msg.querySelectorAll('p').forEach(p => p.style.display = 'none');
+  document.getElementById('recorde').innerHTML =
+    `<p style="display:block;font-size:24px">O holofote te pegou! Voltou pra cela 😅<br>Você chegou no Nível ${nivelIdx+1}</p>`;
+  msg.querySelector('button').textContent = 'TENTAR DE NOVO 🏃';
+  msg.style.display = 'flex';
+}
+
+function ganhou() {
+  rodando = false;
+  const msg = document.getElementById('msg');
+  msg.querySelector('h1').textContent = '🎉 FUGIU!';
+  msg.querySelectorAll('p').forEach(p => p.style.display = 'none');
+  document.getElementById('recorde').innerHTML =
+    `<p style="display:block;font-size:24px">🦫🏃 VOCÊ ESCAPOU DA PRISÃO!<br>Passou pelos ${NIVEIS.length} níveis! 🏆</p>`;
+  msg.querySelector('button').textContent = 'JOGAR DE NOVO 🚀';
+  msg.style.display = 'flex';
+}
+
+document.getElementById('recorde').innerHTML = recorde > 0 ?
+  `<p style="display:block">⭐ Melhor: chegou no Nível ${recorde+1}</p>` : '';
+</script>
+</body>
+</html>
