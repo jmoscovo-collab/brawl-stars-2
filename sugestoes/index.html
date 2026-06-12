@@ -96,7 +96,10 @@
   <div class="secreto-banner">👑 PAINEL SECRETO DO DAVI 👑<small>Só você pode ver isso! 🤫</small></div>
   <div class="secreto-head">
     <h2>🔒 Mensagens (<span id="qtd">0</span>)</h2>
-    <button class="btn-mini" onclick="limparTudo()">🗑️ Limpar tudo</button>
+    <div>
+      <button class="btn-mini" onclick="limparTudo()">🗑️ Limpar tudo</button>
+      <button class="btn-mini" style="background:#555;border-color:#888" onclick="sairModoDavi()">🙈 Esconder</button>
+    </div>
   </div>
   <div id="listaMsgs"></div>
 </div>
@@ -222,9 +225,16 @@ async function enviar() {
 // ====== área secreta do Davi ======
 function renderSecreto() {
   const secreto = document.getElementById('secreto');
-  // só mostra se a senha estiver na URL: /sugestoes/?davi=cogumelo
+
+  // Se entrou com o link mágico ?davi=cogumelo, o computador LEMBRA pra sempre!
   const params = new URLSearchParams(location.search);
-  if (params.get('davi') !== CHAVE_DAVI) { secreto.style.display = 'none'; return; }
+  if (params.get('davi') === CHAVE_DAVI) {
+    localStorage.setItem('eh_o_davi', 'sim'); // marca este computador como o do Davi
+  }
+
+  // mostra o painel se este for o computador do Davi
+  const ehODavi = localStorage.getItem('eh_o_davi') === 'sim';
+  if (!ehODavi) { secreto.style.display = 'none'; return; }
 
   secreto.style.display = 'block';
   const lista = JSON.parse(localStorage.getItem(STORE_MSGS) || '[]');
@@ -253,6 +263,13 @@ function limparTudo() {
   if (confirm('Apagar TODAS as mensagens? Não dá pra desfazer!')) {
     localStorage.removeItem(STORE_MSGS);
     renderSecreto();
+  }
+}
+
+function sairModoDavi() {
+  if (confirm('Esconder o painel? Pra ver de novo, entra com o link secreto ?davi=cogumelo')) {
+    localStorage.removeItem('eh_o_davi');
+    document.getElementById('secreto').style.display = 'none';
   }
 }
 
