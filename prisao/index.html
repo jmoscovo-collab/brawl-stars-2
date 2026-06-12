@@ -45,11 +45,11 @@
 </head>
 <body>
 <div id="hud">
-  <div id="nivel">🏛️ Nível 1 <span style="color:#ff66ff;font-size:16px">v8</span></div>
+  <div id="nivel">🏛️ Nível 1</div>
   <div id="status">🔑 0/1</div>
 </div>
 <canvas id="game"></canvas>
-<a href="/" class="back" id="backBtn">← Voltar (v9)</a>
+<a href="/" class="back" id="backBtn">← Voltar</a>
 <div id="msg">
   <h1>🏃 Fuga da Prisão 3D</h1>
   <p>🦫 Você é a capivara presa! Pegue a <span class="key">🔑 chave</span> e fuja pela <span class="key">🚪 porta</span>!</p>
@@ -60,13 +60,6 @@
   <button onclick="iniciar()">FUGIR! 🏃</button>
 </div>
 
-<script>
-window.onerror = function(msg, src, lin, col) {
-  document.body.innerHTML += '<div style="position:fixed;top:0;left:0;right:0;z-index:999;'+
-    'background:#a00;color:#fff;padding:14px;font:14px monospace">ERRO: ' + msg +
-    '<br>linha ' + lin + '</div>';
-};
-</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
@@ -368,17 +361,30 @@ function parseNivel(mapa) {
         spot.shadow.bias = -0.0005;
         mundoGroup.add(spot);
 
-        // FACHO volumétrico (cone de luz que dá pra ver no ar)
-        const facho = new THREE.Mesh(
-          new THREE.ConeGeometry(3.2, 13, 24, 1, true),
-          new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.13,
+        // LUZ NO CHÃO em formato de leque (mostra EXATAMENTE onde mata)
+        // construído no plano XZ apontando +Z (mesma referência da detecção atan2(dx,dz))
+        const fan = new THREE.Shape();
+        fan.moveTo(0, 0);
+        const R = 13, ab = Math.PI/6; // raio e meia-abertura = iguais à detecção (VISAO/CONE)
+        for (let a = -ab; a <= ab; a += 0.08) fan.lineTo(Math.sin(a)*R, Math.cos(a)*R);
+        fan.lineTo(0, 0);
+        const fachoMesh = new THREE.Mesh(
+          new THREE.ShapeGeometry(fan),
+          new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.3,
             side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
         );
-        facho.geometry.translate(0, -6.5, 0); // ponta na origem
-        facho.position.set(x, 1.7, z);
+        fachoMesh.rotation.x = Math.PI/2;    // deita no chão e aponta +Z (igual a detecção atan2(dx,dz))
+        // grupo que gira em Y (igual o guarda) — luz vista == luz que mata
+        const facho = new THREE.Group();
+        facho.add(fachoMesh);
+        facho.position.set(x, 0.15, z);
+        facho.userData.mat = fachoMesh.material;
 
+        // a partir da fase 3 (nivelIdx>=2) os guardas ANDAM, ficando mais rápidos a cada fase
+        const andaVel = nivelIdx >= 2 ? 0.04 + (nivelIdx - 2) * 0.025 : 0;
         guardas.push({ x, z, dir: 0, ang: (ch==='V'?Math.PI/2:0), vel: 0.012,
-                       eixo: ch==='V'?'v':'h', mesh: gm, spot, alvo, facho });
+                       eixo: ch==='V'?'v':'h', mesh: gm, spot, alvo, facho,
+                       andaVel, andaDir: 1, patrulhaEixo: ch==='V'?'z':'x' });
         mundoGroup.add(facho);
       }
     }
@@ -460,17 +466,26 @@ function moverPlayer() {
   player.ang = Math.atan2(mx, mz);
 }
 
-const VISAO = 20, CONE = Math.PI/7;
+// VISAO = comprimento do facho de luz visível; CONE = abertura da luz
+const VISAO = 13, CONE = Math.PI/6, ZONA_PERTO = 2.5;
 function guardaVe(g) {
   const dx = player.x - g.x, dz = player.z - g.z;
   const dist = Math.hypot(dx, dz);
+  // se encostar no guarda = pego (qualquer direção)
+  if (dist < ZONA_PERTO) return true;
+  // só morre dentro da luz que aparece no chão
   if (dist > VISAO) return false;
   const angP = Math.atan2(dx, dz);
   const diff = Math.abs(((angP - g.ang + Math.PI*3) % (Math.PI*2)) - Math.PI);
   if (diff > CONE) return false;
-  const passos = Math.ceil(dist / 1);
-  for (let i = 1; i < passos; i++) {
-    const t = i / passos;
+  // raycast fino: anda em passos de 0.5 do guarda até o player.
+  // Parede no meio do caminho bloqueia (guarda em sala fechada NÃO vê pra fora).
+  // Só ignora o ponto exatamente colado no guarda (a casa dele).
+  const passo = 0.5, n = Math.floor(dist / passo);
+  for (let i = 1; i <= n; i++) {
+    const d = i * passo;
+    if (d < 1.6) continue; // pula a célula do próprio guarda
+    const t = d / dist;
     if (paredeEm(g.x + dx*t, g.z + dz*t)) return false;
   }
   return true;
@@ -509,12 +524,28 @@ function loop() {
     portaMesh.material.emissive.setHex(0x114411);
   }
 
-  // guardas: viram o holofote + checam visão
+  // guardas: andam (fase 3+), viram o holofote + checam visão
   let pego = false;
   guardas.forEach(g => {
     g.dir += g.vel;
     const base = g.eixo === 'h' ? 0 : Math.PI/2;
     g.ang = base + Math.sin(g.dir) * 1.2;
+
+    // ANDAR (fase 3+): vai e volta no corredor, bate na parede e inverte
+    if (g.andaVel > 0) {
+      let nx = g.x, nz = g.z;
+      if (g.patrulhaEixo === 'x') nx += g.andaVel * g.andaDir;
+      else nz += g.andaVel * g.andaDir;
+      if (paredeEm(nx, nz)) {
+        g.andaDir *= -1; // bateu na parede, volta
+      } else {
+        g.x = nx; g.z = nz;
+        g.mesh.position.set(g.x, 0, g.z);
+        g.spot.position.set(g.x, 1.7, g.z);
+        g.facho.position.set(g.x, 0.15, g.z);
+      }
+    }
+
     g.mesh.rotation.y = g.ang;
     // move alvo do holofote pra direção que o guarda olha
     g.alvo.position.set(g.x + Math.sin(g.ang)*8, 0, g.z + Math.cos(g.ang)*8);
@@ -523,12 +554,12 @@ function loop() {
     g.spot.intensity = visto ? 9 : 6;
     if (g.mesh.userData.lanterna)
       g.mesh.userData.lanterna.material.emissive.setHex(visto ? 0xff4444 : 0xffcc44);
-    // facho volumétrico aponta junto + muda de cor
+    // luz no chão gira em Y igual o guarda (mesma direção da detecção)
     if (g.facho) {
-      g.facho.rotation.set(0, g.ang, 0);
-      g.facho.rotateX(Math.PI/2.4);
-      g.facho.material.color.setHex(visto ? 0xff5555 : 0xfff0c0);
-      g.facho.material.opacity = 0.1 + Math.sin(Date.now()*0.004)*0.03;
+      g.facho.rotation.y = g.ang;
+      const mat = g.facho.userData.mat;
+      mat.color.setHex(visto ? 0xff4444 : 0xfff0c0);
+      mat.opacity = visto ? 0.45 : (0.28 + Math.sin(Date.now()*0.004)*0.04);
     }
     if (visto) pego = true;
   });
