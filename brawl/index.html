@@ -277,8 +277,22 @@ const cam = new THREE.PerspectiveCamera(50, 900/600, 0.1, 500);
 cam.position.set(0, 45, 30);
 cam.lookAt(0, 0, 5);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', failIfMajorPerformanceCaveat: false });
+} catch(e) { renderer = null; }
+if (!renderer || !renderer.getContext()) {
+  container.innerHTML = '<div style="color:#fff;font-family:Arial;text-align:center;padding:60px 20px;font-size:20px;line-height:1.7">'+
+    '😢 Seu navegador não conseguiu abrir o 3D.<br><br>'+
+    '<b>Tente isto:</b><br>'+
+    '1) Feche as outras abas de jogos<br>'+
+    '2) Atualize a página (F5)<br>'+
+    '3) Ligue a "Aceleração de hardware" nas configurações do navegador<br><br>'+
+    '<a href="/" style="color:#00ff88;font-size:22px">← Voltar pros jogos</a></div>';
+  throw new Error('WebGL indisponível');
+}
 renderer.setSize(900, 600);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
