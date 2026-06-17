@@ -52,9 +52,11 @@
   <!-- mapa -->
   <div id="btnMap" class="tbtn" style="right:24px;top:80px;width:64px;height:64px;font-size:24px;">🗺️</div>
   <!-- trocar armas -->
-  <div id="btnW1" class="tbtn wsel" style="left:24px;top:80px;width:58px;height:58px;font-size:22px;">🥾</div>
-  <div id="btnW2" class="tbtn wsel" style="left:90px;top:80px;width:58px;height:58px;font-size:22px;">🔫</div>
-  <div id="btnW3" class="tbtn wsel" style="left:156px;top:80px;width:58px;height:58px;font-size:22px;">💥</div>
+  <div id="btnW1" class="tbtn wsel" style="left:24px;top:80px;width:54px;height:54px;font-size:20px;">🥾</div>
+  <div id="btnW2" class="tbtn wsel" style="left:84px;top:80px;width:54px;height:54px;font-size:20px;">🔫</div>
+  <div id="btnW3" class="tbtn wsel" style="left:144px;top:80px;width:54px;height:54px;font-size:20px;">💥</div>
+  <div id="btnW4" class="tbtn wsel" style="left:204px;top:80px;width:54px;height:54px;font-size:20px;">🚀</div>
+  <div id="btnW5" class="tbtn wsel" style="left:264px;top:80px;width:54px;height:54px;font-size:20px;">❄️</div>
 </div>
 <div id="start">
   <h1>RUA SUJA 3D</h1>
@@ -359,12 +361,14 @@ const fxBoomFrames=[0,1,2].map(f=>pixelSprite(64,1,(g,s)=>{
 
 // ---------- cena ----------
 const scene=new THREE.Scene();
-scene.background=new THREE.Color('#1a0e24');
-scene.fog=new THREE.Fog('#1a0e24',24,80);
-const camera=new THREE.PerspectiveCamera(80,innerWidth/innerHeight,.1,200);
+scene.background=new THREE.Color('#231432');
+scene.fog=new THREE.Fog('#231432',40,110);
+const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.1,220);
 const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('game3d'),antialias:false});
 renderer.outputEncoding=THREE.sRGBEncoding;
-const PIXEL_SCALE=2.0; // resolução um pouco maior -> mais nítido mas ainda retrô
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
+const PIXEL_SCALE=1.5; // resolução maior = mais nítido
 function resize(){
   renderer.setSize(innerWidth/PIXEL_SCALE,innerHeight/PIXEL_SCALE,false);
   camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
@@ -372,9 +376,11 @@ function resize(){
 }
 addEventListener('resize',resize);
 
-scene.add(new THREE.AmbientLight(0x9988bb,.8));
-const moon=new THREE.DirectionalLight(0xbbaaff,.7); moon.position.set(-20,40,10); scene.add(moon);
-const fill=new THREE.HemisphereLight(0x6655aa,0x332244,.5); scene.add(fill);
+scene.add(new THREE.AmbientLight(0xaa99cc,.9));
+const moon=new THREE.DirectionalLight(0xccbbff,.85); moon.position.set(-20,40,10); scene.add(moon);
+const fill=new THREE.HemisphereLight(0x8877bb,0x3a2a44,.6); scene.add(fill);
+// luz roxa de fundo pra dar clima de cidade noturna
+const glow=new THREE.PointLight(0xff4080,.6,60); glow.position.set(0,15,-30); scene.add(glow);
 
 // céu noturno com estrelas e lua
 {
@@ -419,6 +425,35 @@ for(let i=0;i<5;i++){
   building(-15,-32+i*16,12,12,rand(14,26));
   if(i!==2) building(15,-32+i*16,12,12,rand(14,26)); // vão no i=2 -> beco
 }
+
+// ===== 6 PORTAS DE PRÉDIO, cada uma com uma surpresa =====
+// surpresas: chefao | vida | colete | bazuca | congela | tesouro
+const buildingDoors=[];
+function buildingDoor(x,z,ry,surprise,cor,label){
+  // moldura iluminada na fachada
+  const frame=new THREE.Mesh(new THREE.BoxGeometry(2.6,3.6,.3),
+    new THREE.MeshBasicMaterial({color:cor}));
+  frame.position.set(x,1.8,z); frame.rotation.y=ry; scene.add(frame);
+  // porta
+  const dm=new THREE.Mesh(new THREE.BoxGeometry(2.1,3.1,.25),matWrap(TEX.door.clone()));
+  dm.position.set(x,1.55,z+ (Math.abs(ry)<.1?.18:0)); dm.rotation.y=ry; scene.add(dm);
+  if(Math.abs(ry)>.1){ dm.position.set(x+(ry>0?.18:-.18),1.55,z); }
+  // plaquinha de número
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(1.4,.6),
+    new THREE.MeshBasicMaterial({map:neonTex(label,cor),transparent:true}));
+  sign.position.set(x,3.7,z); sign.rotation.y=ry; scene.add(sign);
+  // luz piscante em cima da porta
+  const bulb=new THREE.PointLight(cor,1.2,8);
+  bulb.position.set(x,3.4,z+(Math.abs(ry)<.1?.5:0)); scene.add(bulb);
+  buildingDoors.push({x,z,surprise,open:false,used:false,mesh:dm,frame,bulb,cor});
+}
+// lado esquerdo (x≈-9, viradas pra rua, ry=PI/2) e direito (x≈9, ry=-PI/2)
+buildingDoor(-8.7,-32,Math.PI/2,'vida',   '#30ff80','VIDA');
+buildingDoor(-8.7,-16,Math.PI/2,'colete', '#30c0ff','COLETE');
+buildingDoor(-8.7, 16,Math.PI/2,'bazuca', '#ff8020','ARMA');
+buildingDoor( 8.7,-32,-Math.PI/2,'congela','#80f0ff','GELO');
+buildingDoor( 8.7,-16,-Math.PI/2,'tesouro','#ffd000','OURO');
+buildingDoor( 8.7, 32,-Math.PI/2,'chefao', '#ff2020','CHEFE');
 // beco à direita com botão final
 building(15,4.5,12,3,16); building(15,-12.5,12,3,16);
 addBox(24,-4,6,14,10,matWrap(TEX.brickGray)); // fundo do beco
@@ -568,12 +603,15 @@ function blowBarrel(b){
 }
 
 // ---------- jogador ----------
-const player={x:0,z:38,y:1.65,vy:0,yaw:Math.PI,pitch:0,hp:100,armor:0,onGround:true,
-  weapon:2,ammoPistol:48,ammoShell:0,kicking:0,fireT:0,bob:0,dead:false};
+const player={x:0,z:38,y:1.65,vy:0,yaw:Math.PI,pitch:0,hp:100,maxHp:100,armor:0,onGround:true,
+  weapon:2,ammoPistol:48,ammoShell:0,ammoRocket:0,ammoFreeze:0,
+  hasRocket:false,hasFreeze:false,kicking:0,fireT:0,bob:0,dead:false};
 const WEAPONS={
   1:{name:'COTURNO', dmg:20, rate:.45, range:2.2, sound:'boot'},
   2:{name:'PISTOLA', dmg:12, rate:.22, range:60, sound:'pistol'},
   3:{name:'ESCOPETA',dmg:9,  rate:.9,  range:40, sound:'shotgun', pellets:7},
+  4:{name:'BAZUCA',  dmg:60, rate:1.1, range:70, sound:'boom', rocket:true},
+  5:{name:'CONGELA', dmg:6,  rate:.5,  range:55, sound:'pickup', freeze:true},
 };
 const quotes=[
   'Hora de limpar essa cidade.',
@@ -596,11 +634,15 @@ addEventListener('keydown',e=>{
   if(e.code==='Digit1')switchWeapon(1);
   if(e.code==='Digit2')switchWeapon(2);
   if(e.code==='Digit3')switchWeapon(3);
+  if(e.code==='Digit4')switchWeapon(4);
+  if(e.code==='Digit5')switchWeapon(5);
   if(e.code==='KeyE')useAction();
   if(e.code==='Tab'){ showMap=true; e.preventDefault(); }
 });
 addEventListener('keyup',e=>{ keys[e.code]=false; if(e.code==='Tab'){ showMap=false; e.preventDefault(); } });
 function switchWeapon(w){
+  if(w===4&&!player.hasRocket){ say('Você ainda não tem a BAZUCA!'); sfx('click'); return; }
+  if(w===5&&!player.hasFreeze){ say('Você ainda não tem o CONGELADOR!'); sfx('click'); return; }
   if(w===3&&player.ammoShell<=0&&player.weapon!==3){ say('Sem cartuchos para a escopeta.'); }
   player.weapon=w; sfx('click');
 }
@@ -677,11 +719,13 @@ if(IS_MOBILE){
   hold('btnJump',()=>{ if(player.onGround){ player.vy=5.2; player.onGround=false; } });
   hold('btnUse',()=>useAction());
   hold('btnMap',()=>showMap=true,()=>showMap=false);
-  const markW=w=>['btnW1','btnW2','btnW3'].forEach((id,i)=>
+  const markW=w=>['btnW1','btnW2','btnW3','btnW4','btnW5'].forEach((id,i)=>
     document.getElementById(id).classList.toggle('on',i+1===w));
-  hold('btnW1',()=>{switchWeapon(1);markW(1);});
-  hold('btnW2',()=>{switchWeapon(2);markW(2);});
-  hold('btnW3',()=>{switchWeapon(3);markW(3);});
+  hold('btnW1',()=>{switchWeapon(1);if(player.weapon===1)markW(1);});
+  hold('btnW2',()=>{switchWeapon(2);if(player.weapon===2)markW(2);});
+  hold('btnW3',()=>{switchWeapon(3);if(player.weapon===3)markW(3);});
+  hold('btnW4',()=>{switchWeapon(4);if(player.weapon===4)markW(4);});
+  hold('btnW5',()=>{switchWeapon(5);if(player.weapon===5)markW(5);});
   markW(2);
 }
 
@@ -692,6 +736,8 @@ function fire(){
   if(player.fireT>0) return;
   if(player.weapon===2){ if(player.ammoPistol<=0){ say('CLIC. Sem munição!'); player.fireT=.3; sfx('click'); return; } player.ammoPistol--; }
   if(player.weapon===3){ if(player.ammoShell<=0){ say('CLIC. Sem cartuchos!'); player.fireT=.3; sfx('click'); return; } player.ammoShell--; }
+  if(player.weapon===4){ if(player.ammoRocket<=0){ say('Sem foguetes!'); player.fireT=.3; sfx('click'); return; } player.ammoRocket--; }
+  if(player.weapon===5){ if(player.ammoFreeze<=0){ say('Sem carga de gelo!'); player.fireT=.3; sfx('click'); return; } player.ammoFreeze--; }
   player.fireT=W.rate; player.kicking=1;
   sfx(W.sound);
   const shots=W.pellets||1;
@@ -713,12 +759,14 @@ function hitscan(dir,W){
   let best=null,bestD=wallDist;
   enemies.forEach(e=>{
     if(e.dead) return;
-    const to=new THREE.Vector3(e.x-origin.x,1.3-origin.y,e.z-origin.z);
+    const cy=e.isBoss?2.5:1.3;          // chefão é mais alto
+    const raio=e.isBoss?2.2:0.75;        // chefão é gigante = alvo fácil de acertar
+    const to=new THREE.Vector3(e.x-origin.x,cy-origin.y,e.z-origin.z);
     const proj=to.dot(dir);
     if(proj<0||proj>bestD) return;
     const closest=origin.clone().addScaledVector(dir,proj);
-    const dd=Math.hypot(closest.x-e.x,closest.z-e.z,(closest.y-1.3)*.7);
-    if(dd<.75){ best=e; bestD=proj; }
+    const dd=Math.hypot(closest.x-e.x,closest.z-e.z,(closest.y-cy)*.7);
+    if(dd<raio){ best=e; bestD=proj; }
   });
   // barril na linha
   let bBest=null;
@@ -730,6 +778,23 @@ function hitscan(dir,W){
     const closest=origin.clone().addScaledVector(dir,proj);
     if(Math.hypot(closest.x-b.x,closest.z-b.z)<.65&&closest.y<1.8){ bBest=b; bestD=proj; best=null; }
   });
+  // BAZUCA: explode no ponto de impacto (inimigo, barril ou parede)
+  if(W.rocket){
+    let pt;
+    if(best) pt=new THREE.Vector3(best.x,1.2,best.z);
+    else if(bBest) pt=new THREE.Vector3(bBest.x,1,bBest.z);
+    else if(wallHits.length) pt=wallHits[0].point.clone();
+    else pt=origin.clone().addScaledVector(dir,Math.min(bestD,W.range));
+    explosion(pt);
+    return;
+  }
+  // CONGELADOR: congela o inimigo atingido
+  if(W.freeze){
+    if(best){ best.frozen=Math.max(best.frozen||0,3.5); best.s.material.color.setHex(0x80f0ff); hurtEnemy(best,W.dmg);
+      puff(best.s.position.clone(),fxPuff,5,.7,.6,.7); sfx('pickup'); }
+    else if(bBest){ bBest.hp-=W.dmg; if(bBest.hp<=0) blowBarrel(bBest); }
+    return;
+  }
   if(bBest){ bBest.hp-=W.dmg; puff(new THREE.Vector3(bBest.x,1,bBest.z),fxPuff,2,.8,.4,.5);
     if(bBest.hp<=0) blowBarrel(bBest); return; }
   if(best){ hurtEnemy(best,W.dmg); return; }
@@ -740,13 +805,24 @@ function hitscan(dir,W){
   }
 }
 function hurtEnemy(e,dmg){
-  e.hp-=dmg; e.pain=.22;
+  e.hp-=dmg; if(e.frozen<=0) e.pain=.22;
   puff(e.s.position.clone(),fxBlood,3,1.2,.5,.5);
   if(e.hp<=0){
-    e.dead=true; e.s.material.map=mutantFrames[4];
-    e.s.scale.set(2.6,1.1,1); e.s.position.y=.45;
+    e.dead=true;
+    if(e.isBoss){
+      bossAlive=false;
+      e.s.material.map=mutantFrames[4]; e.s.material.color.setHex(0xffffff);
+      e.s.scale.set(5,2,1); e.s.position.y=.7;
+      explosion(new THREE.Vector3(e.x,1.5,e.z));
+      say('💀 CHEFÃO DERROTADO! Você é uma lenda!',5000);
+      // larga muita munição
+      spawnPickup(e.x,e.z,'med'); spawnPickup(e.x+1,e.z,'shell'); spawnPickup(e.x-1,e.z,'ammo');
+    } else {
+      e.s.material.map=mutantFrames[4];
+      e.s.scale.set(2.6,1.1,1); e.s.position.y=.45;
+      if(Math.random()<.5) spawnPickup(e.x+rand(-.5,.5),e.z+rand(-.5,.5),Math.random()<.5?'ammo':'shell');
+    }
     sfx('grunt');
-    if(Math.random()<.5) spawnPickup(e.x+rand(-.5,.5),e.z+rand(-.5,.5),Math.random()<.5?'ammo':'shell');
     const left=enemies.filter(x=>!x.dead).length;
     if(left>0&&Math.random()<.4) say(quotes[1+((Math.random()*4)|0)]);
     if(left===0) say('SETOR LIMPO! Procure o botão vermelho no beco (porta azul).',5000);
@@ -765,7 +841,19 @@ function hurtPlayer(dmg){
   }
 }
 function useAction(){
-  // porta
+  // PORTAS DE PRÉDIO (surpresas) — checa a mais perto
+  for(const d of buildingDoors){
+    if(d.used) continue;
+    if(Math.hypot(player.x-d.x,player.z-d.z)<3.2){
+      // a porta do CHEFÃO só abre depois que TODAS as outras já foram abertas
+      if(d.surprise==='chefao'){
+        const faltam=buildingDoors.filter(o=>o.surprise!=='chefao'&&!o.used).length;
+        if(faltam>0){ say(`🔒 Trancada! Abra as outras ${faltam} portas primeiro.`); sfx('click'); return; }
+      }
+      abrirPortaPredio(d); return;
+    }
+  }
+  // porta do beco
   const dDoor=Math.hypot(player.x-15,player.z+4);
   if(dDoor<3&&doorState===0){ doorState=1; sfx('door'); return; }
   // botão final
@@ -775,6 +863,48 @@ function useAction(){
     if(left>0){ say(`Ainda restam ${left} mutante(s) na rua!`); sfx('click'); }
     else { winGame(); }
   }
+}
+let bossAlive=false, boss=null;
+function abrirPortaPredio(d){
+  d.used=true; d.open=true; sfx('door');
+  // abre visualmente (porta cai/some) + luz verde
+  d.mesh.position.y=5.5; d.bulb.color.setHex(0x30ff50);
+  const px=d.x+(d.x<0?2.5:-2.5), pz=d.z; // ponto logo na frente da porta
+  if(d.surprise==='vida'){
+    player.hp=player.maxHp; player.ammoPistol+=40; player.ammoShell+=12;
+    say('🏥 POSTO DE SAÚDE! Vida cheia + munição!',3500); sfx('pickup');
+    bonusFlash('#30ff80');
+  } else if(d.surprise==='colete'){
+    player.armor=100; player.maxHp=200; player.hp=Math.min(200,player.hp+100);
+    say('🛡️ COLETE BLINDADO! +100 vida e colete máximo!',3500); sfx('pickup');
+    bonusFlash('#30c0ff');
+  } else if(d.surprise==='bazuca'){
+    player.hasRocket=true; player.ammoRocket+=8; switchWeapon(4);
+    say('🚀 BAZUCA encontrada! (tecla 4) Cuidado com a explosão!',4000); sfx('boom');
+    bonusFlash('#ff8020');
+  } else if(d.surprise==='congela'){
+    player.hasFreeze=true; player.ammoFreeze+=60; switchWeapon(5);
+    say('❄️ CANHÃO DE GELO! (tecla 5) Congela os inimigos!',4000); sfx('pickup');
+    bonusFlash('#80f0ff');
+  } else if(d.surprise==='tesouro'){
+    player.ammoPistol+=80; player.ammoShell+=24; player.armor=Math.min(100,player.armor+50);
+    say('💰 TESOURO! Muita munição + colete!',3500); sfx('pickup');
+    bonusFlash('#ffd000');
+  } else if(d.surprise==='chefao'){
+    spawnBoss(px,pz);
+    say('💀 CUIDADO! O CHEFÃO MUTANTE ACORDOU!',4000); sfx('grunt');
+    bonusFlash('#ff2020');
+  }
+}
+function bonusFlash(color){
+  const f=document.getElementById('pickupflash');
+  f.style.background=color; f.style.opacity=.4; setTimeout(()=>f.style.opacity=0,300);
+}
+function spawnBoss(x,z){
+  const s=makeSprite(mutantFrames[2],5,5); // grandão
+  s.position.set(x,2.5,z); scene.add(s);
+  boss={s,x,z,hp:400,maxHp:400,state:'hunt',cool:1,animT:0,dead:false,pain:0,isBoss:true,frozen:0};
+  enemies.push(boss); bossAlive=true;
 }
 let won=false;
 function winGame(){
@@ -802,11 +932,19 @@ function winGame(){
 // ---------- IA inimiga ----------
 function tickEnemy(e,dt){
   if(e.dead) return;
+  const yBase=e.isBoss?2.5:1.25;
+  // CONGELADO: não anda nem atira, fica azul tremendo
+  if(e.frozen>0){
+    e.frozen-=dt;
+    if(e.frozen<=0){ e.s.material.color.setHex(0xffffff); }
+    e.s.position.set(e.x+rand(-.03,.03),yBase,e.z);
+    return;
+  }
   if(e.pain>0){ e.pain-=dt; e.s.material.map=mutantFrames[3]; return; }
   const dx=player.x-e.x, dz=player.z-e.z, dist=Math.hypot(dx,dz);
   // linha de visão simples: sem prédio entre (raycast)
   let los=false;
-  if(dist<34){
+  if(dist<40){
     const dir=new THREE.Vector3(dx,0,dz).normalize();
     ray.set(new THREE.Vector3(e.x,1.4,e.z),dir); ray.far=dist;
     const hits=ray.intersectObjects(colliders.filter(c=>c.mesh).map(c=>c.mesh),false);
@@ -815,9 +953,9 @@ function tickEnemy(e,dt){
   if(los) e.state='hunt';
   if(e.state==='hunt'&&!player.dead){
     e.cool-=dt;
-    if(dist>6||!los){
-      // anda na direção do jogador
-      const sp=2.6*dt, nx=e.x+dx/dist*sp, nz=e.z+dz/dist*sp;
+    const vel=e.isBoss?3.6:2.6, alcance=e.isBoss?7:6;
+    if(dist>alcance||!los){
+      const sp=vel*dt, nx=e.x+dx/dist*sp, nz=e.z+dz/dist*sp;
       if(!collides(nx,e.z,.45)) e.x=nx;
       if(!collides(e.x,nz,.45)) e.z=nz;
       e.animT+=dt*6;
@@ -825,17 +963,17 @@ function tickEnemy(e,dt){
     } else {
       e.s.material.map=mutantFrames[0];
     }
-    if(los&&dist<26&&e.cool<=0){
-      e.cool=rand(.9,1.9);
+    if(los&&dist<28&&e.cool<=0){
+      e.cool=e.isBoss?rand(.4,.9):rand(.9,1.9);
       e.s.material.map=mutantFrames[2];
       sfx('pistol');
-      // tiro do inimigo: chance de acertar diminui com distância e movimento
       const moving=Math.abs(velX)+Math.abs(velZ)>2;
       const chance=clamp(.75-dist*.02-(moving?.25:0),.1,.8);
-      if(Math.random()<chance) hurtPlayer(rand(5,12)|0);
+      const dano=e.isBoss?rand(10,20):rand(5,12);
+      if(Math.random()<chance) hurtPlayer(dano|0);
       else puff(new THREE.Vector3(player.x+rand(-1.5,1.5),rand(.5,2),player.z+rand(-1.5,1.5)),fxPuff,1,.4,.3,.4);
     }
-    e.s.position.set(e.x,1.25,e.z);
+    e.s.position.set(e.x,yBase,e.z);
   }
 }
 function collides(x,z,r){
@@ -864,10 +1002,18 @@ function drawWeapon(t){
     P(-4,14,9,16,'#30343a'); P(-7,8,16,8,'#22262c'); P(-7,6,18,4,'#383e46');
     P(-2,16,5,12,'#5a4020');
     if(player.fireT>WEAPONS[2].rate-.06){ P(-2,-4,8,9,'#ffe060'); P(0,-8,4,5,'#fff0a0'); }
-  } else { // escopeta
+  } else if(player.weapon===3){ // escopeta
     P(-6,10,14,26,'#4a3018'); P(-5,2,12,10,'#2c3034'); P(-4,-6,10,9,'#383e46');
     P(-9,20,4,10,'#3a2410'); P(7,16,4,8,'#222');
     if(player.fireT>WEAPONS[3].rate-.08){ P(-4,-18,10,13,'#ffe060'); P(-1,-24,5,7,'#fff0a0'); }
+  } else if(player.weapon===4){ // bazuca
+    P(-12,8,30,12,'#3a4a2a'); P(-14,6,8,16,'#2a3a1c'); P(16,4,8,16,'#222');
+    P(-4,4,12,4,'#caa030'); P(-12,2,6,6,'#1a1a1a');
+    if(player.fireT>WEAPONS[4].rate-.12){ P(16,-6,8,12,'#ffe060'); P(18,-12,4,7,'#fff0a0'); }
+  } else if(player.weapon===5){ // congelador
+    P(-8,8,18,16,'#2a5a6a'); P(-10,6,8,18,'#1c3a48'); P(8,4,10,12,'#80f0ff');
+    P(-2,2,6,6,'#c0ffff');
+    if(player.fireT>WEAPONS[5].rate-.1){ P(8,-6,10,12,'#a0f0ff'); P(10,-12,5,7,'#e0ffff'); }
   }
   hctx.restore();
 }
@@ -939,11 +1085,21 @@ function drawHUD(){
   seg(16,'SAÚDE',player.hp,player.hp>30?'#e03020':'#ff8080');
   seg(182,'COLETE',player.armor,'#30c050');
   const W=WEAPONS[player.weapon];
-  const ammo=player.weapon===1?'∞':player.weapon===2?player.ammoPistol:player.ammoShell;
+  const ammo=player.weapon===1?'∞':player.weapon===2?player.ammoPistol:
+    player.weapon===3?player.ammoShell:player.weapon===4?player.ammoRocket:player.ammoFreeze;
   seg(w-332,W.name,ammo,'#ffb000');
   // contagem de inimigos
   const left=enemies.filter(x=>!x.dead).length;
   seg(w-166,'MUTANTES',left,left?'#ff6020':'#30c050');
+  // barra de vida do CHEFÃO
+  if(boss&&!boss.dead){
+    const bw=Math.min(560,w-80), bx=(w-bw)/2;
+    hctx.fillStyle='#000'; hctx.fillRect(bx-3,17,bw+6,26);
+    hctx.fillStyle='#400'; hctx.fillRect(bx,20,bw,20);
+    hctx.fillStyle='#ff2020'; hctx.fillRect(bx,20,bw*Math.max(0,boss.hp/boss.maxHp),20);
+    hctx.fillStyle='#fff'; hctx.font='bold 16px Courier New'; hctx.textAlign='center';
+    hctx.fillText('💀 CHEFÃO MUTANTE',w/2,36);
+  }
 }
 
 // ---------- pickups/uso ----------
@@ -1040,6 +1196,14 @@ function loop(now){
   // botão final piscando se setor limpo
   endBtn.material.color.setHex(
     enemies.every(e=>e.dead)&&(t*4|0)%2 ? 0x30ff50 : 0xc01010);
+
+  // porta do chefão: vermelha/escura enquanto trancada, pisca quando libera
+  const portaChefe=buildingDoors.find(d=>d.surprise==='chefao');
+  if(portaChefe&&!portaChefe.used){
+    const faltam=buildingDoors.filter(o=>o.surprise!=='chefao'&&!o.used).length;
+    if(faltam>0){ portaChefe.bulb.color.setHex(0x550000); portaChefe.bulb.intensity=.6; }
+    else { portaChefe.bulb.color.setHex((t*4|0)%2?0xff2020:0x550000); portaChefe.bulb.intensity=1.5; }
+  }
 
   camera.position.set(player.x,player.y+Math.abs(Math.sin(player.bob))*.07,player.z);
   camera.rotation.set(0,0,0); camera.rotation.order='YXZ';
