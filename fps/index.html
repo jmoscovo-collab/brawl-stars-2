@@ -66,7 +66,8 @@
     <b>SHIFT</b> correr (estilo anos 90: rápido!) &nbsp;·&nbsp; <b>ESPAÇO</b> pular<br>
     <b>1</b> coturno &nbsp; <b>2</b> pistola &nbsp; <b>3</b> escopeta &nbsp;·&nbsp; <b>E</b> usar portas/botões<br>
     <b>TAB</b> ver o mapa 🗺️<br>
-    Limpe o setor: elimine todos os mutantes e aperte o botão vermelho no beco.
+    <b>3 FASES:</b> Rua Suja 🌃 · Esgoto Tóxico ☣️ · Cidade em Chamas 🔥<br>
+    Cumpra o objetivo do topo e aperte o botão vermelho no beco. Você guarda as armas entre as fases!
   </div>
   <button id="btn">ENTRAR NA RUA</button>
 </div>
@@ -364,6 +365,13 @@ const scene=new THREE.Scene();
 scene.background=new THREE.Color('#231432');
 scene.fog=new THREE.Fog('#231432',40,110);
 const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.1,220);
+
+// ---------- registro de objetos da fase (pra limpar entre fases sem vazar) ----------
+// Tudo que é criado pela construção do nível vai aqui; clearWorld() remove tudo.
+let levelObjects=[];
+function track(obj){ levelObjects.push(obj); return obj; }
+// adiciona à cena E registra pra limpeza
+function addLevel(obj){ scene.add(obj); levelObjects.push(obj); return obj; }
 const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('game3d'),antialias:false});
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
@@ -376,11 +384,22 @@ function resize(){
 }
 addEventListener('resize',resize);
 
-scene.add(new THREE.AmbientLight(0xaa99cc,.9));
+// luzes fixas (não removidas entre fases) — a COR/intensidade muda por fase via applyMood()
+const ambient=new THREE.AmbientLight(0xaa99cc,.9); scene.add(ambient);
 const moon=new THREE.DirectionalLight(0xccbbff,.85); moon.position.set(-20,40,10); scene.add(moon);
 const fill=new THREE.HemisphereLight(0x8877bb,0x3a2a44,.6); scene.add(fill);
 // luz roxa de fundo pra dar clima de cidade noturna
 const glow=new THREE.PointLight(0xff4080,.6,60); glow.position.set(0,15,-30); scene.add(glow);
+
+// clima/atmosfera configurável por fase (fog + cor das luzes)
+function applyMood(m){
+  m=m||{};
+  const fogColor=m.fog||'#231432';
+  scene.background=new THREE.Color(fogColor);
+  scene.fog=new THREE.Fog(fogColor, m.fogNear!=null?m.fogNear:40, m.fogFar!=null?m.fogFar:110);
+  ambient.color.setHex(m.ambient!=null?m.ambient:0xaa99cc);
+  glow.color.setHex(m.glow!=null?m.glow:0xff4080);
+}
 
 // céu noturno com estrelas e lua
 {
@@ -398,122 +417,49 @@ const glow=new THREE.PointLight(0xff4080,.6,60); glow.position.set(0,15,-30); sc
   scene.add(sky);
 }
 
-// ---------- nível ----------
+// ---------- nível (data-driven) ----------
 const colliders=[]; // {minX,maxX,minZ,maxZ}
+const buildingDoors=[];
+const enemies=[];
+const barrels=[];
+const pickups=[];
+const bloodDecals=[]; // sangue permanente no chão
+const matWrap=t=>new THREE.MeshLambertMaterial({map:t});
+const facades=[TEX.facadeA,TEX.facadeB,TEX.facadeC];
+// refs reconstruídas a cada fase
+let doorMesh=null, doorCol=null, doorState=0, doorAnim=0; // porta do beco
+let endBtn=null;
+
 function addBox(x,z,w,d,h,mat,y=0){
   const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
-  m.position.set(x,y+h/2,z); scene.add(m);
+  m.position.set(x,y+h/2,z); addLevel(m);
   colliders.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,mesh:m});
   return m;
 }
-const matWrap=t=>new THREE.MeshLambertMaterial({map:t});
-// chão: rua + calçadas
-{
-  const road=new THREE.Mesh(new THREE.PlaneGeometry(14,80),matWrap(TEX.road));
-  road.rotation.x=-Math.PI/2; road.position.set(0,0.01,0); scene.add(road);
-  const g=new THREE.Mesh(new THREE.PlaneGeometry(120,120),matWrap(TEX.sidewalk));
-  g.rotation.x=-Math.PI/2; scene.add(g);
-}
-// prédios ladeando a rua
-const facades=[TEX.facadeA,TEX.facadeB,TEX.facadeC];
 function building(x,z,w,d,h){
   const mat=matWrap(facades[(Math.random()*3)|0].clone());
   mat.map.needsUpdate=true; mat.map.repeat.set(Math.max(1,w/6|0),Math.max(1,h/8|0));
   addBox(x,z,w,d,h,mat);
 }
-for(let i=0;i<5;i++){
-  building(-15,-32+i*16,12,12,rand(14,26));
-  if(i!==2) building(15,-32+i*16,12,12,rand(14,26)); // vão no i=2 -> beco
-}
-
-// ===== 6 PORTAS DE PRÉDIO, cada uma com uma surpresa =====
-// surpresas: chefao | vida | colete | bazuca | congela | tesouro
-const buildingDoors=[];
 function buildingDoor(x,z,ry,surprise,cor,label){
-  // moldura iluminada na fachada
   const frame=new THREE.Mesh(new THREE.BoxGeometry(2.6,3.6,.3),
     new THREE.MeshBasicMaterial({color:cor}));
-  frame.position.set(x,1.8,z); frame.rotation.y=ry; scene.add(frame);
-  // porta
+  frame.position.set(x,1.8,z); frame.rotation.y=ry; addLevel(frame);
   const dm=new THREE.Mesh(new THREE.BoxGeometry(2.1,3.1,.25),matWrap(TEX.door.clone()));
-  dm.position.set(x,1.55,z+ (Math.abs(ry)<.1?.18:0)); dm.rotation.y=ry; scene.add(dm);
+  dm.position.set(x,1.55,z+ (Math.abs(ry)<.1?.18:0)); dm.rotation.y=ry; addLevel(dm);
   if(Math.abs(ry)>.1){ dm.position.set(x+(ry>0?.18:-.18),1.55,z); }
-  // plaquinha de número
   const sign=new THREE.Mesh(new THREE.PlaneGeometry(1.4,.6),
     new THREE.MeshBasicMaterial({map:neonTex(label,cor),transparent:true}));
-  sign.position.set(x,3.7,z); sign.rotation.y=ry; scene.add(sign);
-  // luz piscante em cima da porta
+  sign.position.set(x,3.7,z); sign.rotation.y=ry; addLevel(sign);
   const bulb=new THREE.PointLight(cor,1.2,8);
-  bulb.position.set(x,3.4,z+(Math.abs(ry)<.1?.5:0)); scene.add(bulb);
+  bulb.position.set(x,3.4,z+(Math.abs(ry)<.1?.5:0)); addLevel(bulb);
   buildingDoors.push({x,z,surprise,open:false,used:false,mesh:dm,frame,bulb,cor});
 }
-// lado esquerdo (x≈-9, viradas pra rua, ry=PI/2) e direito (x≈9, ry=-PI/2)
-buildingDoor(-8.7,-32,Math.PI/2,'vida',   '#30ff80','VIDA');
-buildingDoor(-8.7,-16,Math.PI/2,'colete', '#30c0ff','COLETE');
-buildingDoor(-8.7, 16,Math.PI/2,'bazuca', '#ff8020','ARMA');
-buildingDoor( 8.7,-32,-Math.PI/2,'congela','#80f0ff','GELO');
-buildingDoor( 8.7,-16,-Math.PI/2,'tesouro','#ffd000','OURO');
-buildingDoor( 8.7, 32,-Math.PI/2,'chefao', '#ff2020','CHEFE');
-// beco à direita com botão final
-building(15,4.5,12,3,16); building(15,-12.5,12,3,16);
-addBox(24,-4,6,14,10,matWrap(TEX.brickGray)); // fundo do beco
-// paredes-limite ALTAS fechando todo o mapa (sem "fim do mundo")
-addBox(0,-45,64,3,18,matWrap(TEX.brickGray));   // fundo (norte)
-addBox(0,45,64,3,18,matWrap(TEX.brickGray));    // frente (sul)
-addBox(-24,0,3,93,18,matWrap(TEX.brickRed));    // esquerda (oeste)
-addBox(24,26,3,42,18,matWrap(TEX.brickRed));    // direita superior
-addBox(24,-30,3,34,18,matWrap(TEX.brickRed));   // direita inferior
-
-// letreiros neon
 function neon(x,y,z,text,color,ry=0){
   const m=new THREE.Mesh(new THREE.PlaneGeometry(5,1.25),
     new THREE.MeshBasicMaterial({map:neonTex(text,color),fog:true}));
-  m.position.set(x,y,z); m.rotation.y=ry; scene.add(m);
+  m.position.set(x,y,z); m.rotation.y=ry; addLevel(m);
 }
-neon(-8.9,5,-20,'BAR','#ff2060',Math.PI/2);
-neon(-8.9,6.5,4,'PIZZA','#30ff80',Math.PI/2);
-neon(8.9,5.5,-26,'CINE 3D','#30c0ff',-Math.PI/2);
-neon(8.9,4.5,16,'HOTEL','#ffb000',-Math.PI/2);
-
-// porta deslizante (estilo Build: sobe com som)
-const doorMesh=new THREE.Mesh(new THREE.BoxGeometry(3.4,4.2,.5),matWrap(TEX.door));
-doorMesh.position.set(15,2.1,-4); doorMesh.rotation.y=Math.PI/2; scene.add(doorMesh);
-const doorCol={minX:14.4,maxX:15.6,minZ:-5.8,maxZ:-2.2,mesh:doorMesh};
-colliders.push(doorCol);
-let doorState=0, doorAnim=0; // 0 fechada 1 abrindo 2 aberta
-// salinha atrás da porta (esconderijo com itens)
-addBox(18.5,-9,8,1,6,matWrap(TEX.brickGray));
-addBox(18.5,1,8,1,6,matWrap(TEX.brickGray));
-addBox(22.5,-4,1,11,6,matWrap(TEX.brickGray));
-{
-  const fl=new THREE.Mesh(new THREE.PlaneGeometry(8,10),matWrap(TEX.floorInt));
-  fl.rotation.x=-Math.PI/2; fl.position.set(18.5,.02,-4); scene.add(fl);
-  const ce=new THREE.Mesh(new THREE.PlaneGeometry(8,10),matWrap(TEX.ceilInt));
-  ce.rotation.x=Math.PI/2; ce.position.set(18.5,4.2,-4); scene.add(ce);
-  const lamp=new THREE.PointLight(0xff8040,1,12); lamp.position.set(18.5,3.5,-4); scene.add(lamp);
-}
-// botão vermelho de fim de fase
-const endBtn=new THREE.Mesh(new THREE.BoxGeometry(.8,.8,.3),
-  new THREE.MeshBasicMaterial({color:0xc01010}));
-endBtn.position.set(21.9,1.7,-4); endBtn.rotation.y=Math.PI/2; scene.add(endBtn);
-{
-  const frame=new THREE.Mesh(new THREE.BoxGeometry(1.3,1.3,.15),matWrap(TEX.metal));
-  frame.position.set(22.05,1.7,-4); frame.rotation.y=Math.PI/2; scene.add(frame);
-}
-
-// postes de luz
-for(const z of [-24,-4,16]){
-  for(const x of [-7.5,7.5]){
-    const p=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,5,6),matWrap(TEX.metal));
-    p.position.set(x,2.5,z); scene.add(p);
-    const lampM=new THREE.Mesh(new THREE.SphereGeometry(.25,8,6),
-      new THREE.MeshBasicMaterial({color:0xffd080}));
-    lampM.position.set(x,5,z); scene.add(lampM);
-    const pl=new THREE.PointLight(0xffc878,.9,16); pl.position.set(x,4.8,z); scene.add(pl);
-    colliders.push({minX:x-.2,maxX:x+.2,minZ:z-.2,maxZ:z+.2});
-  }
-}
-// carros abandonados (caixas low-poly)
 function car(x,z,color,ry){
   const grp=new THREE.Group();
   const body=new THREE.Mesh(new THREE.BoxGeometry(4,1,1.9),new THREE.MeshLambertMaterial({color}));
@@ -524,46 +470,209 @@ function car(x,z,color,ry){
     const wl=new THREE.Mesh(new THREE.CylinderGeometry(.4,.4,.3,8),new THREE.MeshLambertMaterial({color:0x111}));
     wl.rotation.x=Math.PI/2; wl.position.set(wx,.4,wz); grp.add(wl);
   }
-  grp.position.set(x,0,z); grp.rotation.y=ry; scene.add(grp);
+  grp.position.set(x,0,z); grp.rotation.y=ry; addLevel(grp);
   colliders.push({minX:x-2.2,maxX:x+2.2,minZ:z-1.6,maxZ:z+1.6});
 }
-car(-4,-14,0x803030,.15); car(4,8,0x305a80,-.1); car(-3.5,24,0x6a6a30,3.3);
+function streetlight(x,z){
+  const p=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,5,6),matWrap(TEX.metal));
+  p.position.set(x,2.5,z); addLevel(p);
+  const lampM=new THREE.Mesh(new THREE.SphereGeometry(.25,8,6),
+    new THREE.MeshBasicMaterial({color:0xffd080}));
+  lampM.position.set(x,5,z); addLevel(lampM);
+  const pl=new THREE.PointLight(0xffc878,.9,16); pl.position.set(x,4.8,z); addLevel(pl);
+  colliders.push({minX:x-.2,maxX:x+.2,minZ:z-.2,maxZ:z+.2});
+}
 
 // ---------- entidades ----------
 function makeSprite(tex,sx,sy){
   const m=new THREE.SpriteMaterial({map:tex,transparent:true,alphaTest:.4});
   const s=new THREE.Sprite(m); s.scale.set(sx,sy,1); return s;
 }
-const enemies=[];
-function spawnEnemy(x,z){
-  const s=makeSprite(mutantFrames[0],2.4,2.4);
-  s.position.set(x,1.25,z); scene.add(s);
-  enemies.push({s,x,z,hp:40,state:'idle',cool:rand(.5,2),animT:0,frame:0,dead:false,pain:0});
+// tipos de inimigo: 'atirador' (padrão, à distância), 'rapido' (corre, corpo-a-corpo),
+// 'tanque' (lento, durão, dano alto). Cada tipo tem cor própria via tint do sprite.
+const ENEMY_TYPES={
+  atirador:{hp:40, vel:2.6, alcance:6,  size:2.4, color:0xffffff, melee:false, dmg:[5,12]},
+  rapido:  {hp:20, vel:5.0, alcance:2.2,size:1.9, color:0xff8080, melee:true,  dmg:[6,12]},
+  tanque:  {hp:90, vel:1.6, alcance:6,  size:3.1, color:0x80b0ff, melee:false, dmg:[12,22]},
+};
+function spawnEnemy(x,z,type){
+  type=type||'atirador';
+  const T=ENEMY_TYPES[type]||ENEMY_TYPES.atirador;
+  const s=makeSprite(mutantFrames[0],T.size,T.size);
+  s.position.set(x,1.25,z); s.material.color.setHex(T.color); addLevel(s);
+  enemies.push({s,x,z,hp:T.hp,type,baseColor:T.color,state:'idle',cool:rand(.5,2),
+    animT:0,frame:0,dead:false,pain:0,frozen:0});
 }
-spawnEnemy(-5,-30); spawnEnemy(5,-22); spawnEnemy(-4,-6); spawnEnemy(6,-2);
-spawnEnemy(-6,12); spawnEnemy(5,20); spawnEnemy(0,30); spawnEnemy(18.5,-7.5);
-
-const barrels=[];
 function spawnBarrel(x,z){
   const m=new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,1.5,10),matWrap(barrelTexSide));
-  m.position.set(x,.75,z); scene.add(m);
+  m.position.set(x,.75,z); addLevel(m);
   const col={minX:x-.55,maxX:x+.55,minZ:z-.55,maxZ:z+.55};
   colliders.push(col);
   barrels.push({m,x,z,hp:10,col,dead:false});
 }
-spawnBarrel(-6.5,-26); spawnBarrel(-6,-25); spawnBarrel(6.5,6); spawnBarrel(-6.2,18); spawnBarrel(20.5,-1);
-
-const pickups=[];
 function spawnPickup(x,z,kind){
   const tex=kind==='med'?itemMedkit:kind==='ammo'?itemAmmo:itemShells;
-  const s=makeSprite(tex,.9,.9); s.position.set(x,.55,z); scene.add(s);
+  const s=makeSprite(tex,.9,.9); s.position.set(x,.55,z); addLevel(s);
   pickups.push({s,x,z,kind,taken:false,bob:rand(0,6)});
 }
-spawnPickup(-5,-18,'med'); spawnPickup(5,-10,'ammo'); spawnPickup(-5.5,4,'shell');
-spawnPickup(6,14,'ammo'); spawnPickup(-5,28,'med'); spawnPickup(0,-36,'shell');
-spawnPickup(17,-1,'med'); spawnPickup(20,-7,'shell'); spawnPickup(18.5,-4,'ammo');
+// sangue permanente no chão (decal). Limita ~30 pra não pesar.
+function bloodDecal(x,z){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.6),
+    new THREE.MeshBasicMaterial({map:fxBlood,transparent:true,depthWrite:false}));
+  m.rotation.x=-Math.PI/2; m.position.set(x,0.05,z);
+  m.rotation.z=rand(0,6.28);
+  scene.add(m); levelObjects.push(m); bloodDecals.push(m);
+  if(bloodDecals.length>30){ const old=bloodDecals.shift(); scene.remove(old);
+    const i=levelObjects.indexOf(old); if(i>=0) levelObjects.splice(i,1); }
+}
+
+// ---------- construção da fase a partir de dados ----------
+function clearWorld(){
+  // remove todos os objetos da cena criados pelo nível
+  for(const o of levelObjects) scene.remove(o);
+  levelObjects=[];
+  // partículas pendentes
+  for(const p of particles) scene.remove(p.s);
+  particles.length=0;
+  // zera arrays de entidades/colliders
+  colliders.length=0; enemies.length=0; barrels.length=0;
+  pickups.length=0; buildingDoors.length=0; bloodDecals.length=0;
+  boss=null; bossAlive=false;
+  doorMesh=null; doorCol=null; doorState=0; doorAnim=0; endBtn=null;
+  hasKey=false; keyMesh=null;
+}
+
+function buildLevel(L){
+  applyMood(L.mood);
+  // chão: rua + calçadas
+  {
+    const road=new THREE.Mesh(new THREE.PlaneGeometry(14,80),matWrap(TEX.road));
+    road.rotation.x=-Math.PI/2; road.position.set(0,0.01,0); addLevel(road);
+    const g=new THREE.Mesh(new THREE.PlaneGeometry(120,120),matWrap(TEX.sidewalk));
+    g.rotation.x=-Math.PI/2; addLevel(g);
+  }
+  // prédios ladeando a rua (vão no i=2 vira beco)
+  for(let i=0;i<5;i++){
+    building(-15,-32+i*16,12,12,rand(14,26));
+    if(i!==2) building(15,-32+i*16,12,12,rand(14,26));
+  }
+  // 6 portas-surpresa (mantidas em todas as fases)
+  buildingDoor(-8.7,-32,Math.PI/2,'vida',   '#30ff80','VIDA');
+  buildingDoor(-8.7,-16,Math.PI/2,'colete', '#30c0ff','COLETE');
+  buildingDoor(-8.7, 16,Math.PI/2,'bazuca', '#ff8020','ARMA');
+  buildingDoor( 8.7,-32,-Math.PI/2,'congela','#80f0ff','GELO');
+  buildingDoor( 8.7,-16,-Math.PI/2,'tesouro','#ffd000','OURO');
+  buildingDoor( 8.7, 32,-Math.PI/2,'chefao', '#ff2020','CHEFE');
+  // beco com botão final
+  building(15,4.5,12,3,16); building(15,-12.5,12,3,16);
+  addBox(24,-4,6,14,10,matWrap(TEX.brickGray));
+  // paredes-limite
+  addBox(0,-45,64,3,18,matWrap(TEX.brickGray));
+  addBox(0,45,64,3,18,matWrap(TEX.brickGray));
+  addBox(-24,0,3,93,18,matWrap(TEX.brickRed));
+  addBox(24,26,3,42,18,matWrap(TEX.brickRed));
+  addBox(24,-30,3,34,18,matWrap(TEX.brickRed));
+  // letreiros neon
+  neon(-8.9,5,-20,'BAR','#ff2060',Math.PI/2);
+  neon(-8.9,6.5,4,'PIZZA','#30ff80',Math.PI/2);
+  neon(8.9,5.5,-26,'CINE 3D','#30c0ff',-Math.PI/2);
+  neon(8.9,4.5,16,'HOTEL','#ffb000',-Math.PI/2);
+  // porta deslizante do beco
+  doorMesh=new THREE.Mesh(new THREE.BoxGeometry(3.4,4.2,.5),matWrap(TEX.door));
+  doorMesh.position.set(15,2.1,-4); doorMesh.rotation.y=Math.PI/2; addLevel(doorMesh);
+  doorCol={minX:14.4,maxX:15.6,minZ:-5.8,maxZ:-2.2,mesh:doorMesh};
+  colliders.push(doorCol);
+  // salinha atrás da porta
+  addBox(18.5,-9,8,1,6,matWrap(TEX.brickGray));
+  addBox(18.5,1,8,1,6,matWrap(TEX.brickGray));
+  addBox(22.5,-4,1,11,6,matWrap(TEX.brickGray));
+  {
+    const fl=new THREE.Mesh(new THREE.PlaneGeometry(8,10),matWrap(TEX.floorInt));
+    fl.rotation.x=-Math.PI/2; fl.position.set(18.5,.02,-4); addLevel(fl);
+    const ce=new THREE.Mesh(new THREE.PlaneGeometry(8,10),matWrap(TEX.ceilInt));
+    ce.rotation.x=Math.PI/2; ce.position.set(18.5,4.2,-4); addLevel(ce);
+    const lamp=new THREE.PointLight(0xff8040,1,12); lamp.position.set(18.5,3.5,-4); addLevel(lamp);
+  }
+  // botão vermelho de fim de fase
+  endBtn=new THREE.Mesh(new THREE.BoxGeometry(.8,.8,.3),
+    new THREE.MeshBasicMaterial({color:0xc01010}));
+  endBtn.position.set(21.9,1.7,-4); endBtn.rotation.y=Math.PI/2; addLevel(endBtn);
+  {
+    const frame=new THREE.Mesh(new THREE.BoxGeometry(1.3,1.3,.15),matWrap(TEX.metal));
+    frame.position.set(22.05,1.7,-4); frame.rotation.y=Math.PI/2; addLevel(frame);
+  }
+  // postes de luz
+  for(const z of [-24,-4,16]) for(const x of [-7.5,7.5]) streetlight(x,z);
+  // carros
+  car(-4,-14,0x803030,.15); car(4,8,0x305a80,-.1); car(-3.5,24,0x6a6a30,3.3);
+  // inimigos da fase
+  (L.enemies||[]).forEach(e=>spawnEnemy(e[0],e[1],e[2]));
+  // barris
+  (L.barrels||[]).forEach(b=>spawnBarrel(b[0],b[1]));
+  // pickups
+  (L.pickups||[]).forEach(p=>spawnPickup(p[0],p[1],p[2]));
+  // chave (objetivo 'achar_chave')
+  if(L.objective==='achar_chave' && L.key) spawnKey(L.key[0],L.key[1]);
+}
+
+// chave de fase (objetivo achar_chave)
+let hasKey=false, keyMesh=null;
+function spawnKey(x,z){
+  const g=new THREE.Group();
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.35,.1,6,12),
+    new THREE.MeshBasicMaterial({color:0xffe040}));
+  ring.rotation.x=Math.PI/2; g.add(ring);
+  const bit=new THREE.Mesh(new THREE.BoxGeometry(.6,.18,.12),
+    new THREE.MeshBasicMaterial({color:0xffe040}));
+  bit.position.set(.45,0,0); g.add(bit);
+  g.position.set(x,1.2,z); addLevel(g);
+  const lt=new THREE.PointLight(0xffe040,1.2,8); lt.position.set(x,1.4,z); addLevel(lt);
+  keyMesh=g;
+}
+
+// ========== DEFINIÇÃO DAS FASES ==========
+// enemies: [x,z,tipo]  barrels:[x,z]  pickups:[x,z,kind]
+// objective: 'matar_todos' | 'achar_chave'   mood: cor da atmosfera
+const LEVELS=[
+  { // FASE 1 — a rua suja original (noite roxa)
+    name:'A RUA SUJA',
+    objective:'matar_todos',
+    mood:{fog:'#231432', fogNear:40, fogFar:110, ambient:0xaa99cc, glow:0xff4080},
+    enemies:[[-5,-30,'atirador'],[5,-22,'atirador'],[-4,-6,'atirador'],[6,-2,'atirador'],
+             [-6,12,'atirador'],[5,20,'atirador'],[0,30,'atirador'],[18.5,-7.5,'atirador']],
+    barrels:[[-6.5,-26],[-6,-25],[6.5,6],[-6.2,18],[20.5,-1]],
+    pickups:[[-5,-18,'med'],[5,-10,'ammo'],[-5.5,4,'shell'],[6,14,'ammo'],[-5,28,'med'],
+             [0,-36,'shell'],[17,-1,'med'],[20,-7,'shell'],[18.5,-4,'ammo']],
+  },
+  { // FASE 2 — esgoto tóxico (verde), achar a chave antes de sair
+    name:'ESGOTO TOXICO',
+    objective:'achar_chave',
+    mood:{fog:'#0a2418', fogNear:24, fogFar:80, ambient:0x60c060, glow:0x40ff60},
+    key:[0,30], // a chave fica bem no fim da rua, longe
+    enemies:[[-5,-30,'rapido'],[5,-22,'atirador'],[-4,-6,'rapido'],[6,-2,'tanque'],
+             [-6,12,'rapido'],[5,20,'atirador'],[0,28,'tanque'],[18.5,-7.5,'atirador'],
+             [-3,-18,'rapido'],[3,6,'rapido'],[-5,34,'atirador']],
+    barrels:[[-6.5,-26],[-6,-25],[6.5,6],[-6.2,18],[20.5,-1],[4,-12]],
+    pickups:[[-5,-18,'med'],[5,-10,'ammo'],[-5.5,4,'shell'],[6,14,'ammo'],[-5,28,'med'],
+             [0,-36,'shell'],[17,-1,'med'],[20,-7,'shell'],[18.5,-4,'ammo'],[3,18,'ammo']],
+  },
+  { // FASE 3 — incêndio (vermelho), o CHEFÃO espera
+    name:'A CIDADE EM CHAMAS',
+    objective:'matar_todos',
+    mood:{fog:'#2a0808', fogNear:20, fogFar:78, ambient:0xff6040, glow:0xff3010},
+    enemies:[[-5,-30,'tanque'],[5,-22,'rapido'],[-4,-6,'tanque'],[6,-2,'rapido'],
+             [-6,12,'atirador'],[5,20,'tanque'],[0,30,'rapido'],[18.5,-7.5,'tanque'],
+             [-3,-18,'rapido'],[3,6,'atirador'],[-5,34,'tanque'],[6,-30,'rapido']],
+    barrels:[[-6.5,-26],[-6,-25],[6.5,6],[-6.2,18],[20.5,-1],[4,-12],[-4,22]],
+    pickups:[[-5,-18,'med'],[5,-10,'ammo'],[-5.5,4,'shell'],[6,14,'ammo'],[-5,28,'med'],
+             [0,-36,'shell'],[17,-1,'med'],[20,-7,'shell'],[18.5,-4,'ammo'],[3,18,'ammo'],[-5,-2,'med']],
+  },
+];
+let levelIndex=0;
+let currentLevel=LEVELS[0];
 
 const particles=[];
+let boss=null, bossAlive=false;
 function puff(pos,tex,n,spread,life,size){
   for(let i=0;i<n;i++){
     const s=makeSprite(tex,size,size);
@@ -731,6 +840,21 @@ if(IS_MOBILE){
 
 // ---------- combate ----------
 const ray=new THREE.Raycaster();
+// flash de luz curtinho no cano (sensação de tiro potente). Removido em ~120ms.
+function muzzleFlash(color){
+  const dir=new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(player.pitch,player.yaw,0,'YXZ'));
+  const pos=new THREE.Vector3(player.x,player.y,player.z).addScaledVector(dir,1.2);
+  const fl=new THREE.PointLight(color||0xffd060,2.2,10);
+  fl.position.copy(pos); scene.add(fl);
+  setTimeout(()=>scene.remove(fl),120);
+}
+// tracer: risquinho luminoso na trajetória do tiro (some rápido)
+function tracer(origin,end,color){
+  const geo=new THREE.BufferGeometry().setFromPoints([origin,end]);
+  const ln=new THREE.Line(geo,new THREE.LineBasicMaterial({color:color||0xffe080,transparent:true,opacity:.9}));
+  scene.add(ln);
+  setTimeout(()=>{ scene.remove(ln); geo.dispose(); },70);
+}
 function fire(){
   const W=WEAPONS[player.weapon];
   if(player.fireT>0) return;
@@ -740,6 +864,7 @@ function fire(){
   if(player.weapon===5){ if(player.ammoFreeze<=0){ say('Sem carga de gelo!'); player.fireT=.3; sfx('click'); return; } player.ammoFreeze--; }
   player.fireT=W.rate; player.kicking=1;
   sfx(W.sound);
+  muzzleFlash(W.freeze?0x80f0ff:(W.rocket?0xff8030:0xffd060)); // clarão no cano
   const shots=W.pellets||1;
   for(let i=0;i<shots;i++){
     const spread=player.weapon===3?.045:(player.weapon===2?.012:0);
@@ -795,6 +920,11 @@ function hitscan(dir,W){
     else if(bBest){ bBest.hp-=W.dmg; if(bBest.hp<=0) blowBarrel(bBest); }
     return;
   }
+  // tracer luminoso até onde a bala foi parar (só armas de fogo, não o coturno)
+  if(W.range>5){
+    const end=origin.clone().addScaledVector(dir,bestD);
+    tracer(origin.clone().add(new THREE.Vector3(0,-.15,0)),end);
+  }
   if(bBest){ bBest.hp-=W.dmg; puff(new THREE.Vector3(bBest.x,1,bBest.z),fxPuff,2,.8,.4,.5);
     if(bBest.hp<=0) blowBarrel(bBest); return; }
   if(best){ hurtEnemy(best,W.dmg); return; }
@@ -818,14 +948,16 @@ function hurtEnemy(e,dmg){
       // larga muita munição
       spawnPickup(e.x,e.z,'med'); spawnPickup(e.x+1,e.z,'shell'); spawnPickup(e.x-1,e.z,'ammo');
     } else {
-      e.s.material.map=mutantFrames[4];
+      e.s.material.map=mutantFrames[4]; e.s.material.color.setHex(0xffffff);
       e.s.scale.set(2.6,1.1,1); e.s.position.y=.45;
       if(Math.random()<.5) spawnPickup(e.x+rand(-.5,.5),e.z+rand(-.5,.5),Math.random()<.5?'ammo':'shell');
     }
+    bloodDecal(e.x,e.z); // poça de sangue permanente
     sfx('grunt');
     const left=enemies.filter(x=>!x.dead).length;
     if(left>0&&Math.random()<.4) say(quotes[1+((Math.random()*4)|0)]);
-    if(left===0) say('SETOR LIMPO! Procure o botão vermelho no beco (porta azul).',5000);
+    if(left===0&&currentLevel.objective!=='achar_chave')
+      say('SETOR LIMPO! Procure o botão vermelho no beco (porta azul).',5000);
   } else sfx('pain');
 }
 function hurtPlayer(dmg){
@@ -856,15 +988,19 @@ function useAction(){
   // porta do beco
   const dDoor=Math.hypot(player.x-15,player.z+4);
   if(dDoor<3&&doorState===0){ doorState=1; sfx('door'); return; }
-  // botão final
+  // botão final — condição depende do objetivo da fase
   const dBtn=Math.hypot(player.x-21.9,player.z+4);
   if(dBtn<2.4){
-    const left=enemies.filter(x=>!x.dead).length;
-    if(left>0){ say(`Ainda restam ${left} mutante(s) na rua!`); sfx('click'); }
-    else { winGame(); }
+    if(currentLevel.objective==='achar_chave'){
+      if(!hasKey){ say('🔒 Você precisa achar a CHAVE 🔑 primeiro!'); sfx('click'); }
+      else winGame();
+    } else {
+      const left=enemies.filter(x=>!x.dead).length;
+      if(left>0){ say(`Ainda restam ${left} mutante(s) na rua!`); sfx('click'); }
+      else winGame();
+    }
   }
 }
-let bossAlive=false, boss=null;
 function abrirPortaPredio(d){
   d.used=true; d.open=true; sfx('door');
   // abre visualmente (porta cai/some) + luz verde
@@ -902,41 +1038,68 @@ function bonusFlash(color){
 }
 function spawnBoss(x,z){
   const s=makeSprite(mutantFrames[2],5,5); // grandão
-  s.position.set(x,2.5,z); scene.add(s);
+  s.position.set(x,2.5,z); addLevel(s);
   boss={s,x,z,hp:400,maxHp:400,state:'hunt',cool:1,animT:0,dead:false,pain:0,isBoss:true,frozen:0};
   enemies.push(boss); bossAlive=true;
 }
-let won=false;
+
+// ---------- progressão de fases ----------
+let won=false;          // travou a sequência de vitória/transição
+let levelDone=false;    // objetivo da fase concluído (botão já apertado)
+function objetivoTexto(L){
+  return L.objective==='achar_chave'
+    ? (hasKey?'Ache a saída (botão vermelho)':'Ache a CHAVE 🔑 e depois a saída')
+    : 'Elimine todos os mutantes';
+}
+// chamado quando o jogador aperta o botão final com objetivo cumprido
 function winGame(){
   if(won) return; won=true;
   sfx('pickup'); sfx('boom');
-  say('🎉 FIM DE FASE! A rua está limpa!',999999);
   // explosões comemorativas no beco
   for(let i=0;i<6;i++) setTimeout(()=>explosion(new THREE.Vector3(rand(16,22),rand(.5,4),rand(-8,0))),i*250);
-  setTimeout(()=>{
-    const st=document.getElementById('start');
-    st.style.display='flex';
-    st.querySelector('h1').textContent='🏆 SETOR LIMPO!';
-    st.querySelector('h2').textContent='VOCÊ VENCEU O RUA SUJA 3D!';
-    const mortos=enemies.length;
-    st.querySelector('.keys').innerHTML=
-      `<b>🔫 ${mortos} mutantes</b> eliminados!<br>`+
-      `<b>❤️ Vida restante:</b> ${player.hp}<br><br>`+
-      `Você limpou a rua suja e salvou a cidade! 🌃`;
-    document.getElementById('btn').textContent='JOGAR DE NOVO';
-    document.getElementById('btn').onclick=()=>location.reload();
-    document.exitPointerLock();
-  },2800);
+  const ehUltima = levelIndex>=LEVELS.length-1;
+  if(ehUltima){
+    setTimeout(()=>telaFinal(),2800);
+  } else {
+    say(`✅ FASE ${levelIndex+1} COMPLETA!`,2600);
+    setTimeout(()=>nextLevel(),2800);
+  }
+}
+function nextLevel(){
+  levelIndex++;
+  currentLevel=LEVELS[levelIndex];
+  clearWorld();
+  buildLevel(currentLevel);
+  // jogador mantém armas/munição/vida; só reposiciona no começo da rua
+  player.x=0; player.z=38; player.y=1.65; player.vy=0; player.yaw=Math.PI; player.pitch=0;
+  player.dead=false;
+  won=false; levelDone=false;
+  say(`FASE ${levelIndex+1}: ${currentLevel.name.toUpperCase()} — ${objetivoTexto(currentLevel)}`,4500);
+}
+function telaFinal(){
+  const st=document.getElementById('start');
+  st.style.display='flex';
+  st.querySelector('h1').textContent='🏆 VOCÊ ZEROU O JOGO!';
+  st.querySelector('h2').textContent='RUA SUJA 3D — FIM';
+  st.querySelector('.keys').innerHTML=
+    `Você atravessou as <b>${LEVELS.length} fases</b>,`+
+    ` enfrentou o CHEFÃO e salvou a cidade! 🌃<br><br>`+
+    `<b>❤️ Vida final:</b> ${player.hp}<br>`+
+    `Você é uma LENDA da Rua Suja! 💪`;
+  document.getElementById('btn').textContent='JOGAR DE NOVO';
+  document.getElementById('btn').onclick=()=>location.reload();
+  document.exitPointerLock();
 }
 
 // ---------- IA inimiga ----------
 function tickEnemy(e,dt){
   if(e.dead) return;
+  const T=ENEMY_TYPES[e.type]||ENEMY_TYPES.atirador;
   const yBase=e.isBoss?2.5:1.25;
   // CONGELADO: não anda nem atira, fica azul tremendo
   if(e.frozen>0){
     e.frozen-=dt;
-    if(e.frozen<=0){ e.s.material.color.setHex(0xffffff); }
+    if(e.frozen<=0){ e.s.material.color.setHex(e.baseColor||0xffffff); }
     e.s.position.set(e.x+rand(-.03,.03),yBase,e.z);
     return;
   }
@@ -953,7 +1116,8 @@ function tickEnemy(e,dt){
   if(los) e.state='hunt';
   if(e.state==='hunt'&&!player.dead){
     e.cool-=dt;
-    const vel=e.isBoss?3.6:2.6, alcance=e.isBoss?7:6;
+    const vel=e.isBoss?3.6:T.vel, alcance=e.isBoss?7:T.alcance;
+    const melee=e.isBoss?false:T.melee; // inimigo rápido ataca de perto
     if(dist>alcance||!los){
       const sp=vel*dt, nx=e.x+dx/dist*sp, nz=e.z+dz/dist*sp;
       if(!collides(nx,e.z,.45)) e.x=nx;
@@ -963,13 +1127,22 @@ function tickEnemy(e,dt){
     } else {
       e.s.material.map=mutantFrames[0];
     }
-    if(los&&dist<28&&e.cool<=0){
+    const [dmin,dmax]=T.dmg;
+    if(melee){
+      // corpo-a-corpo: bate quando está coladinho
+      if(dist<=alcance+0.4&&e.cool<=0){
+        e.cool=rand(.6,1.0);
+        e.s.material.map=mutantFrames[2];
+        sfx('grunt');
+        hurtPlayer(rand(dmin,dmax)|0);
+      }
+    } else if(los&&dist<28&&e.cool<=0){
       e.cool=e.isBoss?rand(.4,.9):rand(.9,1.9);
       e.s.material.map=mutantFrames[2];
       sfx('pistol');
       const moving=Math.abs(velX)+Math.abs(velZ)>2;
       const chance=clamp(.75-dist*.02-(moving?.25:0),.1,.8);
-      const dano=e.isBoss?rand(10,20):rand(5,12);
+      const dano=e.isBoss?rand(10,20):rand(dmin,dmax);
       if(Math.random()<chance) hurtPlayer(dano|0);
       else puff(new THREE.Vector3(player.x+rand(-1.5,1.5),rand(.5,2),player.z+rand(-1.5,1.5)),fxPuff,1,.4,.3,.4);
     }
@@ -1091,6 +1264,15 @@ function drawHUD(){
   // contagem de inimigos
   const left=enemies.filter(x=>!x.dead).length;
   seg(w-166,'MUTANTES',left,left?'#ff6020':'#30c050');
+  // faixa de FASE + objetivo no topo (canto esquerdo, não bate com a barra do chefão)
+  hctx.textAlign='left';
+  hctx.fillStyle='rgba(0,0,0,.45)'; hctx.fillRect(10,8,360,46);
+  hctx.fillStyle='#ffb000'; hctx.font='bold 18px Courier New';
+  hctx.fillText(`FASE ${levelIndex+1}/${LEVELS.length} — ${currentLevel.name}`,18,28);
+  hctx.fillStyle='#9fe0ff'; hctx.font='14px Courier New';
+  let obj=objetivoTexto(currentLevel);
+  if(currentLevel.objective==='achar_chave'&&hasKey) obj='CHAVE pega! Ache a saída 🚪';
+  hctx.fillText('OBJETIVO: '+obj,18,47);
   // barra de vida do CHEFÃO
   if(boss&&!boss.dead){
     const bw=Math.min(560,w-80), bx=(w-bw)/2;
@@ -1116,6 +1298,19 @@ function tickPickups(dt,t){
       f.style.opacity=.25; setTimeout(()=>f.style.opacity=0,140);
     }
   });
+  // chave da fase: gira e é coletada ao encostar
+  if(keyMesh&&!hasKey){
+    keyMesh.rotation.y+=dt*2.5;
+    keyMesh.position.y=1.2+Math.sin(t*3)*.15;
+    if(Math.hypot(player.x-keyMesh.position.x,player.z-keyMesh.position.z)<1.4){
+      hasKey=true; sfx('pickup');
+      say('🔑 CHAVE pega! Agora ache o botão vermelho no beco.',4000);
+      bonusFlash('#ffe040');
+      scene.remove(keyMesh);
+      const i=levelObjects.indexOf(keyMesh); if(i>=0) levelObjects.splice(i,1);
+      keyMesh=null;
+    }
+  }
 }
 
 // ---------- loop ----------
@@ -1150,8 +1345,13 @@ function loop(now){
     if(keys['Space']&&player.onGround){ player.vy=5.2; player.onGround=false; }
     player.vy-=14*dt; player.y+=player.vy*dt;
     if(player.y<=1.65){ player.y=1.65; player.vy=0; player.onGround=true; }
-    // bob de caminhada
-    if((Math.abs(velX)+Math.abs(velZ))>1&&player.onGround) player.bob+=dt*(run?13:9);
+    // bob de caminhada + som de passo no ritmo da passada
+    if((Math.abs(velX)+Math.abs(velZ))>1&&player.onGround){
+      const prev=player.bob;
+      player.bob+=dt*(run?13:9);
+      // cada vez que o seno do bob cruza um múltiplo de PI = um pé batendo
+      if(Math.floor(prev/Math.PI)!==Math.floor(player.bob/Math.PI)) sfx('boot');
+    }
     if(mouseDown||mob.firing) fire();
   }
   player.fireT=Math.max(0,player.fireT-dt);
@@ -1193,9 +1393,11 @@ function loop(now){
     }
   }
 
-  // botão final piscando se setor limpo
-  endBtn.material.color.setHex(
-    enemies.every(e=>e.dead)&&(t*4|0)%2 ? 0x30ff50 : 0xc01010);
+  // botão final piscando quando o OBJETIVO da fase está cumprido
+  if(endBtn){
+    const objOk = currentLevel.objective==='achar_chave' ? hasKey : enemies.every(e=>e.dead);
+    endBtn.material.color.setHex(objOk&&(t*4|0)%2 ? 0x30ff50 : 0xc01010);
+  }
 
   // porta do chefão: vermelha/escura enquanto trancada, pisca quando libera
   const portaChefe=buildingDoors.find(d=>d.surprise==='chefao');
@@ -1212,6 +1414,8 @@ function loop(now){
   renderer.render(scene,camera);
   drawHUD();
 }
+// monta a primeira fase e arranca
+buildLevel(LEVELS[0]);
 resize();
 requestAnimationFrame(loop);
 </script>
