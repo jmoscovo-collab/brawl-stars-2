@@ -51,6 +51,18 @@ h1 { font-size:30px; margin:6px 0;
 #resultado { font-size:20px; font-weight:bold; min-height:56px; margin-top:10px; }
 .premios { font-size:13px; color:#9ad; text-align:left; display:inline-block; margin-top:10px; line-height:1.7; }
 .premios b { color:#ffd700; }
+.ficha-btn {
+    font-size:14px; font-weight:bold; padding:10px 14px; border:2px solid #444; border-radius:12px; cursor:pointer;
+    background:rgba(30,30,70,0.9); color:#fff;
+}
+.ficha-btn.sel { border-color:#ffd700; background:rgba(80,60,0,0.6); }
+#melhorias { display:flex; flex-direction:column; gap:6px; margin-top:6px; }
+#melhorias button {
+    font-size:13px; font-weight:bold; padding:9px 10px; border:none; border-radius:10px; cursor:pointer;
+    background:linear-gradient(135deg,#00cc66,#00ff88); color:#04220f; text-align:left;
+}
+#melhorias button:disabled { opacity:0.45; }
+#melhorias button.comprada { background:#333; color:#00ff88; border:1px solid #00ff88; }
 a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none; z-index:40; font-size:14px; }
 #confeteBox { position:fixed; inset:0; pointer-events:none; z-index:50; }
 @media (max-width:700px){
@@ -71,24 +83,22 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
         <div class="sub">Cada clique = moedas. Clique MUITO!</div>
         <div id="cogumelo">🍄</div>
         <div id="ganhoClick"></div>
+        <div class="sub" style="margin-top:10px">⬆️ Melhorias (clique rende mais!)</div>
+        <div id="melhorias"></div>
     </div>
 
     <div class="card">
         <h2>🎰 Máquina Maluca</h2>
-        <div class="sub">Ficha: <b style="color:#ffd700">🪙 50</b> por giro — preço fixo, sem aposta!</div>
+        <div class="sub">Escolha a ficha (preços fixos!):</div>
+        <div id="fichas" style="display:flex; gap:8px; justify-content:center; margin-bottom:10px;"></div>
         <div id="maquina">
             <div class="rolo" id="r0">7</div>
             <div class="rolo" id="r1">7</div>
             <div class="rolo" id="r2">7</div>
         </div>
-        <button id="btnGirar" onclick="girar()">🎰 GIRAR (🪙 50)</button>
+        <button id="btnGirar" onclick="girar()">🎰 GIRAR</button>
         <div id="resultado"></div>
-        <div class="premios">
-            <b>7 7 7</b> = 🪙 10.000 — JACKPOT!!! 🎆<br>
-            Três iguais (sem ser 7) = 🪙 1.000 ⭐<br>
-            Dois iguais = 🪙 75<br>
-            Nada igual = tenta de novo! 😅
-        </div>
+        <div class="premios" id="tabelaPremios"></div>
     </div>
 </div>
 <canvas id="confeteBox"></canvas>
@@ -98,6 +108,16 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
 if (window.initStats) initStats('sorte');
 
 let moedas = parseInt(localStorage.getItem('sorte_moedas')||'0');
+let melhorias = JSON.parse(localStorage.getItem('sorte_melhorias')||'[]');
+const MELHORIAS = [
+    { id:'dedo',    nome:'💪 Dedo Forte',       preco:100,    bonus:1 },
+    { id:'luva',    nome:'🧤 Luva Turbo',        preco:500,    bonus:2 },
+    { id:'duplo',   nome:'🍄🍄 Cogumelo Duplo',  preco:2000,   bonus:5 },
+    { id:'bionica', nome:'🦾 Mão Biônica',       preco:8000,   bonus:10 },
+    { id:'esporos', nome:'✨ Chuva de Esporos',  preco:25000,  bonus:25 },
+    { id:'rei',     nome:'👑 Toque do Rei',      preco:100000, bonus:100 }
+];
+function bonusClique(){ return MELHORIAS.filter(m=>melhorias.includes(m.id)).reduce((s,m)=>s+m.bonus, 0); }
 let girando = false;
 let audio;
 function som(freq, dur, tipo='square', vol=0.12){
@@ -109,7 +129,10 @@ function som(freq, dur, tipo='square', vol=0.12){
         o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime+dur);
     }catch(e){}
 }
-function salva(){ localStorage.setItem('sorte_moedas', moedas); }
+function salva(){
+    localStorage.setItem('sorte_moedas', moedas);
+    localStorage.setItem('sorte_melhorias', JSON.stringify(melhorias));
+}
 function atualiza(){ document.getElementById('saldo').textContent = `🪙 ${moedas}`; }
 
 // ============ CLICKER ============
@@ -120,7 +143,7 @@ function clicou(e){
     const agora = Date.now();
     combo = (agora - ultimoClick < 600) ? Math.min(combo+1, 50) : 1;
     ultimoClick = agora;
-    const ganho = 1 + Math.floor(combo/10); // clicando rápido ganha até 6 por clique!
+    const ganho = (1 + bonusClique()) * (1 + Math.floor(combo/10)); // melhorias + combo!
     moedas += ganho; salva(); atualiza();
     cog.classList.add('apertado');
     setTimeout(()=>cog.classList.remove('apertado'), 70);
@@ -131,9 +154,9 @@ cog.addEventListener('mousedown', clicou);
 cog.addEventListener('touchstart', clicou, {passive:false});
 
 // ============ MÁQUINA MALUCA ============
-const FICHA = 50;
 function girar(){
     if(girando) return;
+    const FICHA = FICHAS[fichaIdx].valor;
     if(moedas < FICHA){
         document.getElementById('resultado').textContent = 'Moedas de menos! Clica no cogumelo! 🍄';
         som(180,0.3,'sawtooth');
@@ -158,31 +181,31 @@ function girar(){
         if(frame % 3 === 0) som(200+frame*10, 0.04, 'square', 0.05);
         if(frame >= 14 + 2*10 + 2){
             clearInterval(anim);
-            resolve(fin, rolos);
+            resolve(fin, rolos, FICHAS[fichaIdx].mult);
         }
     }, 70);
 }
-function resolve(fin, rolos){
+function resolve(fin, rolos, mult){
     girando = false;
     document.getElementById('btnGirar').disabled = false;
     const [a,b,c] = fin;
     const res = document.getElementById('resultado');
     let ganho = 0;
     if(a===7 && b===7 && c===7){
-        ganho = 10000;
+        ganho = 10000*mult;
         res.innerHTML = '🎆 <span style="color:#ffd700">JACKPOT!!! 7-7-7!!! +🪙 10.000</span> 🎆';
         rolos.forEach(r=>r.classList.add('brilha'));
         for(let i=0;i<8;i++) setTimeout(()=>som(500+i*120,0.15),i*120);
         soltaConfete(200);
     } else if(a===b && b===c){
-        ganho = 1000;
-        res.innerHTML = `⭐ TRÊS IGUAIS! ${a}-${b}-${c}! <span style="color:#ffd700">+🪙 1.000</span> ⭐`;
+        ganho = 1000*mult;
+        res.innerHTML = `⭐ TRÊS IGUAIS! ${a}-${b}-${c}! <span style="color:#ffd700">+🪙 ${(1000*mult).toLocaleString('pt-BR')}</span> ⭐`;
         rolos.forEach(r=>r.classList.add('brilha'));
         som(500,0.1); setTimeout(()=>som(700,0.1),120); setTimeout(()=>som(900,0.3),240);
         soltaConfete(80);
     } else if(a===b || b===c || a===c){
-        ganho = 75;
-        res.innerHTML = 'Dois iguais! <span style="color:#00ff88">+🪙 75</span> 😄';
+        ganho = 75*mult;
+        res.innerHTML = `Dois iguais! <span style="color:#00ff88">+🪙 ${75*mult}</span> 😄`;
         som(500,0.15);
     } else {
         res.textContent = 'Quase! Tenta de novo! 😅';
@@ -210,7 +233,56 @@ function soltaConfete(n){
     requestAnimationFrame(animaConfete);
 })();
 
+function montaMelhorias(){
+    const el = document.getElementById('melhorias');
+    el.innerHTML='';
+    MELHORIAS.forEach(m=>{
+        const tem = melhorias.includes(m.id);
+        const b = document.createElement('button');
+        if(tem){ b.className='comprada'; b.textContent = `✅ ${m.nome} (+${m.bonus}/clique)`; b.disabled=true; }
+        else {
+            b.textContent = `${m.nome} — +${m.bonus}/clique — 🪙 ${m.preco}`;
+            b.disabled = moedas < m.preco;
+            b.onclick = ()=>{
+                if(moedas<m.preco) return;
+                moedas-=m.preco; melhorias.push(m.id); salva(); atualiza(); montaMelhorias();
+                som(600,0.1); setTimeout(()=>som(900,0.2),100);
+            };
+        }
+        el.appendChild(b);
+    });
+}
+
+// ============ FICHAS (preços FIXOS — sem digitar aposta!) ============
+const FICHAS = [
+    { nome:'🥉 Bronze', valor:50,   mult:1 },
+    { nome:'🥈 Prata',  valor:250,  mult:5 },
+    { nome:'🥇 Ouro',   valor:1000, mult:20 }
+];
+let fichaIdx = 0;
+function montaFichas(){
+    const el = document.getElementById('fichas');
+    el.innerHTML='';
+    FICHAS.forEach((f,i)=>{
+        const b = document.createElement('button');
+        b.className = 'ficha-btn' + (i===fichaIdx?' sel':'');
+        b.textContent = `${f.nome} 🪙${f.valor}`;
+        b.onclick = ()=>{ fichaIdx=i; montaFichas(); som(500,0.06); };
+        el.appendChild(b);
+    });
+    const f = FICHAS[fichaIdx];
+    document.getElementById('btnGirar').textContent = `🎰 GIRAR (🪙 ${f.valor})`;
+    document.getElementById('tabelaPremios').innerHTML =
+        `<b>7 7 7</b> = 🪙 ${(10000*f.mult).toLocaleString('pt-BR')} — JACKPOT!!! 🎆<br>` +
+        `Três iguais (sem ser 7) = 🪙 ${(1000*f.mult).toLocaleString('pt-BR')} ⭐<br>` +
+        `Dois iguais = 🪙 ${75*f.mult}<br>` +
+        `Nada igual = tenta de novo! 😅`;
+}
+
 atualiza();
+montaMelhorias();
+montaFichas();
+setInterval(montaMelhorias, 3000); // atualiza botões conforme junta moedas
 </script>
 </body>
 </html>
