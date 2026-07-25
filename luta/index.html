@@ -143,6 +143,16 @@ const ANIMAIS = [
 // animais dos bots (variam por nível)
 const BOTS = ['🐭','🐹','🐸','🐢','🐔','🦆','🐷','🐮','🐗','🦝','🐨','🦥','🦡','🐊','🦈','🐅','🦏','🦛','🐘','🦕'];
 const TOTAL_NIVEIS = 100;
+// cor do pelo de cada animal (pros braços e pernas dos golpes!)
+const COR_ANIMAL = {
+    '🦫':'#8d6e4a','🐱':'#e8a94c','🐶':'#c8935a','🐰':'#e8e0d8','🦊':'#e87c2a','🐼':'#f0f0f0',
+    '🐵':'#9a6a3a','🐯':'#e8952a','🦁':'#d8a040','🐺':'#8a8a95','🦍':'#4a4048','🦖':'#5a8a3a',
+    '🐉':'#3aa055','🦄':'#f0e0f5','🐭':'#b0aab5','🐹':'#e8b060','🐸':'#5ab040','🐢':'#6a9a45',
+    '🐔':'#f0e8d0','🦆':'#7aa860','🐷':'#f0a8b0','🐮':'#e8e0d5','🐗':'#7a5a45','🦝':'#9a9095',
+    '🐨':'#a8a0a8','🦥':'#b09a78','🦡':'#7a7580','🐊':'#5a8a4a','🦈':'#7a95b0','🐅':'#e8952a',
+    '🦏':'#a8a5b0','🦛':'#9a8aa5','🐘':'#a0a0b0','🦕':'#6aa8c0'
+};
+function corPata(emoji){ return COR_ANIMAL[emoji] || '#c89a6a'; }
 
 // ============ SAVE ============
 let moedas = parseInt(localStorage.getItem('luta_moedas')||'0');
@@ -328,14 +338,55 @@ function desenhaLutador(f, emoji, nome){
     if(f.dir<0) ctx.scale(-1,1);
     ctx.fillText(emoji, 0, 0);
     ctx.restore();
-    // golpe: punho ou pé voando
+    // golpe: braço ou perna DESENHADOS na cor do animal!
     if(f.golpe>0){
         const prog = 1 - f.golpe/14;
-        const alcance = (f.tipoGolpe==='soco'?85:120) * Math.sin(prog*Math.PI);
-        ctx.font='44px Arial';
+        const ext = Math.sin(prog*Math.PI); // 0 → 1 → 0 (estica e volta)
+        const cor = corPata(emoji);
+        const escuro = 'rgba(0,0,0,0.25)';
         ctx.save();
         if(f.dir<0) ctx.scale(-1,1);
-        ctx.fillText(f.tipoGolpe==='soco'?'👊':'🦶', alcance, f.tipoGolpe==='soco'?-40:-14);
+        if(f.tipoGolpe==='soco'){
+            // BRAÇO: sai do ombro, estica com punho fechado
+            const alc = 88*ext;
+            ctx.strokeStyle = cor; ctx.lineWidth = 14; ctx.lineCap='round';
+            ctx.beginPath(); ctx.moveTo(14,-42); ctx.lineTo(14+alc,-42-6*ext); ctx.stroke();
+            // sombra do braço
+            ctx.strokeStyle = escuro; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(14,-38); ctx.lineTo(14+alc,-38-6*ext); ctx.stroke();
+            // punho (pata fechada com dedinhos)
+            ctx.fillStyle = cor;
+            ctx.beginPath(); ctx.arc(20+alc,-44-6*ext,11,0,7); ctx.fill();
+            ctx.fillStyle = escuro;
+            for(let d=0; d<3; d++){ ctx.beginPath(); ctx.arc(24+alc,-50-6*ext+d*6,2.5,0,7); ctx.fill(); }
+            // risquinhos de velocidade
+            if(ext>0.5){
+                ctx.strokeStyle='rgba(255,255,255,0.6)'; ctx.lineWidth=2;
+                for(let r=0;r<3;r++){ ctx.beginPath(); ctx.moveTo(alc-20,-56+r*10); ctx.lineTo(alc-40,-56+r*10); ctx.stroke(); }
+            }
+        } else {
+            // PERNA: chute alto saindo do quadril, corpo inclina pra trás
+            ctx.rotate(-0.18*ext);
+            const alc = 112*ext;
+            ctx.strokeStyle = cor; ctx.lineWidth = 16; ctx.lineCap='round';
+            ctx.beginPath(); ctx.moveTo(6,-16); ctx.quadraticCurveTo(30+alc*0.4,-10, 10+alc,-22-14*ext); ctx.stroke();
+            ctx.strokeStyle = escuro; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(6,-11); ctx.quadraticCurveTo(30+alc*0.4,-6, 8+alc,-18-14*ext); ctx.stroke();
+            // patona (pé) com almofadinhas
+            ctx.fillStyle = cor;
+            ctx.beginPath(); ctx.ellipse(16+alc,-24-14*ext,14,10,0.3,0,7); ctx.fill();
+            ctx.fillStyle = escuro;
+            ctx.beginPath(); ctx.arc(20+alc,-26-14*ext,3.5,0,7); ctx.fill();
+            for(let d=0; d<3; d++){ ctx.beginPath(); ctx.arc(14+alc+d*5,-32-14*ext,2,0,7); ctx.fill(); }
+            // impacto
+            if(ext>0.7){
+                ctx.strokeStyle='rgba(255,220,80,0.8)'; ctx.lineWidth=3;
+                for(let r=0;r<4;r++){
+                    const ang = -0.6 + r*0.4;
+                    ctx.beginPath(); ctx.moveTo(30+alc,-24-14*ext); ctx.lineTo(30+alc+16*Math.cos(ang),-24-14*ext+16*Math.sin(ang)); ctx.stroke();
+                }
+            }
+        }
         ctx.restore();
     }
     ctx.restore();
