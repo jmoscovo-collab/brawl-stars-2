@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v1.3.1 (2026-07-24)
+- Penaltis: escolha de dispositivo (computador/celular) e aviso de girar a tela no celular
+
+
 ## v1.3.0 (2026-07-24)
 
 ### Novo
