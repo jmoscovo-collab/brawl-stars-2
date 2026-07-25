@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minha Conta — Cogumelo Games</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    background:linear-gradient(135deg, #0a0a2a 0%, #1a0533 50%, #0d1b2a 100%);
+    min-height:100vh; font-family:Arial, sans-serif; color:#fff;
+    display:flex; flex-direction:column; align-items:center; padding:40px 20px;
+}
+h1 { font-size:34px; margin-bottom:6px;
+    background:linear-gradient(to right,#00ff88,#00ccff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.sub { color:#888; margin-bottom:26px; text-align:center; max-width:420px; }
+.card {
+    background:rgba(20,20,50,0.85); border:2px solid #333; border-radius:20px;
+    padding:28px; width:100%; max-width:400px; text-align:center; margin-bottom:20px;
+}
+.card h2 { font-size:20px; margin-bottom:14px; }
+input {
+    width:100%; padding:12px; margin:6px 0; border-radius:10px; border:2px solid #444;
+    background:#111130; color:#fff; font-size:16px; text-align:center;
+}
+input:focus { border-color:#00ff88; outline:none; }
+button {
+    width:100%; margin-top:10px; font-size:17px; font-weight:bold; padding:12px; border:none; border-radius:12px;
+    background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a; cursor:pointer;
+}
+button.roxo { background:linear-gradient(135deg,#aa00ff,#ff00aa); color:#fff; }
+button.cinza { background:#445; color:#fff; }
+button:hover { transform:scale(1.02); }
+#aviso { min-height:24px; margin:8px 0; font-weight:bold; }
+.logado .nomeUser { font-size:26px; color:#00ff88; font-weight:bold; }
+a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-block; }
+.dica { font-size:12px; color:#667; margin-top:10px; }
+</style>
+</head>
+<body>
+<h1>👤 Minha Conta</h1>
+<div class="sub">Crie uma conta pra não perder o progresso dos seus jogos! Ou jogue como visitante.</div>
+<div id="aviso"></div>
+
+<div class="card logado" id="cardLogado" style="display:none">
+    <h2>Você está conectado!</h2>
+    <div class="nomeUser" id="nomeLogado"></div>
+    <p style="color:#889; font-size:13px; margin-top:8px" id="infoSave"></p>
+    <button onclick="salvarProgresso(true)">💾 Salvar progresso agora</button>
+    <button class="cinza" onclick="sair()">🚪 Sair da conta</button>
+</div>
+
+<div class="card" id="cardEntrar">
+    <h2>🔑 Entrar</h2>
+    <input id="loginNome" placeholder="Seu nome" maxlength="20">
+    <input id="loginSenha" type="password" placeholder="Sua senha" maxlength="30">
+    <button onclick="entrar()">ENTRAR</button>
+</div>
+
+<div class="card" id="cardCriar">
+    <h2>✨ Criar conta nova</h2>
+    <input id="novoNome" placeholder="Escolha um nome" maxlength="20">
+    <input id="novaSenha" type="password" placeholder="Escolha uma senha" maxlength="30">
+    <input id="novaSenha2" type="password" placeholder="Repita a senha" maxlength="30">
+    <button class="roxo" onclick="criar()">CRIAR CONTA</button>
+    <div class="dica">⚠️ Não use sua senha de outros lugares. E não esqueça ela!</div>
+</div>
+
+<div class="card" id="cardVisitante">
+    <h2>👻 Visitante</h2>
+    <p style="color:#889; font-size:14px; margin-bottom:6px">Jogar sem conta — o progresso fica só neste aparelho.</p>
+    <button class="cinza" onclick="location.href='/'">🎮 JOGAR COMO VISITANTE</button>
+</div>
+
+<a class="voltar" href="/">← Voltar pros jogos</a>
+
+<script src="/stats.js"></script>
+<script>
+if (window.initStats) initStats('conta');
+
+// Contas locais (v1 — neste aparelho). Sincronização entre aparelhos vem na v2 com servidor.
+function contas(){ return JSON.parse(localStorage.getItem('cg_contas')||'{}'); }
+function salvaContas(c){ localStorage.setItem('cg_contas', JSON.stringify(c)); }
+function usuario(){ return localStorage.getItem('cg_usuario')||''; }
+
+async function hash(txt){
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('cogumelo:'+txt));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function aviso(txt, ok){
+    const a=document.getElementById('aviso');
+    a.textContent=txt; a.style.color = ok?'#00ff88':'#ff6666';
+    setTimeout(()=>a.textContent='', 4000);
+}
+
+// snapshot de progresso = todas as chaves dos jogos (menos as cg_*)
+function pegaProgresso(){
+    const dados={};
+    for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i);
+        if(!k.startsWith('cg_')) dados[k]=localStorage.getItem(k);
+    }
+    return dados;
+}
+function aplicaProgresso(dados){
+    // limpa progresso atual (menos contas) e aplica o da conta
+    const remover=[];
+    for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i);
+        if(!k.startsWith('cg_')) remover.push(k);
+    }
+    remover.forEach(k=>localStorage.removeItem(k));
+    Object.entries(dados||{}).forEach(([k,v])=>localStorage.setItem(k,v));
+}
+
+function salvarProgresso(mostra){
+    const u=usuario(); if(!u) return;
+    const c=contas();
+    if(!c[u]) return;
+    c[u].dados = pegaProgresso();
+    c[u].atualizado = Date.now();
+    salvaContas(c);
+    if(mostra) aviso('💾 Progresso salvo na conta '+u+'!', true);
+    mostraEstado();
+}
+
+async function criar(){
+    const nome=document.getElementById('novoNome').value.trim();
+    const s1=document.getElementById('novaSenha').value, s2=document.getElementById('novaSenha2').value;
+    if(nome.length<2) return aviso('O nome precisa ter pelo menos 2 letras!');
+    if(s1.length<4) return aviso('A senha precisa ter pelo menos 4 letras/números!');
+    if(s1!==s2) return aviso('As senhas não são iguais!');
+    const c=contas();
+    if(c[nome]) return aviso('Já existe uma conta com esse nome!');
+    c[nome]={ senha: await hash(s1), dados: pegaProgresso(), atualizado: Date.now() };
+    salvaContas(c);
+    localStorage.setItem('cg_usuario', nome);
+    aviso('🎉 Conta criada! Seu progresso atual já foi guardado.', true);
+    mostraEstado();
+}
+
+async function entrar(){
+    const nome=document.getElementById('loginNome').value.trim();
+    const senha=document.getElementById('loginSenha').value;
+    const c=contas();
+    if(!c[nome]) return aviso('Não achei essa conta neste aparelho 😕');
+    if(c[nome].senha !== await hash(senha)) return aviso('Senha errada!');
+    // guarda o progresso do visitante? não — entra na conta e carrega o progresso dela
+    localStorage.setItem('cg_usuario', nome);
+    aplicaProgresso(c[nome].dados);
+    aviso('✅ Bem-vindo de volta, '+nome+'!', true);
+    mostraEstado();
+}
+
+function sair(){
+    salvarProgresso(false); // guarda antes de sair
+    localStorage.removeItem('cg_usuario');
+    aviso('Você saiu. Progresso guardado na conta!', true);
+    mostraEstado();
+}
+
+function mostraEstado(){
+    const u=usuario();
+    document.getElementById('cardLogado').style.display = u?'block':'none';
+    document.getElementById('cardEntrar').style.display = u?'none':'block';
+    document.getElementById('cardCriar').style.display = u?'none':'block';
+    document.getElementById('cardVisitante').style.display = u?'none':'block';
+    if(u){
+        document.getElementById('nomeLogado').textContent = '🍄 '+u;
+        const c=contas();
+        const ts = c[u] && c[u].atualizado ? new Date(c[u].atualizado).toLocaleString('pt-BR') : '—';
+        document.getElementById('infoSave').textContent = 'Último save: '+ts+' (neste aparelho)';
+        salvarProgresso(false); // auto-save ao abrir a página
+    }
+}
+mostraEstado();
+</script>
+</body>
+</html>

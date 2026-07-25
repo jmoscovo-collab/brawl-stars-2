@@ -1,5 +1,12 @@
 # Changelog - Cogumelo Games (site)
 
+## v1.4.0 (2026-07-24) — Fase 2: Contas
+- Pagina /conta/: criar conta (nome+senha com hash SHA-256), entrar, sair, jogar como visitante
+- Progresso de TODOS os jogos salvo na conta (snapshot do localStorage, auto-save ao abrir a pagina)
+- Botao de conta no topo da home mostrando quem esta logado
+- Limite v1: contas valem por aparelho; sync entre aparelhos precisa de backend (aguardando decisao)
+
+
 ## v1.3.1 (2026-07-24)
 - Penaltis: escolha de dispositivo (computador/celular) e aviso de girar a tela no celular
 
