@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v1.8.2 (2026-07-24)
+- Conta: AUTO-SAVE do progresso em todos os jogos (a cada 10s e ao sair da pagina, via stats.js)
+- Stats: lista de jogos atualizada (Penaltis, Ninja, Parkour, Labirinto, Prisao, Arena)
+
+
 ## v1.8.1 (2026-07-24)
 - Penaltis: novo modo TIMES — 100 clubes do Ibis ao Real Madrid, progresso separado do modo Selecoes, mesmas moedas
 

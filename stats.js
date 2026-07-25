@@ -33,6 +33,26 @@ function savePlayTime() {
     times.total = (times.total || 0) + elapsed;
     localStorage.setItem('cogumelo_playtime', JSON.stringify(times));
     updateStatsDisplay();
+    cgAutoSave();
+}
+
+// === AUTO-SAVE da conta (roda a cada 10s e ao sair da página) ===
+// Se o jogador estiver logado (/conta/), guarda o progresso de todos os jogos na conta.
+function cgAutoSave() {
+    try {
+        const u = localStorage.getItem('cg_usuario');
+        if (!u) return;
+        const contas = JSON.parse(localStorage.getItem('cg_contas') || '{}');
+        if (!contas[u]) return;
+        const dados = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (!k.startsWith('cg_')) dados[k] = localStorage.getItem(k);
+        }
+        contas[u].dados = dados;
+        contas[u].atualizado = Date.now();
+        localStorage.setItem('cg_contas', JSON.stringify(contas));
+    } catch (e) {}
 }
 
 async function incrementGlobalVisits() {
@@ -210,8 +230,9 @@ function updateStatsDisplay() {
 
     const gameNames = {
         home: '🍄 Home', capivara: '🐾 Capivara', clicker: '🍄 Clicker',
-        corrida: '🏎️ Turbo', space: '🚗 Street', brawl: '🤖 Brawl',
-        zombie: '🧟 Zombie'
+        corrida: '🏎️ Turbo', space: '🚗 Street', brawl: '🤖 Arena',
+        zombie: '🧟 Zombie', penaltis: '⚽ Pênaltis', ninja: '🥷 Ninja',
+        parkour: '🏃 Parkour', labirinto: '👻 Labirinto', prisao: '🔓 Prisão'
     };
 
     let maxTime = 0, favGame = '-';
