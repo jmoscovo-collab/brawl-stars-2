@@ -95,7 +95,7 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
 
 <div id="controles">
     <div class="ctl"><div id="btnEsq">◀</div><div id="btnDir">▶</div></div>
-    <div class="ctl"><div class="golpe" id="btnSoco">👊</div><div class="golpe" id="btnChute">🦵</div></div>
+    <div class="ctl"><div id="btnPulo">⬆️</div><div class="golpe" id="btnSoco">👊</div><div class="golpe" id="btnChute">🦵</div></div>
 </div>
 
 <div class="painel" id="menu" style="display:flex;">
@@ -116,7 +116,7 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
         <button class="fechar" style="background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a; font-size:20px;" onclick="escolheDisp('pc')">💻 COMPUTADOR</button>
         <button class="fechar" style="background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200; font-size:20px;" onclick="escolheDisp('celular')">📱 CELULAR</button>
     </div>
-    <div class="sub" style="margin-top:14px;">💻 A/D ou setas andam · <b>ESPAÇO = SOCO 👊</b> · <b>MOUSE = CHUTE 🦵</b><br>📱 Botões na tela</div>
+    <div class="sub" style="margin-top:14px;">💻 A/D ou setas andam · <b>W/seta ⬆ = PULAR</b> · <b>ESPAÇO = SOCO 👊</b> · <b>MOUSE = CHUTE 🦵</b><br>📱 Botões na tela (pular desvia dos golpes!)</div>
 </div>
 
 <script src="/stats.js"></script>
@@ -199,7 +199,7 @@ const CHAO = H - 90;
 let lutando = false, nivelAtual = 1, botEmoji = '🐭';
 let t = 0;
 const teclas = {};
-const btn = { esq:false, dir:false };
+const btn = { esq:false, dir:false, pulo:false };
 
 // lutador: x, vida, vidaMax, golpe (timer animação), tipo golpe, cooldown, atordoado
 let eu, bot;
@@ -208,9 +208,9 @@ function novaLuta(n){
     nivelAtual = n;
     botEmoji = BOTS[(n-1) % BOTS.length];
     const dif = (n-1)/99; // 0 → 1
-    eu = { x:250, vida:100, vidaMax:100, golpe:0, tipoGolpe:'', cd:0, dir:1, dor:0 };
+    eu = { x:250, y:0, vy:0, vida:100, vidaMax:100, golpe:0, tipoGolpe:'', cd:0, dir:1, dor:0 };
     bot = {
-        x:710, vida:80+Math.round(dif*220), vidaMax:80+Math.round(dif*220),
+        x:710, y:0, vy:0, vida:80+Math.round(dif*220), vidaMax:80+Math.round(dif*220),
         golpe:0, tipoGolpe:'', cd:0, dir:-1, dor:0,
         vel: 1.2+dif*1.6, dano: 4+Math.round(dif*10), agress: 0.01+dif*0.045
     };
@@ -230,7 +230,7 @@ function golpe(quem, alvo, tipo){
     const dano = quem===eu ? (tipo==='soco' ? 7 : 13) : (tipo==='soco' ? bot.dano : bot.dano+4);
     const dist = Math.abs(quem.x - alvo.x);
     som(tipo==='soco'?300:220, 0.08);
-    if(dist < alcance){
+    if(dist < alcance && Math.abs((quem.y||0)-(alvo.y||0)) < 55){
         alvo.vida = Math.max(0, alvo.vida - dano);
         alvo.dor = 10;
         alvo.x += (alvo.x > quem.x ? 22 : -22); // empurrão
@@ -279,6 +279,7 @@ function ligaBtn(id, fn){
 }
 ligaBtn('btnEsq', v=>btn.esq=v);
 ligaBtn('btnDir', v=>btn.dir=v);
+ligaBtn('btnPulo', v=>btn.pulo=v);
 ligaBtn('btnSoco', v=>{ if(v && lutando) golpe(eu, bot, 'soco'); });
 ligaBtn('btnChute', v=>{ if(v && lutando) golpe(eu, bot, 'chute'); });
 
@@ -288,11 +289,18 @@ function passo(){
     // movimento do jogador
     const esq = teclas['ArrowLeft']||teclas['KeyA']||btn.esq;
     const dir = teclas['ArrowRight']||teclas['KeyD']||btn.dir;
-    if(esq) eu.x -= 4.5;
-    if(dir) eu.x += 4.5;
+    if(esq){ eu.x -= 4.5; eu.dir = -1; }   // vira pro lado que você anda!
+    if(dir){ eu.x += 4.5; eu.dir = 1; }
     eu.x = Math.max(60, Math.min(W-60, eu.x));
-    eu.dir = bot.x > eu.x ? 1 : -1;
     bot.dir = eu.x > bot.x ? 1 : -1;
+    // PULO (desvia dos golpes!)
+    const querPulo = teclas['KeyW']||teclas['ArrowUp']||btn.pulo;
+    if(querPulo && eu.y===0){ eu.vy = 14; som(450,0.08); }
+    [eu, bot].forEach(f=>{
+        if(f.y>0 || f.vy>0){ f.y += f.vy; f.vy -= 0.9; if(f.y<=0){ f.y=0; f.vy=0; } }
+    });
+    // bot às vezes pula também nos níveis altos
+    if(bot.y===0 && Math.random() < bot.agress*0.15) bot.vy = 13;
     // timers
     [eu, bot].forEach(f=>{ if(f.golpe>0) f.golpe--; if(f.cd>0) f.cd--; if(f.dor>0) f.dor--; });
     // IA do bot: aproxima e ataca
@@ -309,7 +317,7 @@ function desenhaLutador(f, emoji, nome){
     ctx.save();
     ctx.globalAlpha = 1;
     ctx.fillStyle = '#ffffff';
-    ctx.translate(f.x, CHAO);
+    ctx.translate(f.x, CHAO - (f.y||0));
     if(f.dor>0) ctx.translate((Math.random()-0.5)*6, 0); // treme quando apanha
     // sombra
     ctx.fillStyle='rgba(0,0,0,0.3)';
