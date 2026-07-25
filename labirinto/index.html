@@ -88,6 +88,92 @@
   }
   #win { display: none; }
   #win h1 { color: #4f4; text-shadow: 0 0 30px #0f0; }
+
+  /* ===== barras de vida e fome ===== */
+  #bars {
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+    width: 300px; z-index: 10; pointer-events: none;
+  }
+  .bar-wrap {
+    height: 20px; background: rgba(0,0,0,0.6); border: 2px solid #fff;
+    border-radius: 10px; margin-top: 6px; position: relative; overflow: hidden;
+  }
+  .bar-fill { height: 100%; transition: width 0.2s; border-radius: 7px; }
+  #hp-fill { background: linear-gradient(90deg, #a00, #f44); width: 100%; }
+  #food-fill { background: linear-gradient(90deg, #a60, #fa0); width: 100%; }
+  .bar-label {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 12px; font-weight: bold; text-shadow: 0 1px 2px #000;
+  }
+  body.mobile-mode #bars { bottom: auto; top: 40px; width: 220px; }
+
+  /* ===== jumpscare ===== */
+  #jumpscare {
+    position: absolute; inset: 0; background: #000; z-index: 400;
+    display: none; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  #jumpscare.show { display: flex; animation: js-flash 0.15s infinite; }
+  #jumpscare-face {
+    font-size: 45vmin; line-height: 1; filter: drop-shadow(0 0 40px #f00);
+    animation: js-shake 0.06s infinite;
+  }
+  @keyframes js-flash { 0%,100% { background:#000; } 50% { background:#300; } }
+  @keyframes js-shake {
+    0% { transform: translate(0,0) scale(1); }
+    25% { transform: translate(-12px,8px) scale(1.15) rotate(-4deg); }
+    50% { transform: translate(10px,-10px) scale(1.3) rotate(3deg); }
+    75% { transform: translate(-8px,-6px) scale(1.2) rotate(-2deg); }
+    100% { transform: translate(9px,7px) scale(1.1) rotate(4deg); }
+  }
+
+  /* ===== sangue na tela ===== */
+  #blood-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+  .blood-splat {
+    position: absolute; border-radius: 50%;
+    background: radial-gradient(circle, rgba(170,10,10,0.85) 0%, rgba(120,5,5,0.6) 40%, rgba(90,0,0,0) 70%);
+    animation: splat-fade 2.5s forwards;
+  }
+  @keyframes splat-fade {
+    0% { opacity: 0; transform: scale(0.3); }
+    10% { opacity: 1; transform: scale(1.1); }
+    20% { transform: scale(1); }
+    100% { opacity: 0; transform: scale(1) translateY(40px); }
+  }
+  #damage-vignette {
+    position: absolute; inset: 0; pointer-events: none; z-index: 55; opacity: 0;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(160,0,0,0.7) 100%);
+    transition: opacity 0.3s;
+  }
+
+  /* ===== aviso deitar o celular ===== */
+  #rotate-screen {
+    position: absolute; inset: 0; background: #000; z-index: 350;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    color: #fff; text-align: center;
+  }
+  #rotate-screen .phone {
+    font-size: 90px; display: inline-block;
+    animation: rotate-phone 1.6s ease-in-out infinite;
+  }
+  @keyframes rotate-phone {
+    0%, 20% { transform: rotate(0deg); }
+    60%, 85% { transform: rotate(90deg); }
+    100% { transform: rotate(90deg); }
+  }
+  #rotate-screen h2 { color: #f44; text-shadow: 0 0 15px #f00; font-size: 26px; margin: 20px 10px 6px; }
+  #rotate-screen p { font-size: 16px; margin: 0 20px; color: #ccc; }
+
+  /* botão interagir mobile */
+  #btn-interact { bottom: 210px; right: 40px; background: rgba(80,180,255,0.5); display: none; }
+  body.mobile-mode #btn-interact.avail { display: flex; }
+
+  /* dica de interação PC */
+  #interact-hint {
+    position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%);
+    color: #ff4; background: rgba(0,0,0,0.7); padding: 8px 16px; border-radius: 8px;
+    font-size: 16px; z-index: 10; display: none; pointer-events: none;
+  }
 </style>
 </head>
 <body>
@@ -111,13 +197,31 @@
   <div id="look-area"></div>
   <div class="touch-btn" id="btn-attack">🪓</div>
   <div class="touch-btn" id="btn-lantern">🔦</div>
+  <div class="touch-btn" id="btn-interact">✋</div>
+</div>
+
+<div id="rotate-screen">
+  <span class="phone">📱</span>
+  <h2>DEITA O CELULAR!</h2>
+  <p>Vira o celular de lado (paisagem)<br>pra ficar melhor o jogo 👻</p>
+</div>
+
+<div id="jumpscare"><div id="jumpscare-face">👹</div></div>
+<div id="blood-overlay"></div>
+<div id="damage-vignette"></div>
+<div id="interact-hint">✋ Aperte <b>E</b> pra abrir o armário</div>
+
+<div id="bars">
+  <div class="bar-wrap"><div class="bar-fill" id="hp-fill"></div><div class="bar-label">❤️ VIDA</div></div>
+  <div class="bar-wrap"><div class="bar-fill" id="food-fill"></div><div class="bar-label">🍗 COMIDA</div></div>
 </div>
 
 <div id="info">
   👻 Fantasmas: <span id="ghost-count">5</span> |
   🪓 <span id="axe-status">ESPAÇO p/ atacar</span> |
   🔑 Chaves: <span id="keys">0</span>/3 |
-  ❤️ Vida: <span id="hp">200</span> |
+  ❤️ Vida: <span id="hp">100</span> |
+  👹 Monstros: <span id="monster-count">3</span> |
   🔦 <span id="lantern-status" style="color:#888">DESLIGADA</span> (F)
 </div>
 <div id="stamina"><div id="stamina-fill"></div></div>
@@ -132,7 +236,9 @@
       <span class="key">SHIFT</span> correr &nbsp;
       <span class="key">MOUSE</span> olhar &nbsp;
       <span class="key">F</span> lanterna &nbsp;
-      <span class="key">ESPAÇO</span> atacar c/ machado 🪓<br><br>
+      <span class="key">ESPAÇO</span> atacar c/ machado 🪓 &nbsp;
+      <span class="key">E</span> abrir armário 🚪<br><br>
+      🍗 Fique de olho na <b>fome</b>: procure comida nos <b>armários</b>... mas cuidado com o que mora dentro deles! 👹<br><br>
       <b style="color:#ff4">CLIQUE PARA COMEÇAR</b>
     </p>
   </div>
@@ -197,7 +303,23 @@ document.getElementById('btn-mobile').onclick = () => {
   if (document.documentElement.requestFullscreen) {
     document.documentElement.requestFullscreen().catch(()=>{});
   }
+  // pede pra deitar o celular
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('landscape').catch(()=>{});
+  }
+  checkOrientation();
 };
+
+// ===== aviso "deita o celular" =====
+const rotateScreen = document.getElementById('rotate-screen');
+function checkOrientation() {
+  if (!isMobile) { rotateScreen.style.display = 'none'; return; }
+  const portrait = innerHeight > innerWidth;
+  rotateScreen.style.display = portrait ? 'flex' : 'none';
+  mobileLocked = !portrait; // pausa o jogo enquanto está em pé
+}
+addEventListener('resize', checkOrientation);
+addEventListener('orientationchange', () => setTimeout(checkOrientation, 300));
 
 blocker.addEventListener('click', () => { if (!isMobile) controls.lock(); });
 controls.addEventListener('lock', () => blocker.style.display = 'none');
@@ -467,6 +589,101 @@ function playHit() {
 }
 controls.addEventListener('lock', startAudio);
 
+// grito de jumpscare — ruído + guincho agudo, curto e ALTO
+function playScream() {
+  if (!audioCtx) return;
+  const t0 = audioCtx.currentTime;
+  // guincho descendente
+  const o = audioCtx.createOscillator(); o.type = 'sawtooth';
+  o.frequency.setValueAtTime(900, t0);
+  o.frequency.exponentialRampToValueAtTime(180, t0 + 0.7);
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.5, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.8);
+  o.connect(g); g.connect(audioCtx.destination); o.start(t0); o.stop(t0 + 0.8);
+  // rajada de ruído
+  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.6, audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i=0; i<d.length; i++) d[i] = (Math.random()*2-1) * (1 - i/d.length);
+  const n = audioCtx.createBufferSource(); n.buffer = buf;
+  const ng = audioCtx.createGain(); ng.gain.value = 0.4;
+  const nf = audioCtx.createBiquadFilter(); nf.type = 'highpass'; nf.frequency.value = 300;
+  n.connect(nf); nf.connect(ng); ng.connect(audioCtx.destination); n.start(t0);
+  // batida grave (susto no peito)
+  const o2 = audioCtx.createOscillator(); o2.type = 'sine';
+  o2.frequency.setValueAtTime(60, t0);
+  o2.frequency.exponentialRampToValueAtTime(30, t0 + 0.4);
+  const g2 = audioCtx.createGain();
+  g2.gain.setValueAtTime(0.6, t0);
+  g2.gain.exponentialRampToValueAtTime(0.001, t0 + 0.5);
+  o2.connect(g2); g2.connect(audioCtx.destination); o2.start(t0); o2.stop(t0 + 0.5);
+}
+// som de comer (nham nham)
+function playEat() {
+  if (!audioCtx) return;
+  const t0 = audioCtx.currentTime;
+  for (let i=0; i<3; i++) {
+    const o = audioCtx.createOscillator(); o.type = 'triangle';
+    o.frequency.setValueAtTime(300 + i*80, t0 + i*0.12);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0, t0 + i*0.12);
+    g.gain.linearRampToValueAtTime(0.15, t0 + i*0.12 + 0.03);
+    g.gain.linearRampToValueAtTime(0, t0 + i*0.12 + 0.1);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(t0 + i*0.12); o.stop(t0 + i*0.12 + 0.12);
+  }
+}
+// rangido de porta de armário
+function playCreak() {
+  if (!audioCtx) return;
+  const t0 = audioCtx.currentTime;
+  const o = audioCtx.createOscillator(); o.type = 'sawtooth';
+  o.frequency.setValueAtTime(120, t0);
+  o.frequency.linearRampToValueAtTime(200, t0 + 0.5);
+  const g = audioCtx.createGain(); g.gain.value = 0.06;
+  g.gain.linearRampToValueAtTime(0, t0 + 0.6);
+  const f = audioCtx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 500; f.Q.value = 8;
+  o.connect(f); f.connect(g); g.connect(audioCtx.destination); o.start(t0); o.stop(t0 + 0.6);
+}
+
+// ===== JUMPSCARE =====
+const jumpscareEl = document.getElementById('jumpscare');
+const jumpscareFace = document.getElementById('jumpscare-face');
+let jumpscareActive = false;
+function jumpscare(face, after) {
+  if (jumpscareActive) { if (after) after(); return; }
+  jumpscareActive = true;
+  startAudio();
+  jumpscareFace.textContent = face;
+  jumpscareEl.classList.add('show');
+  playScream();
+  setTimeout(() => {
+    jumpscareEl.classList.remove('show');
+    jumpscareActive = false;
+    if (after) after();
+  }, 900);
+}
+
+// ===== SANGUE na tela =====
+const bloodOverlay = document.getElementById('blood-overlay');
+const damageVignette = document.getElementById('damage-vignette');
+let vignetteTimer = 0;
+function bloodSplash(big) {
+  const n = big ? 8 : 3;
+  for (let i=0; i<n; i++) {
+    const s = document.createElement('div');
+    s.className = 'blood-splat';
+    const size = (big ? 120 : 60) + Math.random()*120;
+    s.style.width = s.style.height = size + 'px';
+    s.style.left = (Math.random()*100) + '%';
+    s.style.top = (Math.random()*100) + '%';
+    bloodOverlay.appendChild(s);
+    setTimeout(() => s.remove(), 2600);
+  }
+  damageVignette.style.opacity = '1';
+  vignetteTimer = 0.6;
+}
+
 // lanterna do jogador (começa DESLIGADA)
 let lanternOn = false;
 const flashlight = new THREE.SpotLight(0xffffee, 0, 40, Math.PI/3.5, 0.5, 1.0);
@@ -511,7 +728,31 @@ function swingAxe() {
       if (toG.dot(dir) > 0.45) {
         g.mesh.userData.hp -= 1;
         g.hitFlash = 0.3;
-        if (g.mesh.userData.hp <= 0) g.dead = true;
+        if (g.mesh.userData.hp <= 0) {
+          g.dead = true;
+          spawnFloorBlood(g.mesh.position.x, g.mesh.position.z);
+        }
+      }
+    }
+  });
+  monsters.forEach(m => {
+    if (m.dead) return;
+    const toM = new THREE.Vector3().subVectors(m.mesh.position, pp);
+    const dist = toM.length();
+    if (dist < 2.8) {
+      toM.normalize();
+      if (toM.dot(dir) > 0.45) {
+        m.mesh.userData.hp -= 1;
+        m.hitFlash = 0.3;
+        spawnFloorBlood(m.mesh.position.x, m.mesh.position.z);
+        if (m.mesh.userData.hp <= 0) {
+          m.dead = true;
+          spawnFloorBlood(m.mesh.position.x, m.mesh.position.z);
+          spawnFloorBlood(m.mesh.position.x + 0.8, m.mesh.position.z + 0.5);
+          scene.remove(m.mesh);
+          const alive = monsters.filter(x => !x.dead).length;
+          document.getElementById('monster-count').textContent = alive;
+        }
       }
     }
   });
@@ -614,6 +855,152 @@ for (let i=0; i<NUM_GHOSTS_TOTAL; i++) {
   ghosts.push({mesh: g, speed: 1.5 + Math.random()*0.8, phase: Math.random()*Math.PI*2});
 }
 
+// ===== SANGUE 3D no chão (quando fantasma/monstro morre) =====
+const bloodDecalTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = 'rgba(140,10,10,0.9)';
+  ctx.beginPath(); ctx.ellipse(64, 64, 40, 30, 0, 0, Math.PI*2); ctx.fill();
+  for (let i=0; i<10; i++) {
+    ctx.beginPath();
+    ctx.arc(64 + (Math.random()-0.5)*90, 64 + (Math.random()-0.5)*90, 4+Math.random()*10, 0, Math.PI*2);
+    ctx.fill();
+  }
+  return new THREE.CanvasTexture(c);
+})();
+function spawnFloorBlood(x, z) {
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.5 + Math.random(), 1.5 + Math.random()),
+    new THREE.MeshBasicMaterial({map: bloodDecalTex, transparent: true, opacity: 0.85, depthWrite: false})
+  );
+  m.rotation.x = -Math.PI/2;
+  m.rotation.z = Math.random()*Math.PI*2;
+  m.position.set(x, 0.02 + Math.random()*0.02, z);
+  scene.add(m);
+}
+
+// ===== MONSTROS (rondam o labirinto — mais fortes que fantasmas) =====
+function makeMonster() {
+  const g = new THREE.Group();
+  const skinMat = new THREE.MeshStandardMaterial({color: 0x5a1010, roughness: 0.8, emissive: 0x220000, emissiveIntensity: 0.4});
+  // corpo troncudo
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.3, 0.7), skinMat);
+  body.position.y = 1.0; g.add(body);
+  // cabeça grande
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.7, 0.7), skinMat);
+  head.position.y = 2.0; g.add(head);
+  // olhos amarelos brilhantes
+  const eyeMat = new THREE.MeshBasicMaterial({color: 0xffee00});
+  const eL = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), eyeMat); eL.position.set(-0.2, 2.1, 0.36); g.add(eL);
+  const eR = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), eyeMat); eR.position.set(0.2, 2.1, 0.36); g.add(eR);
+  // boca com dentes (cartunesco)
+  const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.18, 0.05), new THREE.MeshBasicMaterial({color: 0x000000}));
+  mouth.position.set(0, 1.85, 0.36); g.add(mouth);
+  for (let i=0; i<4; i++) {
+    const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.1, 4), new THREE.MeshBasicMaterial({color: 0xffffff}));
+    tooth.position.set(-0.18 + i*0.12, 1.9, 0.38); tooth.rotation.x = Math.PI; g.add(tooth);
+  }
+  // braços
+  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.0, 0.25), skinMat); armL.position.set(-0.75, 1.1, 0); g.add(armL);
+  const armR = armL.clone(); armR.position.x = 0.75; g.add(armR);
+  // pernas
+  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.7, 0.3), skinMat); legL.position.set(-0.3, 0.35, 0); g.add(legL);
+  const legR = legL.clone(); legR.position.x = 0.3; g.add(legR);
+  // brilho vermelho
+  const gl = new THREE.PointLight(0xff2200, 0.8, 4); gl.position.y = 2; g.add(gl);
+  g.userData.hp = 4;
+  return g;
+}
+const monsters = [];
+const NUM_MONSTERS = 3;
+for (let i=0; i<NUM_MONSTERS; i++) {
+  const c = openCells[Math.floor(openCells.length * (0.4 + 0.2*i))];
+  const m = makeMonster();
+  m.position.set(c.x*CELL, 0, c.z*CELL);
+  scene.add(m);
+  monsters.push({
+    mesh: m, speed: 2.2, dead: false, hitFlash: 0,
+    // ronda: alvo aleatório; persegue se vir o jogador de perto
+    target: null, chasing: false, jumpscared: false,
+  });
+}
+function randomOpenCell() { return openCells[Math.floor(Math.random()*openCells.length)]; }
+
+// ===== ARMÁRIOS =====
+const cabinets = [];
+const NUM_CABINETS = 10;
+const cabinetMat = new THREE.MeshStandardMaterial({color: 0x3a2515, roughness: 0.9});
+const cabinetDoorMat = new THREE.MeshStandardMaterial({color: 0x4a3020, roughness: 0.85});
+{
+  const used = new Set();
+  let tries = 0;
+  while (cabinets.length < NUM_CABINETS && tries < 300) {
+    tries++;
+    const c = openCells[Math.floor(Math.random()*openCells.length)];
+    const key = c.x + ',' + c.z;
+    if (used.has(key) || (c.x === start.x && c.z === start.z)) continue;
+    used.add(key);
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.4, 0.7), cabinetMat);
+    body.position.y = 1.2; body.castShadow = true; g.add(body);
+    const door = new THREE.Mesh(new THREE.BoxGeometry(1.0, 2.1, 0.08), cabinetDoorMat);
+    door.position.set(0, 1.2, 0.38); g.add(door);
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), new THREE.MeshStandardMaterial({color: 0xccaa33, metalness: 0.8}));
+    knob.position.set(0.35, 1.2, 0.45); g.add(knob);
+    // encosta na borda da célula (aleatório)
+    const off = 1.4;
+    const side = Math.floor(Math.random()*4);
+    const ox = side === 0 ? off : side === 1 ? -off : 0;
+    const oz = side === 2 ? off : side === 3 ? -off : 0;
+    g.position.set(c.x*CELL + ox, 0, c.z*CELL + oz);
+    g.rotation.y = Math.random()*Math.PI*2;
+    scene.add(g);
+    cabinets.push({mesh: g, door, opened: false});
+  }
+}
+// sorteia o conteúdo na hora de abrir
+function openCabinet(cab) {
+  if (cab.opened) return;
+  cab.opened = true;
+  playCreak();
+  // porta abre (gira)
+  cab.door.position.x = -0.5;
+  cab.door.rotation.y = -1.8;
+  const roll = Math.random();
+  if (roll < 0.40) {
+    // COMIDA
+    food = Math.min(100, food + 40);
+    hp = Math.min(100, hp + 5);
+    playEat();
+    showToast('🍗 Achou comida! Nham nham!');
+  } else if (roll < 0.55) {
+    // remédio: cura vida
+    hp = Math.min(100, hp + 25);
+    playEat();
+    showToast('💊 Achou remédio! +25 de vida');
+  } else if (roll < 0.80) {
+    // nada
+    showToast('🕸️ Vazio... só teia de aranha.');
+  } else {
+    // JUMPSCARE!
+    const faces = ['👹','💀','🕷️','🧟','👺'];
+    jumpscare(faces[Math.floor(Math.random()*faces.length)]);
+    bloodSplash(false);
+    hp = Math.max(1, hp - 10); // assusta e machuca um pouco, mas não mata
+    showToast('😱 TINHA ALGO NO ARMÁRIO!');
+  }
+  updateHud();
+}
+// aviso rápido na tela
+let toastUntil = 0;
+function showToast(msg) {
+  const hint = document.getElementById('interact-hint');
+  hint.innerHTML = msg;
+  hint.style.display = 'block';
+  toastUntil = performance.now() + 2200;
+}
+let nearCabinet = null;
+
 // ===== Movimento =====
 const keysDown = {};
 function toggleLantern() {
@@ -626,14 +1013,28 @@ addEventListener('keydown', e => {
   keysDown[e.code] = true;
   if (e.code === 'Space') { e.preventDefault(); swingAxe(); }
   if (e.code === 'KeyF') toggleLantern();
+  if (e.code === 'KeyE' && nearCabinet && controls.isLocked && !gameOver) openCabinet(nearCabinet);
+});
+document.getElementById('btn-interact').addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (nearCabinet && !gameOver) openCabinet(nearCabinet);
 });
 addEventListener('keyup', e => keysDown[e.code] = false);
 
 let velocity = new THREE.Vector3();
 let stamina = 100;
 let hp = 100;
+let food = 100; // fome: desce com o tempo
 let keysCollected = 0;
 let gameOver = false;
+
+const hpFill = document.getElementById('hp-fill');
+const foodFill = document.getElementById('food-fill');
+function updateHud() {
+  document.getElementById('hp').textContent = Math.max(0, Math.round(hp));
+  hpFill.style.width = Math.max(0, hp) + '%';
+  foodFill.style.width = Math.max(0, food) + '%';
+}
 
 const PLAYER_RADIUS = 0.4;
 
@@ -663,7 +1064,8 @@ const hudKeys = document.getElementById('keys');
 const hudHp = document.getElementById('hp');
 const staminaFill = document.getElementById('stamina-fill');
 
-function endGame(won) {
+function endGame(won, msg) {
+  if (gameOver) return;
   gameOver = true;
   controls.unlock();
   document.getElementById('blocker').style.display = 'none';
@@ -674,7 +1076,7 @@ function endGame(won) {
     document.getElementById('end-title').style.color = '#4f4';
     document.getElementById('end-msg').textContent = 'Você pegou as 3 chaves e sobreviveu!';
   } else {
-    document.getElementById('end-msg').textContent = 'Os fantasmas te alcançaram...';
+    document.getElementById('end-msg').textContent = msg || 'Os fantasmas te alcançaram...';
   }
 }
 
@@ -714,6 +1116,41 @@ function animate() {
     if (running && velocity.lengthSq() > 0) stamina = Math.max(0, stamina - 30*dt);
     else stamina = Math.min(100, stamina + 15*dt);
     staminaFill.style.width = stamina + '%';
+
+    // ===== FOME =====
+    food = Math.max(0, food - 1.1*dt); // ~90s pra zerar
+    if (food <= 0) {
+      hp -= 3*dt; // fome zerada corrói a vida
+      if (hp <= 0) { hp = 0; jumpscare('💀', () => endGame(false, 'Você morreu de fome...')); }
+    }
+    updateHud();
+
+    // vinheta de dano some aos poucos
+    if (vignetteTimer > 0) {
+      vignetteTimer -= dt;
+      if (vignetteTimer <= 0) damageVignette.style.opacity = '0';
+    }
+
+    // ===== ARMÁRIOS: proximidade =====
+    nearCabinet = null;
+    for (const cab of cabinets) {
+      if (!cab.opened && cab.mesh.position.distanceTo(controls.getObject().position) < 2.2) {
+        nearCabinet = cab; break;
+      }
+    }
+    const hint = document.getElementById('interact-hint');
+    const btnInteract = document.getElementById('btn-interact');
+    const toastAtiva = performance.now() < toastUntil;
+    if (nearCabinet) {
+      if (!toastAtiva) {
+        hint.innerHTML = isMobile ? '✋ Toque no botão pra abrir o armário' : '✋ Aperte <b>E</b> pra abrir o armário';
+        hint.style.display = 'block';
+      }
+      btnInteract.classList.add('avail');
+    } else {
+      btnInteract.classList.remove('avail');
+      if (!toastAtiva) hint.style.display = 'none';
+    }
 
     // chaves
     const pp = controls.getObject().position;
@@ -800,8 +1237,68 @@ function animate() {
       // dano
       if (dist < 1.2) {
         hp -= 8 * dt;
-        hudHp.textContent = Math.max(0, Math.round(hp));
-        if (hp <= 0) endGame(false);
+        if (g.bloodCd === undefined || g.bloodCd <= 0) { bloodSplash(false); g.bloodCd = 0.8; }
+        updateHud();
+        if (hp <= 0) {
+          hp = 0;
+          jumpscare('👻', () => endGame(false));
+        }
+      }
+      if (g.bloodCd > 0) g.bloodCd -= dt;
+    });
+
+    // ===== MONSTROS rondam e perseguem =====
+    monsters.forEach(m => {
+      if (m.dead) return;
+      if (m.hitFlash > 0) m.hitFlash -= dt;
+      if (m.bloodCd > 0) m.bloodCd -= dt;
+      const mp = m.mesh.position;
+      const toPlayer = new THREE.Vector3().subVectors(pp, mp);
+      toPlayer.y = 0;
+      const distP = toPlayer.length();
+      m.chasing = distP < 9; // te viu!
+      let dirV;
+      if (m.chasing) {
+        dirV = toPlayer.normalize();
+      } else {
+        // ronda: anda até um ponto aleatório do labirinto
+        if (!m.target || Math.hypot(m.target.x*CELL - mp.x, m.target.z*CELL - mp.z) < 1.5) {
+          m.target = randomOpenCell();
+        }
+        dirV = new THREE.Vector3(m.target.x*CELL - mp.x, 0, m.target.z*CELL - mp.z).normalize();
+      }
+      const step = (m.chasing ? m.speed * 1.3 : m.speed * 0.6) * dt;
+      const newX = mp.x + dirV.x * step;
+      const newZ = mp.z + dirV.z * step;
+      const cellX = Math.round(newX/CELL), cellZ = Math.round(newZ/CELL);
+      if (MAZE[cellZ] && MAZE[cellZ][cellX] === '0') {
+        mp.x = newX; mp.z = newZ;
+      } else {
+        const cx2 = Math.round(newX/CELL), cz2 = Math.round(mp.z/CELL);
+        if (MAZE[cz2] && MAZE[cz2][cx2] === '0') mp.x = newX;
+        else {
+          const cx3 = Math.round(mp.x/CELL), cz3 = Math.round(newZ/CELL);
+          if (MAZE[cz3] && MAZE[cz3][cx3] === '0') mp.z = newZ;
+          else m.target = randomOpenCell(); // travou, muda de alvo
+        }
+      }
+      // balanço de caminhada
+      m.mesh.position.y = Math.abs(Math.sin(clock.elapsedTime*6)) * 0.1;
+      m.mesh.lookAt(m.chasing ? pp.x : mp.x + dirV.x, m.mesh.position.y + 1, m.chasing ? pp.z : mp.z + dirV.z);
+      // te pegou! jumpscare + dano forte
+      if (distP < 1.4) {
+        if (!m.jumpscared) {
+          m.jumpscared = true;
+          jumpscare('👹');
+          setTimeout(() => { m.jumpscared = false; }, 3000);
+        }
+        hp -= 25 * dt;
+        if (m.bloodCd === undefined || m.bloodCd <= 0) { bloodSplash(true); m.bloodCd = 0.6; }
+        updateHud();
+        if (hp <= 0) {
+          hp = 0;
+          jumpscare('👹', () => endGame(false, 'O monstro te devorou...'));
+        }
       }
     });
   }

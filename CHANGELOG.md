@@ -1,5 +1,16 @@
 # Changelog - Cogumelo Games (site)
 
+## v1.7.0 (2026-07-24) — Fase 5
+### Zumbi Survival
+- Cronometro de sobrevivencia; ondas mais dificeis com anuncio; barra de fome + comidas 3D
+- Lobby com 3 mapas (Cidade, Deserto, Noite Sombria) e loja de armas (moedas por onda)
+- Barra de vida em cima dos zumbis; aviso de virar a tela no celular
+### Labirinto Assombrado
+- Jumpscares com som (WebAudio); 3 monstros rondando; sangue cartunesco
+- Barras de vida e fome; 10 armarios com comida/remedio/susto (tecla E)
+- Aviso animado de deitar o celular
+
+
 ## v1.6.0 (2026-07-24) — Fase 4
 ### Turbo Racing
 - Botoes de toque pra celular; 20 carros novos + 6 exclusivos na loja (500-2000 moedas)
