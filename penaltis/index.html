@@ -261,6 +261,23 @@ const CLUBES = [
 let modo = localStorage.getItem('penaltis_modo')||'selecoes';
 function timesDoModo(){ return modo==='times' ? CLUBES : TIMES; }
 
+// cor do uniforme do goleiro por time/seleção
+const CORES_TIMES = {
+    'Brasil':'#ffdd00','Argentina':'#75aadb','França':'#1f3fb0','Alemanha':'#e8e8e8','Espanha':'#d43333',
+    'Itália':'#2255cc','Inglaterra':'#e8e8e8','Portugal':'#c22222','Holanda':'#ff7f00','Uruguai':'#66ccff',
+    'México':'#0a7a3c','Chile':'#d43333','Colômbia':'#ffd700','Japão':'#2244aa','Croácia':'#ff5555',
+    'Flamengo':'#e52b2b','Palmeiras':'#0d8040','Corinthians':'#e8e8e8','São Paulo':'#d43333','Santos':'#e8e8e8',
+    'Vasco':'#e8e8e8','Botafogo':'#666666','Fluminense':'#7a1f3d','Grêmio':'#3399cc','Internacional':'#d43333',
+    'Cruzeiro':'#2244aa','Atlético-MG':'#666666','Real Madrid':'#e8e8e8','Barcelona':'#a03366','PSG':'#1f3fb0',
+    'Bayern de Munique':'#d43333','Liverpool':'#c22222','Manchester City':'#7fc8e8','Boca Juniors':'#ffd700',
+    'River Plate':'#e8e8e8','Íbis':'#111111'
+};
+function corDoTime(nome){
+    if(CORES_TIMES[nome]) return CORES_TIMES[nome];
+    let h=0; for(let i=0;i<nome.length;i++) h=(h*31+nome.charCodeAt(i))%360;
+    return `hsl(${h},72%,45%)`;
+}
+
 // dificuldade do nível n (1..100)
 function dificuldade(n){
     const p = (n-1)/99;
@@ -464,7 +481,14 @@ cv.addEventListener('touchmove', e=>{
     mira.y=(t.clientY-r.top)*(H/r.height);
 },{passive:false});
 cv.addEventListener('mousedown', chutar);
-cv.addEventListener('touchend', e=>{ e.preventDefault(); chutar(); });
+// celular: TOCAR já mira e chuta (não precisa arrastar)
+function miraDoToque(t){
+    const r=cv.getBoundingClientRect();
+    mira.x=(t.clientX-r.left)*(W/r.width);
+    mira.y=(t.clientY-r.top)*(H/r.height);
+}
+cv.addEventListener('touchstart', e=>{ e.preventDefault(); miraDoToque(e.touches[0]); }, {passive:false});
+cv.addEventListener('touchend', e=>{ e.preventDefault(); if(e.changedTouches[0]) miraDoToque(e.changedTouches[0]); chutar(); });
 
 let poderChute=''; // poder consumido neste chute
 function chutar(){
@@ -691,9 +715,18 @@ function desenha(){
 
     if(goleiro.visivel){
         const gyG = goleiro.y + (goleiro.pulando?goleiro.ladoY*Math.min(goleiro.t,1):0);
-        const corCamisa = goleiro.congelado ? '#88ddff' : '#ffdd00';
+        // goleiro do adversário = cor do uniforme do time; o SEU goleiro (defesa) = verde Cogumelo
+        const corCamisa = goleiro.congelado ? '#88ddff' : (minhaVez ? corDoTime(timesDoModo()[nivelAtual-1][0]) : '#00cc66');
         const corPele = goleiro.congelado ? '#aaeeff' : '#ffcc99';
         ctx.save(); ctx.translate(goleiro.x, gyG);
+        // PULO DE LADO: inclina o corpo na direção do mergulho
+        let alvoPulo = null;
+        if(defendendo && defesaPulo) alvoPulo = defesaPulo.x;
+        else if(goleiro.pulando && !goleiro.congelado && minhaVez) alvoPulo = goleiro.destX;
+        if(alvoPulo!==null){
+            const dirX = Math.max(-1, Math.min(1, (alvoPulo - W/2)/(GOL.w/2)));
+            ctx.rotate(dirX * 1.0 * (goleiro.pulando?Math.min(goleiro.t,1):1));
+        }
         if(goleiro.congelado) ctx.globalAlpha=0.7;
         // sombra no chão
         ctx.fillStyle='rgba(0,0,0,0.25)';
@@ -704,7 +737,7 @@ function desenha(){
         ctx.fillStyle='#222'; ctx.fillRect(-18,47,15,6); ctx.fillRect(3,47,15,6);      // chuteiras
         // camisa com degradê e número
         const grad = ctx.createLinearGradient(0,-30,0,25);
-        grad.addColorStop(0, corCamisa); grad.addColorStop(1, goleiro.congelado?'#5599cc':'#cc9900');
+        grad.addColorStop(0, corCamisa); grad.addColorStop(1, corCamisa);
         ctx.fillStyle = grad;
         ctx.beginPath(); ctx.roundRect(-22,-30,44,55,8); ctx.fill();
         ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.font='bold 20px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
