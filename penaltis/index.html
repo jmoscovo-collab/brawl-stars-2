@@ -237,7 +237,8 @@ const BOLAS = [
 {id:'cosmica',  nome:'Cósmica',   icone:'💫', preco:650000, cor:'#8844ff', det:'#220055', desc:'Feita de poeira de estrela!', precisao:0.14, pega:0.29, sorte:0.31, moedas:9},
 {id:'divina',   nome:'Divina',    icone:'✨', preco:800000, cor:'#ffeeaa', det:'#aa8800', desc:'Quase um milagre em forma de bola!', precisao:0.12, pega:0.28, sorte:0.33, moedas:10},
 {id:'galactica',nome:'Galáctica', icone:'🌠', preco:900000, cor:'#3355ff', det:'#001144', desc:'Veio de outra galáxia pra fazer gol!', precisao:0.11, pega:0.27, sorte:0.34, moedas:10},
-{id:'suprema',  nome:'SUPREMA',   icone:'🏆', preco:1000000,cor:'#ff00aa', det:'#ffd700', desc:'A ÚLTIMA BOLA. Nenhum goleiro do mundo segura!', precisao:0.1,  pega:0.25, sorte:0.35, moedas:12}
+{id:'suprema',  nome:'SUPREMA',   icone:'🏆', preco:1000000,cor:'#ff00aa', det:'#ffd700', desc:'Nenhum goleiro do mundo segura!', precisao:0.1,  pega:0.25, sorte:0.35, moedas:12},
+{id:'curvamaster', nome:'CURVA MASTER', icone:'🍌', preco:2500000, cor:'#ffe700', det:'#00cc44', desc:'A MAIS CARA DO JOGO! Faz uma CURVA IMPOSSÍVEL no ar — o goleiro pula pro lado errado!', precisao:0.08, pega:0.2, sorte:0.5, moedas:15, curva:true}
 ];
 
 // ============ PODERES (10 — equipa 1, usa 1x por partida) ============
@@ -793,6 +794,11 @@ function desenha(){
         bola.t += minhaVez ? dif.velBola : dif.velBola*(poderDefesa==='lenta'?0.45:1);
         const t=Math.min(bola.t,1);
         bola.x = W/2 + (bola.destX-W/2)*t;
+        // CURVA MASTER: a bola faz uma banana no ar antes de chegar! 🍌
+        if(minhaVez && bolaAtual().curva){
+            const ladoCurva = bola.destX < W/2 ? 1 : -1;
+            bola.x += Math.sin(t*Math.PI) * 130 * ladoCurva;
+        }
         bola.y = (H-70) + (bola.destY-(H-70))*t - Math.sin(t*Math.PI)*40;
         const base = (poderChute==='gigante' && minhaVez) ? 1.8 : 1;
         bola.escala = base*(1-0.55*t);
