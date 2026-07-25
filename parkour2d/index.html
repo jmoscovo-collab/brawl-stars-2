@@ -97,10 +97,12 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
     <h1>🍄 Cogumelo Parkour 2D</h1>
     <div class="sub">Pule as plataformas, fuja dos espinhos e chegue na bandeira! 🏁 Cada nível dá moedas — compre skins na loja!</div>
     <div class="sub">💻 Setas/WASD + ESPAÇO pula · 📱 botões na tela</div>
-    <div style="display:flex; gap:12px; margin-bottom:12px;">
-        <button class="fechar" style="margin:0; background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a;" onclick="abrePainelNiveis()">🎮 JOGAR</button>
+    <div style="display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap; justify-content:center;">
+        <button class="fechar" id="btnNormal" style="margin:0; background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a;" onclick="escolheModo('normal')">😀 NORMAL</button>
+        <button class="fechar" id="btnHardcore" style="margin:0; background:linear-gradient(135deg,#cc0000,#ff4444); color:#fff;" onclick="escolheModo('hardcore')">🔥 HARDCORE (20s!)</button>
         <button class="fechar" style="margin:0; background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200;" onclick="abreLoja()">🛒 SKINS</button>
     </div>
+    <div class="sub" id="modoTexto">Modo NORMAL: sem pressa, só chegar na bandeira! Escolhe um nível 👇</div>
     <div class="grid" id="listaNiveis" style="grid-template-columns:repeat(auto-fill, minmax(90px,1fr));"></div>
     <div class="grid" id="listaSkins" style="display:none;"></div>
 </div>
@@ -187,24 +189,63 @@ const NIVEIS = [
  "############################."]
 ];
 
-// dificuldade extra: níveis 7+ reusam mapas com mais espinhos via geração
-function pegaNivel(n){
-    const base = NIVEIS[(n-1) % NIVEIS.length].map(l=>l.split(''));
-    // depois da 6ª fase, adiciona espinhos extras determinísticos
-    const extra = Math.floor((n-1)/NIVEIS.length);
-    if(extra>0){
-        let seed = n*7919;
-        const rnd = ()=>{ seed=(seed*9301+49297)%233280; return seed/233280; };
-        for(let e=0; e<extra*3; e++){
-            const r = 2+Math.floor(rnd()*(base.length-3));
-            const c = 3+Math.floor(rnd()*(base[0].length-6));
-            // só põe espinho em cima de chão e onde não tem nada
-            if(base[r][c]==='.' && base[r+1] && '#='.includes(base[r+1][c])) base[r][c]='^';
+// ============ GERADOR DE NÍVEIS (7 a 130 — seed fixa, sempre possível!) ============
+// regras de segurança: buraco no máx 3 tiles, espinho no máx 2 seguidos, sempre com espaço pra aterrissar
+function geraNivel(n){
+    let seed = n*104729 + 12345;
+    const rnd = ()=>{ seed=(seed*9301+49297)%233280; return seed/233280; };
+    const dif = Math.min(1, (n-7)/80);              // 0 fácil → 1 difícil
+    const cols = 34 + Math.floor(Math.min(n,60)/2); // fases vão ficando mais longas
+    const ROWS = 10;
+    const g = Array.from({length:ROWS}, ()=>Array(cols).fill('.'));
+    // chão base nas duas últimas linhas
+    for(let c=0;c<cols;c++){ g[8][c]='#'; g[9][c]='#'; }
+    let c = 4;
+    while(c < cols-6){
+        const roll = rnd();
+        if(roll < 0.22+0.15*dif && c>6){
+            // buraco (2-3 tiles)
+            const larg = rnd()<0.5+dif*0.4 ? 3 : 2;
+            for(let i=0;i<larg && c+i<cols-6;i++){ g[8][c+i]='.'; g[9][c+i]='.'; }
+            // plataforma de ajuda em cima às vezes
+            if(rnd()<0.4){ const pc=c; for(let i=0;i<2;i++) if(pc+i<cols) g[5][pc+i]='='; if(rnd()<0.6) g[4][pc]='C'; }
+            c += larg + 2;
+        } else if(roll < 0.45+0.2*dif){
+            // espinhos (1-2 seguidos)
+            const larg = rnd()<dif*0.6 ? 2 : 1;
+            for(let i=0;i<larg && c+i<cols-6;i++) g[7][c+i]='^';
+            c += larg + 2;
+        } else if(roll < 0.65){
+            // plataforma alta com moeda
+            const alt = 5 - Math.floor(rnd()*2);
+            for(let i=0;i<2+Math.floor(rnd()*2) && c+i<cols-4;i++) g[alt][c+i]='=';
+            g[alt-1][c+ (rnd()<0.5?0:1)]='C';
+            // espinho embaixo da plataforma nas fases difíceis
+            if(rnd()<dif*0.7) g[7][c+1]='^';
+            c += 4;
+        } else {
+            // moeda no chão
+            if(rnd()<0.5) g[7][c]='C';
+            c += 2 + Math.floor(rnd()*2);
         }
     }
-    return base.map(l=>l.join(''));
+    g[6][1]='P';
+    g[7][cols-2]='F';
+    // garante chão limpo no início e no fim
+    for(let i=0;i<4;i++){ g[8][i]='#'; g[9][i]='#'; g[7][i]=g[7][i]==='^'?'.':g[7][i]; }
+    for(let i=cols-5;i<cols;i++){ g[8][i]='#'; g[9][i]='#'; if(g[7][i]==='^') g[7][i]='.'; }
+    return g.map(l=>l.join(''));
 }
-const TOTAL_NIVEIS = 30;
+function pegaNivel(n){
+    if(n<=NIVEIS.length) return NIVEIS[n-1];
+    return geraNivel(n);
+}
+const TOTAL_NIVEIS = 130;
+
+// ============ MODOS ============
+let modoJogo = 'normal'; // normal | hardcore (20s, fundo vermelho!)
+const TEMPO_HARDCORE = 20000;
+let tempoFim = 0;
 
 // ============ SAVE ============
 let moedas = parseInt(localStorage.getItem('parkour2d_moedas')||'0');
@@ -269,9 +310,20 @@ function ligaBtn(id, prop){
 ligaBtn('btnEsq','esq'); ligaBtn('btnDir','dir'); ligaBtn('btnPulo','pulo');
 if('ontouchstart' in window) document.getElementById('controles').style.display='flex';
 
+function escolheModo(m){
+    modoJogo = m;
+    document.getElementById('btnNormal').style.outline = m==='normal' ? '3px solid #fff' : 'none';
+    document.getElementById('btnHardcore').style.outline = m==='hardcore' ? '3px solid #fff' : 'none';
+    document.getElementById('modoTexto').textContent = m==='hardcore'
+        ? '🔥 Modo HARDCORE: 20 SEGUNDOS pra terminar cada nível — e moedas em DOBRO! Escolhe um nível 👇'
+        : 'Modo NORMAL: sem pressa, só chegar na bandeira! Escolhe um nível 👇';
+    abrePainelNiveis();
+    som(500,0.08);
+}
 function carregaNivel(n){
     nivelAtual = n;
     mapa = pegaNivel(n).map(l=>l.split(''));
+    tempoFim = Date.now() + TEMPO_HARDCORE;
     coinsFase = 0;
     for(let r=0;r<mapa.length;r++) for(let c=0;c<mapa[r].length;c++){
         if(mapa[r][c]==='P'){ p.x=c*T+5; p.y=r*T; mapa[r][c]='.'; }
@@ -291,7 +343,7 @@ function morre(){
 
 function venceNivel(){
     jogando=false;
-    const premio = 10 + nivelAtual*3 + coinsFase;
+    const premio = (10 + nivelAtual*3 + coinsFase) * (modoJogo==='hardcore'?2:1);
     const primeiraVez = !feitos.includes(nivelAtual);
     const ganho = primeiraVez ? premio*2 : premio;
     moedas += ganho;
@@ -314,6 +366,12 @@ function solido(ch){ return ch==='#'||ch==='='; }
 
 function passo(dt){
     if(!jogando) return;
+    // HARDCORE: acabou o tempo = perdeu!
+    if(modoJogo==='hardcore' && Date.now() > tempoFim){
+        som(120,0.5,'sawtooth');
+        mostraMsg('⏰ ACABOU O TEMPO!!!','#ff4444',1200);
+        return carregaNivel(nivelAtual);
+    }
     const esq = teclas['ArrowLeft']||teclas['KeyA']||btnEstado.esq;
     const dir = teclas['ArrowRight']||teclas['KeyD']||btnEstado.dir;
     const pulo = teclas['Space']||teclas['ArrowUp']||teclas['KeyW']||btnEstado.pulo;
@@ -385,18 +443,20 @@ function desenhaCogumelo(x, y, sk, escala=1, andando=false){
 function desenha(){
     tGlobal += 0.016;
     passo();
-    // céu
+    // céu (VERMELHO no hardcore!)
+    const hardcore = modoJogo==='hardcore' && jogando;
     const g=ctx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0,'#7ec8f0'); g.addColorStop(1,'#c8e8d8');
+    if(hardcore){ g.addColorStop(0,'#6a0a0a'); g.addColorStop(1,'#c0392b'); }
+    else { g.addColorStop(0,'#7ec8f0'); g.addColorStop(1,'#c8e8d8'); }
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
     // nuvens parallax
-    ctx.fillStyle='rgba(255,255,255,0.85)';
+    ctx.fillStyle = hardcore ? 'rgba(40,0,0,0.5)' : 'rgba(255,255,255,0.85)';
     for(let i=0;i<4;i++){
         const nx = ((i*300 - camX*0.3) % (W+200) + W+200) % (W+200) - 100;
         ctx.beginPath(); ctx.arc(nx,60+i*40,22,0,7); ctx.arc(nx+25,52+i*40,28,0,7); ctx.arc(nx+52,62+i*40,20,0,7); ctx.fill();
     }
     // montanhas parallax
-    ctx.fillStyle='#5a9a6a';
+    ctx.fillStyle = hardcore ? '#4a1515' : '#5a9a6a';
     for(let i=0;i<5;i++){
         const mx = ((i*380 - camX*0.55) % (W+400) + W+400) % (W+400) - 200;
         ctx.beginPath(); ctx.moveTo(mx,H); ctx.lineTo(mx+150,H-200); ctx.lineTo(mx+300,H); ctx.fill();
@@ -430,6 +490,16 @@ function desenha(){
         // jogador
         desenhaCogumelo(p.x, p.y, skinAtual(), 1, Math.abs(p.vx)>0.1 && p.chao);
         ctx.restore();
+        // relógio do HARDCORE
+        if(hardcore){
+            const resta = Math.max(0,(tempoFim-Date.now())/1000);
+            ctx.font='bold 34px Arial'; ctx.textAlign='center';
+            ctx.fillStyle = resta<5 ? (Math.sin(tGlobal*12)>0?'#ff2222':'#ffffff') : '#ffdd44';
+            ctx.strokeStyle='#000'; ctx.lineWidth=5;
+            ctx.strokeText(`⏰ ${resta.toFixed(1)}s`, W/2, 46);
+            ctx.fillText(`⏰ ${resta.toFixed(1)}s`, W/2, 46);
+            ctx.textAlign='start';
+        }
     }
     requestAnimationFrame(desenha);
 }
@@ -500,7 +570,7 @@ function desenhaNoCtx(mctx, sk){
 }
 
 atualizaHud();
-abrePainelNiveis();
+escolheModo('normal');
 desenha();
 </script>
 </body>
