@@ -144,16 +144,52 @@ const PEIXES = {
     ultra:    [['PEIXE REI CÓSMICO','👑']]
 };
 
-// ============ VARAS ============
-// janela = tempo pra fisgar (maior = mais fácil) | sorte = multiplica chance de raridades altas
-const VARAS = [
-    { id:'graveto',  nome:'Graveto',        icone:'🥢', preco:0,      janela:0.55, sorte:1,   desc:'Um graveto com barbante. Funciona... às vezes.' },
-    { id:'bambu',    nome:'Vara de Bambu',  icone:'🎋', preco:100,    janela:0.75, sorte:1.2, desc:'Clássica! Mais tempo pra fisgar.' },
-    { id:'fibra',    nome:'Vara de Fibra',  icone:'🎣', preco:500,    janela:0.95, sorte:1.5, desc:'Profissional. Sorte 1,5x!' },
-    { id:'ouro',     nome:'Vara de Ouro',   icone:'✨', preco:2500,   janela:1.1,  sorte:2,   desc:'Brilhante! Sorte 2x pra peixes raros.' },
-    { id:'diamante', nome:'Vara de Diamante',icone:'💎', preco:10000, janela:1.3,  sorte:3,   desc:'Sorte 3x! Os peixes ADORAM ela.' },
-    { id:'mistica',  nome:'Vara Mística',   icone:'🔮', preco:50000,  janela:1.5,  sorte:5,   desc:'LENDÁRIA. Sorte 5x — o Peixe Rei te espera!' }
+// ============ VARAS (36!) ============
+// janela = tempo pra fisgar | sorte = chance de raridades altas | forca = quanto cada clique enche a barra na briga
+const VARAS_DEF = [
+    ['graveto','Graveto','🥢',0,'Um graveto com barbante. Funciona... às vezes.'],
+    ['bambu','Vara de Bambu','🎋',100,'Clássica! Mais tempo pra fisgar.'],
+    ['fibra','Vara de Fibra','🎣',500,'Profissional de verdade.'],
+    ['ouro','Vara de Ouro','✨',2500,'Brilhante! Os peixes ficam curiosos.'],
+    ['diamante','Vara de Diamante','💎',10000,'Os peixes ADORAM ela.'],
+    ['mistica','Vara Mística','🔮',50000,'O Peixe Rei te espera!'],
+    ['eletrica','Vara Elétrica','⚡',75000,'Choque! O peixe cansa mais rápido.'],
+    ['gelo','Vara de Gelo','❄️',100000,'Congela a preguiça dos peixes.'],
+    ['lava','Vara de Lava','🌋',150000,'Quente demais pra escapar!'],
+    ['ninja','Vara Ninja','🥷',200000,'Fisgada silenciosa e mortal.'],
+    ['pirata','Vara Pirata','🏴‍☠️',300000,'Yarr! Tesouro do fundo do mar.'],
+    ['robo','Vara Robô','🤖',400000,'Puxa sozinha (quase).'],
+    ['fantasma','Vara Fantasma','👻',500000,'O peixe nem vê o anzol.'],
+    ['cristal','Vara de Cristal','🔷',650000,'Pura e poderosa.'],
+    ['arcoiris','Vara Arco-Íris','🌈',800000,'Sorte colorida!'],
+    ['trovao','Vara do Trovão','🌩️',1000000,'BRUM! Peixes tremem.'],
+    ['dragao','Vara do Dragão','🐉',1200000,'Forjada com fogo de dragão.'],
+    ['capivara','Vara Capivara','🦫',1500000,'A mais relaxada. E forte!'],
+    ['cogumelo','Vara Cogumelo','🍄',1800000,'O poder do Cogumelo Games!'],
+    ['solar','Vara Solar','☀️',2200000,'Energia do sol.'],
+    ['lunar','Vara Lunar','🌙',2600000,'Pesca melhor à noite (sempre).'],
+    ['tsunami','Vara Tsunami','🌊',3000000,'Domina as ondas.'],
+    ['atlante','Vara Atlante','🔱',3500000,'Tridente de Atlântida.'],
+    ['espacial','Vara Espacial','🚀',4000000,'Pesca em gravidade zero.'],
+    ['meteoro','Vara Meteoro','☄️',4500000,'Caiu do céu direto na loja.'],
+    ['galaxia','Vara Galáxia','🌌',5000000,'Estrelas no anzol.'],
+    ['titanio','Vara de Titânio','🔩',5500000,'Indestrutível.'],
+    ['vulcanica','Vara Vulcânica','🔥',6000000,'Erupção de sorte!'],
+    ['real','Vara Real','👑',6500000,'Digna de um rei.'],
+    ['sombria','Vara Sombria','🌑',7000000,'Os peixes têm medo dela.'],
+    ['angelical','Vara Angelical','😇',7500000,'Abençoada.'],
+    ['infinita','Vara Infinita','♾️',8000000,'Nunca quebra. Nunca erra. Quase.'],
+    ['mestre','Vara do Mestre','🥋',8500000,'Só os melhores pescadores.'],
+    ['cosmica','Vara Cósmica','💫',9000000,'Feita de poeira de estrela.'],
+    ['divina','Vara Divina','✨',9500000,'Os deuses pescam com ela.'],
+    ['suprema','Vara SUPREMA','🏆',10000000,'A ÚLTIMA. A MELHOR. A LENDA.']
 ];
+const VARAS = VARAS_DEF.map(([id,nome,icone,preco,desc],i)=>({
+    id, nome, icone, preco, desc,
+    janela: 0.55 + i*0.045,                 // mais tempo pra fisgar
+    sorte: 1 + i*0.55,                      // até ~20x de sorte na última
+    forca: 1 + i*0.12                       // cada clique enche mais a barra
+}));
 
 // ============ SAVE ============
 let dinheiro = parseInt(localStorage.getItem('pescaria_dinheiro')||'0');
@@ -199,9 +235,13 @@ function sorteiaPeixe(){
 // ============ JOGO / CENA ============
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const W = cv.width, H = cv.height;
-// estados: parado | esperando (linha na água) | fisgada (clique agora!) | puxando
+// estados: parado | esperando (linha na água) | fisgada (clique agora!) | puxando (briga!)
 let estado = 'parado';
-let fisgadaTimeout = null, mordidaTimeout = null;
+let fisgadaTimeout = null, mordidaTimeout = null, lutaTimeout = null;
+// briga: cliques pra encher a barra — quanto mais raro, mais cliques!
+const CLIQUES_POR_RARIDADE = { comum:8, raro:14, epico:22, lendario:32, ultra:45 };
+const TEMPO_LUTA = 10000; // 10 segundos pro peixe escapar
+let luta = null; // { peixe, progresso, precisa, fim }
 let boiaY = 0, tremor = 0;
 let audio;
 
@@ -247,9 +287,36 @@ function pescar(){
         }, 1500+Math.random()*3500);
     } else if(estado==='fisgada'){
         clearTimeout(fisgadaTimeout);
-        estado='parado'; tremor=0;
-        document.getElementById('pescarBtn').textContent='🎣 LANÇAR';
-        pegouPeixe();
+        // FISGOU! Começa a BRIGA — o peixe é segredo até você vencer!
+        const peixe = sorteiaPeixe();
+        luta = {
+            peixe,
+            progresso: 0,
+            precisa: CLIQUES_POR_RARIDADE[peixe.rar],
+            fim: Date.now() + TEMPO_LUTA
+        };
+        estado='puxando'; tremor=1;
+        document.getElementById('pescarBtn').textContent='💪 CLICA CLICA CLICA!';
+        som(500,0.1);
+        lutaTimeout = setTimeout(()=>{
+            if(estado==='puxando'){
+                estado='parado'; tremor=0; luta=null;
+                document.getElementById('pescarBtn').textContent='🎣 LANÇAR';
+                mostraMsg('O peixe ESCAPOU! 🐟💨','#ff8888');
+                som(150,0.5,'sawtooth');
+            }
+        }, TEMPO_LUTA);
+    } else if(estado==='puxando'){
+        // cada clique enche a barra (varas melhores enchem mais!)
+        luta.progresso += varaAtual().forca;
+        som(350+luta.progresso*15, 0.05, 'square', 0.08);
+        if(luta.progresso >= luta.precisa){
+            clearTimeout(lutaTimeout);
+            const p = luta.peixe;
+            estado='parado'; tremor=0; luta=null;
+            document.getElementById('pescarBtn').textContent='🎣 LANÇAR';
+            pegouPeixe(p);
+        }
     } else if(estado==='esperando'){
         // puxou cedo demais!
         clearTimeout(mordidaTimeout);
@@ -263,8 +330,7 @@ function pescar(){
 cv.addEventListener('mousedown', pescar);
 cv.addEventListener('touchend', e=>{ e.preventDefault(); pescar(); });
 
-function pegouPeixe(){
-    const p = sorteiaPeixe();
+function pegouPeixe(p){
     inventario.push(p);
     totalPescados++;
     salva(); atualizaHud();
@@ -437,6 +503,29 @@ function desenha(){
         ctx.font='20px Arial';
         ctx.fillText(i%2?'🐟':'🐠', fx, fy);
     }
+    // BRIGA com o peixe: barra de progresso + tempo + peixe misterioso
+    if(estado==='puxando' && luta){
+        const restante = Math.max(0, (luta.fim - Date.now())/1000);
+        const pct = Math.min(1, luta.progresso/luta.precisa);
+        // caixa
+        ctx.fillStyle='rgba(0,0,20,0.85)';
+        ctx.beginPath(); ctx.roundRect(W/2-220, 30, 440, 110, 16); ctx.fill();
+        ctx.font='bold 22px Arial'; ctx.textAlign='center';
+        ctx.fillStyle='#fff';
+        ctx.fillText('❓ Peixe misterioso na linha! CLICA!!! 💪', W/2, 62);
+        // barra de puxar
+        ctx.fillStyle='#222'; ctx.beginPath(); ctx.roundRect(W/2-190, 76, 380, 26, 13); ctx.fill();
+        const bg = ctx.createLinearGradient(W/2-190,0,W/2+190,0);
+        bg.addColorStop(0,'#00cc66'); bg.addColorStop(1,'#00ff88');
+        ctx.fillStyle=bg;
+        if(pct>0){ ctx.beginPath(); ctx.roundRect(W/2-190, 76, 380*pct, 26, 13); ctx.fill(); }
+        // tempo restante (fica vermelho no fim!)
+        ctx.font='bold 16px Arial';
+        ctx.fillStyle = restante < 3 ? '#ff4444' : '#ffd700';
+        ctx.fillText(`⏱️ ${restante.toFixed(1)}s pro peixe escapar!`, W/2, 126);
+        ctx.textAlign='start';
+    }
+
     // confetes
     confetes.forEach(c=>{ c.y+=c.vy; c.x+=c.vx; ctx.fillStyle=c.cor; ctx.fillRect(c.x,c.y,c.tam,c.tam); });
     confetes = confetes.filter(c=>c.y<H+20);
