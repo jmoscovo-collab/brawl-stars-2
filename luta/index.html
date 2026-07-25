@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Luta de Capivara — 100 níveis de luta animal! Soco, chute, moedas e skins de animais. Cogumelo Games.">
+<title>🥊 Luta de Capivara — Cogumelo Games</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    background:#0a0a2a; font-family:Arial, sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+    min-height:100vh; overflow:hidden; touch-action:none;
+}
+#hud {
+    color:#fff; padding:8px; width:100%; max-width:960px;
+    background:rgba(0,0,0,0.4); font-size:15px; font-weight:bold;
+    display:flex; justify-content:space-around; align-items:center;
+}
+#moedasHud { color:#ffd700; }
+canvas { background:#000; border-radius:10px; max-width:100vw; max-height:calc(100vh - 60px); }
+#msg {
+    position:fixed; top:34%; left:50%; transform:translate(-50%,-50%);
+    font-size:40px; font-weight:900; color:#fff; text-shadow:0 0 20px #000;
+    pointer-events:none; opacity:0; transition:opacity .2s; text-align:center; z-index:10; width:100%;
+}
+.painel {
+    position:fixed; top:0; left:0; width:100vw; height:100vh; height:100dvh;
+    background:rgba(0,0,20,0.96); z-index:20; display:none;
+    flex-direction:column; align-items:center; color:#fff; text-align:center; padding:16px;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+}
+.painel h1 { font-size:30px; margin:8px 0;
+    background:linear-gradient(to right,#ff8800,#ff3355); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.painel .sub { color:#aaa; margin:4px 0 12px; font-size:15px; max-width:500px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:12px; max-width:760px; width:100%; padding-bottom:20px; }
+.item { background:rgba(30,30,70,0.85); border:2px solid #444; border-radius:14px; padding:12px; color:#fff; }
+.item .icone { font-size:44px; }
+.item .inome { font-size:15px; font-weight:bold; margin:4px 0; }
+.item button {
+    margin-top:6px; font-size:13px; font-weight:bold; padding:8px 16px; border:none; border-radius:10px; cursor:pointer;
+    background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200;
+}
+.item button.equipar { background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a; }
+.item button.equipado { background:#333; color:#00ff88; border:1px solid #00ff88; }
+.item button:disabled { opacity:0.4; }
+.item.equipadoBorda { border-color:#00ff88; }
+.nivelBtn {
+    background:rgba(30,30,70,0.85); border:2px solid #444; border-radius:12px;
+    padding:12px 4px; color:#fff; cursor:pointer; font-size:15px; font-weight:bold;
+}
+.nivelBtn:hover { border-color:#ff8800; }
+.nivelBtn.travado { opacity:0.35; cursor:not-allowed; filter:grayscale(1); }
+.nivelBtn.feito { border-color:#ffd700; }
+.fechar {
+    margin:10px 4px 20px; font-size:17px; font-weight:bold; padding:12px 30px; border:none; border-radius:12px;
+    background:#445; color:#fff; cursor:pointer;
+}
+.abas { display:flex; gap:10px; margin-bottom:10px; }
+.aba {
+    font-size:16px; font-weight:bold; padding:10px 22px; border:2px solid #444; border-radius:12px;
+    background:rgba(30,30,70,0.8); color:#fff; cursor:pointer;
+}
+.aba.ativa { border-color:#ff8800; background:rgba(80,40,0,0.6); }
+#controles {
+    position:fixed; bottom:10px; left:0; right:0; z-index:15;
+    display:none; justify-content:space-between; padding:0 14px; pointer-events:none;
+}
+.ctl { display:flex; gap:10px; }
+.ctl div {
+    width:64px; height:64px; border-radius:50%; background:rgba(255,255,255,0.15);
+    border:2px solid rgba(255,255,255,0.5); color:#fff; font-size:26px;
+    display:flex; align-items:center; justify-content:center; pointer-events:auto; user-select:none; -webkit-user-select:none;
+}
+.ctl div.apertado { background:rgba(255,136,0,0.5); }
+.ctl .golpe { background:rgba(255,50,50,0.25); border-color:#ff5555; }
+a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none; z-index:40; font-size:14px; }
+@media (max-width:700px){
+    #hud { font-size:12px; padding:6px; }
+    canvas { max-height:calc(100vh - 100px); }
+    #msg { font-size:26px; }
+    .grid { grid-template-columns:repeat(2,1fr); gap:8px; }
+}
+</style>
+</head>
+<body>
+<a class="voltar" href="/">← Cogumelo Games</a>
+<div id="hud">
+    <span id="moedasHud">🪙 0</span>
+    <span id="nivelHud">—</span>
+    <button onclick="abreMenu()" style="font-size:13px; font-weight:bold; padding:6px 12px; border:none; border-radius:10px; background:#445; color:#fff; cursor:pointer;">📋 MENU</button>
+</div>
+<canvas id="c" width="960" height="540"></canvas>
+<div id="msg"></div>
+
+<div id="controles">
+    <div class="ctl"><div id="btnEsq">◀</div><div id="btnDir">▶</div></div>
+    <div class="ctl"><div class="golpe" id="btnSoco">👊</div><div class="golpe" id="btnChute">🦵</div></div>
+</div>
+
+<div class="painel" id="menu" style="display:flex;">
+    <h1>🥊 Luta de Capivara</h1>
+    <div class="sub" id="instrucoes">Vença as lutas, ganhe moedas 🪙 e compre skins de animais!</div>
+    <div class="abas">
+        <button class="aba ativa" id="abaNiveis" onclick="mostraAba('niveis')">🥊 Lutas</button>
+        <button class="aba" id="abaLoja" onclick="mostraAba('loja')">🛒 Animais</button>
+    </div>
+    <div class="grid" id="listaNiveis" style="grid-template-columns:repeat(auto-fill, minmax(80px,1fr));"></div>
+    <div class="grid" id="listaSkins" style="display:none;"></div>
+</div>
+
+<div class="painel" id="dispositivo" style="display:flex; justify-content:center; z-index:50;">
+    <h1>🥊 Luta de Capivara</h1>
+    <div class="sub">Onde você está jogando?</div>
+    <div style="display:flex; gap:16px; margin-top:10px;">
+        <button class="fechar" style="background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a; font-size:20px;" onclick="escolheDisp('pc')">💻 COMPUTADOR</button>
+        <button class="fechar" style="background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200; font-size:20px;" onclick="escolheDisp('celular')">📱 CELULAR</button>
+    </div>
+    <div class="sub" style="margin-top:14px;">💻 A/D ou setas andam · <b>ESPAÇO = SOCO 👊</b> · <b>MOUSE = CHUTE 🦵</b><br>📱 Botões na tela</div>
+</div>
+
+<script src="/stats.js"></script>
+<script>
+if (window.initStats) initStats('luta');
+
+// ============ SKINS DE ANIMAIS ============
+const ANIMAIS = [
+    { id:'capivara', nome:'Capivara',  emoji:'🦫', preco:0 },
+    { id:'gato',     nome:'Gato',      emoji:'🐱', preco:100 },
+    { id:'cachorro', nome:'Cachorro',  emoji:'🐶', preco:250 },
+    { id:'coelho',   nome:'Coelho',    emoji:'🐰', preco:500 },
+    { id:'raposa',   nome:'Raposa',    emoji:'🦊', preco:900 },
+    { id:'panda',    nome:'Panda',     emoji:'🐼', preco:1500 },
+    { id:'macaco',   nome:'Macaco',    emoji:'🐵', preco:2500 },
+    { id:'tigre',    nome:'Tigre',     emoji:'🐯', preco:4000 },
+    { id:'leao',     nome:'Leão',      emoji:'🦁', preco:6500 },
+    { id:'lobo',     nome:'Lobo',      emoji:'🐺', preco:10000 },
+    { id:'gorila',   nome:'Gorila',    emoji:'🦍', preco:15000 },
+    { id:'trex',     nome:'T-Rex',     emoji:'🦖', preco:25000 },
+    { id:'dragao',   nome:'Dragão',    emoji:'🐉', preco:40000 },
+    { id:'unicornio',nome:'Unicórnio', emoji:'🦄', preco:60000 }
+];
+// animais dos bots (variam por nível)
+const BOTS = ['🐭','🐹','🐸','🐢','🐔','🦆','🐷','🐮','🐗','🦝','🐨','🦥','🦡','🐊','🦈','🐅','🦏','🦛','🐘','🦕'];
+const TOTAL_NIVEIS = 100;
+
+// ============ SAVE ============
+let moedas = parseInt(localStorage.getItem('luta_moedas')||'0');
+let desbloqueado = parseInt(localStorage.getItem('luta_desbloqueado')||'1');
+let feitos = JSON.parse(localStorage.getItem('luta_feitos')||'[]');
+let skinsCompradas = JSON.parse(localStorage.getItem('luta_skins')||'["capivara"]');
+let skinEq = localStorage.getItem('luta_skinEq')||'capivara';
+let disp = localStorage.getItem('luta_disp')||'';
+function salva(){
+    localStorage.setItem('luta_moedas', moedas);
+    localStorage.setItem('luta_desbloqueado', desbloqueado);
+    localStorage.setItem('luta_feitos', JSON.stringify(feitos));
+    localStorage.setItem('luta_skins', JSON.stringify(skinsCompradas));
+    localStorage.setItem('luta_skinEq', skinEq);
+}
+function skinAtual(){ return ANIMAIS.find(a=>a.id===skinEq)||ANIMAIS[0]; }
+
+// ============ SOM ============
+let audio;
+function som(freq, dur, tipo='square', vol=0.12){
+    try{
+        audio = audio || new (window.AudioContext||window.webkitAudioContext)();
+        const o=audio.createOscillator(), g=audio.createGain();
+        o.type=tipo; o.frequency.value=freq; g.gain.value=vol;
+        g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime+dur);
+        o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime+dur);
+    }catch(e){}
+}
+function mostraMsg(txt, cor='#fff', tempo=1300){
+    const m=document.getElementById('msg');
+    m.textContent=txt; m.style.color=cor; m.style.opacity=1;
+    setTimeout(()=>m.style.opacity=0, tempo);
+}
+function atualizaHud(){
+    document.getElementById('moedasHud').textContent = `🪙 ${moedas}`;
+    document.getElementById('nivelHud').textContent = lutando ? `Nível ${nivelAtual} — vs ${botEmoji}` : '—';
+}
+
+// ============ DISPOSITIVO ============
+function escolheDisp(d){
+    disp = d; localStorage.setItem('luta_disp', d);
+    document.getElementById('dispositivo').style.display='none';
+    if(d==='celular') document.getElementById('controles').style.display='flex';
+}
+if(disp){
+    document.getElementById('dispositivo').style.display='none';
+    if(disp==='celular') document.getElementById('controles').style.display='flex';
+}
+
+// ============ LUTA ============
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+const CHAO = H - 90;
+let lutando = false, nivelAtual = 1, botEmoji = '🐭';
+let t = 0;
+const teclas = {};
+const btn = { esq:false, dir:false };
+
+// lutador: x, vida, vidaMax, golpe (timer animação), tipo golpe, cooldown, atordoado
+let eu, bot;
+
+function novaLuta(n){
+    nivelAtual = n;
+    botEmoji = BOTS[(n-1) % BOTS.length];
+    const dif = (n-1)/99; // 0 → 1
+    eu = { x:250, vida:100, vidaMax:100, golpe:0, tipoGolpe:'', cd:0, dir:1, dor:0 };
+    bot = {
+        x:710, vida:80+Math.round(dif*220), vidaMax:80+Math.round(dif*220),
+        golpe:0, tipoGolpe:'', cd:0, dir:-1, dor:0,
+        vel: 1.2+dif*1.6, dano: 4+Math.round(dif*10), agress: 0.01+dif*0.045
+    };
+    lutando = true;
+    document.getElementById('menu').style.display='none';
+    atualizaHud();
+    mostraMsg(`Nível ${n}: ${skinAtual().emoji} VS ${botEmoji} — LUTE!`, '#ff8800', 1500);
+    som(400,0.15); setTimeout(()=>som(600,0.2),150);
+}
+
+function golpe(quem, alvo, tipo){
+    if(quem.cd > 0 || quem.golpe > 0) return;
+    quem.tipoGolpe = tipo;
+    quem.golpe = 14;                      // frames de animação
+    quem.cd = tipo==='soco' ? 22 : 40;    // chute é mais lento
+    const alcance = tipo==='soco' ? 105 : 140;
+    const dano = quem===eu ? (tipo==='soco' ? 7 : 13) : (tipo==='soco' ? bot.dano : bot.dano+4);
+    const dist = Math.abs(quem.x - alvo.x);
+    som(tipo==='soco'?300:220, 0.08);
+    if(dist < alcance){
+        alvo.vida = Math.max(0, alvo.vida - dano);
+        alvo.dor = 10;
+        alvo.x += (alvo.x > quem.x ? 22 : -22); // empurrão
+        som(150, 0.15, 'sawtooth', 0.18);
+        if(alvo.vida <= 0) fimLuta(alvo===bot);
+    }
+}
+
+function fimLuta(venci){
+    lutando = false;
+    if(venci){
+        const premio = 15 + nivelAtual*2;
+        const primeira = !feitos.includes(nivelAtual);
+        const ganho = primeira ? premio*2 : premio;
+        moedas += ganho;
+        if(primeira) feitos.push(nivelAtual);
+        if(nivelAtual===desbloqueado && desbloqueado<TOTAL_NIVEIS) desbloqueado++;
+        salva(); atualizaHud();
+        som(500,0.1); setTimeout(()=>som(700,0.15),120); setTimeout(()=>som(900,0.3),240);
+        mostraMsg(`🏆 VITÓRIA! +🪙 ${ganho}${primeira?' (1ª vez = dobro!)':''}`, '#ffd700', 2200);
+        setTimeout(()=>{
+            if(nivelAtual < TOTAL_NIVEIS) novaLuta(nivelAtual+1);
+            else { mostraMsg('👑 CAMPEÃO DOS ANIMAIS!!!','#ffd700',3000); setTimeout(abreMenu, 2500); }
+        }, 2200);
+    } else {
+        som(150,0.5,'sawtooth');
+        mostraMsg('💥 Você apanhou... tenta de novo!', '#ff6666', 1800);
+        setTimeout(()=>novaLuta(nivelAtual), 1800);
+    }
+}
+
+// ============ CONTROLES ============
+addEventListener('keydown', e=>{
+    teclas[e.code]=true;
+    if(e.code==='Space'){ e.preventDefault(); if(lutando && !e.repeat) golpe(eu, bot, 'soco'); }
+});
+addEventListener('keyup', e=>teclas[e.code]=false);
+cv.addEventListener('mousedown', e=>{ if(lutando && disp!=='celular') golpe(eu, bot, 'chute'); });
+function ligaBtn(id, fn){
+    const el = document.getElementById(id);
+    const on = e=>{ e.preventDefault(); el.classList.add('apertado'); fn(true); };
+    const off = e=>{ e.preventDefault(); el.classList.remove('apertado'); fn(false); };
+    el.addEventListener('touchstart', on, {passive:false});
+    el.addEventListener('touchend', off, {passive:false});
+    el.addEventListener('mousedown', on); el.addEventListener('mouseup', off);
+}
+ligaBtn('btnEsq', v=>btn.esq=v);
+ligaBtn('btnDir', v=>btn.dir=v);
+ligaBtn('btnSoco', v=>{ if(v && lutando) golpe(eu, bot, 'soco'); });
+ligaBtn('btnChute', v=>{ if(v && lutando) golpe(eu, bot, 'chute'); });
+
+// ============ LOOP ============
+function passo(){
+    if(!lutando) return;
+    // movimento do jogador
+    const esq = teclas['ArrowLeft']||teclas['KeyA']||btn.esq;
+    const dir = teclas['ArrowRight']||teclas['KeyD']||btn.dir;
+    if(esq) eu.x -= 4.5;
+    if(dir) eu.x += 4.5;
+    eu.x = Math.max(60, Math.min(W-60, eu.x));
+    eu.dir = bot.x > eu.x ? 1 : -1;
+    bot.dir = eu.x > bot.x ? 1 : -1;
+    // timers
+    [eu, bot].forEach(f=>{ if(f.golpe>0) f.golpe--; if(f.cd>0) f.cd--; if(f.dor>0) f.dor--; });
+    // IA do bot: aproxima e ataca
+    const dist = Math.abs(bot.x - eu.x);
+    if(dist > 95) bot.x += bot.dir * bot.vel;
+    else if(dist < 70) bot.x -= bot.dir * bot.vel * 0.7; // recua um pouco
+    bot.x = Math.max(60, Math.min(W-60, bot.x));
+    if(dist < 150 && Math.random() < bot.agress){
+        golpe(bot, eu, Math.random()<0.6?'soco':'chute');
+    }
+}
+
+function desenhaLutador(f, emoji, nome){
+    ctx.save();
+    ctx.translate(f.x, CHAO);
+    if(f.dor>0) ctx.translate((Math.random()-0.5)*6, 0); // treme quando apanha
+    // sombra
+    ctx.fillStyle='rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(0, 8, 44, 10, 0, 0, 7); ctx.fill();
+    // corpo (emoji gigante)
+    ctx.font='80px Arial'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.save();
+    if(f.dir<0) ctx.scale(-1,1);
+    ctx.fillText(emoji, 0, 0);
+    ctx.restore();
+    // golpe: punho ou pé voando
+    if(f.golpe>0){
+        const prog = 1 - f.golpe/14;
+        const alcance = (f.tipoGolpe==='soco'?85:120) * Math.sin(prog*Math.PI);
+        ctx.font='44px Arial';
+        ctx.save();
+        if(f.dir<0) ctx.scale(-1,1);
+        ctx.fillText(f.tipoGolpe==='soco'?'👊':'🦶', alcance, f.tipoGolpe==='soco'?-40:-14);
+        ctx.restore();
+    }
+    ctx.restore();
+    // barra de vida
+    const bx = f===eu ? 40 : W-40-320;
+    ctx.fillStyle='rgba(0,0,0,0.6)';
+    ctx.beginPath(); ctx.roundRect(bx, 26, 320, 30, 10); ctx.fill();
+    const pct = f.vida/f.vidaMax;
+    ctx.fillStyle = pct>0.5 ? '#00cc44' : pct>0.25 ? '#ffaa00' : '#ff3333';
+    if(pct>0){ ctx.beginPath(); ctx.roundRect(bx+4, 30, 312*pct, 22, 8); ctx.fill(); }
+    ctx.font='bold 15px Arial'; ctx.fillStyle='#fff'; ctx.textAlign = f===eu ? 'left' : 'right';
+    ctx.fillText(`${emoji} ${nome}`, f===eu ? bx+2 : bx+318, 74);
+    ctx.textAlign='start';
+}
+
+function desenha(){
+    t += 0.016;
+    passo();
+    // arena
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#1a1040'); g.addColorStop(0.7,'#3a2060'); g.addColorStop(1,'#241040');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    // holofotes
+    ctx.fillStyle='rgba(255,255,200,0.05)';
+    [[200,-50],[760,-50]].forEach(([x,y])=>{
+        ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-140,H); ctx.lineTo(x+140,H); ctx.fill();
+    });
+    // torcida de animais
+    ctx.font='26px Arial';
+    for(let i=0;i<14;i++){
+        const ty = 120 + (i%2)*34 + Math.abs(Math.sin(t*3+i))*8;
+        ctx.fillText(BOTS[i%BOTS.length], 30+i*68, ty);
+    }
+    // ringue
+    ctx.fillStyle='#4a3060'; ctx.fillRect(0, CHAO+8, W, H-CHAO-8);
+    ctx.fillStyle='#6a4080'; ctx.fillRect(0, CHAO+8, W, 10);
+    ctx.strokeStyle='#ff5555'; ctx.lineWidth=5;
+    for(let y=0;y<3;y++){ ctx.beginPath(); ctx.moveTo(0, CHAO-30-y*38); ctx.lineTo(W, CHAO-30-y*38); ctx.stroke(); ctx.globalAlpha=0.35; }
+    ctx.globalAlpha=1;
+
+    if(lutando && eu && bot){
+        desenhaLutador(bot, botEmoji, `Nível ${nivelAtual}`);
+        desenhaLutador(eu, skinAtual().emoji, skinAtual().nome);
+    }
+    requestAnimationFrame(desenha);
+}
+
+// ============ MENU / LOJA ============
+function abreMenu(){
+    lutando=false;
+    document.getElementById('menu').style.display='flex';
+    mostraAba('niveis');
+    atualizaHud();
+}
+function mostraAba(qual){
+    document.getElementById('abaNiveis').classList.toggle('ativa', qual==='niveis');
+    document.getElementById('abaLoja').classList.toggle('ativa', qual==='loja');
+    document.getElementById('listaNiveis').style.display = qual==='niveis'?'grid':'none';
+    document.getElementById('listaSkins').style.display = qual==='loja'?'grid':'none';
+    if(qual==='niveis') montaNiveis();
+    else montaLoja();
+}
+function montaNiveis(){
+    const el = document.getElementById('listaNiveis');
+    el.innerHTML='';
+    for(let n=1;n<=TOTAL_NIVEIS;n++){
+        const d = document.createElement('div');
+        d.className='nivelBtn' + (n>desbloqueado?' travado':'') + (feitos.includes(n)?' feito':'');
+        d.innerHTML = n>desbloqueado ? '🔒' : `${BOTS[(n-1)%BOTS.length]}<br>${n}`;
+        if(n<=desbloqueado) d.onclick = ()=>novaLuta(n);
+        el.appendChild(d);
+    }
+}
+function montaLoja(){
+    const el = document.getElementById('listaSkins');
+    el.innerHTML='';
+    ANIMAIS.forEach(a=>{
+        const tem = skinsCompradas.includes(a.id);
+        const eq = skinEq===a.id;
+        const d = document.createElement('div');
+        d.className='item'+(eq?' equipadoBorda':'');
+        let btnHtml;
+        if(eq) btnHtml = `<button class="equipado" disabled>✅ LUTANDO</button>`;
+        else if(tem) btnHtml = `<button class="equipar" onclick="equipa('${a.id}')">EQUIPAR</button>`;
+        else btnHtml = `<button onclick="compra('${a.id}')" ${moedas<a.preco?'disabled':''}>🪙 ${a.preco.toLocaleString('pt-BR')}</button>`;
+        d.innerHTML = `<div class="icone">${a.emoji}</div><div class="inome">${a.nome}</div>${btnHtml}`;
+        el.appendChild(d);
+    });
+}
+function compra(id){
+    const a = ANIMAIS.find(x=>x.id===id);
+    if(moedas<a.preco) return;
+    moedas-=a.preco; skinsCompradas.push(id); skinEq=id;
+    salva(); atualizaHud(); montaLoja();
+    som(600,0.1); setTimeout(()=>som(900,0.2),100);
+}
+function equipa(id){ skinEq=id; salva(); montaLoja(); som(700,0.1); }
+
+atualizaHud();
+montaNiveis();
+desenha();
+</script>
+</body>
+</html>

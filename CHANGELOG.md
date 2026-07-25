@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v2.2.0 (2026-07-25)
+- JOGO NOVO: Luta de Capivara — 100 niveis vs bots animais, soco (ESPACO) + chute (mouse) no PC,
+  botoes no celular, moedas por vitoria, 14 skins de animais (Capivara gratis ate Unicornio 60k)
+
+
 ## v2.1.0 (2026-07-25)
 - Penaltis: modos torneio COPA 2026 (12 grupos reais do sorteio) e CHAMPIONS 2025/26 (36 clubes reais)
   — escolhe o time, fase de grupos/liga + mata-mata ate a final, campeao = +1000 moedas
