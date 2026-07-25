@@ -1,3 +1,16 @@
+# Changelog - Cogumelo Games (site)
+
+## v1.3.0 (2026-07-24)
+
+### Novo
+- Jogo novo: Penaltis (Copa de 100 niveis com selecoes, loja de bolas, poderes e moedas)
+
+### Fase 1 (limpeza do site)
+- Rua Suja 3D, Demo Graficos e Enviar Sugestao ESCONDIDOS da home (nao removidos — display:none)
+- Nome do site agora e so "Cogumelo Games"
+
+---
+
 # Changelog - Brawl Stars 2
 
 ## v1.2.0 (2026-05-21)

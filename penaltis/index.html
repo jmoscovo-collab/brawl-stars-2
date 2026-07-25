@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Pênaltis — 100 níveis contra seleções, loja de bolas e poderes! Cogumelo Games.">
+<title>⚽ Pênaltis — Cogumelo Games</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    background:#0a0a2a;
+    font-family:Arial, sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+    min-height:100vh; overflow:hidden; touch-action:none;
+}
+#hud {
+    color:#fff; padding:8px; text-align:center; width:100%;
+    background:rgba(0,0,0,0.4); font-size:15px; font-weight:bold;
+    display:flex; justify-content:space-around; align-items:center; max-width:900px; gap:6px;
+}
+.placar { font-size:20px; color:#00ff88; }
+#moedasHud { color:#ffd700; }
+#btnPoder {
+    font-size:14px; font-weight:bold; padding:6px 12px; border:none; border-radius:10px;
+    background:linear-gradient(135deg,#aa00ff,#ff00aa); color:#fff; cursor:pointer; display:none;
+}
+canvas { background:#000; border-radius:10px; cursor:crosshair; max-width:100vw; }
+#msg {
+    position:fixed; top:40%; left:50%; transform:translate(-50%,-50%);
+    font-size:40px; font-weight:900; color:#fff; text-shadow:0 0 20px #000;
+    pointer-events:none; opacity:0; transition:opacity .2s; text-align:center; z-index:10; width:100%;
+}
+#overlay {
+    position:fixed; inset:0; background:rgba(0,0,20,0.96); z-index:20;
+    display:flex; flex-direction:column; align-items:center; color:#fff; text-align:center; padding:16px; overflow-y:auto;
+}
+#overlay h1 { font-size:32px; margin:6px 0;
+    background:linear-gradient(to right,#00ff88,#00ccff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+#overlay .sub { color:#aaa; margin:2px 0 10px; font-size:15px; max-width:480px; }
+#saldo { font-size:22px; color:#ffd700; font-weight:bold; margin-bottom:8px; }
+.abas { display:flex; gap:10px; margin-bottom:14px; }
+.aba {
+    font-size:17px; font-weight:bold; padding:10px 24px; border:2px solid #444; border-radius:12px;
+    background:rgba(30,30,70,0.8); color:#fff; cursor:pointer;
+}
+.aba.ativa { border-color:#00ff88; background:rgba(0,80,40,0.6); }
+#niveis {
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(86px,1fr));
+    gap:10px; max-width:760px; width:100%; padding-bottom:30px;
+}
+.nivel {
+    background:rgba(30,30,70,0.8); border:2px solid #444; border-radius:12px;
+    padding:8px 4px; cursor:pointer; color:#fff; transition:all .15s;
+}
+.nivel:hover { border-color:#00ff88; transform:scale(1.07); }
+.nivel .flag { font-size:28px; }
+.nivel .num { font-size:11px; color:#888; }
+.nivel .nome { font-size:11px; font-weight:bold; }
+.nivel.travado { opacity:0.35; cursor:not-allowed; filter:grayscale(1); }
+.nivel.travado:hover { border-color:#444; transform:none; }
+.nivel.vencido { border-color:#ffd700; background:rgba(60,50,0,0.8); }
+.nivel.atual { border-color:#00ff88; box-shadow:0 0 15px rgba(0,255,136,0.4); }
+#loja { display:none; max-width:760px; width:100%; padding-bottom:30px; }
+.loja-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(210px,1fr)); gap:12px; }
+.item {
+    background:rgba(30,30,70,0.8); border:2px solid #444; border-radius:14px;
+    padding:12px; color:#fff; text-align:center;
+}
+.item .icone { font-size:40px; }
+.item .inome { font-size:16px; font-weight:bold; margin:4px 0; }
+.item .idesc { font-size:12px; color:#9ad; min-height:32px; }
+.item button {
+    margin-top:8px; font-size:14px; font-weight:bold; padding:8px 18px; border:none; border-radius:10px; cursor:pointer;
+    background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200;
+}
+.item button.equipar { background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a; }
+.item button.equipado { background:#333; color:#00ff88; border:1px solid #00ff88; }
+.item button:disabled { opacity:0.4; cursor:not-allowed; }
+.item.equipadoBorda { border-color:#00ff88; box-shadow:0 0 12px rgba(0,255,136,0.3); }
+h2.secao { margin:18px 0 10px; color:#fff; }
+#fimBox {
+    position:fixed; inset:0; background:rgba(0,0,20,0.92); z-index:25; display:none;
+    flex-direction:column; align-items:center; justify-content:center; color:#fff; text-align:center; padding:20px;
+}
+#fimBox h1 { font-size:42px; margin-bottom:10px; }
+#fimBox p { font-size:20px; color:#ccc; margin:6px 0; }
+#fimBox .ganho { color:#ffd700; font-size:24px; font-weight:bold; }
+#fimBox button {
+    margin:10px 8px 0; font-size:19px; font-weight:bold; padding:12px 28px; border:none; border-radius:12px;
+    background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a; cursor:pointer;
+}
+#fimBox button.cinza { background:#445; color:#fff; }
+a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none; z-index:30; font-size:14px; }
+</style>
+</head>
+<body>
+<a class="voltar" href="/">← Cogumelo Games</a>
+<div id="hud">
+    <span id="moedasHud">🪙 0</span>
+    <span>VOCÊ <span id="placarVoce" class="placar">0</span></span>
+    <span id="nivelInfo">—</span>
+    <span id="rodada">Chute 1 de 5</span>
+    <span><span id="placarCpu" class="placar">0</span> <span id="nomeCpu">CPU</span></span>
+    <button id="btnPoder" onclick="usarPoder()">✨</button>
+</div>
+<canvas id="c" width="900" height="560"></canvas>
+<div id="msg"></div>
+
+<div id="overlay">
+    <h1>⚽ Pênaltis — Copa de 100 Níveis</h1>
+    <div id="saldo">🪙 0 moedas</div>
+    <div class="abas">
+        <button class="aba ativa" id="abaNiveis" onclick="mostraAba('niveis')">🌍 Níveis</button>
+        <button class="aba" id="abaLoja" onclick="mostraAba('loja')">🛒 Loja</button>
+    </div>
+    <div class="sub">Vença seleções pra ganhar moedas 🪙 — compre bolas e poderes na loja!</div>
+    <div id="niveis"></div>
+    <div id="loja">
+        <h2 class="secao">⚽ Bolas (o bônus funciona sempre)</h2>
+        <div class="loja-grid" id="lojaBolas"></div>
+        <h2 class="secao">✨ Poderes (equipe 1 — usa 1 vez por partida)</h2>
+        <div class="loja-grid" id="lojaPoderes"></div>
+    </div>
+</div>
+
+<div id="fimBox">
+    <h1 id="fimTitulo"></h1>
+    <p id="fimPlacar"></p>
+    <p class="ganho" id="fimMoedas"></p>
+    <div>
+        <button id="btnProximo" onclick="proximoNivel()">➡️ PRÓXIMO NÍVEL</button>
+        <button onclick="jogarNivel(nivelAtual)">🔄 DE NOVO</button>
+        <button class="cinza" onclick="abreMenu()">📋 MENU</button>
+    </div>
+</div>
+
+<script src="/stats.js"></script>
+<script>
+if (window.initStats) initStats('penaltis');
+
+// ============ 100 SELEÇÕES (fraca → forte) ============
+const TIMES = [
+['Chile','🇨🇱'],['Nova Zelândia','🇳🇿'],['Ilhas Faroé','🇫🇴'],['Luxemburgo','🇱🇺'],['Malta','🇲🇹'],
+['Andorra','🇦🇩'],['San Marino','🇸🇲'],['Liechtenstein','🇱🇮'],['Gibraltar','🇬🇮'],['Chipre','🇨🇾'],
+['Estônia','🇪🇪'],['Letônia','🇱🇻'],['Lituânia','🇱🇹'],['Moldávia','🇲🇩'],['Armênia','🇦🇲'],
+['Azerbaijão','🇦🇿'],['Cazaquistão','🇰🇿'],['Índia','🇮🇳'],['China','🇨🇳'],['Tailândia','🇹🇭'],
+['Vietnã','🇻🇳'],['Indonésia','🇮🇩'],['Malásia','🇲🇾'],['Singapura','🇸🇬'],['Filipinas','🇵🇭'],
+['Hong Kong','🇭🇰'],['Líbano','🇱🇧'],['Jordânia','🇯🇴'],['Kuwait','🇰🇼'],['Bahrein','🇧🇭'],
+['Omã','🇴🇲'],['Uzbequistão','🇺🇿'],['Zâmbia','🇿🇲'],['Uganda','🇺🇬'],['Quênia','🇰🇪'],
+['Tanzânia','🇹🇿'],['Angola','🇦🇴'],['Moçambique','🇲🇿'],['Benin','🇧🇯'],['Madagascar','🇲🇬'],
+['Gabão','🇬🇦'],['Cabo Verde','🇨🇻'],['Guiné','🇬🇳'],['Burkina Faso','🇧🇫'],['Mali','🇲🇱'],
+['Costa do Marfim','🇨🇮'],['Gana','🇬🇭'],['Camarões','🇨🇲'],['Argélia','🇩🇿'],['Tunísia','🇹🇳'],
+['Egito','🇪🇬'],['África do Sul','🇿🇦'],['Nigéria','🇳🇬'],['Marrocos','🇲🇦'],['Senegal','🇸🇳'],
+['Arábia Saudita','🇸🇦'],['Catar','🇶🇦'],['Emirados Árabes','🇦🇪'],['Irã','🇮🇷'],['Iraque','🇮🇶'],
+['Coreia do Sul','🇰🇷'],['Japão','🇯🇵'],['Austrália','🇦🇺'],['Canadá','🇨🇦'],['Estados Unidos','🇺🇸'],
+['Costa Rica','🇨🇷'],['Honduras','🇭🇳'],['Panamá','🇵🇦'],['Jamaica','🇯🇲'],['México','🇲🇽'],
+['Peru','🇵🇪'],['Bolívia','🇧🇴'],['Venezuela','🇻🇪'],['Paraguai','🇵🇾'],['Equador','🇪🇨'],
+['Colômbia','🇨🇴'],['Uruguai','🇺🇾'],['Escócia','🏴󠁧󠁢󠁳󠁣󠁴󠁿'],['País de Gales','🏴󠁧󠁢󠁷󠁬󠁳󠁿'],['Irlanda','🇮🇪'],
+['Noruega','🇳🇴'],['Suécia','🇸🇪'],['Dinamarca','🇩🇰'],['Áustria','🇦🇹'],['Suíça','🇨🇭'],
+['Polônia','🇵🇱'],['Rep. Tcheca','🇨🇿'],['Ucrânia','🇺🇦'],['Turquia','🇹🇷'],['Sérvia','🇷🇸'],
+['Croácia','🇭🇷'],['Bélgica','🇧🇪'],['Holanda','🇳🇱'],['Portugal','🇵🇹'],['Inglaterra','🏴󠁧󠁢󠁥󠁮󠁧󠁿'],
+['Itália','🇮🇹'],['Espanha','🇪🇸'],['Alemanha','🇩🇪'],['Argentina','🇦🇷'],['Brasil','🇧🇷']
+];
+
+// ============ BOLAS (10 skins) ============
+// precisao: 1=normal, menor=chute mais certeiro | pega: multiplica alcance do goleiro inimigo | sorte: chance do goleiro cair errado | moedas: extra por gol
+const BOLAS = [
+{id:'classica', nome:'Clássica', icone:'⚪', preco:0,   cor:'#ffffff', det:'#222222', desc:'A bola de sempre. Grátis!', precisao:1,    pega:1,    sorte:0,    moedas:0},
+{id:'dourada',  nome:'Dourada',  icone:'🟡', preco:100, cor:'#ffd700', det:'#aa7700', desc:'Chute mais certeiro!', precisao:0.6,  pega:1,    sorte:0,    moedas:0},
+{id:'fogo',     nome:'De Fogo',  icone:'🔥', preco:250, cor:'#ff5522', det:'#661100', desc:'Tão quente que o goleiro tem medo de pegar!', precisao:1,    pega:0.85, sorte:0,    moedas:0},
+{id:'gelo',     nome:'De Gelo',  icone:'❄️', preco:450, cor:'#aaeeff', det:'#3388aa', desc:'Congela o goleiro: ele adivinha menos!', precisao:0.9,  pega:0.9,  sorte:0.08, moedas:0},
+{id:'arcoiris', nome:'Arco-Íris',icone:'🌈', preco:700, cor:'#ff88ff', det:'#8844cc', desc:'+3 moedas por cada gol seu!', precisao:1,    pega:1,    sorte:0,    moedas:3},
+{id:'galaxia',  nome:'Galáxia',  icone:'🌌', preco:1200, cor:'#6633cc', det:'#221155', desc:'Certeira e difícil de pegar!', precisao:0.6,  pega:0.85, sorte:0,    moedas:0},
+{id:'trovao',   nome:'Trovão',   icone:'⚡', preco:2000, cor:'#ffee44', det:'#886600', desc:'Rápida demais: goleiro pega bem menos!', precisao:1,    pega:0.72, sorte:0,    moedas:0},
+{id:'capivara', nome:'Capivara', icone:'🦫', preco:3500, cor:'#aa7744', det:'#553311', desc:'Sorte da capivara: goleiro cai pro lado errado!', precisao:0.9,  pega:0.9,  sorte:0.18, moedas:1},
+{id:'cogumelo', nome:'Cogumelo', icone:'🍄', preco:6000, cor:'#ff4444', det:'#ffffff', desc:'Poder do Cogumelo: boa em TUDO!', precisao:0.7,  pega:0.8,  sorte:0.1,  moedas:2},
+{id:'diamante', nome:'Diamante', icone:'💎', preco:10000, cor:'#88ffff', det:'#2288aa', desc:'A LENDÁRIA. Quase impossível de defender!', precisao:0.4,  pega:0.6,  sorte:0.15, moedas:3}
+];
+
+// ============ PODERES (10 — equipa 1, usa 1x por partida) ============
+const PODERES = [
+{id:'golpequeno', nome:'Gol Pequeno', icone:'🥅', preco:80,  desc:'Na defesa: o gol encolhe e o chute inimigo pode ir PRA FORA!', quando:'defesa'},
+{id:'bolafogo',   nome:'Bola de Fogo',icone:'🔥', preco:120, desc:'Seu próximo chute é IMPOSSÍVEL de pegar (só não erre o gol!)', quando:'ataque'},
+{id:'luvas',      nome:'Luvas Magnéticas', icone:'🧲', preco:100, desc:'Na defesa: suas luvas pegam de muito mais longe!', quando:'defesa'},
+{id:'lenta',      nome:'Câmera Lenta',icone:'🐢', preco:90,  desc:'O chute inimigo vem em câmera lenta, fácil de defender!', quando:'defesa'},
+{id:'fantasma',   nome:'Goleiro Fantasma', icone:'👻', preco:150, desc:'O goleiro inimigo SOME no seu próximo chute!', quando:'ataque'},
+{id:'mira',       nome:'Mira Perfeita',icone:'🎯', preco:70,  desc:'Seu próximo chute vai EXATAMENTE onde você mirou!', quando:'ataque'},
+{id:'congelar',   nome:'Congelar',    icone:'🧊', preco:130, desc:'O goleiro inimigo fica CONGELADO no meio no seu chute!', quando:'ataque'},
+{id:'duplo',      nome:'Gol Duplo',   icone:'⭐', preco:200, desc:'Se fizer gol no próximo chute, vale 2 GOLS!', quando:'ataque'},
+{id:'escudo',     nome:'Escudo',      icone:'🛡️', preco:180, desc:'Se o inimigo fizer gol no próximo chute, NÃO CONTA!', quando:'defesa'},
+{id:'gigante',    nome:'Chute Gigante',icone:'🦶', preco:110, desc:'Bola GIGANTE no próximo chute — quase não dá pra pegar!', quando:'ataque'}
+];
+
+// dificuldade do nível n (1..100)
+function dificuldade(n){
+    const p = (n-1)/99;
+    return {
+        adivinha: 0.10 + 0.60*p,
+        pegaW: 45 + 50*p,
+        pegaH: 60 + 55*p,
+        velBola: 0.028 + 0.030*p,
+        tempoAlvo: 2200 - 1500*p,
+        chuteCanto: 0.3 + 0.65*p
+    };
+}
+
+// ============ PROGRESSO SALVO ============
+let desbloqueado = parseInt(localStorage.getItem('penaltis_desbloqueado')||'1');
+let vencidos = JSON.parse(localStorage.getItem('penaltis_vencidos')||'[]');
+let moedas = parseInt(localStorage.getItem('penaltis_moedas')||'0');
+let bolasCompradas = JSON.parse(localStorage.getItem('penaltis_bolas')||'["classica"]');
+let bolaEq = localStorage.getItem('penaltis_bolaEq')||'classica';
+let poderesComprados = JSON.parse(localStorage.getItem('penaltis_poderes')||'[]');
+let poderEq = localStorage.getItem('penaltis_poderEq')||'';
+function salva(){
+    localStorage.setItem('penaltis_desbloqueado', desbloqueado);
+    localStorage.setItem('penaltis_vencidos', JSON.stringify(vencidos));
+    localStorage.setItem('penaltis_moedas', moedas);
+    localStorage.setItem('penaltis_bolas', JSON.stringify(bolasCompradas));
+    localStorage.setItem('penaltis_bolaEq', bolaEq);
+    localStorage.setItem('penaltis_poderes', JSON.stringify(poderesComprados));
+    localStorage.setItem('penaltis_poderEq', poderEq);
+}
+function bolaAtual(){ return BOLAS.find(b=>b.id===bolaEq) || BOLAS[0]; }
+function poderAtualDef(){ return PODERES.find(p=>p.id===poderEq); }
+
+// ============ MENU / LOJA ============
+function mostraAba(qual){
+    document.getElementById('niveis').style.display = qual==='niveis'?'grid':'none';
+    document.getElementById('loja').style.display = qual==='loja'?'block':'none';
+    document.getElementById('abaNiveis').classList.toggle('ativa', qual==='niveis');
+    document.getElementById('abaLoja').classList.toggle('ativa', qual==='loja');
+    if(qual==='loja') montaLoja();
+}
+function montaMenu(){
+    document.getElementById('saldo').textContent = `🪙 ${moedas} moedas`;
+    const box = document.getElementById('niveis');
+    box.innerHTML='';
+    TIMES.forEach(([nome,flag],i)=>{
+        const n = i+1;
+        const d = document.createElement('div');
+        d.className = 'nivel' + (n>desbloqueado?' travado':'') + (vencidos.includes(n)?' vencido':'') + (n===desbloqueado?' atual':'');
+        d.innerHTML = `<div class="flag">${n>desbloqueado?'🔒':flag}</div><div class="num">Nível ${n}</div><div class="nome">${nome}</div>`;
+        if(n<=desbloqueado) d.onclick = ()=>jogarNivel(n);
+        box.appendChild(d);
+    });
+}
+function montaLoja(){
+    document.getElementById('saldo').textContent = `🪙 ${moedas} moedas`;
+    const bb = document.getElementById('lojaBolas'); bb.innerHTML='';
+    BOLAS.forEach(b=>{
+        const tem = bolasCompradas.includes(b.id);
+        const eq = bolaEq===b.id;
+        const d = document.createElement('div');
+        d.className = 'item' + (eq?' equipadoBorda':'');
+        let btn;
+        if(eq) btn = `<button class="equipado" disabled>✅ EQUIPADA</button>`;
+        else if(tem) btn = `<button class="equipar" onclick="equipaBola('${b.id}')">EQUIPAR</button>`;
+        else btn = `<button onclick="compraBola('${b.id}')" ${moedas<b.preco?'disabled':''}>🪙 ${b.preco}</button>`;
+        d.innerHTML = `<div class="icone">${b.icone}</div><div class="inome">${b.nome}</div><div class="idesc">${b.desc}</div>${btn}`;
+        bb.appendChild(d);
+    });
+    const pp = document.getElementById('lojaPoderes'); pp.innerHTML='';
+    PODERES.forEach(p=>{
+        const tem = poderesComprados.includes(p.id);
+        const eq = poderEq===p.id;
+        const d = document.createElement('div');
+        d.className = 'item' + (eq?' equipadoBorda':'');
+        let btn;
+        if(eq) btn = `<button class="equipar" onclick="equipaPoder('')">❌ DESEQUIPAR</button>`;
+        else if(tem) btn = `<button class="equipar" onclick="equipaPoder('${p.id}')">EQUIPAR</button>`;
+        else btn = `<button onclick="compraPoder('${p.id}')" ${moedas<p.preco?'disabled':''}>🪙 ${p.preco}</button>`;
+        d.innerHTML = `<div class="icone">${p.icone}</div><div class="inome">${p.nome}</div><div class="idesc">${p.desc}</div>${btn}`;
+        pp.appendChild(d);
+    });
+}
+function compraBola(id){
+    const b = BOLAS.find(x=>x.id===id);
+    if(moedas<b.preco) return;
+    moedas-=b.preco; bolasCompradas.push(id); bolaEq=id; salva(); montaLoja();
+    som(600,0.1); setTimeout(()=>som(900,0.2),100);
+}
+function equipaBola(id){ bolaEq=id; salva(); montaLoja(); som(700,0.1); }
+function compraPoder(id){
+    const p = PODERES.find(x=>x.id===id);
+    if(moedas<p.preco) return;
+    moedas-=p.preco; poderesComprados.push(id); poderEq=id; salva(); montaLoja();
+    som(600,0.1); setTimeout(()=>som(900,0.2),100);
+}
+function equipaPoder(id){ poderEq=id; salva(); montaLoja(); som(700,0.1); }
+function abreMenu(){
+    document.getElementById('fimBox').style.display='none';
+    montaMenu(); mostraAba('niveis');
+    document.getElementById('overlay').style.display='flex';
+}
+
+// ============ JOGO ============
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+const GOL = { x: W/2-260, y: 90, w: 520, h: 190 };
+let mira = { x: W/2, y: GOL.y+GOL.h/2 };
+let bola = { x: W/2, y: H-70, r: 16, voando:false, t:0, destX:0, destY:0, escala:1 };
+let goleiro = { x: W/2, y: GOL.y+GOL.h-40, destX: W/2, pulando:false, ladoY:0, t:0, visivel:true, congelado:false };
+let placarVoce=0, placarCpu=0, chute=1, minhaVez=true, jogando=false, morteSubita=false;
+let nivelAtual=1, dif=dificuldade(1);
+let confetes=[];
+let defendendo=false, alvoRobo=null;
+let poderUsado=false, poderAtivo='';   // poder ativado esperando o momento certo
+let golEncolhido=false;
+let moedasPartida=0;
+let audio;
+
+function som(freq, dur, tipo='square', vol=0.15){
+    try{
+        audio = audio || new (window.AudioContext||window.webkitAudioContext)();
+        const o=audio.createOscillator(), g=audio.createGain();
+        o.type=tipo; o.frequency.value=freq; g.gain.value=vol;
+        g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime+dur);
+        o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime+dur);
+    }catch(e){}
+}
+function mostraMsg(txt, cor='#fff', tempo=1300){
+    const m=document.getElementById('msg');
+    m.textContent=txt; m.style.color=cor; m.style.opacity=1;
+    setTimeout(()=>m.style.opacity=0, tempo);
+}
+function atualizaHud(){
+    document.getElementById('placarVoce').textContent=placarVoce;
+    document.getElementById('placarCpu').textContent=placarCpu;
+    document.getElementById('rodada').textContent = morteSubita ? '💀 MORTE SÚBITA' : `Chute ${Math.min(chute,5)} de 5`;
+    document.getElementById('moedasHud').textContent = `🪙 ${moedas+moedasPartida}`;
+    const [nome,flag]=TIMES[nivelAtual-1];
+    document.getElementById('nivelInfo').textContent = `Nível ${nivelAtual} ${flag}`;
+    document.getElementById('nomeCpu').textContent = nome.toUpperCase();
+    // botão do poder
+    const btn = document.getElementById('btnPoder');
+    const pd = poderAtualDef();
+    if(jogando && pd && !poderUsado){
+        btn.style.display='inline-block';
+        btn.textContent = `${pd.icone} ${pd.nome}`;
+    } else if(jogando && pd && poderAtivo){
+        btn.style.display='inline-block';
+        btn.textContent = `${pd.icone} PRONTO!`;
+    } else btn.style.display='none';
+}
+
+// ============ PODER ============
+function usarPoder(){
+    const pd = poderAtualDef();
+    if(!pd || poderUsado || poderAtivo || !jogando) return;
+    poderAtivo = pd.id; poderUsado = true;
+    mostraMsg(`${pd.icone} ${pd.nome} ATIVADO!`,'#dd88ff',1400);
+    som(400,0.1); setTimeout(()=>som(800,0.2),120);
+    atualizaHud();
+}
+function consomePoder(quando){
+    // retorna o id se o poder ativo é para este momento (ataque/defesa) e o consome
+    const pd = PODERES.find(p=>p.id===poderAtivo);
+    if(pd && pd.quando===quando){ const id=poderAtivo; poderAtivo=''; atualizaHud(); return id; }
+    return '';
+}
+
+cv.addEventListener('mousemove', e=>{
+    const r=cv.getBoundingClientRect();
+    mira.x=(e.clientX-r.left)*(W/r.width);
+    mira.y=(e.clientY-r.top)*(H/r.height);
+});
+cv.addEventListener('touchmove', e=>{
+    e.preventDefault();
+    const r=cv.getBoundingClientRect(), t=e.touches[0];
+    mira.x=(t.clientX-r.left)*(W/r.width);
+    mira.y=(t.clientY-r.top)*(H/r.height);
+},{passive:false});
+cv.addEventListener('mousedown', chutar);
+cv.addEventListener('touchend', e=>{ e.preventDefault(); chutar(); });
+
+let poderChute=''; // poder consumido neste chute
+function chutar(){
+    if(!jogando || bola.voando || !minhaVez || defendendo) return;
+    const b = bolaAtual();
+    poderChute = consomePoder('ataque');
+    const mx = Math.max(GOL.x-40, Math.min(GOL.x+GOL.w+40, mira.x));
+    const my = Math.max(GOL.y-30, Math.min(GOL.y+GOL.h+40, mira.y));
+    let erro = 1;
+    if(poderChute==='mira') erro = 0;
+    bola.destX = mx + (Math.random()-0.5)*50*b.precisao*erro;
+    bola.destY = my + (Math.random()-0.5)*40*b.precisao*erro;
+    bola.voando=true; bola.t=0;
+    bola.escala = poderChute==='gigante' ? 2 : 1;
+    som(200,0.15);
+    goleiro.visivel = poderChute!=='fantasma';
+    goleiro.congelado = poderChute==='congelar';
+    if(goleiro.congelado){ goleiro.destX = W/2; goleiro.pulando=true; goleiro.t=0; goleiro.ladoY=0; return; }
+    // sorte da bola: goleiro cai pro lado errado
+    const cantos=[GOL.x+80, W/2, GOL.x+GOL.w-80];
+    if(Math.random()<b.sorte){
+        goleiro.destX = bola.destX < W/2 ? GOL.x+GOL.w-80 : GOL.x+80;
+    } else {
+        const adivinha = Math.random()<dif.adivinha;
+        goleiro.destX = adivinha ? bola.destX : cantos[Math.floor(Math.random()*3)];
+    }
+    goleiro.ladoY = bola.destY < GOL.y+GOL.h/2 ? -50 : 0;
+    goleiro.pulando=true; goleiro.t=0;
+}
+
+function resolveChuteVoce(){
+    const b = bolaAtual();
+    const dentro = bola.destX>GOL.x+10 && bola.destX<GOL.x+GOL.w-10 && bola.destY>GOL.y+5 && bola.destY<GOL.y+GOL.h-5;
+    let pegou = dentro && Math.abs(bola.destX-goleiro.destX)<dif.pegaW*b.pega && Math.abs(bola.destY-(goleiro.y+goleiro.ladoY))<dif.pegaH*b.pega;
+    if(poderChute==='bolafogo' || poderChute==='fantasma') pegou = false;
+    if(poderChute==='gigante' && Math.random()<0.75) pegou = false;
+    const duplo = poderChute==='duplo';
+    goleiro.visivel = true; goleiro.congelado = false;
+    if(!dentro){ mostraMsg('PRA FORA! 😱','#ffaa00'); som(150,0.4,'sawtooth'); }
+    else if(pegou){ bola.segura=true; mostraMsg('O GOLEIRO PEGOU! 🧤','#ff5555'); som(120,0.4,'sawtooth'); }
+    else {
+        placarVoce += duplo?2:1;
+        moedasPartida += b.moedas;
+        mostraMsg(duplo?'GOL DUPLO!! ⭐⭐':'GOOOOL! ⚽🎉','#00ff88');
+        som(500,0.1); setTimeout(()=>som(700,0.15),100); setTimeout(()=>som(900,0.25),220);
+        soltaConfete();
+    }
+    poderChute='';
+    atualizaHud();
+    setTimeout(vezDoRobo, 1500);
+}
+
+let poderDefesa='';
+function vezDoRobo(){
+    minhaVez=false; resetaBola();
+    poderDefesa = consomePoder('defesa');
+    golEncolhido = poderDefesa==='golpequeno';
+    mostraMsg('Defenda! Leve o goleiro até o alvo! 🧤','#00ccff',1400);
+    const cantos=[GOL.x+80, W/2, GOL.x+GOL.w-80];
+    if(Math.random()<dif.chuteCanto){
+        bola.destX = Math.random()<0.5 ? GOL.x+45 : GOL.x+GOL.w-45;
+        bola.destY = Math.random()<0.5 ? GOL.y+35 : GOL.y+GOL.h-35;
+    } else {
+        bola.destX = cantos[Math.floor(Math.random()*3)] + (Math.random()-0.5)*40;
+        bola.destY = GOL.y+30+Math.random()*(GOL.h-60);
+    }
+    // gol pequeno: 45% de chance do chute ir pra fora!
+    if(golEncolhido && Math.random()<0.45){
+        bola.destX = Math.random()<0.5 ? GOL.x-60 : GOL.x+GOL.w+60;
+        bola.foraDoGol = true;
+    } else bola.foraDoGol = false;
+    alvoRobo = { x: bola.destX, y: bola.destY };
+    defendendo=true;
+    setTimeout(()=>{
+        bola.voando=true; bola.t=0; som(200,0.15);
+    }, dif.tempoAlvo + (poderDefesa==='lenta'?800:0));
+}
+
+function resolveChuteRobo(){
+    defendendo=false; alvoRobo=null;
+    const alcance = poderDefesa==='luvas' ? 2.2 : 1;
+    let pegou = Math.abs(bola.destX-goleiro.x)<80*alcance && Math.abs(bola.destY-(goleiro.y+goleiro.ladoY))<100*alcance;
+    if(bola.foraDoGol){ mostraMsg('PRA FORA! O gol encolheu! 🥅😂','#00ff88'); som(600,0.2); }
+    else if(pegou){ bola.segura=true; mostraMsg('DEFENDEU! 🧤🔥','#00ff88'); som(600,0.2); soltaConfete(); }
+    else if(poderDefesa==='escudo'){ mostraMsg('🛡️ ESCUDO! Não valeu!','#00ccff'); som(500,0.2); }
+    else { placarCpu++; mostraMsg(`Gol da ${TIMES[nivelAtual-1][0]}... ${TIMES[nivelAtual-1][1]}`,'#ff5555'); som(140,0.4,'sawtooth'); }
+    poderDefesa=''; golEncolhido=false;
+    atualizaHud();
+    setTimeout(proximaRodada, 1500);
+}
+
+function proximaRodada(){
+    chute++; minhaVez=true; resetaBola(); atualizaHud();
+    const restam = 6-chute;
+    if(!morteSubita){
+        if(placarVoce > placarCpu + restam) return fim(true);
+        if(placarCpu > placarVoce + restam) return fim(false);
+        if(chute>5){
+            if(placarVoce!==placarCpu) return fim(placarVoce>placarCpu);
+            morteSubita=true; mostraMsg('💀 MORTE SÚBITA!','#ffaa00'); atualizaHud();
+        }
+    } else if(placarVoce!==placarCpu) return fim(placarVoce>placarCpu);
+    setTimeout(()=>mostraMsg('Sua vez! Mire e chute! ⚽','#fff',1000), 300);
+}
+
+function fim(venceu){
+    jogando=false;
+    const [nome,flag]=TIMES[nivelAtual-1];
+    let ganho = moedasPartida;
+    if(venceu){
+        const premio = 5 + Math.round((nivelAtual-1)*235/99); // nível 1 = 5 ... nível 100 = 240
+        ganho += premio;
+        if(!vencidos.includes(nivelAtual)){ ganho += premio; vencidos.push(nivelAtual); } // primeira vez = dobro
+        if(nivelAtual===desbloqueado && desbloqueado<100) desbloqueado++;
+        soltaConfete(); soltaConfete();
+        som(500,0.15); setTimeout(()=>som(700,0.15),150); setTimeout(()=>som(900,0.4),300);
+    } else {
+        ganho += 2; // consolação
+    }
+    moedas += ganho; moedasPartida=0; salva();
+    document.getElementById('fimTitulo').textContent =
+        venceu ? (nivelAtual===100 ? '🏆👑 CAMPEÃO MUNDIAL!!!' : `🏆 Venceu ${nome}! ${flag}`) : `😢 ${nome} venceu... ${flag}`;
+    document.getElementById('fimPlacar').textContent = `VOCÊ ${placarVoce} × ${placarCpu} ${nome.toUpperCase()}`;
+    document.getElementById('fimMoedas').textContent = `+🪙 ${ganho} moedas!`;
+    document.getElementById('btnProximo').style.display = (venceu && nivelAtual<100) ? 'inline-block' : 'none';
+    document.getElementById('fimBox').style.display='flex';
+    atualizaHud();
+}
+
+function proximoNivel(){ jogarNivel(Math.min(nivelAtual+1, 100)); }
+
+function jogarNivel(n){
+    nivelAtual=n; dif=dificuldade(n);
+    placarVoce=0; placarCpu=0; chute=1; minhaVez=true; morteSubita=false; jogando=true;
+    poderUsado=false; poderAtivo=''; poderChute=''; poderDefesa=''; moedasPartida=0;
+    resetaBola(); atualizaHud();
+    document.getElementById('overlay').style.display='none';
+    document.getElementById('fimBox').style.display='none';
+    const [nome,flag]=TIMES[n-1];
+    mostraMsg(`Nível ${n}: VOCÊ × ${nome} ${flag}`,'#fff',1600);
+}
+
+function resetaBola(){ bola.x=W/2; bola.y=H-70; bola.voando=false; bola.escala=1; bola.foraDoGol=false; bola.segura=false; goleiro.pulando=false; goleiro.x=W/2; goleiro.destX=W/2; goleiro.ladoY=0; goleiro.visivel=true; goleiro.congelado=false; }
+
+function soltaConfete(){
+    for(let i=0;i<60;i++) confetes.push({
+        x:Math.random()*W, y:-10-Math.random()*100,
+        vy:2+Math.random()*3, vx:(Math.random()-0.5)*2,
+        cor:`hsl(${Math.random()*360},90%,60%)`, tam:4+Math.random()*6
+    });
+}
+
+function desenha(){
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#0b2a5e'); g.addColorStop(0.5,'#1a4a8a'); g.addColorStop(0.5,'#1e7a2e'); g.addColorStop(1,'#145a1e');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(255,255,255,0.05)';
+    for(let i=0;i<6;i++) ctx.fillRect(0, H/2+i*50, W, 25);
+    for(let i=0;i<80;i++){
+        ctx.fillStyle=`hsl(${(i*47)%360},60%,${45+(i%3)*10}%)`;
+        ctx.beginPath(); ctx.arc(20+(i%40)*22.5, 25+Math.floor(i/40)*28, 8, 0, 7); ctx.fill();
+    }
+    // placar estilo TV no canto superior esquerdo
+    if(jogando || placarVoce+placarCpu>0){
+        const [nomeT,flagT]=TIMES[nivelAtual-1];
+        const sigla = nomeT.slice(0,3).toUpperCase();
+        ctx.save();
+        ctx.fillStyle='rgba(0,0,0,0.75)';
+        ctx.beginPath(); ctx.roundRect(10,10,215,38,8); ctx.fill();
+        ctx.fillStyle='#00ff88'; ctx.fillRect(10,10,5,38);
+        ctx.font='bold 18px Arial'; ctx.textBaseline='middle';
+        ctx.fillStyle='#fff'; ctx.fillText('VOCÊ', 26, 30);
+        ctx.fillStyle='#ffd700'; ctx.fillText(`${placarVoce} - ${placarCpu}`, 90, 30);
+        ctx.fillStyle='#fff'; ctx.fillText(`${sigla} ${flagT}`, 150, 30);
+        ctx.restore();
+    }
+
+    // gol (encolhe com o poder Gol Pequeno)
+    const gx = golEncolhido ? GOL.x+90 : GOL.x, gw = golEncolhido ? GOL.w-180 : GOL.w;
+    const gy2 = golEncolhido ? GOL.y+50 : GOL.y, gh = golEncolhido ? GOL.h-50 : GOL.h;
+    ctx.strokeStyle = golEncolhido ? '#00ffcc' : '#fff'; ctx.lineWidth=8;
+    ctx.beginPath();
+    ctx.moveTo(gx, gy2+gh); ctx.lineTo(gx, gy2);
+    ctx.lineTo(gx+gw, gy2);
+    ctx.lineTo(gx+gw, gy2+gh);
+    ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1;
+    for(let i=1;i<14;i++){ ctx.beginPath(); ctx.moveTo(gx+i*gw/14, gy2); ctx.lineTo(gx+i*gw/14, gy2+gh); ctx.stroke(); }
+    for(let i=1;i<6;i++){ ctx.beginPath(); ctx.moveTo(gx, gy2+i*gh/6); ctx.lineTo(gx+gw, gy2+i*gh/6); ctx.stroke(); }
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(W/2, H-52, 5, 0, 7); ctx.fill();
+
+    if(alvoRobo){
+        const pisca = 0.5+0.5*Math.sin(Date.now()/120);
+        ctx.strokeStyle=`rgba(255,50,50,${pisca})`; ctx.lineWidth=5;
+        ctx.beginPath(); ctx.arc(alvoRobo.x, alvoRobo.y, 30, 0, 7); ctx.stroke();
+        ctx.beginPath(); ctx.arc(alvoRobo.x, alvoRobo.y, 12, 0, 7); ctx.stroke();
+    }
+
+    if(defendendo){
+        goleiro.x += (Math.max(GOL.x+30, Math.min(GOL.x+GOL.w-30, mira.x)) - goleiro.x)*0.25;
+        goleiro.ladoY = mira.y < GOL.y+GOL.h/2 ? -50 : 0;
+        goleiro.pulando=true; goleiro.t=1;
+    } else if(goleiro.pulando && !goleiro.congelado){
+        goleiro.t+=0.08;
+        goleiro.x += (goleiro.destX-goleiro.x)*0.18;
+    } else if(!goleiro.congelado) goleiro.x += (W/2-goleiro.x)*0.1;
+
+    if(goleiro.visivel){
+        const gyG = goleiro.y + (goleiro.pulando?goleiro.ladoY*Math.min(goleiro.t,1):0);
+        ctx.save(); ctx.translate(goleiro.x, gyG);
+        if(goleiro.congelado) ctx.globalAlpha=0.7;
+        ctx.fillStyle = goleiro.congelado ? '#88ddff' : '#ffdd00';
+        ctx.fillRect(-22,-30,44,55);
+        ctx.beginPath(); ctx.arc(0,-45,16,0,7); ctx.fillStyle = goleiro.congelado ? '#aaeeff' : '#ffcc99'; ctx.fill();
+        ctx.strokeStyle = goleiro.congelado ? '#88ddff' : '#ffdd00'; ctx.lineWidth=10; ctx.lineCap='round';
+        const abre = goleiro.pulando?Math.min(goleiro.t,1):0.3;
+        ctx.beginPath(); ctx.moveTo(-20,-20); ctx.lineTo(-20-35*abre,-40*abre-10); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(20,-20); ctx.lineTo(20+35*abre,-40*abre-10); ctx.stroke();
+        ctx.fillStyle='#222'; ctx.fillRect(-20,25,15,25); ctx.fillRect(5,25,15,25);
+        ctx.restore();
+    }
+
+    if(bola.voando){
+        bola.t += minhaVez ? dif.velBola : dif.velBola*(poderDefesa==='lenta'?0.45:1);
+        const t=Math.min(bola.t,1);
+        bola.x = W/2 + (bola.destX-W/2)*t;
+        bola.y = (H-70) + (bola.destY-(H-70))*t - Math.sin(t*Math.PI)*40;
+        const base = (poderChute==='gigante' && minhaVez) ? 1.8 : 1;
+        bola.escala = base*(1-0.55*t);
+        if(t>=1){
+            bola.voando=false;
+            if(minhaVez) resolveChuteVoce(); else resolveChuteRobo();
+        }
+    }
+    // goleiro segurando a bola depois da defesa
+    if(bola.segura){
+        const gySeg = goleiro.y + (goleiro.pulando?goleiro.ladoY*Math.min(goleiro.t,1):0);
+        bola.x = goleiro.x; bola.y = gySeg - 5; bola.escala = 0.5;
+    }
+    // desenha a bola com a skin equipada
+    const sk = bolaAtual();
+    ctx.save(); ctx.translate(bola.x,bola.y); ctx.scale(bola.escala,bola.escala);
+    if(sk.id!=='classica'){
+        ctx.shadowColor = sk.cor; ctx.shadowBlur = 20;
+    }
+    if(sk.id==='fogo' && bola.voando){
+        // rastro de fogo
+        for(let i=1;i<=3;i++){
+            ctx.fillStyle=`rgba(255,${100+i*40},0,${0.3/i})`;
+            ctx.beginPath(); ctx.arc(0, i*12, bola.r+i*3, 0, 7); ctx.fill();
+        }
+    }
+    if(sk.id==='arcoiris'){
+        const grad = ctx.createLinearGradient(-16,-16,16,16);
+        grad.addColorStop(0,'#ff4444'); grad.addColorStop(0.3,'#ffdd00'); grad.addColorStop(0.6,'#44ff44'); grad.addColorStop(1,'#4488ff');
+        ctx.fillStyle=grad;
+    } else ctx.fillStyle=sk.cor;
+    ctx.beginPath(); ctx.arc(0,0,bola.r,0,7); ctx.fill();
+    ctx.fillStyle=sk.det;
+    for(let a=0;a<5;a++){ ctx.beginPath(); ctx.arc(Math.cos(a*1.257)*9, Math.sin(a*1.257)*9, 4,0,7); ctx.fill(); }
+    ctx.restore();
+
+    if(jogando && minhaVez && !bola.voando && !defendendo){
+        ctx.strokeStyle='#00ff88'; ctx.lineWidth=3;
+        ctx.beginPath(); ctx.arc(mira.x,mira.y,18,0,7); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(mira.x-26,mira.y); ctx.lineTo(mira.x+26,mira.y);
+        ctx.moveTo(mira.x,mira.y-26); ctx.lineTo(mira.x,mira.y+26); ctx.stroke();
+    }
+
+    confetes.forEach(c=>{ c.y+=c.vy; c.x+=c.vx; ctx.fillStyle=c.cor; ctx.fillRect(c.x,c.y,c.tam,c.tam); });
+    confetes = confetes.filter(c=>c.y<H+20);
+
+    requestAnimationFrame(desenha);
+}
+montaMenu();
+desenha();
+</script>
+</body>
+</html>
