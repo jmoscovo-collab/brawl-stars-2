@@ -133,10 +133,14 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
     </div>
     <div id="saldo">🪙 0 moedas</div>
     <div class="abas">
-        <button class="aba ativa" id="abaNiveis" onclick="mostraAba('niveis')">🌍 Níveis</button>
+        <button class="aba ativa" id="abaNiveis" onclick="mostraAba('niveis')">🥅 Níveis</button>
         <button class="aba" id="abaLoja" onclick="mostraAba('loja')">🛒 Loja</button>
     </div>
-    <div class="sub">Vença seleções pra ganhar moedas 🪙 — compre bolas e poderes na loja!</div>
+    <div class="abas">
+        <button class="aba" id="modoSelecoes" onclick="trocaModo('selecoes')">🌍 Seleções</button>
+        <button class="aba" id="modoTimes" onclick="trocaModo('times')">🛡️ Times</button>
+    </div>
+    <div class="sub" id="subTexto">Vença todos pra ganhar moedas 🪙 — compre bolas e poderes na loja!</div>
     <div id="niveis"></div>
     <div id="loja">
         <h2 class="secao">⚽ Bolas (o bônus funciona sempre)</h2>
@@ -229,6 +233,34 @@ const PODERES = [
 {id:'gigante',    nome:'Chute Gigante',icone:'🦶', preco:110, desc:'Bola GIGANTE no próximo chute — quase não dá pra pegar!', quando:'ataque'}
 ];
 
+// ============ 100 TIMES / CLUBES (pior → melhor) ============
+const CLUBES = [
+['Íbis','🦩'],['Ypiranga-AP','🟨'],['Trem-AP','🚂'],['São Raimundo-RR','🟦'],['Rio Branco-AC','⬜'],
+['Galvez-AC','🟩'],['Fast Clube','⚡'],['Penarol-AM','🟥'],['Interporto','🟪'],['Palmas','🌴'],
+['Real Noroeste','🟧'],['Aymorés','🟫'],['Democrata','🔵'],['Tupynambás','🟡'],['Villa Nova-MG','🔴'],
+['Portuguesa Santista','⚓'],['Comercial-SP','🟢'],['Noroeste','🔶'],['Votuporanguense','🟠'],['Juventus-SP','🍷'],
+['Taubaté','🐂'],['XV de Piracicaba','🔷'],['Inter de Limeira','🦁'],['Ferroviária','🚆'],['Botafogo-SP','⚫'],
+['Oeste','🃏'],['Ituano','🐓'],['Mirassol','🦁'],['Novorizontino','🌽'],['Água Santa','💧'],
+['São Bernardo','🐺'],['Santo André','🎵'],['Portuguesa','🇵🇹'],['Guarani','🐛'],['Ponte Preta','🐒'],
+['Brusque','🟢'],['Chapecoense','💚'],['Criciúma','🐯'],['Avaí','🦈'],['Figueirense','🖤'],
+['Londrina','🐿️'],['Operário-PR','👻'],['Paraná Clube','🔵'],['Coritiba','🌲'],['Athletico-PR','🌪️'],
+['CSA','⚔️'],['CRB','🦅'],['Náutico','⛵'],['Santa Cruz','🐍'],['Sport','🦁'],
+['Sampaio Corrêa','🎯'],['Paysandu','🔵'],['Remo','🚣'],['Amazonas','🐆'],['Manaus','🐊'],
+['Vila Nova-GO','🐯'],['Goiás','🟢'],['Atlético-GO','🐉'],['Cuiabá','🐊'],['Brasiliense','🟡'],
+['Juventude','🟩'],['Caxias','🟥'],['América-MG','🐰'],['Ceará','⚫'],['Fortaleza','🦁'],
+['Bahia','🔵'],['Vitória','🦁'],['Botafogo','⭐'],['Vasco','✝️'],['Fluminense','🟩'],
+['Cruzeiro','🦊'],['Atlético-MG','🐓'],['Internacional','❤️'],['Grêmio','💙'],['Santos','🐳'],
+['São Paulo','🔴'],['Corinthians','🖤'],['Palmeiras','🐷'],['Flamengo','🔴'],['Boca Juniors','💛'],
+['River Plate','🎗️'],['Peñarol','🟡'],['Nacional-URU','🔵'],['Colo-Colo','⚪'],['Porto','🐉'],
+['Benfica','🦅'],['Ajax','⚪'],['Borussia Dortmund','🐝'],['Milan','🔴'],['Inter de Milão','🔵'],
+['Juventus','🦓'],['Atlético de Madrid','🐻'],['Chelsea','🦁'],['Arsenal','🔫'],['Barcelona','🔵'],
+['PSG','🗼'],['Bayern de Munique','🍺'],['Liverpool','🐦'],['Manchester City','☁️'],['Real Madrid','👑']
+];
+
+// modo de jogo: selecoes ou times
+let modo = localStorage.getItem('penaltis_modo')||'selecoes';
+function timesDoModo(){ return modo==='times' ? CLUBES : TIMES; }
+
 // dificuldade do nível n (1..100)
 function dificuldade(n){
     const p = (n-1)/99;
@@ -243,16 +275,30 @@ function dificuldade(n){
 }
 
 // ============ PROGRESSO SALVO ============
-let desbloqueado = parseInt(localStorage.getItem('penaltis_desbloqueado')||'1');
-let vencidos = JSON.parse(localStorage.getItem('penaltis_vencidos')||'[]');
+// progresso separado por modo (seleções e times)
+let progresso = {
+    selecoes: {
+        desb: parseInt(localStorage.getItem('penaltis_desbloqueado')||'1'),
+        venc: JSON.parse(localStorage.getItem('penaltis_vencidos')||'[]')
+    },
+    times: {
+        desb: parseInt(localStorage.getItem('penaltis_desbloqueado_t')||'1'),
+        venc: JSON.parse(localStorage.getItem('penaltis_vencidos_t')||'[]')
+    }
+};
+Object.defineProperty(window, 'desbloqueado', { get(){ return progresso[modo].desb; }, set(v){ progresso[modo].desb = v; } });
+Object.defineProperty(window, 'vencidos', { get(){ return progresso[modo].venc; }, set(v){ progresso[modo].venc = v; } });
 let moedas = parseInt(localStorage.getItem('penaltis_moedas')||'0');
 let bolasCompradas = JSON.parse(localStorage.getItem('penaltis_bolas')||'["classica"]');
 let bolaEq = localStorage.getItem('penaltis_bolaEq')||'classica';
 let poderesComprados = JSON.parse(localStorage.getItem('penaltis_poderes')||'[]');
 let poderEq = localStorage.getItem('penaltis_poderEq')||'';
 function salva(){
-    localStorage.setItem('penaltis_desbloqueado', desbloqueado);
-    localStorage.setItem('penaltis_vencidos', JSON.stringify(vencidos));
+    localStorage.setItem('penaltis_desbloqueado', progresso.selecoes.desb);
+    localStorage.setItem('penaltis_vencidos', JSON.stringify(progresso.selecoes.venc));
+    localStorage.setItem('penaltis_desbloqueado_t', progresso.times.desb);
+    localStorage.setItem('penaltis_vencidos_t', JSON.stringify(progresso.times.venc));
+    localStorage.setItem('penaltis_modo', modo);
     localStorage.setItem('penaltis_moedas', moedas);
     localStorage.setItem('penaltis_bolas', JSON.stringify(bolasCompradas));
     localStorage.setItem('penaltis_bolaEq', bolaEq);
@@ -270,11 +316,19 @@ function mostraAba(qual){
     document.getElementById('abaLoja').classList.toggle('ativa', qual==='loja');
     if(qual==='loja') montaLoja();
 }
+function trocaModo(m){
+    modo = m; salva(); montaMenu();
+}
 function montaMenu(){
     document.getElementById('saldo').textContent = `🪙 ${moedas} moedas`;
+    document.getElementById('modoSelecoes').classList.toggle('ativa', modo==='selecoes');
+    document.getElementById('modoTimes').classList.toggle('ativa', modo==='times');
+    document.getElementById('subTexto').textContent = modo==='times'
+        ? 'Modo TIMES: do Íbis 🦩 até o Real Madrid 👑 — 100 clubes te esperando!'
+        : 'Modo SELEÇÕES: do Chile 🇨🇱 até o Brasil 🇧🇷 — vença o mundo!';
     const box = document.getElementById('niveis');
     box.innerHTML='';
-    TIMES.forEach(([nome,flag],i)=>{
+    timesDoModo().forEach(([nome,flag],i)=>{
         const n = i+1;
         const d = document.createElement('div');
         d.className = 'nivel' + (n>desbloqueado?' travado':'') + (vencidos.includes(n)?' vencido':'') + (n===desbloqueado?' atual':'');
@@ -367,7 +421,7 @@ function atualizaHud(){
     document.getElementById('placarCpu').textContent=placarCpu;
     document.getElementById('rodada').textContent = morteSubita ? '💀 MORTE SÚBITA' : `Chute ${Math.min(chute,5)} de 5`;
     document.getElementById('moedasHud').textContent = `🪙 ${moedas+moedasPartida}`;
-    const [nome,flag]=TIMES[nivelAtual-1];
+    const [nome,flag]=timesDoModo()[nivelAtual-1];
     document.getElementById('nivelInfo').textContent = `Nível ${nivelAtual} ${flag}`;
     document.getElementById('nomeCpu').textContent = nome.toUpperCase();
     // botão do poder
@@ -496,7 +550,7 @@ function resolveChuteRobo(){
     if(bola.foraDoGol){ mostraMsg('PRA FORA! O gol encolheu! 🥅😂','#00ff88'); som(600,0.2); }
     else if(pegou){ bola.segura=true; mostraMsg('DEFENDEU! 🧤🔥','#00ff88'); som(600,0.2); soltaConfete(); }
     else if(poderDefesa==='escudo'){ mostraMsg('🛡️ ESCUDO! Não valeu!','#00ccff'); som(500,0.2); }
-    else { placarCpu++; mostraMsg(`Gol da ${TIMES[nivelAtual-1][0]}... ${TIMES[nivelAtual-1][1]}`,'#ff5555'); som(140,0.4,'sawtooth'); }
+    else { placarCpu++; mostraMsg(`Gol da ${timesDoModo()[nivelAtual-1][0]}... ${timesDoModo()[nivelAtual-1][1]}`,'#ff5555'); som(140,0.4,'sawtooth'); }
     poderDefesa=''; golEncolhido=false;
     atualizaHud();
     setTimeout(proximaRodada, 1500);
@@ -518,7 +572,7 @@ function proximaRodada(){
 
 function fim(venceu){
     jogando=false;
-    const [nome,flag]=TIMES[nivelAtual-1];
+    const [nome,flag]=timesDoModo()[nivelAtual-1];
     let ganho = moedasPartida;
     if(venceu){
         const premio = 5 + Math.round((nivelAtual-1)*235/99); // nível 1 = 5 ... nível 100 = 240
@@ -549,7 +603,7 @@ function jogarNivel(n){
     resetaBola(); atualizaHud();
     document.getElementById('overlay').style.display='none';
     document.getElementById('fimBox').style.display='none';
-    const [nome,flag]=TIMES[n-1];
+    const [nome,flag]=timesDoModo()[n-1];
     mostraMsg(`Nível ${n}: VOCÊ × ${nome} ${flag}`,'#fff',1600);
 }
 
@@ -575,7 +629,7 @@ function desenha(){
     }
     // placar estilo TV no canto superior esquerdo
     if(jogando || placarVoce+placarCpu>0){
-        const [nomeT,flagT]=TIMES[nivelAtual-1];
+        const [nomeT,flagT]=timesDoModo()[nivelAtual-1];
         const sigla = nomeT.slice(0,3).toUpperCase();
         ctx.save();
         ctx.fillStyle='rgba(0,0,0,0.75)';

@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v1.8.1 (2026-07-24)
+- Penaltis: novo modo TIMES — 100 clubes do Ibis ao Real Madrid, progresso separado do modo Selecoes, mesmas moedas
+
+
 ## v1.8.0 (2026-07-24) — Fase 6 (final do plano do Davi)
 ### Arena Cogumelo (ex-Brawl Stars 2, v2.0.0)
 - Nome novo (marca registrada removida); "Davi" removido da tela
