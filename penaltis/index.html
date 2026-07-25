@@ -396,7 +396,7 @@ let goleiro = { x: W/2, y: GOL.y+GOL.h-40, destX: W/2, pulando:false, ladoY:0, t
 let placarVoce=0, placarCpu=0, chute=1, minhaVez=true, jogando=false, morteSubita=false;
 let nivelAtual=1, dif=dificuldade(1);
 let confetes=[];
-let defendendo=false, alvoRobo=null;
+let defendendo=false, alvoRobo=null, defesaPulo=null;
 let poderUsado=false, poderAtivo='';   // poder ativado esperando o momento certo
 let golEncolhido=false;
 let moedasPartida=0;
@@ -468,6 +468,15 @@ cv.addEventListener('touchend', e=>{ e.preventDefault(); chutar(); });
 
 let poderChute=''; // poder consumido neste chute
 function chutar(){
+    // na defesa: clique = goleiro PULA pro lugar clicado (não precisa arrastar!)
+    if(jogando && defendendo && !defesaPulo){
+        defesaPulo = {
+            x: Math.max(GOL.x+30, Math.min(GOL.x+GOL.w-30, mira.x)),
+            ladoY: mira.y < GOL.y+GOL.h/2 ? -50 : 0
+        };
+        som(300,0.1);
+        return;
+    }
     if(!jogando || bola.voando || !minhaVez || defendendo) return;
     const b = bolaAtual();
     poderChute = consomePoder('ataque');
@@ -522,7 +531,7 @@ function vezDoRobo(){
     minhaVez=false; resetaBola();
     poderDefesa = consomePoder('defesa');
     golEncolhido = poderDefesa==='golpequeno';
-    mostraMsg('Defenda! Leve o goleiro até o alvo! 🧤','#00ccff',1400);
+    mostraMsg('Defenda! CLIQUE onde o goleiro deve pular! 🧤','#00ccff',1400);
     const cantos=[GOL.x+80, W/2, GOL.x+GOL.w-80];
     if(Math.random()<dif.chuteCanto){
         bola.destX = Math.random()<0.5 ? GOL.x+45 : GOL.x+GOL.w-45;
@@ -537,14 +546,14 @@ function vezDoRobo(){
         bola.foraDoGol = true;
     } else bola.foraDoGol = false;
     alvoRobo = { x: bola.destX, y: bola.destY };
-    defendendo=true;
+    defendendo=true; defesaPulo=null;
     setTimeout(()=>{
         bola.voando=true; bola.t=0; som(200,0.15);
     }, dif.tempoAlvo + (poderDefesa==='lenta'?800:0));
 }
 
 function resolveChuteRobo(){
-    defendendo=false; alvoRobo=null;
+    defendendo=false; alvoRobo=null; defesaPulo=null;
     const alcance = poderDefesa==='luvas' ? 2.2 : 1;
     let pegou = Math.abs(bola.destX-goleiro.x)<80*alcance && Math.abs(bola.destY-(goleiro.y+goleiro.ladoY))<100*alcance;
     if(bola.foraDoGol){ mostraMsg('PRA FORA! O gol encolheu! 🥅😂','#00ff88'); som(600,0.2); }
@@ -664,9 +673,17 @@ function desenha(){
     }
 
     if(defendendo){
-        goleiro.x += (Math.max(GOL.x+30, Math.min(GOL.x+GOL.w-30, mira.x)) - goleiro.x)*0.25;
-        goleiro.ladoY = mira.y < GOL.y+GOL.h/2 ? -50 : 0;
-        goleiro.pulando=true; goleiro.t=1;
+        if(defesaPulo){
+            // PULOU! Voa rápido pro lugar clicado
+            goleiro.x += (defesaPulo.x - goleiro.x)*0.3;
+            goleiro.ladoY = defesaPulo.ladoY;
+            goleiro.pulando=true; goleiro.t=1;
+        } else {
+            // esperando o clique: fica no meio, quicando pronto pra pular
+            goleiro.x += (W/2 - goleiro.x)*0.15;
+            goleiro.ladoY = 0;
+            goleiro.pulando=false;
+        }
     } else if(goleiro.pulando && !goleiro.congelado){
         goleiro.t+=0.08;
         goleiro.x += (goleiro.destX-goleiro.x)*0.18;
