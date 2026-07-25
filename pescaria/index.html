@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Pescaria Maluca — pesque peixes de 5 raridades, venda pro comprador e compre varas melhores! Cogumelo Games.">
+<title>🎣 Pescaria Maluca — Cogumelo Games</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    background:#0a0a2a; font-family:Arial, sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+    min-height:100vh; overflow:hidden; touch-action:manipulation;
+}
+#hud {
+    color:#fff; padding:8px; width:100%; max-width:900px;
+    background:rgba(0,0,0,0.4); font-size:16px; font-weight:bold;
+    display:flex; justify-content:space-around; align-items:center; gap:6px;
+}
+#dinheiroHud { color:#ffd700; }
+canvas { background:#000; border-radius:10px; max-width:100vw; max-height:calc(100vh - 60px); cursor:pointer; }
+#msg {
+    position:fixed; top:34%; left:50%; transform:translate(-50%,-50%);
+    font-size:38px; font-weight:900; color:#fff; text-shadow:0 0 20px #000;
+    pointer-events:none; opacity:0; transition:opacity .2s; text-align:center; z-index:10; width:100%;
+}
+.painel {
+    position:fixed; inset:0; background:rgba(0,0,20,0.95); z-index:20; display:none;
+    flex-direction:column; align-items:center; color:#fff; text-align:center; padding:16px; overflow-y:auto;
+}
+.painel h1 { font-size:30px; margin:8px 0;
+    background:linear-gradient(to right,#00ccff,#00ff88); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.painel .sub { color:#aaa; margin:4px 0 12px; font-size:15px; max-width:480px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:12px; max-width:760px; width:100%; padding-bottom:20px; }
+.item {
+    background:rgba(30,30,70,0.85); border:2px solid #444; border-radius:14px;
+    padding:12px; color:#fff; text-align:center;
+}
+.item .icone { font-size:38px; }
+.item .inome { font-size:16px; font-weight:bold; margin:4px 0; }
+.item .idesc { font-size:12px; color:#9ad; min-height:30px; }
+.item button {
+    margin-top:8px; font-size:14px; font-weight:bold; padding:8px 18px; border:none; border-radius:10px; cursor:pointer;
+    background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200;
+}
+.item button.equipar { background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a; }
+.item button.equipado { background:#333; color:#00ff88; border:1px solid #00ff88; }
+.item button:disabled { opacity:0.4; cursor:not-allowed; }
+.item.equipadoBorda { border-color:#00ff88; box-shadow:0 0 12px rgba(0,255,136,0.3); }
+.fechar {
+    margin:14px 0 30px; font-size:18px; font-weight:bold; padding:12px 34px; border:none; border-radius:12px;
+    background:#445; color:#fff; cursor:pointer;
+}
+.r-comum { color:#bbb; } .b-comum { border-color:#888; }
+.r-raro { color:#44aaff; } .b-raro { border-color:#44aaff; }
+.r-epico { color:#bb66ff; } .b-epico { border-color:#bb66ff; }
+.r-lendario { color:#ffd700; } .b-lendario { border-color:#ffd700; box-shadow:0 0 12px rgba(255,215,0,0.3); }
+.r-ultra { color:#ff55cc; } .b-ultra { border-color:#ff55cc; box-shadow:0 0 18px rgba(255,85,204,0.6); }
+#botoes {
+    position:fixed; bottom:12px; left:50%; transform:translateX(-50%); z-index:15;
+    display:flex; gap:10px;
+}
+#botoes button {
+    font-size:16px; font-weight:bold; padding:12px 20px; border:none; border-radius:14px; cursor:pointer;
+    background:rgba(20,20,60,0.9); color:#fff; border:2px solid #446;
+}
+#botoes button:hover { border-color:#00ff88; }
+#pescarBtn {
+    background:linear-gradient(135deg,#00cc66,#00ff88) !important; color:#04220f !important;
+    font-size:20px !important; padding:14px 34px !important; border:none !important;
+}
+#cartaPeixe {
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0); z-index:30;
+    background:rgba(10,10,40,0.97); border:3px solid #888; border-radius:22px;
+    padding:26px 40px; color:#fff; text-align:center; transition:transform .25s;
+}
+#cartaPeixe.mostra { transform:translate(-50%,-50%) scale(1); }
+#cartaPeixe .pemoji { font-size:70px; }
+#cartaPeixe .pnome { font-size:24px; font-weight:bold; margin:6px 0; }
+#cartaPeixe .prar { font-size:15px; font-weight:bold; letter-spacing:2px; }
+#cartaPeixe .pval { font-size:17px; color:#ffd700; margin-top:6px; }
+a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none; z-index:40; font-size:14px; }
+</style>
+</head>
+<body>
+<a class="voltar" href="/">← Cogumelo Games</a>
+<div id="hud">
+    <span id="dinheiroHud">💰 0</span>
+    <span id="varaHud">🎣 Graveto</span>
+    <span id="peixesHud">🐟 0 peixes</span>
+</div>
+<canvas id="c" width="900" height="560"></canvas>
+<div id="msg"></div>
+
+<div id="botoes">
+    <button id="pescarBtn" onclick="pescar()">🎣 LANÇAR</button>
+    <button onclick="abrePainel('inventario')">🧺 Peixes</button>
+    <button onclick="abrePainel('comprador')">🧔 Vender</button>
+    <button onclick="abrePainel('loja')">🛒 Varas</button>
+</div>
+
+<div class="painel" id="inventario">
+    <h1>🧺 Meus Peixes</h1>
+    <div class="sub">Leve pro comprador pra ganhar dinheiro! 💰</div>
+    <div class="grid" id="listaPeixes"></div>
+    <button class="fechar" onclick="fechaPaineis()">✖ FECHAR</button>
+</div>
+
+<div class="painel" id="comprador">
+    <h1>🧔 Seu Zé, o Comprador de Peixes</h1>
+    <div class="sub" id="falaZe">"Traga seus peixes, eu pago bem!"</div>
+    <div class="grid" id="listaVenda"></div>
+    <button class="fechar" style="background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200;" onclick="vendeTudo()">💰 VENDER TUDO</button>
+    <button class="fechar" onclick="fechaPaineis()">✖ FECHAR</button>
+</div>
+
+<div class="painel" id="loja">
+    <h1>🛒 Loja de Varas</h1>
+    <div class="sub">Varas melhores fisgam mais fácil e dão mais SORTE de peixe raro!</div>
+    <div class="grid" id="listaVaras"></div>
+    <button class="fechar" onclick="fechaPaineis()">✖ FECHAR</button>
+</div>
+
+<div id="cartaPeixe"></div>
+
+<script src="/stats.js"></script>
+<script>
+if (window.initStats) initStats('pescaria');
+
+// ============ PEIXES (5 raridades) ============
+// comum 50% | raro 30% | epico 15% | lendario 4.99% | ultra 0.01%
+const RARIDADES = {
+    comum:    { nome:'COMUM',    chance:50,    valor:[3,8],     cor:'#bbb' },
+    raro:     { nome:'RARO',     chance:30,    valor:[15,35],   cor:'#44aaff' },
+    epico:    { nome:'ÉPICO',    chance:15,    valor:[80,150],  cor:'#bb66ff' },
+    lendario: { nome:'LENDÁRIO', chance:4.99,  valor:[500,900], cor:'#ffd700' },
+    ultra:    { nome:'ULTRA',    chance:0.01,  valor:[25000,50000], cor:'#ff55cc' }
+};
+const PEIXES = {
+    comum:    [['Lambari','🐟'],['Sardinha','🐟'],['Tilápia','🐠'],['Bagre','🐟'],['Carpa','🐟']],
+    raro:     [['Dourado','🐠'],['Tucunaré','🐠'],['Pintado','🐟'],['Robalo','🐠']],
+    epico:    [['Peixe-Espada','🗡️'],['Arraia Elétrica','⚡'],['Polvo Gigante','🐙'],['Peixe-Lua','🌙']],
+    lendario: [['Tubarão-Martelo','🦈'],['Peixe Dragão','🐉'],['Baleia Dourada','🐋']],
+    ultra:    [['PEIXE REI CÓSMICO','👑']]
+};
+
+// ============ VARAS ============
+// janela = tempo pra fisgar (maior = mais fácil) | sorte = multiplica chance de raridades altas
+const VARAS = [
+    { id:'graveto',  nome:'Graveto',        icone:'🥢', preco:0,      janela:0.55, sorte:1,   desc:'Um graveto com barbante. Funciona... às vezes.' },
+    { id:'bambu',    nome:'Vara de Bambu',  icone:'🎋', preco:100,    janela:0.75, sorte:1.2, desc:'Clássica! Mais tempo pra fisgar.' },
+    { id:'fibra',    nome:'Vara de Fibra',  icone:'🎣', preco:500,    janela:0.95, sorte:1.5, desc:'Profissional. Sorte 1,5x!' },
+    { id:'ouro',     nome:'Vara de Ouro',   icone:'✨', preco:2500,   janela:1.1,  sorte:2,   desc:'Brilhante! Sorte 2x pra peixes raros.' },
+    { id:'diamante', nome:'Vara de Diamante',icone:'💎', preco:10000, janela:1.3,  sorte:3,   desc:'Sorte 3x! Os peixes ADORAM ela.' },
+    { id:'mistica',  nome:'Vara Mística',   icone:'🔮', preco:50000,  janela:1.5,  sorte:5,   desc:'LENDÁRIA. Sorte 5x — o Peixe Rei te espera!' }
+];
+
+// ============ SAVE ============
+let dinheiro = parseInt(localStorage.getItem('pescaria_dinheiro')||'0');
+let inventario = JSON.parse(localStorage.getItem('pescaria_inventario')||'[]');
+let varasCompradas = JSON.parse(localStorage.getItem('pescaria_varas')||'["graveto"]');
+let varaEq = localStorage.getItem('pescaria_varaEq')||'graveto';
+let totalPescados = parseInt(localStorage.getItem('pescaria_total')||'0');
+function salva(){
+    localStorage.setItem('pescaria_dinheiro', dinheiro);
+    localStorage.setItem('pescaria_inventario', JSON.stringify(inventario));
+    localStorage.setItem('pescaria_varas', JSON.stringify(varasCompradas));
+    localStorage.setItem('pescaria_varaEq', varaEq);
+    localStorage.setItem('pescaria_total', totalPescados);
+}
+function varaAtual(){ return VARAS.find(v=>v.id===varaEq) || VARAS[0]; }
+
+// ============ SORTEIO ============
+function sorteiaRaridade(){
+    const s = varaAtual().sorte;
+    // sorte multiplica as chances das raridades altas; comum absorve o resto
+    const pesos = {
+        ultra: RARIDADES.ultra.chance * s,
+        lendario: RARIDADES.lendario.chance * s,
+        epico: RARIDADES.epico.chance * Math.min(s,2),
+        raro: RARIDADES.raro.chance * Math.min(s,1.5)
+    };
+    pesos.comum = Math.max(5, 100 - pesos.ultra - pesos.lendario - pesos.epico - pesos.raro);
+    let r = Math.random() * (pesos.ultra + pesos.lendario + pesos.epico + pesos.raro + pesos.comum);
+    for (const k of ['ultra','lendario','epico','raro','comum']){
+        if (r < pesos[k]) return k;
+        r -= pesos[k];
+    }
+    return 'comum';
+}
+function sorteiaPeixe(){
+    const rar = sorteiaRaridade();
+    const [nome, emoji] = PEIXES[rar][Math.floor(Math.random()*PEIXES[rar].length)];
+    const [vMin, vMax] = RARIDADES[rar].valor;
+    const valor = vMin + Math.floor(Math.random()*(vMax-vMin+1));
+    return { nome, emoji, rar, valor };
+}
+
+// ============ JOGO / CENA ============
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+// estados: parado | esperando (linha na água) | fisgada (clique agora!) | puxando
+let estado = 'parado';
+let fisgadaTimeout = null, mordidaTimeout = null;
+let boiaY = 0, tremor = 0;
+let audio;
+
+function som(freq, dur, tipo='square', vol=0.15){
+    try{
+        audio = audio || new (window.AudioContext||window.webkitAudioContext)();
+        const o=audio.createOscillator(), g=audio.createGain();
+        o.type=tipo; o.frequency.value=freq; g.gain.value=vol;
+        g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime+dur);
+        o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime+dur);
+    }catch(e){}
+}
+function mostraMsg(txt, cor='#fff', tempo=1400){
+    const m=document.getElementById('msg');
+    m.textContent=txt; m.style.color=cor; m.style.opacity=1;
+    setTimeout(()=>m.style.opacity=0, tempo);
+}
+function atualizaHud(){
+    document.getElementById('dinheiroHud').textContent = `💰 ${dinheiro}`;
+    document.getElementById('varaHud').textContent = `${varaAtual().icone} ${varaAtual().nome}`;
+    document.getElementById('peixesHud').textContent = `🐟 ${inventario.length} peixes`;
+}
+
+function pescar(){
+    if(estado==='parado'){
+        estado='esperando';
+        document.getElementById('pescarBtn').textContent='⏳ Esperando...';
+        som(300,0.15);
+        // peixe morde entre 1.5s e 5s
+        mordidaTimeout = setTimeout(()=>{
+            estado='fisgada'; tremor=1;
+            document.getElementById('pescarBtn').textContent='❗ PUXA!!!';
+            som(800,0.15); setTimeout(()=>som(1000,0.15),120);
+            // janela pra fisgar depende da vara
+            fisgadaTimeout = setTimeout(()=>{
+                if(estado==='fisgada'){
+                    estado='parado'; tremor=0;
+                    document.getElementById('pescarBtn').textContent='🎣 LANÇAR';
+                    mostraMsg('Escapou... 🐟💨','#ff8888');
+                    som(150,0.4,'sawtooth');
+                }
+            }, varaAtual().janela*1000);
+        }, 1500+Math.random()*3500);
+    } else if(estado==='fisgada'){
+        clearTimeout(fisgadaTimeout);
+        estado='parado'; tremor=0;
+        document.getElementById('pescarBtn').textContent='🎣 LANÇAR';
+        pegouPeixe();
+    } else if(estado==='esperando'){
+        // puxou cedo demais!
+        clearTimeout(mordidaTimeout);
+        estado='parado';
+        document.getElementById('pescarBtn').textContent='🎣 LANÇAR';
+        mostraMsg('Cedo demais! Espere o ❗','#ffaa00');
+        som(200,0.2,'sawtooth');
+    }
+}
+// clicar na água também pesca (bom pro celular)
+cv.addEventListener('mousedown', pescar);
+cv.addEventListener('touchend', e=>{ e.preventDefault(); pescar(); });
+
+function pegouPeixe(){
+    const p = sorteiaPeixe();
+    inventario.push(p);
+    totalPescados++;
+    salva(); atualizaHud();
+    const r = RARIDADES[p.rar];
+    const carta = document.getElementById('cartaPeixe');
+    carta.className = '';
+    carta.style.borderColor = r.cor;
+    carta.innerHTML = `
+        <div class="pemoji">${p.emoji}</div>
+        <div class="pnome">${p.nome}</div>
+        <div class="prar" style="color:${r.cor}">★ ${r.nome} ★</div>
+        <div class="pval">vale 💰 ${p.valor}</div>`;
+    carta.classList.add('mostra');
+    setTimeout(()=>carta.classList.remove('mostra'), p.rar==='ultra'?5000:2200);
+    if(p.rar==='comum'){ som(400,0.15); }
+    else if(p.rar==='raro'){ som(500,0.1); setTimeout(()=>som(700,0.2),100); }
+    else if(p.rar==='epico'){ som(500,0.1); setTimeout(()=>som(700,0.1),100); setTimeout(()=>som(900,0.25),200); soltaConfete(20); }
+    else if(p.rar==='lendario'){ mostraMsg('LENDÁRIO!!! 🌟','#ffd700',2000); som(600,0.1); setTimeout(()=>som(800,0.1),120); setTimeout(()=>som(1000,0.1),240); setTimeout(()=>som(1200,0.4),360); soltaConfete(60); }
+    else { mostraMsg('⭐ ULTRA!!! O PEIXE REI!!! ⭐','#ff55cc',4000); for(let i=0;i<5;i++) setTimeout(()=>som(600+i*200,0.2),i*150); soltaConfete(150); }
+}
+
+// ============ PAINÉIS ============
+function abrePainel(id){
+    fechaPaineis();
+    document.getElementById(id).style.display='flex';
+    if(id==='inventario') montaInventario();
+    if(id==='comprador') montaComprador();
+    if(id==='loja') montaLoja();
+}
+function fechaPaineis(){
+    ['inventario','comprador','loja'].forEach(i=>document.getElementById(i).style.display='none');
+}
+function cartaHtml(p, extra=''){
+    const r = RARIDADES[p.rar];
+    return `<div class="item b-${p.rar}">
+        <div class="icone">${p.emoji}</div>
+        <div class="inome">${p.nome}</div>
+        <div class="idesc r-${p.rar}">★ ${r.nome} ★<br>vale 💰 ${p.valor}</div>${extra}</div>`;
+}
+function montaInventario(){
+    const el = document.getElementById('listaPeixes');
+    el.innerHTML = inventario.length ? inventario.map(p=>cartaHtml(p)).join('') :
+        '<div class="item"><div class="icone">🕸️</div><div class="inome">Vazio!</div><div class="idesc">Vai pescar, preguiçoso! 😄</div></div>';
+}
+function montaComprador(){
+    const el = document.getElementById('listaVenda');
+    el.innerHTML = inventario.length ? inventario.map((p,i)=>cartaHtml(p,
+        `<button onclick="vendePeixe(${i})">VENDER 💰 ${p.valor}</button>`)).join('') :
+        '<div class="item"><div class="icone">🤷</div><div class="inome">Nada pra vender</div><div class="idesc">Pesca uns peixes primeiro!</div></div>';
+    document.getElementById('falaZe').textContent = inventario.length ?
+        `"Hmm, ${inventario.length} peixe(s)! Pago 💰 ${inventario.reduce((s,p)=>s+p.valor,0)} por tudo!"` :
+        '"Cadê os peixes?? Volta quando pescar algo!"';
+}
+function vendePeixe(i){
+    const p = inventario.splice(i,1)[0];
+    dinheiro += p.valor;
+    salva(); atualizaHud(); montaComprador();
+    som(700,0.1); setTimeout(()=>som(900,0.15),80);
+}
+function vendeTudo(){
+    if(!inventario.length) return;
+    const total = inventario.reduce((s,p)=>s+p.valor,0);
+    dinheiro += total; inventario = [];
+    salva(); atualizaHud(); montaComprador();
+    mostraMsg(`+💰 ${total}!`,'#ffd700');
+    som(600,0.1); setTimeout(()=>som(800,0.1),100); setTimeout(()=>som(1000,0.2),200);
+}
+function montaLoja(){
+    const el = document.getElementById('listaVaras');
+    el.innerHTML = VARAS.map(v=>{
+        const tem = varasCompradas.includes(v.id);
+        const eq = varaEq===v.id;
+        let btn;
+        if(eq) btn = `<button class="equipado" disabled>✅ EQUIPADA</button>`;
+        else if(tem) btn = `<button class="equipar" onclick="equipaVara('${v.id}')">EQUIPAR</button>`;
+        else btn = `<button onclick="compraVara('${v.id}')" ${dinheiro<v.preco?'disabled':''}>💰 ${v.preco}</button>`;
+        return `<div class="item ${eq?'equipadoBorda':''}">
+            <div class="icone">${v.icone}</div>
+            <div class="inome">${v.nome}</div>
+            <div class="idesc">${v.desc}</div>${btn}</div>`;
+    }).join('');
+}
+function compraVara(id){
+    const v = VARAS.find(x=>x.id===id);
+    if(dinheiro<v.preco) return;
+    dinheiro-=v.preco; varasCompradas.push(id); varaEq=id;
+    salva(); atualizaHud(); montaLoja();
+    som(600,0.1); setTimeout(()=>som(900,0.2),100);
+}
+function equipaVara(id){ varaEq=id; salva(); atualizaHud(); montaLoja(); som(700,0.1); }
+
+// ============ CONFETE ============
+let confetes=[];
+function soltaConfete(n){
+    for(let i=0;i<n;i++) confetes.push({
+        x:Math.random()*W, y:-10-Math.random()*80,
+        vy:2+Math.random()*3, vx:(Math.random()-0.5)*2,
+        cor:`hsl(${Math.random()*360},90%,60%)`, tam:4+Math.random()*6
+    });
+}
+
+// ============ DESENHO ============
+let t=0;
+function desenha(){
+    t+=0.016;
+    // céu com sol e nuvens
+    const g=ctx.createLinearGradient(0,0,0,H*0.55);
+    g.addColorStop(0,'#7ec8f0'); g.addColorStop(1,'#c8e8f8');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H*0.55);
+    ctx.fillStyle='#ffdd44'; ctx.beginPath(); ctx.arc(780,80,42,0,7); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.85)';
+    for(let i=0;i<3;i++){
+        const nx = ((t*12 + i*320) % (W+180)) - 90;
+        ctx.beginPath();
+        ctx.arc(nx,70+i*38,24,0,7); ctx.arc(nx+26,62+i*38,30,0,7); ctx.arc(nx+56,72+i*38,22,0,7);
+        ctx.fill();
+    }
+    // montanhas
+    ctx.fillStyle='#4a7a5a';
+    ctx.beginPath(); ctx.moveTo(0,H*0.55); ctx.lineTo(160,180); ctx.lineTo(340,H*0.55); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(240,H*0.55); ctx.lineTo(460,150); ctx.lineTo(660,H*0.55); ctx.fill();
+    // água
+    const ag=ctx.createLinearGradient(0,H*0.55,0,H);
+    ag.addColorStop(0,'#2a6a9a'); ag.addColorStop(1,'#123a5a');
+    ctx.fillStyle=ag; ctx.fillRect(0,H*0.55,W,H*0.45);
+    // ondinhas
+    ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=2;
+    for(let i=0;i<5;i++){
+        ctx.beginPath();
+        for(let x=0;x<=W;x+=20){
+            const y = H*0.6 + i*45 + Math.sin(x*0.02 + t*2 + i)*4;
+            x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+        }
+        ctx.stroke();
+    }
+    // píer
+    ctx.fillStyle='#7a5230'; ctx.fillRect(0,H*0.62,220,18);
+    ctx.fillRect(30,H*0.62+18,14,60); ctx.fillRect(150,H*0.62+18,14,60);
+    ctx.fillStyle='#8a6240'; for(let x=0;x<220;x+=28) ctx.fillRect(x,H*0.62,24,18);
+    // pescador
+    ctx.save(); ctx.translate(150, H*0.62);
+    ctx.fillStyle='#3a5a8a'; ctx.fillRect(-14,-46,28,34);              // corpo
+    ctx.fillStyle='#ffcc99'; ctx.beginPath(); ctx.arc(0,-56,12,0,7); ctx.fill(); // cabeça
+    ctx.fillStyle='#cc4444'; ctx.beginPath(); ctx.arc(0,-62,12,Math.PI,0); ctx.fill(); ctx.fillRect(-16,-62,32,4); // chapéu
+    ctx.fillStyle='#222'; ctx.fillRect(-12,-12,10,14); ctx.fillRect(2,-12,10,14); // pernas
+    // vara
+    ctx.strokeStyle = varaEq==='ouro'?'#ffd700':varaEq==='diamante'?'#88ffff':varaEq==='mistica'?'#cc66ff':'#8a5a2a';
+    ctx.lineWidth=4; ctx.lineCap='round';
+    const tremX = tremor ? Math.sin(t*40)*3 : 0;
+    ctx.beginPath(); ctx.moveTo(8,-40); ctx.lineTo(95+tremX,-95); ctx.stroke();
+    // linha
+    ctx.strokeStyle='rgba(255,255,255,0.7)'; ctx.lineWidth=1.5;
+    boiaY = estado==='parado' ? -60 : H*0.68 - H*0.62 + (tremor? Math.sin(t*35)*6 : Math.sin(t*3)*3);
+    if(estado!=='parado'){
+        ctx.beginPath(); ctx.moveTo(95+tremX,-95); ctx.lineTo(300, boiaY); ctx.stroke();
+        // boia
+        ctx.fillStyle = tremor ? '#ff3333' : '#ff6644';
+        ctx.beginPath(); ctx.arc(300, boiaY, tremor?9:7, 0, 7); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(300, boiaY-3, 3, 0, 7); ctx.fill();
+        if(tremor){
+            ctx.font='bold 34px Arial'; ctx.fillStyle='#ff2222';
+            ctx.fillText('❗', 288, boiaY-20 - Math.sin(t*20)*5);
+        }
+    }
+    ctx.restore();
+    // peixinhos passeando na água
+    for(let i=0;i<4;i++){
+        const fx = ((t*30*(1+i*0.3) + i*250) % (W+80)) - 40;
+        const fy = H*0.75 + i*30 + Math.sin(t*2+i)*8;
+        ctx.font='20px Arial';
+        ctx.fillText(i%2?'🐟':'🐠', fx, fy);
+    }
+    // confetes
+    confetes.forEach(c=>{ c.y+=c.vy; c.x+=c.vx; ctx.fillStyle=c.cor; ctx.fillRect(c.x,c.y,c.tam,c.tam); });
+    confetes = confetes.filter(c=>c.y<H+20);
+
+    requestAnimationFrame(desenha);
+}
+atualizaHud();
+desenha();
+</script>
+</body>
+</html>

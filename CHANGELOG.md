@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v1.9.0 (2026-07-25)
+- JOGO NOVO: Pescaria Maluca — peixes em 5 raridades (comum 50%, raro 30%, epico 15%, lendario 4,99%, ultra 0,01%),
+  comprador de peixes (Seu Ze), loja com 6 varas (ate 50.000), sorte por vara, funciona por toque no celular
+
+
 ## v1.8.2 (2026-07-24)
 - Conta: AUTO-SAVE do progresso em todos os jogos (a cada 10s e ao sair da pagina, via stats.js)
 - Stats: lista de jogos atualizada (Penaltis, Ninja, Parkour, Labirinto, Prisao, Arena)
