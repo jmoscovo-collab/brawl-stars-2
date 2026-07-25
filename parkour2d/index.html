@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Cogumelo Parkour 2D — pule plataformas, desvie de espinhos, ganhe moedas e compre skins! Cogumelo Games.">
+<title>🍄 Cogumelo Parkour 2D — Cogumelo Games</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    background:#0a0a2a; font-family:Arial, sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+    min-height:100vh; overflow:hidden; touch-action:none;
+}
+#hud {
+    color:#fff; padding:8px; width:100%; max-width:960px;
+    background:rgba(0,0,0,0.4); font-size:16px; font-weight:bold;
+    display:flex; justify-content:space-around; align-items:center;
+}
+#moedasHud { color:#ffd700; }
+canvas { background:#000; border-radius:10px; max-width:100vw; max-height:calc(100vh - 60px); }
+#msg {
+    position:fixed; top:36%; left:50%; transform:translate(-50%,-50%);
+    font-size:38px; font-weight:900; color:#fff; text-shadow:0 0 20px #000;
+    pointer-events:none; opacity:0; transition:opacity .2s; text-align:center; z-index:10; width:100%;
+}
+.painel {
+    position:fixed; top:0; left:0; width:100vw; height:100vh; height:100dvh;
+    background:rgba(0,0,20,0.96); z-index:20; display:none;
+    flex-direction:column; align-items:center; color:#fff; text-align:center; padding:16px;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+}
+.painel h1 { font-size:30px; margin:8px 0;
+    background:linear-gradient(to right,#ff5555,#ffaa00); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.painel .sub { color:#aaa; margin:4px 0 12px; font-size:15px; max-width:480px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:12px; max-width:760px; width:100%; padding-bottom:20px; }
+.item { background:rgba(30,30,70,0.85); border:2px solid #444; border-radius:14px; padding:12px; color:#fff; }
+.item .inome { font-size:15px; font-weight:bold; margin:4px 0; }
+.item button {
+    margin-top:6px; font-size:13px; font-weight:bold; padding:8px 16px; border:none; border-radius:10px; cursor:pointer;
+    background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200;
+}
+.item button.equipar { background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a; }
+.item button.equipado { background:#333; color:#00ff88; border:1px solid #00ff88; }
+.item button:disabled { opacity:0.4; }
+.item.equipadoBorda { border-color:#00ff88; }
+.item canvas { background:transparent; }
+.nivelBtn {
+    background:rgba(30,30,70,0.85); border:2px solid #444; border-radius:12px;
+    padding:14px 6px; color:#fff; cursor:pointer; font-size:16px; font-weight:bold;
+}
+.nivelBtn:hover { border-color:#00ff88; }
+.nivelBtn.travado { opacity:0.35; cursor:not-allowed; filter:grayscale(1); }
+.nivelBtn.feito { border-color:#ffd700; }
+.fechar {
+    margin:14px 0 30px; font-size:17px; font-weight:bold; padding:12px 30px; border:none; border-radius:12px;
+    background:#445; color:#fff; cursor:pointer;
+}
+#controles {
+    position:fixed; bottom:10px; left:0; right:0; z-index:15;
+    display:none; justify-content:space-between; padding:0 14px; pointer-events:none;
+}
+.ctl { display:flex; gap:12px; }
+.ctl div {
+    width:64px; height:64px; border-radius:50%; background:rgba(255,255,255,0.15);
+    border:2px solid rgba(255,255,255,0.5); color:#fff; font-size:28px;
+    display:flex; align-items:center; justify-content:center; pointer-events:auto; user-select:none; -webkit-user-select:none;
+}
+.ctl div.apertado { background:rgba(255,136,0,0.5); }
+a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none; z-index:40; font-size:14px; }
+@media (max-width:700px){
+    #hud { font-size:13px; padding:6px; }
+    canvas { max-height:calc(100vh - 100px); }
+    #msg { font-size:26px; }
+    .painel h1 { font-size:24px; }
+    .grid { grid-template-columns:repeat(2,1fr); gap:8px; }
+}
+</style>
+</head>
+<body>
+<a class="voltar" href="/">← Cogumelo Games</a>
+<div id="hud">
+    <span id="moedasHud">🪙 0</span>
+    <span id="nivelHud">Nível 1</span>
+    <span id="coinsFase">🪙 fase: 0</span>
+    <button onclick="abreMenu()" style="font-size:14px; font-weight:bold; padding:6px 14px; border:none; border-radius:10px; background:#445; color:#fff; cursor:pointer;">📋 MENU</button>
+</div>
+<canvas id="c" width="960" height="540"></canvas>
+<div id="msg"></div>
+
+<div id="controles">
+    <div class="ctl"><div id="btnEsq">◀</div><div id="btnDir">▶</div></div>
+    <div class="ctl"><div id="btnPulo">⬆️</div></div>
+</div>
+
+<div class="painel" id="menu" style="display:flex;">
+    <h1>🍄 Cogumelo Parkour 2D</h1>
+    <div class="sub">Pule as plataformas, fuja dos espinhos e chegue na bandeira! 🏁 Cada nível dá moedas — compre skins na loja!</div>
+    <div class="sub">💻 Setas/WASD + ESPAÇO pula · 📱 botões na tela</div>
+    <div style="display:flex; gap:12px; margin-bottom:12px;">
+        <button class="fechar" style="margin:0; background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a;" onclick="abrePainelNiveis()">🎮 JOGAR</button>
+        <button class="fechar" style="margin:0; background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200;" onclick="abreLoja()">🛒 SKINS</button>
+    </div>
+    <div class="grid" id="listaNiveis" style="grid-template-columns:repeat(auto-fill, minmax(90px,1fr));"></div>
+    <div class="grid" id="listaSkins" style="display:none;"></div>
+</div>
+
+<script src="/stats.js"></script>
+<script>
+if (window.initStats) initStats('parkour2d');
+
+// ============ SKINS ============
+const SKINS = [
+    { id:'classico', nome:'Clássico',  preco:0,    cap:'#e53935', pintas:'#fff', corpo:'#ffe0b2' },
+    { id:'azul',     nome:'Azulzinho', preco:100,  cap:'#1e88e5', pintas:'#fff', corpo:'#ffe0b2' },
+    { id:'verde',    nome:'Verdinho',  preco:200,  cap:'#43a047', pintas:'#ffee58', corpo:'#ffe0b2' },
+    { id:'roxo',     nome:'Roxão',     preco:350,  cap:'#8e24aa', pintas:'#ff80ab', corpo:'#ffe0b2' },
+    { id:'dourado',  nome:'Dourado',   preco:600,  cap:'#ffd700', pintas:'#ff6f00', corpo:'#fff8e1' },
+    { id:'ninja',    nome:'Ninja',     preco:900,  cap:'#263238', pintas:'#f44336', corpo:'#90a4ae' },
+    { id:'arcoiris', nome:'Arco-Íris', preco:1300, cap:'ARCO',    pintas:'#fff', corpo:'#ffe0b2' },
+    { id:'gelo',     nome:'De Gelo',   preco:1800, cap:'#81d4fa', pintas:'#e1f5fe', corpo:'#e3f2fd' },
+    { id:'lava',     nome:'De Lava',   preco:2500, cap:'#ff3d00', pintas:'#ffd600', corpo:'#ff8a65' },
+    { id:'cosmico',  nome:'Cósmico',   preco:4000, cap:'#4a148c', pintas:'#00e5ff', corpo:'#b39ddb' }
+];
+
+// ============ NÍVEIS (tiles de 40px: # chão, = plataforma, ^ espinho, C moeda, F bandeira, P início) ============
+const NIVEIS = [
+["............................",
+ "............................",
+ "............................",
+ "............C...............",
+ "..........====..............",
+ ".....C..............C....F..",
+ "....===..........===========",
+ "P.........C.................",
+ "####...#####...####..........",
+ "####...#####...####.........."],
+["............................",
+ "..............C.............",
+ ".............===............",
+ "......C..............C......",
+ ".....===..........====......",
+ "..........C..............F..",
+ "P........===......^^^.======",
+ "####....................####.",
+ "####..####..####..##########.",
+ "####..####..####..##########."],
+["...................C........",
+ "..................===.......",
+ ".....C.....C................",
+ "....===...===........C...F..",
+ "..............C.....=========",
+ "P............===.....^^^....",
+ "####..^^..........^^^^^^....",
+ "####..####..====..###########",
+ "####..####........###########",
+ "############..^^..###########"],
+["............C...............",
+ "...........===..............",
+ "....C..............C........",
+ "...===....C.......===.......",
+ "..........===...........C.F.",
+ "P....^^^.............========",
+ "####.####...^^^...^^^........",
+ "####.####..#####.#####.......",
+ "####.####..#####.#####...^^..",
+ "############################."],
+["........C.........C.........",
+ ".......===.......===........",
+ "..C.........C...........C...",
+ ".===.......===..........==..",
+ "......^^^.......^^^.......F.",
+ "P....#####.....#####..=======",
+ "####.......^^^..............",
+ "####..==..#####..==...^^^^..",
+ "####............................",
+ "#####..^^^..####..^^^..######"],
+["..C......C......C......C....",
+ ".===....===....===....===...",
+ "............................",
+ "....^^^....^^^....^^^....F..",
+ "P..#####..#####..#####.======",
+ "###..........................",
+ "###...==......==......==....",
+ "###.......^^......^^.........",
+ "###......####....####....^^..",
+ "############################."]
+];
+
+// dificuldade extra: níveis 7+ reusam mapas com mais espinhos via geração
+function pegaNivel(n){
+    const base = NIVEIS[(n-1) % NIVEIS.length].map(l=>l.split(''));
+    // depois da 6ª fase, adiciona espinhos extras determinísticos
+    const extra = Math.floor((n-1)/NIVEIS.length);
+    if(extra>0){
+        let seed = n*7919;
+        const rnd = ()=>{ seed=(seed*9301+49297)%233280; return seed/233280; };
+        for(let e=0; e<extra*3; e++){
+            const r = 2+Math.floor(rnd()*(base.length-3));
+            const c = 3+Math.floor(rnd()*(base[0].length-6));
+            // só põe espinho em cima de chão e onde não tem nada
+            if(base[r][c]==='.' && base[r+1] && '#='.includes(base[r+1][c])) base[r][c]='^';
+        }
+    }
+    return base.map(l=>l.join(''));
+}
+const TOTAL_NIVEIS = 30;
+
+// ============ SAVE ============
+let moedas = parseInt(localStorage.getItem('parkour2d_moedas')||'0');
+let desbloqueado = parseInt(localStorage.getItem('parkour2d_desbloqueado')||'1');
+let feitos = JSON.parse(localStorage.getItem('parkour2d_feitos')||'[]');
+let skinsCompradas = JSON.parse(localStorage.getItem('parkour2d_skins')||'["classico"]');
+let skinEq = localStorage.getItem('parkour2d_skinEq')||'classico';
+function salva(){
+    localStorage.setItem('parkour2d_moedas', moedas);
+    localStorage.setItem('parkour2d_desbloqueado', desbloqueado);
+    localStorage.setItem('parkour2d_feitos', JSON.stringify(feitos));
+    localStorage.setItem('parkour2d_skins', JSON.stringify(skinsCompradas));
+    localStorage.setItem('parkour2d_skinEq', skinEq);
+}
+function skinAtual(){ return SKINS.find(s=>s.id===skinEq)||SKINS[0]; }
+
+// ============ MOTOR ============
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height, T = 40;
+let nivelAtual = 1, mapa = [], jogando = false;
+let p = { x:0, y:0, vx:0, vy:0, w:30, h:36, chao:false };
+let camX = 0, coinsFase = 0, mortes = 0, tGlobal = 0;
+const teclas = {};
+let audio;
+
+function som(freq, dur, tipo='square', vol=0.12){
+    try{
+        audio = audio || new (window.AudioContext||window.webkitAudioContext)();
+        const o=audio.createOscillator(), g=audio.createGain();
+        o.type=tipo; o.frequency.value=freq; g.gain.value=vol;
+        g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime+dur);
+        o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime+dur);
+    }catch(e){}
+}
+function mostraMsg(txt, cor='#fff', tempo=1300){
+    const m=document.getElementById('msg');
+    m.textContent=txt; m.style.color=cor; m.style.opacity=1;
+    setTimeout(()=>m.style.opacity=0, tempo);
+}
+function atualizaHud(){
+    document.getElementById('moedasHud').textContent = `🪙 ${moedas}`;
+    document.getElementById('nivelHud').textContent = `Nível ${nivelAtual}`;
+    document.getElementById('coinsFase').textContent = `🪙 fase: ${coinsFase}`;
+}
+
+// teclado
+addEventListener('keydown', e=>{
+    teclas[e.code]=true;
+    if(['Space','ArrowUp','KeyW'].includes(e.code)) e.preventDefault();
+});
+addEventListener('keyup', e=>teclas[e.code]=false);
+// botões de toque
+const btnEstado = { esq:false, dir:false, pulo:false };
+function ligaBtn(id, prop){
+    const el = document.getElementById(id);
+    const on = e=>{ e.preventDefault(); btnEstado[prop]=true; el.classList.add('apertado'); };
+    const off = e=>{ e.preventDefault(); btnEstado[prop]=false; el.classList.remove('apertado'); };
+    el.addEventListener('touchstart', on, {passive:false});
+    el.addEventListener('touchend', off, {passive:false});
+    el.addEventListener('mousedown', on); el.addEventListener('mouseup', off);
+}
+ligaBtn('btnEsq','esq'); ligaBtn('btnDir','dir'); ligaBtn('btnPulo','pulo');
+if('ontouchstart' in window) document.getElementById('controles').style.display='flex';
+
+function carregaNivel(n){
+    nivelAtual = n;
+    mapa = pegaNivel(n).map(l=>l.split(''));
+    coinsFase = 0;
+    for(let r=0;r<mapa.length;r++) for(let c=0;c<mapa[r].length;c++){
+        if(mapa[r][c]==='P'){ p.x=c*T+5; p.y=r*T; mapa[r][c]='.'; }
+    }
+    p.vx=0; p.vy=0; camX=0;
+    jogando = true;
+    document.getElementById('menu').style.display='none';
+    atualizaHud();
+    mostraMsg(`Nível ${n}! 🍄`,'#fff',1200);
+}
+
+function morre(){
+    som(150,0.4,'sawtooth'); mortes++;
+    mostraMsg('AI! 💥 Tenta de novo!','#ff6666',1000);
+    carregaNivel(nivelAtual);
+}
+
+function venceNivel(){
+    jogando=false;
+    const premio = 10 + nivelAtual*3 + coinsFase;
+    const primeiraVez = !feitos.includes(nivelAtual);
+    const ganho = primeiraVez ? premio*2 : premio;
+    moedas += ganho;
+    if(primeiraVez) feitos.push(nivelAtual);
+    if(nivelAtual===desbloqueado && desbloqueado<TOTAL_NIVEIS) desbloqueado++;
+    salva(); atualizaHud();
+    som(500,0.1); setTimeout(()=>som(700,0.15),100); setTimeout(()=>som(900,0.3),220);
+    mostraMsg(`🏁 NÍVEL ${nivelAtual} COMPLETO! +🪙 ${ganho}${primeiraVez?' (1ª vez = dobro!)':''}`,'#ffd700',2200);
+    setTimeout(()=>{
+        if(nivelAtual<TOTAL_NIVEIS) carregaNivel(nivelAtual+1);
+        else { mostraMsg('👑 VOCÊ ZEROU O JOGO!!!','#ffd700',3000); setTimeout(abreMenu,2500); }
+    }, 2000);
+}
+
+function tile(r,c){
+    if(r<0||c<0||r>=mapa.length||c>=mapa[0].length) return c<0?'#':'.';
+    return mapa[r][c];
+}
+function solido(ch){ return ch==='#'||ch==='='; }
+
+function passo(dt){
+    if(!jogando) return;
+    const esq = teclas['ArrowLeft']||teclas['KeyA']||btnEstado.esq;
+    const dir = teclas['ArrowRight']||teclas['KeyD']||btnEstado.dir;
+    const pulo = teclas['Space']||teclas['ArrowUp']||teclas['KeyW']||btnEstado.pulo;
+    p.vx = (dir?4.2:0) - (esq?4.2:0);
+    if(pulo && p.chao){ p.vy = -12.5; p.chao=false; som(350,0.1); }
+    p.vy = Math.min(p.vy+0.6, 14);
+
+    // move X
+    p.x += p.vx;
+    for(const ry of [p.y+2, p.y+p.h/2, p.y+p.h-2]){
+        const r = Math.floor(ry/T);
+        if(p.vx>0 && solido(tile(r, Math.floor((p.x+p.w)/T)))) p.x = Math.floor((p.x+p.w)/T)*T - p.w - 0.01;
+        if(p.vx<0 && solido(tile(r, Math.floor(p.x/T)))) p.x = (Math.floor(p.x/T)+1)*T + 0.01;
+    }
+    // move Y
+    p.y += p.vy;
+    p.chao=false;
+    for(const rx of [p.x+2, p.x+p.w-2]){
+        const c = Math.floor(rx/T);
+        if(p.vy>0 && solido(tile(Math.floor((p.y+p.h)/T), c))){
+            p.y = Math.floor((p.y+p.h)/T)*T - p.h - 0.01; p.vy=0; p.chao=true;
+        }
+        if(p.vy<0 && solido(tile(Math.floor(p.y/T), c))){
+            p.y = (Math.floor(p.y/T)+1)*T + 0.01; p.vy=0;
+        }
+    }
+    // caiu do mapa
+    if(p.y > mapa.length*T + 100) return morre();
+    // interações no centro do corpo
+    const cr = Math.floor((p.y+p.h/2)/T), cc = Math.floor((p.x+p.w/2)/T);
+    const ch = tile(cr,cc);
+    if(ch==='^') return morre();
+    if(ch==='C'){ mapa[cr][cc]='.'; coinsFase++; som(800,0.08); atualizaHud(); }
+    if(ch==='F') return venceNivel();
+    // espinho também mata encostando por baixo do corpo
+    const chBaixo = tile(Math.floor((p.y+p.h-4)/T), cc);
+    if(chBaixo==='^') return morre();
+
+    camX = Math.max(0, Math.min(p.x - W/2 + p.w/2, mapa[0].length*T - W));
+}
+
+function desenhaCogumelo(x, y, sk, escala=1, andando=false){
+    ctx.save(); ctx.translate(x, y); ctx.scale(escala, escala);
+    // corpo
+    ctx.fillStyle = sk.corpo;
+    ctx.fillRect(6, 16, 18, 16);
+    // olhos
+    ctx.fillStyle='#222';
+    ctx.fillRect(10, 20, 4, 6); ctx.fillRect(17, 20, 4, 6);
+    // chapéu
+    if(sk.cap==='ARCO'){
+        const g = ctx.createLinearGradient(0,0,30,0);
+        g.addColorStop(0,'#ff4444'); g.addColorStop(0.3,'#ffdd00'); g.addColorStop(0.6,'#44ff44'); g.addColorStop(1,'#4488ff');
+        ctx.fillStyle=g;
+    } else ctx.fillStyle = sk.cap;
+    ctx.beginPath(); ctx.arc(15, 16, 15, Math.PI, 0); ctx.fill();
+    ctx.fillRect(0, 12, 30, 5);
+    // pintas
+    ctx.fillStyle = sk.pintas;
+    ctx.beginPath(); ctx.arc(8, 8, 3, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(20, 6, 3.5, 0, 7); ctx.fill();
+    // pés
+    ctx.fillStyle='#8d5524';
+    const passo = andando ? Math.sin(tGlobal*14)*3 : 0;
+    ctx.fillRect(6+passo, 32, 8, 4); ctx.fillRect(16-passo, 32, 8, 4);
+    ctx.restore();
+}
+
+function desenha(){
+    tGlobal += 0.016;
+    passo();
+    // céu
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#7ec8f0'); g.addColorStop(1,'#c8e8d8');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    // nuvens parallax
+    ctx.fillStyle='rgba(255,255,255,0.85)';
+    for(let i=0;i<4;i++){
+        const nx = ((i*300 - camX*0.3) % (W+200) + W+200) % (W+200) - 100;
+        ctx.beginPath(); ctx.arc(nx,60+i*40,22,0,7); ctx.arc(nx+25,52+i*40,28,0,7); ctx.arc(nx+52,62+i*40,20,0,7); ctx.fill();
+    }
+    // montanhas parallax
+    ctx.fillStyle='#5a9a6a';
+    for(let i=0;i<5;i++){
+        const mx = ((i*380 - camX*0.55) % (W+400) + W+400) % (W+400) - 200;
+        ctx.beginPath(); ctx.moveTo(mx,H); ctx.lineTo(mx+150,H-200); ctx.lineTo(mx+300,H); ctx.fill();
+    }
+    if(jogando && mapa.length){
+        ctx.save(); ctx.translate(-camX, 0);
+        for(let r=0;r<mapa.length;r++) for(let c=0;c<mapa[r].length;c++){
+            const ch = mapa[r][c], x=c*T, y=r*T;
+            if(x-camX < -T || x-camX > W+T) continue;
+            if(ch==='#'){
+                ctx.fillStyle='#6d4c2f'; ctx.fillRect(x,y,T,T);
+                ctx.fillStyle='#4caf50'; if(tile(r-1,c)!=='#') ctx.fillRect(x,y,T,8);
+            } else if(ch==='='){
+                ctx.fillStyle='#8d6e63'; ctx.fillRect(x,y+4,T,14);
+                ctx.fillStyle='#a1887f'; ctx.fillRect(x,y+4,T,4);
+            } else if(ch==='^'){
+                ctx.fillStyle='#e0e0e0';
+                ctx.beginPath(); ctx.moveTo(x+2,y+T); ctx.lineTo(x+T/2,y+8); ctx.lineTo(x+T-2,y+T); ctx.fill();
+                ctx.fillStyle='#b71c1c';
+                ctx.beginPath(); ctx.moveTo(x+T/2-4,y+T*0.55); ctx.lineTo(x+T/2,y+8); ctx.lineTo(x+T/2+4,y+T*0.55); ctx.fill();
+            } else if(ch==='C'){
+                ctx.fillStyle='#ffd700';
+                ctx.beginPath(); ctx.ellipse(x+T/2, y+T/2, 10*Math.abs(Math.cos(tGlobal*3)), 12, 0, 0, 7); ctx.fill();
+                ctx.strokeStyle='#aa8800'; ctx.lineWidth=2; ctx.stroke();
+            } else if(ch==='F'){
+                ctx.fillStyle='#eee'; ctx.fillRect(x+T/2-2, y-T, 4, T*2);
+                ctx.fillStyle='#e53935';
+                ctx.beginPath(); ctx.moveTo(x+T/2+2, y-T); ctx.lineTo(x+T/2+30, y-T+12); ctx.lineTo(x+T/2+2, y-T+24); ctx.fill();
+            }
+        }
+        // jogador
+        desenhaCogumelo(p.x, p.y, skinAtual(), 1, Math.abs(p.vx)>0.1 && p.chao);
+        ctx.restore();
+    }
+    requestAnimationFrame(desenha);
+}
+
+// ============ MENU / LOJA ============
+function abreMenu(){
+    jogando=false;
+    document.getElementById('menu').style.display='flex';
+    abrePainelNiveis();
+}
+function abrePainelNiveis(){
+    document.getElementById('listaSkins').style.display='none';
+    const el = document.getElementById('listaNiveis');
+    el.style.display='grid';
+    el.innerHTML='';
+    for(let n=1;n<=TOTAL_NIVEIS;n++){
+        const b = document.createElement('div');
+        b.className = 'nivelBtn' + (n>desbloqueado?' travado':'') + (feitos.includes(n)?' feito':'');
+        b.textContent = n>desbloqueado ? '🔒' : (feitos.includes(n)?'⭐ ':'')+n;
+        if(n<=desbloqueado) b.onclick = ()=>carregaNivel(n);
+        el.appendChild(b);
+    }
+}
+function abreLoja(){
+    document.getElementById('listaNiveis').style.display='none';
+    const el = document.getElementById('listaSkins');
+    el.style.display='grid';
+    el.innerHTML='';
+    SKINS.forEach(sk=>{
+        const tem = skinsCompradas.includes(sk.id);
+        const eq = skinEq===sk.id;
+        const d = document.createElement('div');
+        d.className='item'+(eq?' equipadoBorda':'');
+        const mini = document.createElement('canvas');
+        mini.width=60; mini.height=50;
+        const mctx = mini.getContext('2d');
+        const antigo = ctx; // desenha a skin no mini canvas
+        desenhaNoCtx(mctx, sk);
+        d.appendChild(mini);
+        const nome = document.createElement('div'); nome.className='inome'; nome.textContent=sk.nome;
+        d.appendChild(nome);
+        const btn = document.createElement('button');
+        if(eq){ btn.className='equipado'; btn.textContent='✅ EQUIPADA'; btn.disabled=true; }
+        else if(tem){ btn.className='equipar'; btn.textContent='EQUIPAR'; btn.onclick=()=>{ skinEq=sk.id; salva(); abreLoja(); som(700,0.1); }; }
+        else { btn.textContent=`🪙 ${sk.preco}`; btn.disabled = moedas<sk.preco;
+               btn.onclick=()=>{ if(moedas<sk.preco) return; moedas-=sk.preco; skinsCompradas.push(sk.id); skinEq=sk.id; salva(); atualizaHud(); abreLoja(); som(600,0.1); setTimeout(()=>som(900,0.2),100); }; }
+        d.appendChild(btn);
+        el.appendChild(d);
+    });
+}
+function desenhaNoCtx(mctx, sk){
+    mctx.save();
+    mctx.translate(15,8);
+    mctx.fillStyle = sk.corpo; mctx.fillRect(6,16,18,16);
+    mctx.fillStyle='#222'; mctx.fillRect(10,20,4,6); mctx.fillRect(17,20,4,6);
+    if(sk.cap==='ARCO'){
+        const g = mctx.createLinearGradient(0,0,30,0);
+        g.addColorStop(0,'#ff4444'); g.addColorStop(0.3,'#ffdd00'); g.addColorStop(0.6,'#44ff44'); g.addColorStop(1,'#4488ff');
+        mctx.fillStyle=g;
+    } else mctx.fillStyle = sk.cap;
+    mctx.beginPath(); mctx.arc(15,16,15,Math.PI,0); mctx.fill();
+    mctx.fillRect(0,12,30,5);
+    mctx.fillStyle = sk.pintas;
+    mctx.beginPath(); mctx.arc(8,8,3,0,7); mctx.fill();
+    mctx.beginPath(); mctx.arc(20,6,3.5,0,7); mctx.fill();
+    mctx.fillStyle='#8d5524'; mctx.fillRect(6,32,8,4); mctx.fillRect(16,32,8,4);
+    mctx.restore();
+}
+
+atualizaHud();
+abrePainelNiveis();
+desenha();
+</script>
+</body>
+</html>

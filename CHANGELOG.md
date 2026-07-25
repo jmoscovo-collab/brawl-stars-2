@@ -1,5 +1,12 @@
 # Changelog - Cogumelo Games (site)
 
+## v2.0.0 (2026-07-25)
+- JOGO NOVO: Cogumelo Parkour 2D — 30 niveis de plataforma, moedas por nivel (1a vez = dobro),
+  loja com 10 skins de cogumelo, controles teclado + botoes de toque
+- Penaltis: +21 bolas novas (ate a CURVA MASTER de 2,5 milhoes com chute de banana)
+- Pescaria: Livro do Pescador (indice), +tesouros e tralhas, precos rebalanceados
+
+
 ## v1.9.0 (2026-07-25)
 - JOGO NOVO: Pescaria Maluca — peixes em 5 raridades (comum 50%, raro 30%, epico 15%, lendario 4,99%, ultra 0,01%),
   comprador de peixes (Seu Ze), loja com 6 varas (ate 50.000), sorte por vara, funciona por toque no celular
