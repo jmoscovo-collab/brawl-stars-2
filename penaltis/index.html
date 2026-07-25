@@ -699,7 +699,7 @@ function desenha(){
     if(defendendo){
         if(defesaPulo){
             // PULOU! Voa rápido pro lugar clicado
-            goleiro.x += (defesaPulo.x - goleiro.x)*0.3;
+            goleiro.x += (defesaPulo.x - goleiro.x)*0.45;
             goleiro.ladoY = defesaPulo.ladoY;
             goleiro.pulando=true; goleiro.t=1;
         } else {
@@ -719,13 +719,14 @@ function desenha(){
         const corCamisa = goleiro.congelado ? '#88ddff' : (minhaVez ? corDoTime(timesDoModo()[nivelAtual-1][0]) : '#00cc66');
         const corPele = goleiro.congelado ? '#aaeeff' : '#ffcc99';
         ctx.save(); ctx.translate(goleiro.x, gyG);
-        // PULO DE LADO: inclina o corpo na direção do mergulho
+        // PULO DE LADO: o corpo inteiro tomba na direção do mergulho (girando nos pés)
         let alvoPulo = null;
         if(defendendo && defesaPulo) alvoPulo = defesaPulo.x;
         else if(goleiro.pulando && !goleiro.congelado && minhaVez) alvoPulo = goleiro.destX;
         if(alvoPulo!==null){
-            const dirX = Math.max(-1, Math.min(1, (alvoPulo - W/2)/(GOL.w/2)));
-            ctx.rotate(dirX * 1.0 * (goleiro.pulando?Math.min(goleiro.t,1):1));
+            const dirX = Math.max(-1, Math.min(1, (alvoPulo - goleiro.x < -2 ? -1 : alvoPulo - goleiro.x > 2 ? 1 : (alvoPulo - W/2)/(GOL.w/2))));
+            const k = goleiro.pulando?Math.min(goleiro.t,1):1;
+            ctx.translate(0,48); ctx.rotate(dirX * 0.55 * k); ctx.translate(0,-48);
         }
         if(goleiro.congelado) ctx.globalAlpha=0.7;
         // sombra no chão
