@@ -271,8 +271,9 @@ scene.fog = new THREE.FogExp2(0x000000, 0.09);
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 100);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 document.body.appendChild(renderer.domElement);
 
 // Controles
@@ -906,8 +907,8 @@ function makeMonster() {
   // pernas
   const legL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.7, 0.3), skinMat); legL.position.set(-0.3, 0.35, 0); g.add(legL);
   const legR = legL.clone(); legR.position.x = 0.3; g.add(legR);
-  // brilho vermelho
-  const gl = new THREE.PointLight(0xff2200, 0.8, 4); gl.position.y = 2; g.add(gl);
+  // brilho vermelho (sem PointLight — luz dinâmica derruba o FPS; emissive já dá o brilho)
+  skinMat.emissiveIntensity = 0.9;
   g.userData.hp = 4;
   return g;
 }
@@ -942,7 +943,7 @@ const cabinetDoorMat = new THREE.MeshStandardMaterial({color: 0x4a3020, roughnes
     used.add(key);
     const g = new THREE.Group();
     const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.4, 0.7), cabinetMat);
-    body.position.y = 1.2; body.castShadow = true; g.add(body);
+    body.position.y = 1.2; g.add(body);
     const door = new THREE.Mesh(new THREE.BoxGeometry(1.0, 2.1, 0.08), cabinetDoorMat);
     door.position.set(0, 1.2, 0.38); g.add(door);
     const knob = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), new THREE.MeshStandardMaterial({color: 0xccaa33, metalness: 0.8}));

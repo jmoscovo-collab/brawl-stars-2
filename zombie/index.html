@@ -1288,8 +1288,15 @@
             player.z + Math.sin(angle) * dist
         );
 
-        const speed = 0.02 + Math.random() * 0.015 + wave * 0.003;
-        const maxHealth = 50 + wave * 12;
+        // ZUMBI MUTANTE GIGANTE — aparece depois da onda 30!
+        const mutante = wave > 30 && Math.random() < 0.22;
+        if (mutante) {
+            zombie.scale.set(2.4, 2.4, 2.4);
+            skinMat.color.setHex(0x9922cc);          // pele roxa de mutante
+            eyeMat.color.setHex(0xffee00);           // olhos amarelos brilhantes
+        }
+        const speed = (0.02 + Math.random() * 0.015 + wave * 0.003) * (mutante ? 0.75 : 1);
+        const maxHealth = (50 + wave * 12) * (mutante ? 6 : 1);
 
         // Barra de vida em cima do zumbi
         const hpBarGroup = new THREE.Group();
@@ -1307,7 +1314,7 @@
         hpBarGroup.position.y = 2.6;
         zombie.add(hpBarGroup);
 
-        const data = { mesh: zombie, health: maxHealth, maxHealth, speed, lastAttack: 0, hpBarGroup, hpFg };
+        const data = { mesh: zombie, health: maxHealth, maxHealth, speed, lastAttack: 0, hpBarGroup, hpFg, mutante };
 
         scene.add(zombie);
         zombies.push(data);
@@ -1577,9 +1584,9 @@
             if (arms[0]) arms[0].rotation.x = -0.5 + Math.sin(now * 3) * 0.1;
 
             // Attack player
-            if (dist < 2 && now - z.lastAttack > 1) {
+            if (dist < (z.mutante ? 3.5 : 2) && now - z.lastAttack > 1) {
                 z.lastAttack = now;
-                takeDamage(8 + wave * 2);
+                takeDamage((8 + wave * 2) * (z.mutante ? 2 : 1));
             }
         });
     }
