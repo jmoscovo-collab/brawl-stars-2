@@ -1,5 +1,12 @@
 # Changelog - Cogumelo Games (site)
 
+## v2.1.0 (2026-07-25)
+- Penaltis: modos torneio COPA 2026 (12 grupos reais do sorteio) e CHAMPIONS 2025/26 (36 clubes reais)
+  — escolhe o time, fase de grupos/liga + mata-mata ate a final, campeao = +1000 moedas
+- Cogumelo Parkour: hardcore com lava, pulo duplo, 130 niveis, 20 skins (publicado)
+- Sorte do Cogumelo: criado, AGUARDANDO aprovacao do Julio (nao publicado na home)
+
+
 ## v2.0.0 (2026-07-25)
 - JOGO NOVO: Cogumelo Parkour 2D — 30 niveis de plataforma, moedas por nivel (1a vez = dobro),
   loja com 10 skins de cogumelo, controles teclado + botoes de toque

@@ -139,6 +139,8 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
     <div class="abas">
         <button class="aba" id="modoSelecoes" onclick="trocaModo('selecoes')">🌍 Seleções</button>
         <button class="aba" id="modoTimes" onclick="trocaModo('times')">🛡️ Times</button>
+        <button class="aba" id="modoCopa" onclick="abreTorneio('copa')">🏆 Copa 2026</button>
+        <button class="aba" id="modoChampions" onclick="abreTorneio('champions')">⭐ Champions</button>
     </div>
     <div class="sub" id="subTexto">Vença todos pra ganhar moedas 🪙 — compre bolas e poderes na loja!</div>
     <div id="niveis"></div>
@@ -148,6 +150,7 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
         <h2 class="secao">✨ Poderes (equipe 1 — usa 1 vez por partida)</h2>
         <div class="loja-grid" id="lojaPoderes"></div>
     </div>
+    <div id="torneioBox" style="display:none;max-width:760px;width:100%;padding-bottom:30px;"></div>
 </div>
 
 <div id="fimBox">
@@ -156,7 +159,7 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
     <p class="ganho" id="fimMoedas"></p>
     <div>
         <button id="btnProximo" onclick="proximoNivel()">➡️ PRÓXIMO NÍVEL</button>
-        <button onclick="jogarNivel(nivelAtual)">🔄 DE NOVO</button>
+        <button id="btnDeNovo" onclick="jogarNivel(nivelAtual)">🔄 DE NOVO</button>
         <button class="cinza" onclick="abreMenu()">📋 MENU</button>
     </div>
 </div>
@@ -292,7 +295,15 @@ const CORES_TIMES = {
     'Vasco':'#e8e8e8','Botafogo':'#666666','Fluminense':'#7a1f3d','Grêmio':'#3399cc','Internacional':'#d43333',
     'Cruzeiro':'#2244aa','Atlético-MG':'#666666','Real Madrid':'#e8e8e8','Barcelona':'#a03366','PSG':'#1f3fb0',
     'Bayern de Munique':'#d43333','Liverpool':'#c22222','Manchester City':'#7fc8e8','Boca Juniors':'#ffd700',
-    'River Plate':'#e8e8e8','Íbis':'#111111'
+    'River Plate':'#e8e8e8','Íbis':'#111111',
+    // times dos torneios
+    'Bélgica':'#d43333','Suécia':'#ffd700','Turquia':'#d43333','Estados Unidos':'#223a8f','Suíça':'#d43333',
+    'Canadá':'#d43333','Egito':'#d43333','Senegal':'#0d8040','Noruega':'#d43333','Áustria':'#d43333',
+    'Arsenal':'#d43333','Chelsea':'#2244cc','Tottenham':'#e8e8e8','Sporting':'#0d8040','Inter de Milão':'#2244aa',
+    'Newcastle':'#444444','Juventus':'#e8e8e8','Atlético de Madrid':'#d43333','Atalanta':'#2255cc',
+    'Bayer Leverkusen':'#d43333','Borussia Dortmund':'#ffd700','Galatasaray':'#ff7f00','Monaco':'#d43333',
+    'Benfica':'#d43333','Marseille':'#7fc8e8','PSV':'#d43333','Athletic Bilbao':'#d43333','Napoli':'#3399cc',
+    'Ajax':'#e8e8e8','Villarreal':'#ffd700'
 };
 function corDoTime(nome){
     if(CORES_TIMES[nome]) return CORES_TIMES[nome];
@@ -352,16 +363,216 @@ function bolaAtual(){
 }
 function poderAtualDef(){ return PODERES.find(p=>p.id===poderEq); }
 
+// ============ TORNEIOS: COPA 2026 🏆 & CHAMPIONS ⭐ ============
+const COPA_GRUPOS = [
+['A',[['México','🇲🇽'],['África do Sul','🇿🇦'],['Coreia do Sul','🇰🇷'],['Rep. Tcheca','🇨🇿']]],
+['B',[['Canadá','🇨🇦'],['Bósnia','🇧🇦'],['Catar','🇶🇦'],['Suíça','🇨🇭']]],
+['C',[['Brasil','🇧🇷'],['Marrocos','🇲🇦'],['Escócia','🏴󠁧󠁢󠁳󠁣󠁴󠁿'],['Haiti','🇭🇹']]],
+['D',[['Estados Unidos','🇺🇸'],['Paraguai','🇵🇾'],['Austrália','🇦🇺'],['Turquia','🇹🇷']]],
+['E',[['Alemanha','🇩🇪'],['Curaçao','🇨🇼'],['Costa do Marfim','🇨🇮'],['Equador','🇪🇨']]],
+['F',[['Holanda','🇳🇱'],['Japão','🇯🇵'],['Suécia','🇸🇪'],['Tunísia','🇹🇳']]],
+['G',[['Bélgica','🇧🇪'],['Egito','🇪🇬'],['Irã','🇮🇷'],['Nova Zelândia','🇳🇿']]],
+['H',[['Espanha','🇪🇸'],['Uruguai','🇺🇾'],['Arábia Saudita','🇸🇦'],['Cabo Verde','🇨🇻']]],
+['I',[['França','🇫🇷'],['Senegal','🇸🇳'],['Noruega','🇳🇴'],['Iraque','🇮🇶']]],
+['J',[['Argentina','🇦🇷'],['Argélia','🇩🇿'],['Áustria','🇦🇹'],['Jordânia','🇯🇴']]],
+['K',[['Portugal','🇵🇹'],['Colômbia','🇨🇴'],['Uzbequistão','🇺🇿'],['RD Congo','🇨🇩']]],
+['L',[['Inglaterra','🏴󠁧󠁢󠁥󠁮󠁧󠁿'],['Croácia','🇭🇷'],['Gana','🇬🇭'],['Panamá','🇵🇦']]]
+];
+const CHAMPIONS_TIMES = [
+['Arsenal','🔴'],['Bayern de Munique','🍺'],['Liverpool','🐦'],['Tottenham','⚪'],['Barcelona','🔵'],
+['Chelsea','🦁'],['Sporting','🟢'],['Manchester City','☁️'],['Real Madrid','👑'],['Inter de Milão','🔵'],
+['PSG','🗼'],['Newcastle','⚫'],['Juventus','🦓'],['Atlético de Madrid','🐻'],['Atalanta','🔵'],
+['Bayer Leverkusen','🔴'],['Borussia Dortmund','🐝'],['Olympiacos','🔴'],['Club Brugge','🔵'],['Galatasaray','🟠'],
+['Monaco','🔴'],['Qarabağ','⚫'],['Bodø/Glimt','🟡'],['Benfica','🦅'],['Marseille','⚪'],
+['Pafos','🔵'],['Union Saint-Gilloise','🟡'],['PSV','🔴'],['Athletic Bilbao','🔴'],['Napoli','🔵'],
+['Copenhagen','⚪'],['Ajax','⚪'],['Eintracht Frankfurt','🦅'],['Slavia Praga','🔴'],['Villarreal','🟡'],['Kairat','🟡']
+];
+function timesTorneio(tipo){ return tipo==='copa' ? COPA_GRUPOS.flatMap(g=>g[1]) : CHAMPIONS_TIMES; }
+function flagTorneio(tipo,nome){ const t=timesTorneio(tipo).find(x=>x[0]===nome); return t?t[1]:'⚽'; }
+const FASE_NOME = {grupos:'Fase de Grupos', liga:'Fase de Liga', oitavas:'Oitavas de Final', quartas:'Quartas de Final', semi:'Semifinal', final:'GRANDE FINAL'};
+const FASE_SEG = {oitavas:'quartas', quartas:'semi', semi:'final'};
+const FASE_NIVEL = {oitavas:60, quartas:70, semi:80, final:95};
+const FASE_PREMIO = {grupos:50, liga:50, oitavas:100, quartas:150, semi:250, final:1000};
+const TORNEIO_TITULO = {copa:'🏆 Copa 2026', champions:'⭐ Champions'};
+let torneios = {
+    copa: JSON.parse(localStorage.getItem('penaltis_copa')||'null'),
+    champions: JSON.parse(localStorage.getItem('penaltis_champions')||'null')
+};
+let partidaTorneio = null; // partida em andamento: {tipo, fase, advNome, advFlag}
+function salvaTorneio(tipo){ localStorage.setItem('penaltis_'+tipo, JSON.stringify(torneios[tipo])); }
+// adversário atual (torneio) ou time do nível (modos normais)
+function advAtual(){ return partidaTorneio ? [partidaTorneio.advNome, partidaTorneio.advFlag] : timesDoModo()[nivelAtual-1]; }
+
+function abreTorneio(tipo){
+    document.getElementById('niveis').style.display='none';
+    document.getElementById('loja').style.display='none';
+    document.getElementById('abaNiveis').classList.remove('ativa');
+    document.getElementById('abaLoja').classList.remove('ativa');
+    document.getElementById('modoSelecoes').classList.remove('ativa');
+    document.getElementById('modoTimes').classList.remove('ativa');
+    document.getElementById('modoCopa').classList.toggle('ativa', tipo==='copa');
+    document.getElementById('modoChampions').classList.toggle('ativa', tipo==='champions');
+    document.getElementById('saldo').textContent = `🪙 ${moedas} moedas`;
+    document.getElementById('subTexto').textContent = tipo==='copa'
+        ? 'COPA 2026: escolha sua seleção e vá da fase de grupos até a GRANDE FINAL! 🏆'
+        : 'CHAMPIONS: escolha seu clube, vença a Fase de Liga e conquiste o caneco! ⭐';
+    document.getElementById('torneioBox').style.display='block';
+    const st = torneios[tipo];
+    if(!st || !st.time) montaEscolhaTime(tipo);
+    else montaProgressoTorneio(tipo);
+}
+function montaEscolhaTime(tipo){
+    const box = document.getElementById('torneioBox');
+    const grid = ts => `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;">`
+        + ts.map(([n,f])=>`<div class="nivel" onclick="escolheTimeTorneio('${tipo}','${n}')"><div class="flag">${f}</div><div class="nome">${n}</div></div>`).join('') + `</div>`;
+    if(tipo==='copa'){
+        box.innerHTML = `<h2 class="secao">Escolha sua seleção! 🌎</h2>`
+            + COPA_GRUPOS.map(([letra,ts])=>`<h2 class="secao" style="font-size:17px;color:#00ccff;">Grupo ${letra}</h2>${grid(ts)}`).join('');
+    } else {
+        box.innerHTML = `<h2 class="secao">Escolha seu clube! ⭐</h2>${grid(CHAMPIONS_TIMES)}`;
+    }
+}
+function escolheTimeTorneio(tipo,nome){
+    torneios[tipo] = { time:nome, fase: tipo==='copa'?'grupos':'liga', partida:0, vitorias:0, enfrentados:[], adv:null };
+    salvaTorneio(tipo); som(700,0.1);
+    montaProgressoTorneio(tipo);
+}
+function sorteiaAdv(tipo){
+    const st = torneios[tipo];
+    if(st.adv) return st.adv;
+    if(tipo==='copa' && st.fase==='grupos'){
+        const grupo = COPA_GRUPOS.find(g=>g[1].some(t=>t[0]===st.time));
+        st.adv = grupo[1].filter(t=>t[0]!==st.time)[st.partida][0];
+    } else {
+        let pool = timesTorneio(tipo).map(t=>t[0]).filter(n=>n!==st.time && !st.enfrentados.includes(n));
+        if(tipo==='copa'){
+            const grupo = COPA_GRUPOS.find(g=>g[1].some(t=>t[0]===st.time));
+            const doGrupo = grupo[1].map(t=>t[0]);
+            pool = pool.filter(n=>!doGrupo.includes(n));
+        }
+        st.adv = pool[Math.floor(Math.random()*pool.length)];
+    }
+    salvaTorneio(tipo);
+    return st.adv;
+}
+function montaProgressoTorneio(tipo){
+    const st = torneios[tipo], box = document.getElementById('torneioBox');
+    const flag = flagTorneio(tipo, st.time);
+    let meio = '';
+    if(st.fase==='campeao'){
+        meio = `<p style="font-size:26px;margin:14px 0;">👑 ${flag} ${st.time} é CAMPEÃO! Você já ganhou tudo! 🎉</p>`;
+    } else if(st.fase==='eliminado'){
+        meio = `<p style="font-size:20px;margin:14px 0;">😢 Você foi eliminado... mas dá pra tentar de novo!</p>`;
+    } else {
+        const adv = sorteiaAdv(tipo), advF = flagTorneio(tipo, adv);
+        let info = `<p style="font-size:19px;color:#00ccff;margin:8px 0;">${FASE_NOME[st.fase]}</p>`;
+        if(st.fase==='grupos'||st.fase==='liga'){
+            const total = st.fase==='grupos'?3:4, precisa = st.fase==='grupos'?2:3;
+            info += `<p style="margin:4px 0;">Partida ${st.partida+1} de ${total} — Vitórias: ${st.vitorias} (precisa de ${precisa} pra avançar!)</p>`;
+        }
+        meio = info + `<p style="font-size:20px;margin:10px 0;">Próximo adversário: ${advF} <b>${adv}</b></p>
+            <button class="aba ativa" style="font-size:20px;" onclick="jogarPartidaTorneio('${tipo}')">⚽ JOGAR PARTIDA</button>`;
+    }
+    box.innerHTML = `<h2 class="secao">${TORNEIO_TITULO[tipo]}</h2>
+        <p style="font-size:22px;margin:6px 0;">Seu time: ${flag} <b>${st.time}</b></p>
+        ${meio}
+        <p style="margin-top:18px;"><button class="aba" onclick="recomecaTorneio('${tipo}')">🗑️ Recomeçar torneio</button></p>`;
+}
+function recomecaTorneio(tipo){
+    if(!confirm('Recomeçar o torneio do zero?')) return;
+    torneios[tipo]=null; localStorage.removeItem('penaltis_'+tipo);
+    abreTorneio(tipo);
+}
+function nivelDaPartida(st){
+    if(st.fase==='grupos') return 30 + st.partida*10;      // 30, 40, 50
+    if(st.fase==='liga') return 30 + Math.round(st.partida*20/3); // 30, 37, 43, 50
+    return FASE_NIVEL[st.fase];
+}
+function jogarPartidaTorneio(tipo){
+    const st = torneios[tipo];
+    const adv = sorteiaAdv(tipo);
+    const nv = nivelDaPartida(st);
+    partidaTorneio = { tipo, fase: st.fase, advNome: adv, advFlag: flagTorneio(tipo, adv) };
+    nivelAtual = nv; dif = dificuldade(nv);
+    placarVoce=0; placarCpu=0; chute=1; minhaVez=true; morteSubita=false; jogando=true;
+    poderUsado=false; poderAtivo=''; poderChute=''; poderDefesa=''; moedasPartida=0;
+    resetaBola(); atualizaHud();
+    document.getElementById('overlay').style.display='none';
+    document.getElementById('fimBox').style.display='none';
+    mostraMsg(`${TORNEIO_TITULO[tipo]} — ${FASE_NOME[st.fase]}: VOCÊ × ${adv} ${partidaTorneio.advFlag}`,'#fff',1800);
+}
+function fimTorneio(venceu){
+    const pt = partidaTorneio, tipo = pt.tipo, st = torneios[tipo];
+    jogando = false;
+    st.enfrentados.push(st.adv); st.adv = null;
+    let ganho = moedasPartida, campeao=false, elim=false, temProxima=false, titulo='';
+    if(st.fase==='grupos' || st.fase==='liga'){
+        const total = st.fase==='grupos'?3:4, precisa = st.fase==='grupos'?2:3;
+        if(venceu){ st.vitorias++; ganho += FASE_PREMIO[st.fase]; }
+        st.partida++;
+        if(st.partida>=total){
+            if(st.vitorias>=precisa){
+                st.fase='oitavas'; temProxima=true;
+                titulo = venceu ? '🎉 CLASSIFICADO pras Oitavas de Final!' : '😅 Perdeu essa, mas se CLASSIFICOU pras Oitavas!';
+            } else { st.fase='eliminado'; elim=true; titulo='😢 Eliminado na '+(tipo==='copa'?'Fase de Grupos':'Fase de Liga')+'...'; }
+        } else {
+            temProxima=true;
+            titulo = venceu ? `🏆 VITÓRIA contra ${pt.advNome}! ${pt.advFlag}` : '😢 Perdeu essa... mas o torneio continua!';
+        }
+    } else {
+        if(venceu){
+            ganho += FASE_PREMIO[st.fase];
+            if(st.fase==='final'){ st.fase='campeao'; campeao=true; }
+            else { titulo = `🎉 VITÓRIA! Avançou pra ${FASE_NOME[FASE_SEG[st.fase]]}!`; st.fase=FASE_SEG[st.fase]; temProxima=true; }
+        } else { elim=true; titulo=`😢 Eliminado na ${FASE_NOME[st.fase]}...`; st.fase='eliminado'; }
+    }
+    if(!venceu) ganho += 2; // consolação
+    moedas += ganho; moedasPartida=0; salvaTorneio(tipo); salva();
+    const tFlag = flagTorneio(tipo, st.time);
+    if(campeao){
+        document.getElementById('fimTitulo').textContent = tipo==='copa'
+            ? `🏆👑 ${tFlag} ${st.time} CAMPEÃO DA COPA 2026!!!`
+            : `⭐🏆 ${tFlag} ${st.time} CAMPEÃO DA CHAMPIONS!!!`;
+        for(let i=0;i<8;i++) setTimeout(soltaConfete, i*350);
+        som(500,0.15); setTimeout(()=>som(700,0.15),150); setTimeout(()=>som(900,0.5),300); setTimeout(()=>som(1200,0.6),500);
+    } else {
+        document.getElementById('fimTitulo').textContent = titulo;
+        if(venceu){ soltaConfete(); soltaConfete(); som(500,0.15); setTimeout(()=>som(700,0.15),150); setTimeout(()=>som(900,0.4),300); }
+        else som(140,0.5,'sawtooth');
+    }
+    document.getElementById('fimPlacar').textContent = `VOCÊ ${placarVoce} × ${placarCpu} ${pt.advNome.toUpperCase()} ${pt.advFlag}`;
+    document.getElementById('fimMoedas').textContent = `+🪙 ${ganho} moedas!`;
+    const bp = document.getElementById('btnProximo');
+    bp.style.display = temProxima ? 'inline-block' : 'none';
+    bp.textContent = '➡️ PRÓXIMA PARTIDA';
+    bp.onclick = ()=>jogarPartidaTorneio(tipo);
+    const bd = document.getElementById('btnDeNovo');
+    bd.style.display = elim ? 'inline-block' : 'none';
+    bd.textContent = '🗑️ RECOMEÇAR TORNEIO';
+    bd.onclick = ()=>{
+        torneios[tipo]=null; localStorage.removeItem('penaltis_'+tipo);
+        document.getElementById('fimBox').style.display='none';
+        montaMenu(); document.getElementById('overlay').style.display='flex';
+        abreTorneio(tipo);
+    };
+    document.getElementById('fimBox').style.display='flex';
+    atualizaHud();
+}
+
 // ============ MENU / LOJA ============
 function mostraAba(qual){
+    document.getElementById('torneioBox').style.display='none';
+    document.getElementById('modoCopa').classList.remove('ativa');
+    document.getElementById('modoChampions').classList.remove('ativa');
     document.getElementById('niveis').style.display = qual==='niveis'?'grid':'none';
     document.getElementById('loja').style.display = qual==='loja'?'block':'none';
     document.getElementById('abaNiveis').classList.toggle('ativa', qual==='niveis');
     document.getElementById('abaLoja').classList.toggle('ativa', qual==='loja');
     if(qual==='loja') montaLoja();
+    if(qual==='niveis') montaMenu();
 }
 function trocaModo(m){
-    modo = m; salva(); montaMenu();
+    modo = m; salva(); montaMenu(); mostraAba('niveis');
 }
 function montaMenu(){
     document.getElementById('saldo').textContent = `🪙 ${moedas} moedas`;
@@ -426,8 +637,11 @@ function compraPoder(id){
 function equipaPoder(id){ poderEq=id; salva(); montaLoja(); som(700,0.1); }
 function abreMenu(){
     document.getElementById('fimBox').style.display='none';
+    const t = partidaTorneio ? partidaTorneio.tipo : null;
+    partidaTorneio = null;
     montaMenu(); mostraAba('niveis');
     document.getElementById('overlay').style.display='flex';
+    if(t) abreTorneio(t); // volta pra tela do torneio de onde veio
 }
 
 // ============ JOGO ============
@@ -465,8 +679,10 @@ function atualizaHud(){
     document.getElementById('placarCpu').textContent=placarCpu;
     document.getElementById('rodada').textContent = morteSubita ? '💀 MORTE SÚBITA' : `Chute ${Math.min(chute,5)} de 5`;
     document.getElementById('moedasHud').textContent = `🪙 ${moedas+moedasPartida}`;
-    const [nome,flag]=timesDoModo()[nivelAtual-1];
-    document.getElementById('nivelInfo').textContent = `Nível ${nivelAtual} ${flag}`;
+    const [nome,flag]=advAtual();
+    document.getElementById('nivelInfo').textContent = partidaTorneio
+        ? `${TORNEIO_TITULO[partidaTorneio.tipo]} — ${FASE_NOME[partidaTorneio.fase]}`
+        : `Nível ${nivelAtual} ${flag}`;
     document.getElementById('nomeCpu').textContent = nome.toUpperCase();
     // botão do poder
     const btn = document.getElementById('btnPoder');
@@ -610,7 +826,7 @@ function resolveChuteRobo(){
     if(bola.foraDoGol){ mostraMsg('PRA FORA! O gol encolheu! 🥅😂','#00ff88'); som(600,0.2); }
     else if(pegou){ bola.segura=true; mostraMsg('DEFENDEU! 🧤🔥','#00ff88'); som(600,0.2); soltaConfete(); }
     else if(poderDefesa==='escudo'){ mostraMsg('🛡️ ESCUDO! Não valeu!','#00ccff'); som(500,0.2); }
-    else { placarCpu++; mostraMsg(`Gol da ${timesDoModo()[nivelAtual-1][0]}... ${timesDoModo()[nivelAtual-1][1]}`,'#ff5555'); som(140,0.4,'sawtooth'); }
+    else { placarCpu++; mostraMsg(`Gol do adversário... ${advAtual()[1]} ${advAtual()[0]}`,'#ff5555'); som(140,0.4,'sawtooth'); }
     poderDefesa=''; golEncolhido=false;
     atualizaHud();
     setTimeout(proximaRodada, 1500);
@@ -631,6 +847,7 @@ function proximaRodada(){
 }
 
 function fim(venceu){
+    if(partidaTorneio) return fimTorneio(venceu);
     jogando=false;
     const [nome,flag]=timesDoModo()[nivelAtual-1];
     let ganho = moedasPartida;
@@ -649,7 +866,11 @@ function fim(venceu){
         venceu ? (nivelAtual===100 ? '🏆👑 CAMPEÃO MUNDIAL!!!' : `🏆 Venceu ${nome}! ${flag}`) : `😢 ${nome} venceu... ${flag}`;
     document.getElementById('fimPlacar').textContent = `VOCÊ ${placarVoce} × ${placarCpu} ${nome.toUpperCase()}`;
     document.getElementById('fimMoedas').textContent = `+🪙 ${ganho} moedas!`;
-    document.getElementById('btnProximo').style.display = (venceu && nivelAtual<100) ? 'inline-block' : 'none';
+    const bpN = document.getElementById('btnProximo');
+    bpN.style.display = (venceu && nivelAtual<100) ? 'inline-block' : 'none';
+    bpN.textContent = '➡️ PRÓXIMO NÍVEL'; bpN.onclick = proximoNivel;
+    const bdN = document.getElementById('btnDeNovo');
+    bdN.style.display = 'inline-block'; bdN.textContent = '🔄 DE NOVO'; bdN.onclick = ()=>jogarNivel(nivelAtual);
     document.getElementById('fimBox').style.display='flex';
     atualizaHud();
 }
@@ -657,6 +878,7 @@ function fim(venceu){
 function proximoNivel(){ jogarNivel(Math.min(nivelAtual+1, 100)); }
 
 function jogarNivel(n){
+    partidaTorneio=null;
     nivelAtual=n; dif=dificuldade(n);
     placarVoce=0; placarCpu=0; chute=1; minhaVez=true; morteSubita=false; jogando=true;
     poderUsado=false; poderAtivo=''; poderChute=''; poderDefesa=''; moedasPartida=0;
@@ -689,7 +911,7 @@ function desenha(){
     }
     // placar estilo TV no canto superior esquerdo
     if(jogando || placarVoce+placarCpu>0){
-        const [nomeT,flagT]=timesDoModo()[nivelAtual-1];
+        const [nomeT,flagT]=advAtual();
         const sigla = nomeT.slice(0,3).toUpperCase();
         ctx.save();
         ctx.fillStyle='rgba(0,0,0,0.75)';
@@ -743,7 +965,7 @@ function desenha(){
     if(goleiro.visivel){
         const gyG = goleiro.y + (goleiro.pulando?goleiro.ladoY*Math.min(goleiro.t,1):0);
         // goleiro do adversário = cor do uniforme do time; o SEU goleiro (defesa) = verde Cogumelo
-        const corCamisa = goleiro.congelado ? '#88ddff' : (minhaVez ? corDoTime(timesDoModo()[nivelAtual-1][0]) : '#00cc66');
+        const corCamisa = goleiro.congelado ? '#88ddff' : (minhaVez ? corDoTime(advAtual()[0]) : '#00cc66');
         const corPele = goleiro.congelado ? '#aaeeff' : '#ffcc99';
         ctx.save(); ctx.translate(goleiro.x, gyG);
         // PULO DE LADO: o corpo inteiro tomba na direção do mergulho (girando nos pés)
