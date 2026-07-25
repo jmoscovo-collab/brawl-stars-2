@@ -204,7 +204,7 @@ const NIVEIS = [
 function geraNivel(n){
     let seed = n*104729 + 12345;
     const rnd = ()=>{ seed=(seed*9301+49297)%233280; return seed/233280; };
-    const dif = Math.min(0.6, (n-7)/120);           // 0 fácil → 0.6 (mais suave!)
+    const dif = Math.min(0.45, (n-7)/160);          // 0 fácil → 0.45 (bem suave!)
     const cols = 34 + Math.floor(Math.min(n,60)/2); // fases vão ficando mais longas
     const ROWS = 10;
     const g = Array.from({length:ROWS}, ()=>Array(cols).fill('.'));
@@ -213,16 +213,16 @@ function geraNivel(n){
     let c = 4;
     while(c < cols-6){
         const roll = rnd();
-        if(roll < 0.16+0.12*dif && c>6){
+        if(roll < 0.12+0.1*dif && c>6){
             // buraco (2-3 tiles)
-            const larg = rnd()<0.3+dif*0.4 ? 3 : 2;
+            const larg = rnd()<0.15+dif*0.35 ? 3 : 2;
             for(let i=0;i<larg && c+i<cols-6;i++){ g[8][c+i]='.'; g[9][c+i]='.'; }
             // plataforma de ajuda em cima às vezes
             if(rnd()<0.4){ const pc=c; for(let i=0;i<2;i++) if(pc+i<cols) g[5][pc+i]='='; if(rnd()<0.6) g[4][pc]='C'; }
             c += larg + 2;
-        } else if(roll < 0.34+0.18*dif){
+        } else if(roll < 0.26+0.16*dif){
             // espinhos (1-2 seguidos)
-            const larg = rnd()<dif*0.6 ? 2 : 1;
+            const larg = rnd()<dif*0.45 ? 2 : 1;
             for(let i=0;i<larg && c+i<cols-6;i++) g[7][c+i]='^';
             c += larg + 2;
         } else if(roll < 0.65){
@@ -276,7 +276,8 @@ function skinAtual(){ return SKINS.find(s=>s.id===skinEq)||SKINS[0]; }
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const W = cv.width, H = cv.height, T = 40;
 let nivelAtual = 1, mapa = [], jogando = false;
-let p = { x:0, y:0, vx:0, vy:0, w:30, h:36, chao:false };
+let p = { x:0, y:0, vx:0, vy:0, w:30, h:36, chao:false, pulos:2 };
+let puloAnterior = false;
 let camX = 0, coinsFase = 0, mortes = 0, tGlobal = 0;
 const teclas = {};
 let audio;
@@ -396,7 +397,14 @@ function passo(dt){
     const dir = teclas['ArrowRight']||teclas['KeyD']||btnEstado.dir;
     const pulo = teclas['Space']||teclas['ArrowUp']||teclas['KeyW']||btnEstado.pulo;
     p.vx = (dir?4.2:0) - (esq?4.2:0);
-    if(pulo && p.chao){ p.vy = -12.5; p.chao=false; som(350,0.1); }
+    // PULO DUPLO! (aperta de novo no ar pra pular a segunda vez)
+    if(p.chao) p.pulos = 2;
+    if(pulo && !puloAnterior && p.pulos>0){
+        p.vy = p.pulos===2 ? -12.5 : -11;
+        p.pulos--; p.chao=false;
+        som(p.pulos===1?350:520, 0.1);
+    }
+    puloAnterior = pulo;
     p.vy = Math.min(p.vy+0.6, 14);
 
     // move X
