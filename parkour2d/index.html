@@ -122,7 +122,17 @@ const SKINS = [
     { id:'arcoiris', nome:'Arco-Íris', preco:1300, cap:'ARCO',    pintas:'#fff', corpo:'#ffe0b2' },
     { id:'gelo',     nome:'De Gelo',   preco:1800, cap:'#81d4fa', pintas:'#e1f5fe', corpo:'#e3f2fd' },
     { id:'lava',     nome:'De Lava',   preco:2500, cap:'#ff3d00', pintas:'#ffd600', corpo:'#ff8a65' },
-    { id:'cosmico',  nome:'Cósmico',   preco:4000, cap:'#4a148c', pintas:'#00e5ff', corpo:'#b39ddb' }
+    { id:'cosmico',  nome:'Cósmico',   preco:4000, cap:'#4a148c', pintas:'#00e5ff', corpo:'#b39ddb' },
+    { id:'pirata',   nome:'Pirata',    preco:5000,  cap:'#111111', pintas:'#ffffff', corpo:'#d7a17a' },
+    { id:'robo',     nome:'Robô',      preco:6000,  cap:'#90a4ae', pintas:'#00e5ff', corpo:'#b0bec5' },
+    { id:'zumbi',    nome:'Zumbi',     preco:7000,  cap:'#556b2f', pintas:'#9ccc65', corpo:'#a5d6a7' },
+    { id:'fantasma', nome:'Fantasma',  preco:8000,  cap:'#eceff1', pintas:'#b0bec5', corpo:'#fafafa' },
+    { id:'alien',    nome:'Alien',     preco:9000,  cap:'#00c853', pintas:'#1b5e20', corpo:'#b9f6ca' },
+    { id:'panda',    nome:'Panda',     preco:10000, cap:'#ffffff', pintas:'#000000', corpo:'#eeeeee' },
+    { id:'vampiro',  nome:'Vampiro',   preco:11000, cap:'#4a0000', pintas:'#000000', corpo:'#e0e0e0' },
+    { id:'trovao',   nome:'Trovão',    preco:12000, cap:'#fdd835', pintas:'#ffffff', corpo:'#fff9c4' },
+    { id:'rei',      nome:'Rei',       preco:13500, cap:'#7b1fa2', pintas:'#ffd700', corpo:'#ffe0b2' },
+    { id:'diamante', nome:'Diamante',  preco:15000, cap:'#80deea', pintas:'#ffffff', corpo:'#e0f7fa' }
 ];
 
 // ============ NÍVEIS (tiles de 40px: # chão, = plataforma, ^ espinho, C moeda, F bandeira, P início) ============
@@ -194,7 +204,7 @@ const NIVEIS = [
 function geraNivel(n){
     let seed = n*104729 + 12345;
     const rnd = ()=>{ seed=(seed*9301+49297)%233280; return seed/233280; };
-    const dif = Math.min(1, (n-7)/80);              // 0 fácil → 1 difícil
+    const dif = Math.min(0.6, (n-7)/120);           // 0 fácil → 0.6 (mais suave!)
     const cols = 34 + Math.floor(Math.min(n,60)/2); // fases vão ficando mais longas
     const ROWS = 10;
     const g = Array.from({length:ROWS}, ()=>Array(cols).fill('.'));
@@ -203,14 +213,14 @@ function geraNivel(n){
     let c = 4;
     while(c < cols-6){
         const roll = rnd();
-        if(roll < 0.22+0.15*dif && c>6){
+        if(roll < 0.16+0.12*dif && c>6){
             // buraco (2-3 tiles)
-            const larg = rnd()<0.5+dif*0.4 ? 3 : 2;
+            const larg = rnd()<0.3+dif*0.4 ? 3 : 2;
             for(let i=0;i<larg && c+i<cols-6;i++){ g[8][c+i]='.'; g[9][c+i]='.'; }
             // plataforma de ajuda em cima às vezes
             if(rnd()<0.4){ const pc=c; for(let i=0;i<2;i++) if(pc+i<cols) g[5][pc+i]='='; if(rnd()<0.6) g[4][pc]='C'; }
             c += larg + 2;
-        } else if(roll < 0.45+0.2*dif){
+        } else if(roll < 0.34+0.18*dif){
             // espinhos (1-2 seguidos)
             const larg = rnd()<dif*0.6 ? 2 : 1;
             for(let i=0;i<larg && c+i<cols-6;i++) g[7][c+i]='^';
@@ -358,6 +368,13 @@ function venceNivel(){
     }, 2000);
 }
 
+// altura da lava: começa lá embaixo e sobe até cobrir TUDO quando o tempo acaba
+function nivelLava(){
+    const total = TEMPO_HARDCORE;
+    const passou = Math.min(total, total - (tempoFim - Date.now()));
+    const alturaMapa = mapa.length*T;
+    return alturaMapa + 40 - (alturaMapa + 80) * (passou/total); // termina acima do topo = domina tudo
+}
 function tile(r,c){
     if(r<0||c<0||r>=mapa.length||c>=mapa[0].length) return c<0?'#':'.';
     return mapa[r][c];
@@ -366,11 +383,14 @@ function solido(ch){ return ch==='#'||ch==='='; }
 
 function passo(dt){
     if(!jogando) return;
-    // HARDCORE: acabou o tempo = perdeu!
-    if(modoJogo==='hardcore' && Date.now() > tempoFim){
-        som(120,0.5,'sawtooth');
-        mostraMsg('⏰ ACABOU O TEMPO!!!','#ff4444',1200);
-        return carregaNivel(nivelAtual);
+    // HARDCORE: a LAVA sobe! Quando o tempo acaba, ela domina o mapa inteiro!
+    if(modoJogo==='hardcore'){
+        const lavaY = nivelLava();
+        if(p.y + p.h > lavaY){
+            som(120,0.5,'sawtooth');
+            mostraMsg('🌋 A LAVA TE PEGOU!!!','#ff6622',1200);
+            return carregaNivel(nivelAtual);
+        }
     }
     const esq = teclas['ArrowLeft']||teclas['KeyA']||btnEstado.esq;
     const dir = teclas['ArrowRight']||teclas['KeyD']||btnEstado.dir;
@@ -489,6 +509,27 @@ function desenha(){
         }
         // jogador
         desenhaCogumelo(p.x, p.y, skinAtual(), 1, Math.abs(p.vx)>0.1 && p.chao);
+        // LAVA subindo (hardcore)
+        if(hardcore){
+            const lavaY = nivelLava();
+            const lg = ctx.createLinearGradient(0, lavaY, 0, lavaY+200);
+            lg.addColorStop(0,'#ffdd00'); lg.addColorStop(0.25,'#ff6600'); lg.addColorStop(1,'#cc1100');
+            ctx.fillStyle = lg;
+            ctx.beginPath();
+            ctx.moveTo(camX, lavaY+10);
+            for(let x=0; x<=W; x+=24){
+                ctx.lineTo(camX + x, lavaY + Math.sin(x*0.05 + tGlobal*5)*7);
+            }
+            ctx.lineTo(camX+W, mapa.length*T+300); ctx.lineTo(camX, mapa.length*T+300);
+            ctx.fill();
+            // bolhas de lava
+            ctx.fillStyle='#ffaa33';
+            for(let i=0;i<6;i++){
+                const bx = camX + ((i*173 + tGlobal*40*(1+i*0.2)) % W);
+                const by = lavaY + 15 + (i%3)*20;
+                ctx.beginPath(); ctx.arc(bx, by, 4+(i%3)*2, 0, 7); ctx.fill();
+            }
+        }
         ctx.restore();
         // relógio do HARDCORE
         if(hardcore){
