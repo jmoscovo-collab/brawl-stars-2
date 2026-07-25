@@ -80,9 +80,11 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
 <div class="area">
     <div class="card">
         <h2>🍄 Clica no Cogumelo!</h2>
-        <div class="sub">Cada clique = moedas. Clique MUITO!</div>
-        <div id="cogumelo">🍄</div>
-        <div id="ganhoClick"></div>
+        <div class="sub">💻 ESPAÇO ou mouse · 📱 toca perto do cogumelo</div>
+        <div id="areaCog" style="padding:24px 30px; margin:-10px; border-radius:20px;">
+            <div id="cogumelo">🍄</div>
+            <div id="ganhoClick"></div>
+        </div>
         <div class="sub" style="margin-top:10px">⬆️ Melhorias (clique rende mais!)</div>
         <div id="melhorias"></div>
     </div>
@@ -156,8 +158,13 @@ function clicou(e){
     document.getElementById('ganhoClick').textContent = `+${ganho} 🪙` + (combo>=10 ? ` (combo x${Math.floor(combo/10)+1}!)` : '');
     som(300+combo*8, 0.05, 'square', 0.06);
 }
-cog.addEventListener('mousedown', clicou);
-cog.addEventListener('touchstart', clicou, {passive:false});
+// 💻 mouse no cogumelo OU barra de ESPAÇO | 📱 tocar em qualquer lugar perto do cogumelo
+const areaCog = document.getElementById('areaCog');
+areaCog.addEventListener('mousedown', clicou);
+areaCog.addEventListener('touchstart', clicou, {passive:false});
+document.addEventListener('keydown', e=>{
+    if(e.code==='Space' && !e.repeat){ e.preventDefault(); clicou(); }
+});
 
 // ============ MÁQUINA MALUCA ============
 function girar(){
