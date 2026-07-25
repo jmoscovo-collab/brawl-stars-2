@@ -17,8 +17,9 @@ function initStats(gameName) {
     visits[gameName] = (visits[gameName] || 0) + 1;
     localStorage.setItem('cogumelo_visits', JSON.stringify(visits));
 
-    createStatsFooter();
-    updateStatsDisplay();
+    // Barra de estatísticas ESCONDIDA a pedido do Davi (25/07) — pra reativar, descomente:
+    // createStatsFooter();
+    // updateStatsDisplay();
     incrementGlobalVisits();
 }
 
