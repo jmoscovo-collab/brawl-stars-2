@@ -116,6 +116,7 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
 <div id="botoes">
     <button id="pescarBtn" onclick="pescar()">🎣 LANÇAR</button>
     <button onclick="abrePainel('inventario')">🧺 Peixes</button>
+    <button onclick="abrePainel('indice')">📖 Índice</button>
     <button onclick="abrePainel('comprador')">🧔 Vender</button>
     <button onclick="abrePainel('loja')">🛒 Varas</button>
 </div>
@@ -132,6 +133,18 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
     <div class="sub" id="falaZe">"Traga seus peixes, eu pago bem!"</div>
     <div class="grid" id="listaVenda"></div>
     <button class="fechar" style="background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200;" onclick="vendeTudo()">💰 VENDER TUDO</button>
+    <button class="fechar" onclick="fechaPaineis()">✖ FECHAR</button>
+</div>
+
+<div class="painel" id="indice">
+    <h1>📖 Livro do Pescador</h1>
+    <div class="sub" id="indiceProgresso"></div>
+    <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+        <button class="fechar" style="margin:0; padding:8px 18px;" onclick="mudaPagina(-1)">◀</button>
+        <span id="indiceTitulo" style="font-size:20px; font-weight:bold; min-width:200px;"></span>
+        <button class="fechar" style="margin:0; padding:8px 18px;" onclick="mudaPagina(1)">▶</button>
+    </div>
+    <div class="grid" id="listaIndice"></div>
     <button class="fechar" onclick="fechaPaineis()">✖ FECHAR</button>
 </div>
 
@@ -276,12 +289,14 @@ let inventario = JSON.parse(localStorage.getItem('pescaria_inventario')||'[]');
 let varasCompradas = JSON.parse(localStorage.getItem('pescaria_varas')||'["graveto"]');
 let varaEq = localStorage.getItem('pescaria_varaEq')||'graveto';
 let totalPescados = parseInt(localStorage.getItem('pescaria_total')||'0');
+let indiceCapturados = new Set(JSON.parse(localStorage.getItem('pescaria_indice')||'[]'));
 function salva(){
     localStorage.setItem('pescaria_dinheiro', dinheiro);
     localStorage.setItem('pescaria_inventario', JSON.stringify(inventario));
     localStorage.setItem('pescaria_varas', JSON.stringify(varasCompradas));
     localStorage.setItem('pescaria_varaEq', varaEq);
     localStorage.setItem('pescaria_total', totalPescados);
+    localStorage.setItem('pescaria_indice', JSON.stringify([...indiceCapturados]));
 }
 function varaAtual(){ return VARAS.find(v=>v.id===varaEq) || VARAS[0]; }
 
@@ -433,6 +448,9 @@ document.addEventListener('keydown', e=>{
 
 function pegouPeixe(p){
     inventario.push(p);
+    const novoNoIndice = !indiceCapturados.has(p.nome);
+    indiceCapturados.add(p.nome);
+    if(novoNoIndice) setTimeout(()=>mostraMsg('📖 NOVO no Índice!','#00ccff',1300), 2400);
     totalPescados++;
     salva(); atualizaHud();
     const r = RARIDADES[p.rar];
@@ -464,9 +482,57 @@ function abrePainel(id){
     if(id==='inventario') montaInventario();
     if(id==='comprador') montaComprador();
     if(id==='loja') montaLoja();
+    if(id==='indice') montaIndice();
 }
 function fechaPaineis(){
-    ['inventario','comprador','loja'].forEach(i=>document.getElementById(i).style.display='none');
+    ['inventario','comprador','loja','indice'].forEach(i=>document.getElementById(i).style.display='none');
+}
+
+// ============ LIVRO DE ÍNDICE (uma página por raridade) ============
+const PAGINAS = [
+    { chave:'comum',    titulo:'⚪ Página 1 — COMUNS' },
+    { chave:'raro',     titulo:'🔵 Página 2 — RAROS' },
+    { chave:'epico',    titulo:'🟣 Página 3 — ÉPICOS' },
+    { chave:'lendario', titulo:'🟡 Página 4 — LENDÁRIOS' },
+    { chave:'ultra',    titulo:'🌸 Página 5 — ULTRA' },
+    { chave:'tesouros', titulo:'🧰 Página 6 — TESOUROS' }
+];
+let paginaAtual = 0;
+function mudaPagina(d){
+    paginaAtual = (paginaAtual + d + PAGINAS.length) % PAGINAS.length;
+    montaIndice();
+    som(500,0.06);
+}
+function entradasDaPagina(chave){
+    if(chave==='tesouros') return TESOUROS.map(t=>({nome:t.nome, emoji:t.emoji, rar:'item'}));
+    return PEIXES[chave].map(([nome,emoji])=>({nome, emoji, rar:chave}));
+}
+function montaIndice(){
+    const pg = PAGINAS[paginaAtual];
+    document.getElementById('indiceTitulo').textContent = pg.titulo;
+    const entradas = entradasDaPagina(pg.chave);
+    const pegos = entradas.filter(e=>indiceCapturados.has(e.nome)).length;
+    // progresso total do livro
+    let total=0, totalPegos=0;
+    PAGINAS.forEach(p=>{
+        const es = entradasDaPagina(p.chave);
+        total += es.length;
+        totalPegos += es.filter(e=>indiceCapturados.has(e.nome)).length;
+    });
+    document.getElementById('indiceProgresso').textContent =
+        `Nesta página: ${pegos}/${entradas.length} — Livro completo: ${totalPegos}/${total}` +
+        (totalPegos===total ? ' 🏆 COMPLETOU TUDO!!!' : '');
+    document.getElementById('listaIndice').innerHTML = entradas.map(e=>{
+        const tem = indiceCapturados.has(e.nome);
+        if(tem) return `<div class="item b-${e.rar}">
+            <div class="icone">${e.emoji}</div>
+            <div class="inome">${e.nome}</div>
+            <div class="idesc r-${e.rar}">✅ Capturado!</div></div>`;
+        return `<div class="item" style="opacity:0.55">
+            <div class="icone" style="filter:grayscale(1) brightness(0.4)">${e.emoji}</div>
+            <div class="inome">???</div>
+            <div class="idesc">Ainda não pescou...</div></div>`;
+    }).join('');
 }
 function cartaHtml(p, extra=''){
     const r = RARIDADES[p.rar];
