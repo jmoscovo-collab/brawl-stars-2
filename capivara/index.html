@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="description" content="Capivara Run — jogo de plataforma grátis! Fuja da capivara, colete moedas, desbloqueie skins e jogue com até 4 amigos. Modos Lua e Hardcore!">
+    <meta name="description" content="Capivara Run — jogo de plataforma grátis! Fuja da capivara, colete moedas, desbloqueie skins e jogue contra o computador. Modos Lua e Hardcore!">
     <meta property="og:title" content="Capivara Run — Cogumelo Games">
-    <meta property="og:description" content="Jogo de plataforma grátis! Fuja da capivara malvada, colete moedas e desbloqueie skins. Multiplayer até 4 jogadores!">
+    <meta property="og:description" content="Jogo de plataforma grátis! Fuja da capivara malvada, colete moedas e desbloqueie skins. Jogue sozinho ou contra o computador!">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://cogumelogames.com.br/capivara/">
     <link rel="canonical" href="https://cogumelogames.com.br/capivara/">
@@ -23,8 +23,6 @@
         #menu button:hover { transform: scale(1.05); }
         .btn-1p { background: #4caf50; }
         .btn-2p { background: #2196f3; }
-        .btn-3p { background: #ff9800; }
-        .btn-5p { background: #e91e63; }
         .btn-modes { background: #00bcd4; position: relative; }
         .tag-novo { background: #f44336; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 8px; position: absolute; top: -6px; right: -6px; animation: pulse 1s infinite; }
         @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
@@ -67,7 +65,18 @@
         .btn-loja { background: #ff5722; min-width: 60px !important; padding: 13px 20px !important; border-radius: 10px !important; }
         #gem-counter { position: absolute; top: 10px; right: 15px; color: #fff; font-size: 16px; font-weight: bold; font-family: monospace; text-shadow: 1px 1px 3px #000; z-index: 50; background: rgba(0,0,0,0.4); padding: 5px 12px; border-radius: 15px; }
         #gem-counter .gem-icon { color: #00e5ff; }
-        #shop-screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 10, 40, 0.97); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px; pointer-events: auto; z-index: 100; }
+        #shop-screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 10, 40, 0.97); display: none; flex-direction: column; align-items: center; gap: 15px; pointer-events: auto; z-index: 100; overflow-y: auto; padding: 30px 0; }
+        .rarity-badge { display: inline-block; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 8px; margin-top: 5px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+        .rarity-badge.cosmico-bg { background: linear-gradient(135deg, #ff4dd2, #7c4dff) !important; }
+        #shop-skins-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 560px; width: 92%; }
+        .shop-skin-item { background: rgba(30, 30, 70, 0.9); border: 3px solid #444; border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .shop-skin-item:hover { transform: scale(1.05); }
+        .shop-skin-item.cant-afford { opacity: 0.5; cursor: not-allowed; }
+        .shop-skin-item.cant-afford:hover { transform: none; }
+        .shop-skin-item .item-icon { font-size: 36px; }
+        .shop-skin-item .item-name { color: #fff; font-size: 13px; font-weight: bold; margin-top: 4px; }
+        .shop-skin-item .item-price { color: #ffd700; font-size: 12px; margin-top: 4px; }
+        .btn-revive { background: #ffc107 !important; color: #333 !important; }
         #shop-screen h1 { font-size: 36px; color: #fff; text-shadow: 2px 2px 0 #ff5722; }
         #shop-screen .shop-gems { font-size: 22px; color: #00e5ff; font-weight: bold; margin-bottom: 10px; }
         #shop-screen .shop-msg { color: #aaa; font-size: 16px; text-align: center; padding: 20px; }
@@ -194,19 +203,18 @@
             <h1>🐾 Capivara Run</h1>
             <p>Colete moedas e fuja do monstro!</p>
             <button class="btn-1p" id="btn-1p">1 JOGADOR</button>
-            <button class="btn-2p" id="btn-2p">2 JOGADORES</button>
-            <button class="btn-3p" id="btn-3p">3 JOGADORES</button>
-            <button class="btn-5p" id="btn-4p">4 JOGADORES</button>
+            <button class="btn-2p" id="btn-2p">2 JOGADORES 🤖<br><span style="font-size:11px">Você vs Computador</span></button>
             <button class="btn-modes" id="btn-modes">MODOS <span class="tag-novo">NOVO</span></button>
             <button class="btn-skins" id="btn-skins">SKINS</button>
             <button class="btn-loja" id="btn-loja">🛒 LOJA</button>
             <div class="controls-info">
-                P1: WASD | P2: Setas | P3: FGHT | P4: JKLI
+                Controles: WASD ou Setas | No modo 2 jogadores o robô 🤖 joga sozinho!
             </div>
         </div>
         <div id="gameover" class="hidden">
             <h1>VC MORREU</h1>
             <p id="go-text"></p>
+            <button id="btn-revive" class="btn-revive" style="display:none">💛 VIDA EXTRA — 100 🪙</button>
             <button id="btn-retry" class="btn-retry">JOGAR NOVAMENTE</button>
             <button id="btn-exit" class="btn-exit">SAIR</button>
             <button id="btn-switch" class="btn-switch">MUDAR DE JOGO</button>
@@ -235,7 +243,8 @@
     </div>
     <div id="shop-screen">
         <h1>🛒 LOJA</h1>
-        <div class="shop-gems">💎 <span id="shop-gem-count">0</span> diamantes</div>
+        <div class="shop-gems">🪙 <span id="shop-coin-count">0</span> moedas &nbsp; 💎 <span id="shop-gem-count">0</span> diamantes</div>
+        <div id="shop-skins-grid"></div>
         <div class="shop-item" id="shop-skin-box">
             <div class="item-icon">📦</div>
             <div class="item-name">Caixa de Skin</div>
@@ -265,7 +274,7 @@
         <span id="hud-moedas">Moedas: 0/5</span>
         <span id="hud-vidas">❤️❤️❤️</span>
     </div>
-    <div class="version">v3.0.0</div>
+    <div class="version">v3.1.0</div>
 
     <script>
 const canvas = document.getElementById('game');
@@ -288,16 +297,30 @@ function sfxLevelUp() { [523,659,784,1047].forEach((f,i) => setTimeout(() => pla
 function sfxDie() { [400,300,200,100].forEach((f,i) => setTimeout(() => playTone(f, 0.2, 'sawtooth', 0.2), i*120)); }
 function sfxUnlock() { [784,988,1175,1319,1568].forEach((f,i) => setTimeout(() => playTone(f, 0.15, 'sine', 0.15), i*100)); }
 
-// Skins
+// Raridades
+const RARITIES = {
+    comum:    { name: 'Comum',    color: '#9e9e9e', price: 100 },
+    raro:     { name: 'Raro',     color: '#2196f3', price: 250 },
+    epico:    { name: 'Épico',    color: '#9c27b0', price: 500 },
+    lendario: { name: 'Lendário', color: '#ffd700', price: 1000 },
+    cosmico:  { name: 'Cósmico',  color: '#ff4dd2', price: null },
+};
+
+// Skins — req: 0 inicial | >0 fases seguidas | -1 caixa/loja | -2 só no Giro Grátis | -3 só na loja
 const SKINS = [
-    { id: 'cogumelo', name: 'Cogumelo', icon: '🍄', req: 0, reqText: 'Skin inicial' },
-    { id: 'arvore', name: 'Árvore', icon: '🌳', req: 2, reqText: 'Passe 2 fases seguidas' },
-    { id: 'estrela', name: 'Estrela', icon: '⭐', req: 5, reqText: 'Passe 5 fases seguidas' },
-    { id: 'trofeu', name: 'Troféu', icon: '🏆', req: 10, reqText: 'Passe 10 fases seguidas' },
-    { id: 'dragao', name: 'Dragão', icon: '🐉', req: -1, reqText: 'Só na Caixa de Skin' },
-    { id: 'alienigena', name: 'Alienígena', icon: '👽', req: -1, reqText: 'Só na Caixa de Skin' },
-    { id: 'fantasma', name: 'Fantasma', icon: '👻', req: -1, reqText: 'Só na Caixa de Skin' },
-    { id: 'fenix', name: 'Fênix', icon: '🔥', req: -2, reqText: 'Giro Grátis (1% de chance!)' },
+    { id: 'cogumelo', name: 'Cogumelo', icon: '🍄', rarity: 'comum', req: 0, reqText: 'Skin inicial' },
+    { id: 'arvore', name: 'Árvore', icon: '🌳', rarity: 'comum', req: 2, reqText: 'Passe 2 fases seguidas' },
+    { id: 'abacaxi', name: 'Abacaxi', icon: '🍍', rarity: 'comum', req: -3, reqText: 'Compre na Loja' },
+    { id: 'robo', name: 'Robô', icon: '🤖', rarity: 'comum', req: -3, reqText: 'Compre na Loja' },
+    { id: 'estrela', name: 'Estrela', icon: '⭐', rarity: 'raro', req: 5, reqText: 'Passe 5 fases seguidas' },
+    { id: 'trofeu', name: 'Troféu', icon: '🏆', rarity: 'raro', req: 10, reqText: 'Passe 10 fases seguidas' },
+    { id: 'fantasma', name: 'Fantasma', icon: '👻', rarity: 'raro', req: -1, reqText: 'Caixa de Skin ou Loja' },
+    { id: 'dragao', name: 'Dragão', icon: '🐉', rarity: 'epico', req: -1, reqText: 'Caixa de Skin ou Loja' },
+    { id: 'alienigena', name: 'Alienígena', icon: '👽', rarity: 'epico', req: -1, reqText: 'Caixa de Skin ou Loja' },
+    { id: 'unicornio', name: 'Unicórnio', icon: '🦄', rarity: 'epico', req: -3, reqText: 'Compre na Loja' },
+    { id: 'foguete', name: 'Foguete', icon: '🚀', rarity: 'lendario', req: -3, reqText: 'Compre na Loja' },
+    { id: 'fenix', name: 'Fênix', icon: '🔥', rarity: 'lendario', req: -2, reqText: 'Giro Grátis (1% de chance!)' },
+    { id: 'tartaruga_ninja', name: 'Tartaruga Ninja', icon: '🐢', rarity: 'cosmico', req: -2, reqText: 'Giro Grátis (0,1% de chance!)' },
 ];
 
 function loadProgress() {
@@ -320,6 +343,8 @@ function updateGemDisplay() {
     document.getElementById('coin-count').textContent = progress.coins;
     const shopCount = document.getElementById('shop-gem-count');
     if (shopCount) shopCount.textContent = progress.gems;
+    const shopCoins = document.getElementById('shop-coin-count');
+    if (shopCoins) shopCoins.textContent = progress.coins;
 }
 let progress = loadProgress();
 let currentStreak = 0;
@@ -345,6 +370,8 @@ let gameRunning = false, fase = 1, moedas = 0, totalMoedas = 5, vidas = 3;
 let platforms = [], coins = [], diamonds = [], monsters = [], monster = null;
 let players = [];
 let numPlayers = 1;
+let botMode = false; // segundo jogador = computador
+let reviveUsed = false; // vida extra comprada nesta partida?
 let gameMode = 'normal'; // 'normal', 'lua', 'hardcore'
 const GRAVITY = 0.5, JUMP = -13.5, SPEED = 4.5;
 const GROUND_Y = 450;
@@ -366,7 +393,9 @@ function createPlayer(index) {
         onGround: false, facing: 1,
         invincible: 60,
         alive: true,
-        index: index
+        index: index,
+        isBot: botMode && index === 1,
+        botJumpCooldown: 0
     };
 }
 
@@ -469,16 +498,51 @@ function update() {
 
         const ctrl = CONTROLS[pl.index];
         let moveX = 0;
-        if (keys[ctrl.left]) moveX = -1;
-        if (keys[ctrl.right]) moveX = 1;
         const jumpPower = (gameMode === 'lua') ? JUMP * 2.2 : JUMP;
-        if (keys[ctrl.jump] && pl.onGround) {
-            pl.vy = jumpPower;
-            pl.onGround = false;
-            sfxJump();
+        if (pl.isBot) {
+            // IA do computador: foge da capivara e busca moedas
+            if (pl.botJumpCooldown > 0) pl.botJumpCooldown--;
+            let wantJump = false;
+            // Capivara mais próxima
+            let nearMon = null, nearMonDist = Infinity;
+            for (const mon of monsters) {
+                const d = Math.abs(mon.x - pl.x);
+                if (d < nearMonDist) { nearMonDist = d; nearMon = mon; }
+            }
+            // Moeda mais próxima
+            let target = null, targetDist = Infinity;
+            for (const c of coins) {
+                if (c.collected) continue;
+                const d = Math.abs(c.x - pl.x) + Math.abs(c.y - pl.y) * 0.5;
+                if (d < targetDist) { targetDist = d; target = c; }
+            }
+            if (nearMon && nearMonDist < 70 && Math.abs(nearMon.y - pl.y) < 60) {
+                // Perigo! Foge e pula
+                moveX = (pl.x < nearMon.x) ? -1 : 1;
+                if (pl.x < 40) moveX = 1;
+                if (pl.x > 730) moveX = -1;
+                wantJump = true;
+            } else if (target) {
+                if (Math.abs(target.x - (pl.x + 15)) > 8) moveX = Math.sign(target.x - (pl.x + 15));
+                if (target.y < pl.y - 25) wantJump = true;
+            }
+            if (wantJump && pl.onGround && pl.botJumpCooldown <= 0) {
+                pl.vy = jumpPower;
+                pl.onGround = false;
+                pl.botJumpCooldown = 25;
+                sfxJump();
+            }
+        } else {
+            if (keys[ctrl.left]) moveX = -1;
+            if (keys[ctrl.right]) moveX = 1;
+            if (keys[ctrl.jump] && pl.onGround) {
+                pl.vy = jumpPower;
+                pl.onGround = false;
+                sfxJump();
+            }
         }
-        // Solo mode: P1 can also use arrows
-        if (numPlayers === 1 && pl.index === 0) {
+        // P1 humano também pode usar as setas
+        if (pl.index === 0) {
             if (keys['ArrowLeft']) moveX = -1;
             if (keys['ArrowRight']) moveX = 1;
             if (keys['ArrowUp'] && pl.onGround) {
@@ -603,17 +667,21 @@ function update() {
 }
 
 function loseLife(pl) {
-    vidas--;
-    sfxHit();
-    if (vidas <= 0) { endGame(); return; }
+    if (!pl.isBot) {
+        vidas--;
+        sfxHit();
+        if (vidas <= 0) { endGame(); return; }
+    }
     pl.x = 60 + pl.index * 80;
     pl.y = GROUND_Y - pl.h - 5;
     pl.vy = 0;
     pl.invincible = 90;
-    for (let i = 0; i < monsters.length; i++) {
-        monsters[i].x = 600 + i * 80;
-        monsters[i].y = GROUND_Y - monsters[i].h;
-        monsters[i].vy = 0;
+    if (!pl.isBot) {
+        for (let i = 0; i < monsters.length; i++) {
+            monsters[i].x = 600 + i * 80;
+            monsters[i].y = GROUND_Y - monsters[i].h;
+            monsters[i].vy = 0;
+        }
     }
 }
 
@@ -649,12 +717,14 @@ function showUnlockMessage(skin) {
 
 function endGame() {
     gameRunning = false;
-    currentStreak = 0;
     sfxDie();
     document.getElementById('gameover').style.display = 'flex';
     document.getElementById('gameover').classList.remove('hidden');
     document.getElementById('go-text').textContent = `Fase ${fase} | Recorde: ${progress.bestStreak} fases`;
     document.getElementById('hud').classList.add('hidden');
+    // Oferta de vida extra: 1x por partida, 100 moedas, continua de onde parou
+    const reviveBtn = document.getElementById('btn-revive');
+    reviveBtn.style.display = (!reviveUsed && progress.coins >= 100) ? 'inline-block' : 'none';
 }
 
 function updateHUD() {
@@ -1008,6 +1078,176 @@ function drawPlayerSkin(pl) {
         ctx.beginPath(); ctx.arc(-12 + s, -12, 1.5, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(12 - s, -10, 1.2, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(0, -18 + s, 1.3, 0, Math.PI*2); ctx.fill();
+    } else if (skin === 'robo') {
+        // Corpo metálico
+        ctx.fillStyle = '#90a4ae';
+        ctx.fillRect(-10, -2, 20, 20);
+        ctx.fillStyle = '#b0bec5';
+        ctx.fillRect(-12, -16, 24, 16);
+        ctx.strokeStyle = '#607d8b'; ctx.lineWidth = 1.5;
+        ctx.strokeRect(-12, -16, 24, 16);
+        ctx.strokeRect(-10, -2, 20, 20);
+        // Antena
+        ctx.strokeStyle = '#607d8b'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0, -16); ctx.lineTo(0, -22); ctx.stroke();
+        ctx.fillStyle = '#f44336';
+        ctx.beginPath(); ctx.arc(0, -23, 2.5 + Math.sin(frameCount * 0.2), 0, Math.PI*2); ctx.fill();
+        // Olhos LED
+        ctx.fillStyle = '#00e5ff';
+        ctx.fillRect(-8, -12, 6, 5);
+        ctx.fillRect(2, -12, 6, 5);
+        // Boca grade
+        ctx.fillStyle = '#455a64';
+        for (let i = -6; i <= 4; i += 4) ctx.fillRect(i, -5, 2, 3);
+        // Botões
+        ctx.fillStyle = '#ffc107';
+        ctx.beginPath(); ctx.arc(-4, 8, 2, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#4caf50';
+        ctx.beginPath(); ctx.arc(4, 8, 2, 0, Math.PI*2); ctx.fill();
+    } else if (skin === 'abacaxi') {
+        // Corpo do abacaxi
+        ctx.fillStyle = '#ffb300';
+        ctx.beginPath(); ctx.ellipse(0, 4, 12, 16, 0, 0, Math.PI*2); ctx.fill();
+        // Textura losango
+        ctx.strokeStyle = '#ff8f00'; ctx.lineWidth = 1;
+        for (let i = -12; i <= 12; i += 6) {
+            ctx.beginPath(); ctx.moveTo(i - 6, -8); ctx.lineTo(i + 6, 16); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(i + 6, -8); ctx.lineTo(i - 6, 16); ctx.stroke();
+        }
+        // Coroa de folhas
+        ctx.fillStyle = '#2e7d32';
+        ctx.beginPath(); ctx.moveTo(-8, -10); ctx.lineTo(-12, -22); ctx.lineTo(-4, -12); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-3, -11); ctx.lineTo(0, -25); ctx.lineTo(3, -11); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(8, -10); ctx.lineTo(12, -22); ctx.lineTo(4, -12); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#43a047';
+        ctx.beginPath(); ctx.moveTo(-5, -10); ctx.lineTo(-6, -19); ctx.lineTo(-1, -11); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(5, -10); ctx.lineTo(6, -19); ctx.lineTo(1, -11); ctx.closePath(); ctx.fill();
+        // Olhos e sorriso
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(-4, 0, 3, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(4, 0, 3, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#333';
+        ctx.beginPath(); ctx.arc(-4, 0, 1.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(4, 0, 1.5, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(0, 5, 4, 0.1, Math.PI - 0.1); ctx.stroke();
+    } else if (skin === 'unicornio') {
+        // Corpo branco
+        ctx.fillStyle = '#fafafa';
+        ctx.beginPath(); ctx.ellipse(0, 6, 11, 13, 0, 0, Math.PI*2); ctx.fill();
+        // Cabeça
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.ellipse(0, -8, 10, 9, 0, 0, Math.PI*2); ctx.fill();
+        // Crina arco-íris
+        const maneColors = ['#f44336','#ff9800','#ffeb3b','#4caf50','#2196f3','#9c27b0'];
+        for (let i = 0; i < maneColors.length; i++) {
+            ctx.strokeStyle = maneColors[i]; ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(-9, -12 + i * 1.5);
+            ctx.quadraticCurveTo(-16, -8 + i * 2, -12, 4 + i * 2);
+            ctx.stroke();
+        }
+        // Chifre dourado
+        const hornGrad = ctx.createLinearGradient(0, -26, 0, -14);
+        hornGrad.addColorStop(0, '#ffe082');
+        hornGrad.addColorStop(1, '#ffb300');
+        ctx.fillStyle = hornGrad;
+        ctx.beginPath(); ctx.moveTo(-3, -14); ctx.lineTo(0, -27); ctx.lineTo(3, -14); ctx.closePath(); ctx.fill();
+        // Orelhas
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.moveTo(-8, -13); ctx.lineTo(-10, -20); ctx.lineTo(-4, -15); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(8, -13); ctx.lineTo(10, -20); ctx.lineTo(4, -15); ctx.closePath(); ctx.fill();
+        // Olhos
+        ctx.fillStyle = '#333';
+        ctx.beginPath(); ctx.arc(-4, -8, 2.2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(4, -8, 2.2, 0, Math.PI*2); ctx.fill();
+        // Focinho rosa
+        ctx.fillStyle = '#f8bbd0';
+        ctx.beginPath(); ctx.ellipse(0, -3, 4, 3, 0, 0, Math.PI*2); ctx.fill();
+        // Brilhos
+        ctx.fillStyle = '#fff';
+        const us = Math.sin(frameCount * 0.1) * 2;
+        ctx.beginPath(); ctx.arc(-12 + us, -18, 1.3, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(12 - us, -16, 1.2, 0, Math.PI*2); ctx.fill();
+    } else if (skin === 'foguete') {
+        // Chamas
+        const ff = Math.sin(frameCount * 0.3) * 3;
+        ctx.fillStyle = '#ff5722';
+        ctx.beginPath(); ctx.moveTo(-5, 18); ctx.lineTo(0, 26 + ff); ctx.lineTo(5, 18); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#ffeb3b';
+        ctx.beginPath(); ctx.moveTo(-3, 18); ctx.lineTo(0, 23 + ff * 0.6); ctx.lineTo(3, 18); ctx.closePath(); ctx.fill();
+        // Corpo do foguete
+        const rocketGrad = ctx.createLinearGradient(-8, 0, 8, 0);
+        rocketGrad.addColorStop(0, '#b0bec5');
+        rocketGrad.addColorStop(0.5, '#eceff1');
+        rocketGrad.addColorStop(1, '#90a4ae');
+        ctx.fillStyle = rocketGrad;
+        ctx.beginPath();
+        ctx.moveTo(-8, 18);
+        ctx.lineTo(-8, -8);
+        ctx.quadraticCurveTo(0, -26, 8, -8);
+        ctx.lineTo(8, 18);
+        ctx.closePath(); ctx.fill();
+        // Ponta vermelha
+        ctx.fillStyle = '#e53935';
+        ctx.beginPath();
+        ctx.moveTo(-8, -8);
+        ctx.quadraticCurveTo(0, -26, 8, -8);
+        ctx.quadraticCurveTo(0, -14, -8, -8);
+        ctx.closePath(); ctx.fill();
+        // Aletas
+        ctx.fillStyle = '#e53935';
+        ctx.beginPath(); ctx.moveTo(-8, 10); ctx.lineTo(-14, 20); ctx.lineTo(-8, 18); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(8, 10); ctx.lineTo(14, 20); ctx.lineTo(8, 18); ctx.closePath(); ctx.fill();
+        // Janela com olhos
+        ctx.fillStyle = '#0d47a1';
+        ctx.beginPath(); ctx.arc(0, -2, 6, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#90a4ae'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, -2, 6, 0, Math.PI*2); ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(-2, -3, 1.8, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(2, -3, 1.8, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#333';
+        ctx.beginPath(); ctx.arc(-2, -3, 0.9, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(2, -3, 0.9, 0, Math.PI*2); ctx.fill();
+    } else if (skin === 'tartaruga_ninja') {
+        // Casco
+        ctx.fillStyle = '#5d4037';
+        ctx.beginPath(); ctx.ellipse(0, 8, 12, 11, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#795548';
+        ctx.beginPath(); ctx.ellipse(0, 8, 9, 8, 0, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#4e342e'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(-8, 4); ctx.lineTo(8, 12); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(8, 4); ctx.lineTo(-8, 12); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 16); ctx.stroke();
+        // Cabeça verde
+        ctx.fillStyle = '#4caf50';
+        ctx.beginPath(); ctx.arc(0, -8, 10, 0, Math.PI*2); ctx.fill();
+        // Braços verdes
+        ctx.fillStyle = '#43a047';
+        ctx.beginPath(); ctx.ellipse(-12, 6, 4, 7, 0.4, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(12, 6, 4, 7, -0.4, 0, Math.PI*2); ctx.fill();
+        // Faixa ninja vermelha nos olhos
+        ctx.fillStyle = '#e53935';
+        ctx.fillRect(-11, -12, 22, 6);
+        // Pontas da faixa balançando
+        const nb = Math.sin(frameCount * 0.15) * 2;
+        ctx.beginPath(); ctx.moveTo(10, -10); ctx.quadraticCurveTo(18, -12 + nb, 20, -6 + nb); ctx.lineTo(16, -8); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(10, -8); ctx.quadraticCurveTo(17, -6 + nb, 19, -1 + nb); ctx.lineTo(15, -6); ctx.closePath(); ctx.fill();
+        // Olhos brancos na faixa
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.ellipse(-4, -9, 3, 2.5, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(4, -9, 3, 2.5, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#333';
+        ctx.beginPath(); ctx.arc(-4, -9, 1.3, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(4, -9, 1.3, 0, Math.PI*2); ctx.fill();
+        // Sorriso determinado
+        ctx.strokeStyle = '#2e7d32'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(0, -3, 4, 0.2, Math.PI - 0.2); ctx.stroke();
+        // Aura cósmica rosa
+        const glow = 0.15 + Math.sin(frameCount * 0.1) * 0.1;
+        ctx.fillStyle = `rgba(255,77,210,${glow})`;
+        ctx.beginPath(); ctx.ellipse(0, 0, 18, 22, 0, 0, Math.PI*2); ctx.fill();
     }
 
     // Feet
@@ -1025,7 +1265,7 @@ function drawPlayerSkin(pl) {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('P' + (pl.index + 1), 0, -20);
+    ctx.fillText(pl.isBot ? '🤖 BOT' : 'P' + (pl.index + 1), 0, -20);
 
     ctx.restore();
 }
@@ -1361,10 +1601,12 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-function startGame(np, mode) {
+function startGame(np, mode, bot) {
     numPlayers = np;
+    botMode = (np === 2) ? true : !!bot;
     gameMode = mode || 'normal';
     fase = 1; moedas = 0; currentStreak = 0;
+    reviveUsed = false;
     vidas = (gameMode === 'hardcore') ? 1 : 3;
     generateLevel();
     gameRunning = true;
@@ -1385,10 +1627,13 @@ function renderSkinsScreen() {
         const selected = progress.selectedSkin === skin.id;
         const card = document.createElement('div');
         card.className = 'skin-card' + (selected ? ' selected' : '') + (!unlocked ? ' locked' : '');
-        let reqLabel = unlocked ? '✓ Desbloqueada' : (skin.req === -1 ? '📦 Disponível na Caixa' : '🔒 ' + skin.reqText);
+        const rar = RARITIES[skin.rarity];
+        if (!selected) card.style.borderColor = rar.color;
+        let reqLabel = unlocked ? '✓ Desbloqueada' : '🔒 ' + skin.reqText;
         card.innerHTML = `
             <div class="skin-icon">${skin.icon}</div>
             <div class="skin-name">${skin.name}</div>
+            <div class="rarity-badge" style="background:${rar.color}">${rar.name}</div>
             <div class="skin-req ${unlocked ? 'unlocked' : ''}">${reqLabel}</div>
         `;
         if (unlocked) {
@@ -1399,11 +1644,34 @@ function renderSkinsScreen() {
 }
 
 // Buttons
-document.getElementById('btn-1p').onclick = () => startGame(1, 'normal');
-document.getElementById('btn-2p').onclick = () => startGame(2, 'normal');
-document.getElementById('btn-3p').onclick = () => startGame(3, 'normal');
-document.getElementById('btn-4p').onclick = () => startGame(4, 'normal');
-document.getElementById('btn-retry').onclick = () => startGame(numPlayers, gameMode);
+document.getElementById('btn-1p').onclick = () => startGame(1, 'normal', false);
+document.getElementById('btn-2p').onclick = () => startGame(2, 'normal', true);
+document.getElementById('btn-retry').onclick = () => startGame(numPlayers, gameMode, botMode);
+document.getElementById('btn-revive').onclick = () => {
+    if (reviveUsed || progress.coins < 100) return;
+    progress.coins -= 100;
+    reviveUsed = true;
+    saveProgress();
+    updateGemDisplay();
+    vidas = 1;
+    for (const pl of players) {
+        pl.alive = true;
+        pl.x = 60 + pl.index * 80;
+        pl.y = GROUND_Y - pl.h - 5;
+        pl.vy = 0;
+        pl.invincible = 120;
+    }
+    for (let i = 0; i < monsters.length; i++) {
+        monsters[i].x = 600 + i * 80;
+        monsters[i].y = GROUND_Y - monsters[i].h;
+        monsters[i].vy = 0;
+    }
+    document.getElementById('gameover').style.display = 'none';
+    document.getElementById('gameover').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
+    sfxLevelUp();
+    gameRunning = true;
+};
 document.getElementById('btn-exit').onclick = () => {
     document.getElementById('gameover').style.display = 'none';
     document.getElementById('gameover').classList.add('hidden');
@@ -1441,7 +1709,7 @@ document.getElementById('shop-back').onclick = () => {
 };
 document.getElementById('shop-skin-box').onclick = () => {
     if (progress.gems < 150) return;
-    const locked = SKINS.filter(s => !progress.unlockedSkins.includes(s.id));
+    const locked = SKINS.filter(s => s.req !== -2 && !progress.unlockedSkins.includes(s.id));
     if (locked.length === 0) {
         sfxCoin();
         const msg = document.createElement('div');
@@ -1470,7 +1738,7 @@ function openRoulette(locked) {
     inner.style.transform = 'translateX(0)';
 
     const winSkin = locked[Math.floor(Math.random() * locked.length)];
-    const allSkins = SKINS.filter(s => s.id !== 'cogumelo');
+    const allSkins = SKINS.filter(s => s.id !== 'cogumelo' && s.req !== -2);
     const items = [];
     for (let i = 0; i < 30; i++) {
         items.push(allSkins[Math.floor(Math.random() * allSkins.length)]);
@@ -1511,6 +1779,40 @@ function updateShopItems() {
     const box = document.getElementById('shop-skin-box');
     if (progress.gems < 150) box.classList.add('cant-afford');
     else box.classList.remove('cant-afford');
+    renderShopSkins();
+}
+
+// Loja de skins — compráveis com moedas 🪙, preço por raridade
+function renderShopSkins() {
+    const grid = document.getElementById('shop-skins-grid');
+    grid.innerHTML = '';
+    const buyable = SKINS.filter(s => s.req !== -2 && s.req !== 0 && !progress.unlockedSkins.includes(s.id));
+    for (const skin of buyable) {
+        const rar = RARITIES[skin.rarity];
+        const price = rar.price;
+        const item = document.createElement('div');
+        item.className = 'shop-skin-item' + (progress.coins < price ? ' cant-afford' : '');
+        item.style.borderColor = rar.color;
+        item.innerHTML = `
+            <div class="item-icon">${skin.icon}</div>
+            <div class="item-name">${skin.name}</div>
+            <div class="rarity-badge" style="background:${rar.color}">${rar.name}</div>
+            <div class="item-price">🪙 ${price}</div>
+        `;
+        item.onclick = () => {
+            if (progress.coins < price) return;
+            progress.coins -= price;
+            progress.unlockedSkins.push(skin.id);
+            saveProgress();
+            updateGemDisplay();
+            updateShopItems();
+            showUnlockMessage(skin);
+        };
+        grid.appendChild(item);
+    }
+    if (buyable.length === 0) {
+        grid.innerHTML = '<div style="grid-column:1/-1;color:#aaa;font-size:13px;text-align:center;font-family:monospace">Você já tem todas as skins da loja! 🎉</div>';
+    }
 }
 
 // Código secreto: digitar DAVI desbloqueia todas as skins + 999999 gemas
@@ -1520,8 +1822,9 @@ document.addEventListener('keydown', e => {
         secretCode += e.key.toUpperCase();
         if (secretCode.includes('DAVI')) {
             secretCode = '';
-            progress.unlockedSkins = ['cogumelo', 'arvore', 'estrela', 'trofeu', 'dragao', 'alienigena', 'fantasma', 'fenix'];
+            progress.unlockedSkins = SKINS.map(s => s.id);
             progress.gems = 999999;
+            progress.coins = 999999;
             saveProgress();
             updateGemDisplay();
             renderSkinsScreen();
@@ -1621,12 +1924,18 @@ function updateSpinBtn() {
 }
 setInterval(updateSpinBtn, 1000);
 
+// Pesos somam 1000: Tartaruga Ninja = 1 (0,1%), Fênix = 10 (1%)
 const FREE_SPIN_REWARDS = [
-    { type: 'gems', amount: 10, label: '+10 💎', icon: '💎', weight: 36 },
-    { type: 'skin', label: 'FÊNIX 🔥', icon: '🔥', weight: 1 },
-    { type: 'respin', label: '+1 GIRO!', icon: '🎰', weight: 20 },
-    { type: 'gems', amount: 10, label: '+10 💎', icon: '💎', weight: 36 },
-    { type: 'respin', label: '+1 GIRO!', icon: '🎰', weight: 7 },
+    { type: 'coins', amount: 25, label: '+25 🪙', icon: '🪙', weight: 280 },
+    { type: 'coins', amount: 50, label: '+50 🪙', icon: '🪙', weight: 180 },
+    { type: 'coins', amount: 100, label: '+100 🪙', icon: '💰', weight: 80 },
+    { type: 'coins', amount: 200, label: '+200 🪙', icon: '💰', weight: 20 },
+    { type: 'gems', amount: 10, label: '+10 💎', icon: '💎', weight: 230 },
+    { type: 'gems', amount: 25, label: '+25 💎', icon: '💎', weight: 79 },
+    { type: 'respin', label: '+1 GIRO!', icon: '🎰', weight: 90 },
+    { type: 'skinrandom', label: 'SKIN SURPRESA!', icon: '📦', weight: 30 },
+    { type: 'skinfenix', label: 'FÊNIX 🔥', icon: '🔥', weight: 10 },
+    { type: 'skinninja', label: 'TARTARUGA NINJA!', icon: '🐢', weight: 1 },
 ];
 
 function pickFreeReward() {
@@ -1660,12 +1969,16 @@ function openFreeRoulette(winReward) {
     inner.style.transform = 'translateX(0)';
 
     const allRewards = [
+        { icon: '🪙', label: '+25 🪙' },
         { icon: '💎', label: '+10 💎' },
+        { icon: '🪙', label: '+50 🪙' },
         { icon: '🎰', label: '+1 GIRO' },
-        { icon: '💎', label: '+10 💎' },
+        { icon: '💰', label: '+100 🪙' },
+        { icon: '📦', label: 'SKIN!' },
+        { icon: '💎', label: '+25 💎' },
         { icon: '🔥', label: 'FÊNIX' },
-        { icon: '💎', label: '+10 💎' },
-        { icon: '🎰', label: '+1 GIRO' },
+        { icon: '💰', label: '+200 🪙' },
+        { icon: '🐢', label: 'NINJA!' },
     ];
     const items = [];
     for (let i = 0; i < 30; i++) items.push(allRewards[Math.floor(Math.random() * allRewards.length)]);
@@ -1687,21 +2000,42 @@ function openFreeRoulette(winReward) {
     }, 100);
 
     setTimeout(() => {
+        let customMsg = '';
         if (winReward.type === 'gems') {
             progress.gems += winReward.amount;
-        } else if (winReward.type === 'skin') {
+        } else if (winReward.type === 'coins') {
+            progress.coins += winReward.amount;
+        } else if (winReward.type === 'skinfenix') {
             if (!progress.unlockedSkins.includes('fenix')) {
                 progress.unlockedSkins.push('fenix');
-                result.textContent = '🔥 FÊNIX DESBLOQUEADA! (1% de sorte!)';
+                customMsg = '🔥 FÊNIX DESBLOQUEADA! (1% de sorte!)';
             } else {
                 progress.gems += 50;
-                result.textContent = '🔥 Já tem a Fênix! +50 💎';
+                customMsg = '🔥 Já tem a Fênix! +50 💎';
+            }
+        } else if (winReward.type === 'skinninja') {
+            if (!progress.unlockedSkins.includes('tartaruga_ninja')) {
+                progress.unlockedSkins.push('tartaruga_ninja');
+                customMsg = '🐢 TARTARUGA NINJA!! (0,1% — SORTE CÓSMICA!)';
+            } else {
+                progress.coins += 500;
+                customMsg = '🐢 Já tem a Tartaruga Ninja! +500 🪙';
+            }
+        } else if (winReward.type === 'skinrandom') {
+            const locked = SKINS.filter(s => s.req !== -2 && s.req !== 0 && !progress.unlockedSkins.includes(s.id));
+            if (locked.length > 0) {
+                const s = locked[Math.floor(Math.random() * locked.length)];
+                progress.unlockedSkins.push(s.id);
+                customMsg = `📦 ${s.icon} ${s.name} DESBLOQUEADA!`;
+            } else {
+                progress.coins += 100;
+                customMsg = '📦 Já tem todas! +100 🪙';
             }
         } else if (winReward.type === 'respin') {
             localStorage.setItem('capivara_free_spin_time', '0');
             updateSpinBtn();
         }
-        if (winReward.type !== 'skin') result.textContent = `🎉 ${winReward.label}`;
+        result.textContent = customMsg || `🎉 ${winReward.label}`;
         sfxUnlock();
         saveProgress();
         updateGemDisplay();

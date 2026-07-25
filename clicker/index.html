@@ -142,6 +142,30 @@
         #corrida-result button { padding: 12px 30px; font-size: 16px; font-weight: bold; border: none; border-radius: 20px; cursor: pointer; font-family: monospace; }
         .btn-next { background: #4caf50; color: #fff; }
         .btn-back-race { background: #ff9800; color: #fff; }
+        #turbo-bar { color: #ffd700; font-size: 16px; font-weight: bold; margin-top: 6px; text-shadow: 1px 1px 0 #000; min-height: 20px; }
+        #btn-loja { margin-top: 8px; padding: 12px 30px; background: #00bcd4; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; font-family: monospace; }
+        #btn-loja:hover { transform: scale(1.05); background: #0097a7; }
+        #loja-screen { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,20,15,0.97); z-index: 700; overflow-y: auto; padding: 20px 10px 90px; }
+        #loja-screen h1 { text-align: center; color: #ffd700; font-size: 28px; text-shadow: 2px 2px 0 #000; margin-bottom: 4px; font-family: monospace; }
+        #loja-screen h2 { text-align: center; color: #a5d6a7; font-size: 18px; margin: 18px 0 10px; font-family: monospace; }
+        #loja-score { text-align: center; color: #fff; font-size: 18px; font-family: monospace; margin-bottom: 10px; }
+        .loja-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+        .loja-item { background: rgba(0,0,0,0.5); border: 3px solid #444; border-radius: 12px; padding: 14px; width: 170px; text-align: center; cursor: pointer; font-family: monospace; transition: all 0.2s; }
+        .loja-item:hover { border-color: #ffd700; transform: scale(1.04); }
+        .loja-item.locked { opacity: 0.45; cursor: not-allowed; }
+        .loja-item.locked:hover { border-color: #444; transform: none; }
+        .loja-item.comprado { border-color: #4caf50; opacity: 0.85; cursor: default; }
+        .loja-item .li-name { color: #ffd700; font-weight: bold; font-size: 14px; margin-bottom: 6px; }
+        .loja-item .li-desc { color: #aaa; font-size: 12px; margin-bottom: 8px; }
+        .loja-item .li-cost { color: #ff5722; font-weight: bold; font-size: 13px; }
+        .loja-item.comprado .li-cost { color: #4caf50; }
+        #loja-back { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 12px 40px; font-size: 18px; background: #ff9800; color: #fff; border: none; border-radius: 25px; cursor: pointer; font-family: monospace; z-index: 701; }
+        @media (max-width: 700px) {
+            .game-area { flex-direction: column; gap: 14px; }
+            #capivara { width: 150px; height: 150px; }
+            #score { font-size: 36px; margin-bottom: 10px; }
+            body { overflow-y: auto; }
+        }
     </style>
 
 <style id="device-screen-style">
@@ -167,28 +191,24 @@
 
 <div id="device-screen">
   <h1>🍄 COGUMELO CLICKER</h1>
-  <p>Como você está jogando?</p>
+  <p>Clica no botão e começa a jogar! Funciona em qualquer posição do celular. 😄</p>
   <div class="opts">
-    <div class="opt" id="ds-pc"><div class="ico">🖥️</div><div class="lbl">COMPUTADOR</div></div>
-    <div class="opt" id="ds-mobile"><div class="ico">📱</div><div class="lbl">CELULAR</div></div>
+    <div class="opt" id="ds-play"><div class="ico">👆</div><div class="lbl">ENTRAR E CLICAR!</div></div>
   </div>
   <div id="device-warn"></div>
 </div>
 <script>
 (function(){
   var s = document.getElementById('device-screen');
-  var warn = document.getElementById('device-warn');
   var isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-  document.getElementById('ds-pc').onclick = function(){
-    if (isTouch) { warn.textContent = '⚠️ Seu aparelho parece ser celular. Mesmo assim, jogar no PC.'; setTimeout(function(){ s.remove(); }, 600); return; }
+  var go = function(e){
+    if (e) e.preventDefault();
+    if (isTouch) document.body.classList.add('mobile-mode');
     s.remove();
   };
-  document.getElementById('ds-mobile').onclick = function(){
-    document.body.classList.add('mobile-mode');
-    if (!isTouch) { warn.textContent = '⚠️ Modo celular ativado (alguns controles podem não ter touch).'; }
-    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function(){});
-    setTimeout(function(){ s.remove(); }, 400);
-  };
+  var btn = document.getElementById('ds-play');
+  btn.addEventListener('click', go);
+  btn.addEventListener('touchstart', go);
 })();
 </script>
 
@@ -219,9 +239,21 @@
         </div>
     </div>
     <div id="click-power">Clique: +1</div>
+    <div id="turbo-bar"></div>
     <button id="btn-academia">🏋️ ACADEMIA</button>
     <button id="btn-corrida">🏁 CORRIDA</button>
+    <button id="btn-loja">🛒 LOJA</button>
     <div class="best" id="best">Recorde: 0</div>
+
+    <div id="loja-screen">
+        <h1>🛒 LOJA DO COGUMELO</h1>
+        <div id="loja-score">Pontos: 0</div>
+        <h2>👟 TÊNIS (dão velocidade!)</h2>
+        <div class="loja-grid" id="loja-tenis"></div>
+        <h2>✨ MELHORIAS (clique mais forte!)</h2>
+        <div class="loja-grid" id="loja-melhorias"></div>
+        <button id="loja-back">VOLTAR</button>
+    </div>
 
     <div id="corrida-screen">
         <canvas id="corrida-3d"></canvas>
@@ -277,6 +309,8 @@ upgradeBox.addEventListener('click', () => {
         document.getElementById('click-power').textContent = `Clique: +${clickPower}`;
         document.querySelector('.up-cost').textContent = `Custo: ${upgradeCost}`;
         updateUpgradeBox();
+        updateClickPowerLabel();
+        saveGame();
     }
 });
 
@@ -357,6 +391,11 @@ const ESTEIRAS = [
     { name: 'Esteira 5', req: 200000, bonus: 500, color: 0x9c27b0 },
     { name: 'Esteira 6', req: 500000, bonus: 1000, color: 0x00bcd4 },
     { name: 'Esteira 7', req: 1000000, bonus: 2000, color: 0xffd700 },
+    { name: 'Esteira 8', req: 3000000, bonus: 5000, color: 0xff5722 },
+    { name: 'Esteira 9', req: 8000000, bonus: 12000, color: 0x76ff03 },
+    { name: 'Esteira 10', req: 20000000, bonus: 30000, color: 0x18ffff },
+    { name: 'Esteira 11', req: 60000000, bonus: 80000, color: 0xff4081 },
+    { name: 'Esteira 12', req: 150000000, bonus: 200000, color: 0xffffff },
 ];
 let currentEsteira = 0;
 let speed = 0;
@@ -392,7 +431,7 @@ function initAcademia3D() {
     academiaScene.add(pointLight);
 
     // Floor
-    const floorGeo = new THREE.PlaneGeometry(30, 20);
+    const floorGeo = new THREE.PlaneGeometry(40, 20);
     const floorMat = new THREE.MeshStandardMaterial({ color: 0x2a2a4a, roughness: 0.8 });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
@@ -401,7 +440,7 @@ function initAcademia3D() {
 
     // Walls
     const wallMat = new THREE.MeshStandardMaterial({ color: 0x222244, roughness: 0.9 });
-    const backWall = new THREE.Mesh(new THREE.PlaneGeometry(30, 8), wallMat);
+    const backWall = new THREE.Mesh(new THREE.PlaneGeometry(40, 8), wallMat);
     backWall.position.set(0, 4, -10);
     academiaScene.add(backWall);
 
@@ -417,7 +456,7 @@ function initAcademia3D() {
     for (let i = 0; i < ESTEIRAS.length; i++) {
         const est = ESTEIRAS[i];
         const group = new THREE.Group();
-        const x = (i - 3) * 2.4;
+        const x = (i - (ESTEIRAS.length - 1) / 2) * 2.4;
         group.position.set(x, 0, 0);
 
         // Main frame — sleek metallic body
@@ -612,7 +651,7 @@ function animateAcademia() {
 
     // Move cogumelo to active treadmill
     if (cogumeloMesh) {
-        const targetX = (currentEsteira - 3) * 2.2;
+        const targetX = (currentEsteira - (ESTEIRAS.length - 1) / 2) * 2.4;
         cogumeloMesh.group.position.x += (targetX - cogumeloMesh.group.position.x) * 0.08;
         // Running animation — legs swing
         const legSpeed = 0.012 * (ESTEIRAS[currentEsteira].bonus + 2);
@@ -632,7 +671,7 @@ function startAutoSpeed() {
     if (autoSpeedInterval) clearInterval(autoSpeedInterval);
     autoSpeedInterval = setInterval(() => {
         if (academiaRunning) {
-            speed += ESTEIRAS[currentEsteira].bonus;
+            speed += ESTEIRAS[currentEsteira].bonus * tenisBoost();
             document.getElementById('speed-val').textContent = speed.toLocaleString();
             renderEsteiras();
         }
@@ -654,7 +693,7 @@ function renderEsteiras() {
         const btn = document.createElement('div');
         btn.className = 'est-btn' + (!unlocked ? ' locked' : '') + (active ? ' active' : '');
         btn.innerHTML = `<div class="est-b-name">${est.name}</div><div class="est-b-req">${est.req === 0 ? '🆓' : est.req.toLocaleString()}</div>`;
-        if (unlocked) btn.onclick = () => { currentEsteira = i; renderEsteiras(); };
+        if (unlocked) btn.onclick = () => { currentEsteira = i; renderEsteiras(); saveGame(); };
         hud.appendChild(btn);
     }
     const soon = document.createElement('div');
@@ -706,6 +745,8 @@ upgradeBox3.addEventListener('click', () => {
         document.getElementById('click-power').textContent = `Clique: +${clickPower}`;
         document.getElementById('up-cost3').textContent = `Custo: ${superCost.toLocaleString()}`;
         updateUpgradeBox3();
+        updateClickPowerLabel();
+        saveGame();
     }
 });
 
@@ -730,6 +771,8 @@ upgradeBox2.addEventListener('click', () => {
         document.getElementById('click-power').textContent = `Clique: +${clickPower}`;
         document.getElementById('up-cost2').textContent = `Custo: ${megaCost.toLocaleString()}`;
         updateUpgradeBox2();
+        updateClickPowerLabel();
+        saveGame();
     }
 });
 
@@ -945,6 +988,12 @@ document.getElementById('corrida-3d').addEventListener('mousedown', (e) => {
         raceBoost += 0.3;
     }
 });
+document.getElementById('corrida-3d').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (corridaRunning && !racePlayer.finished) {
+        raceBoost += 0.3;
+    }
+}, { passive: false });
 document.addEventListener('keydown', (e) => {
     if (corridaRunning && !racePlayer.finished) {
         raceBoost += 0.3;
@@ -1091,8 +1140,9 @@ function raceLoop3D() {
             document.getElementById('corrida-next').style.display = 'none';
         }
 
-        scoreEl.textContent = score;
+        scoreEl.textContent = score.toLocaleString();
         document.getElementById('speed-val').textContent = speed.toLocaleString();
+        saveGame();
         document.getElementById('corrida-result-title').textContent = title;
         document.getElementById('corrida-result-title').style.color = color;
         document.getElementById('corrida-result-text').textContent = `${reward} | Fase ${corridaFase}`;
@@ -1124,17 +1174,156 @@ document.getElementById('corrida-menu').onclick = () => {
     corridaRunning = false;
 };
 
+// === LOJA (tênis + melhorias) ===
+const TENIS = [
+    { name: '👟 Tênis Veloz', desc: 'Velocidade x2!', cost: 10000000, boost: 2 },
+    { name: '👟 Tênis Turbo', desc: 'Velocidade x3!', cost: 30000000, boost: 3 },
+    { name: '👟 Tênis a Jato', desc: 'Velocidade x5!', cost: 80000000, boost: 5 },
+    { name: '👟 Tênis Foguete', desc: 'Velocidade x8!', cost: 200000000, boost: 8 },
+    { name: '👟 Tênis Lendário', desc: 'Velocidade x15!', cost: 500000000, boost: 15 },
+];
+const MELHORIAS = [
+    { name: '💪 Luvas de Força', desc: 'Clique x2!', cost: 7500000, mult: 2 },
+    { name: '⚡ Energia Extra', desc: 'Clique x3!', cost: 20000000, mult: 3 },
+    { name: '🔥 Modo Fogo', desc: 'Clique x5!', cost: 60000000, mult: 5 },
+    { name: '🌟 Estrela Mágica', desc: 'Clique x8!', cost: 150000000, mult: 8 },
+    { name: '👑 Coroa do Rei Clique', desc: 'Clique x15!', cost: 400000000, mult: 15 },
+];
+let tenisOwned = [false, false, false, false, false];
+let melhoriasOwned = [false, false, false, false, false];
+
+function tenisBoost() {
+    let b = 1;
+    for (let i = 0; i < TENIS.length; i++) if (tenisOwned[i]) b = Math.max(b, TENIS[i].boost);
+    return b;
+}
+function melhoriaMult() {
+    let m = 1;
+    for (let i = 0; i < MELHORIAS.length; i++) if (melhoriasOwned[i]) m = Math.max(m, MELHORIAS[i].mult);
+    return m;
+}
+
+function renderLoja() {
+    document.getElementById('loja-score').textContent = `Pontos: ${score.toLocaleString()}`;
+    const build = (items, owned, containerId, buy) => {
+        const box = document.getElementById(containerId);
+        box.innerHTML = '';
+        items.forEach((item, i) => {
+            const el = document.createElement('div');
+            const isOwned = owned[i];
+            const canBuy = !isOwned && score >= item.cost;
+            el.className = 'loja-item' + (isOwned ? ' comprado' : (canBuy ? '' : ' locked'));
+            el.innerHTML = `<div class="li-name">${item.name}</div><div class="li-desc">${item.desc}</div><div class="li-cost">${isOwned ? '✅ COMPRADO' : 'Custo: ' + item.cost.toLocaleString()}</div>`;
+            if (canBuy) el.onclick = () => buy(i);
+            box.appendChild(el);
+        });
+    };
+    build(TENIS, tenisOwned, 'loja-tenis', (i) => {
+        score -= TENIS[i].cost;
+        tenisOwned[i] = true;
+        scoreEl.textContent = score.toLocaleString();
+        updateClickPowerLabel();
+        saveGame();
+        renderLoja();
+    });
+    build(MELHORIAS, melhoriasOwned, 'loja-melhorias', (i) => {
+        score -= MELHORIAS[i].cost;
+        melhoriasOwned[i] = true;
+        scoreEl.textContent = score.toLocaleString();
+        updateClickPowerLabel();
+        saveGame();
+        renderLoja();
+    });
+}
+
+document.getElementById('btn-loja').onclick = () => {
+    document.getElementById('loja-screen').style.display = 'block';
+    renderLoja();
+};
+document.getElementById('loja-back').onclick = () => {
+    document.getElementById('loja-screen').style.display = 'none';
+};
+
+// === TURBO (aceleração: quanto mais clica, mais rápido fica) ===
+let combo = 0;
+function comboMult() {
+    return 1 + Math.min(4, Math.floor(combo / 12)); // até x5
+}
+function updateTurboBar() {
+    const m = comboMult();
+    const bar = document.getElementById('turbo-bar');
+    if (m > 1) bar.textContent = `🔥 TURBO x${m}! Continua clicando!`;
+    else if (combo > 3) bar.textContent = '💨 Acelerando...';
+    else bar.textContent = '';
+}
+setInterval(() => {
+    if (combo > 0) { combo = Math.max(0, combo - 4); updateTurboBar(); }
+}, 1000);
+
+function updateClickPowerLabel() {
+    const total = clickPower * melhoriaMult() * comboMult();
+    document.getElementById('click-power').textContent = `Clique: +${total.toLocaleString()}`;
+}
+
+// === PERSISTÊNCIA (localStorage, prefixo capivara_clicker_) ===
+function saveGame() {
+    try {
+        localStorage.setItem('capivara_clicker_save', JSON.stringify({
+            score, clickPower, upgradeLevel, upgradeCost,
+            superLevel, superCost, megaLevel, megaCost,
+            speed, currentEsteira, tenisOwned, melhoriasOwned
+        }));
+    } catch (e) {}
+}
+function loadGame() {
+    try {
+        const raw = localStorage.getItem('capivara_clicker_save');
+        if (!raw) return;
+        const d = JSON.parse(raw);
+        score = d.score || 0;
+        clickPower = d.clickPower || 1;
+        upgradeLevel = d.upgradeLevel || 0;
+        upgradeCost = d.upgradeCost || 100;
+        superLevel = d.superLevel || 0;
+        superCost = d.superCost || 10000;
+        megaLevel = d.megaLevel || 0;
+        megaCost = d.megaCost || 100067;
+        speed = d.speed || 0;
+        currentEsteira = Math.min(d.currentEsteira || 0, ESTEIRAS.length - 1);
+        if (Array.isArray(d.tenisOwned)) tenisOwned = TENIS.map((_, i) => !!d.tenisOwned[i]);
+        if (Array.isArray(d.melhoriasOwned)) melhoriasOwned = MELHORIAS.map((_, i) => !!d.melhoriasOwned[i]);
+        scoreEl.textContent = score.toLocaleString();
+        document.getElementById('up-level').textContent = `Nível: ${upgradeLevel}`;
+        document.querySelector('.up-cost').textContent = `Custo: ${upgradeCost}`;
+        document.getElementById('up-level3').textContent = `Nível: ${superLevel}`;
+        document.getElementById('up-cost3').textContent = `Custo: ${superCost.toLocaleString()}`;
+        document.getElementById('up-level2').textContent = `Nível: ${megaLevel}`;
+        document.getElementById('up-cost2').textContent = `Custo: ${megaCost.toLocaleString()}`;
+        updateUpgradeBox();
+        updateUpgradeBox2();
+        updateUpgradeBox3();
+        updateClickPowerLabel();
+    } catch (e) {}
+}
+loadGame();
+setInterval(saveGame, 5000);
+window.addEventListener('beforeunload', saveGame);
+
 // Click logic
 function doClick(x, y) {
-    score += clickPower;
-    speed += ESTEIRAS[currentEsteira].bonus;
-    scoreEl.textContent = score;
+    combo++;
+    const gain = clickPower * melhoriaMult() * comboMult();
+    score += gain;
+    speed += ESTEIRAS[currentEsteira].bonus * tenisBoost() * comboMult();
+    scoreEl.textContent = score.toLocaleString();
     document.getElementById('speed-val').textContent = speed.toLocaleString();
+    updateTurboBar();
+    updateClickPowerLabel();
 
     if (score > best) {
         best = score;
         localStorage.setItem('capivara_clicker_best', best);
-        document.getElementById('best').textContent = `Recorde: ${best}`;
+        document.getElementById('best').textContent = `Recorde: ${best.toLocaleString()}`;
     }
 
     updateUpgradeBox();
@@ -1143,16 +1332,23 @@ function doClick(x, y) {
 
     const effect = document.createElement('div');
     effect.className = 'click-effect';
-    effect.textContent = `+${clickPower}`;
+    effect.textContent = `+${gain.toLocaleString()}`;
     effect.style.left = (x - 10) + 'px';
     effect.style.top = (y - 20) + 'px';
     capiDiv.appendChild(effect);
     setTimeout(() => effect.remove(), 800);
 }
 
-// All mouse buttons (left, right, middle)
+// All mouse buttons (left, right, middle) + touch (celular em qualquer orientação)
 capiDiv.addEventListener('contextmenu', e => e.preventDefault());
 capiDiv.addEventListener('mousedown', (e) => { e.preventDefault(); doClick(e.offsetX, e.offsetY); });
+capiDiv.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const rect = capiDiv.getBoundingClientRect();
+    for (const t of e.changedTouches) {
+        doClick(t.clientX - rect.left, t.clientY - rect.top);
+    }
+}, { passive: false });
 
     </script>
 <script src="/stats.js"></script>

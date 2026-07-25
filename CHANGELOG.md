@@ -1,5 +1,20 @@
 # Changelog - Cogumelo Games (site)
 
+## v1.5.0 (2026-07-24) — Fase 3
+### Capivara Run (v3.1.0)
+- Modo 2 jogadores agora e Voce vs Computador (bot com IA); modos 3 e 4 removidos
+- 13 skins com raridades (Comum/Raro/Epico/Lendario/Cosmico) + loja com precos por raridade
+- Vida extra por 100 moedas (1x por partida)
+- Roleta: 10 premios, Tartaruga Ninja 0,1% (exclusiva da roleta)
+### Parkour
+- Cenario de fundo (sol, montanhas, nuvens parallax)
+- 7 skins compraveis com moedas; cronometro mm:ss no canto superior direito
+- Placa azul nao mata ao passar por cima; controles sem delay
+### Clicker
+- Botao unico de entrada (sem virar o celular); combo TURBO de clique ate x5
+- Loja: 5 tenis (10M a 500M) + 5 melhorias (7,5M a 400M); 12 esteiras; save completo
+
+
 ## v1.4.0 (2026-07-24) — Fase 2: Contas
 - Pagina /conta/: criar conta (nome+senha com hash SHA-256), entrar, sair, jogar como visitante
 - Progresso de TODOS os jogos salvo na conta (snapshot do localStorage, auto-save ao abrir a pagina)
