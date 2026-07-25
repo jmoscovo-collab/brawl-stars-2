@@ -44,6 +44,33 @@
         .pos-1 { color: #ffd700 !important; }
         .pos-2 { color: #c0c0c0 !important; }
         .pos-3 { color: #cd7f32 !important; }
+        @media (min-width: 700px) { .car-grid { grid-template-columns: repeat(3, 1fr); max-width: 820px; } }
+        #coins-display { color: #ffd700; font-size: 18px; font-weight: bold; background: rgba(0,0,0,0.4); padding: 6px 18px; border-radius: 20px; }
+        #shop-btn { padding: 10px 36px; font-size: 16px; font-weight: bold; background: linear-gradient(135deg, #8800ff, #cc44ff); color: #fff; border: none; border-radius: 25px; cursor: pointer; letter-spacing: 1px; }
+        #shop-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(136,0,255,0.4); }
+        #map-screen, #shop-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #0a0a2a 0%, #1a0533 50%, #0d1b2a 100%); display: none; flex-direction: column; align-items: center; justify-content: safe center; gap: 20px; z-index: 150; overflow-y: auto; padding: 30px 0; }
+        #map-screen h1, #shop-screen h1 { font-size: 36px; font-weight: 900; background: linear-gradient(to right, #00ccff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .map-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; max-width: 820px; width: 90%; }
+        @media (min-width: 700px) { .map-grid { grid-template-columns: repeat(3, 1fr); } }
+        .map-card { border: 3px solid #333; border-radius: 15px; padding: 20px 10px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .map-card:hover { border-color: #00ccff; transform: scale(1.05); box-shadow: 0 0 20px rgba(0,204,255,0.4); }
+        .map-card .map-icon { font-size: 40px; pointer-events: none; }
+        .map-card .map-name { color: #fff; font-size: 16px; font-weight: bold; margin-top: 6px; pointer-events: none; text-shadow: 1px 1px 3px #000; }
+        .back-btn { padding: 10px 30px; font-size: 15px; background: #444; color: #fff; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        .back-btn:hover { background: #666; }
+        .shop-card { background: rgba(20, 20, 50, 0.9); border: 3px solid #8800ff; border-radius: 15px; padding: 20px; text-align: center; }
+        .shop-card .car-icon { font-size: 44px; }
+        .shop-card .car-name { color: #fff; font-size: 18px; font-weight: bold; margin: 5px 0; }
+        .shop-card .car-desc { color: #aaa; font-size: 11px; margin-bottom: 10px; }
+        .shop-card .price { color: #ffd700; font-size: 16px; font-weight: bold; margin-bottom: 10px; }
+        .shop-card button { padding: 8px 24px; font-size: 14px; font-weight: bold; background: linear-gradient(135deg, #ffaa00, #ffd700); color: #222; border: none; border-radius: 18px; cursor: pointer; }
+        .shop-card button:disabled { background: #444; color: #888; cursor: default; }
+        .shop-card.owned { border-color: #00ff88; }
+        #touch-controls { position: fixed; bottom: 0; left: 0; right: 0; display: none; justify-content: space-between; padding: 0 15px 55px; z-index: 60; pointer-events: none; }
+        .tc-group { display: flex; gap: 14px; pointer-events: auto; }
+        .tc-btn { width: 68px; height: 68px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.5); color: #fff; font-size: 28px; display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; touch-action: none; }
+        .tc-btn:active { background: rgba(255,255,255,0.4); }
+        #tc-turbo { background: rgba(0,204,255,0.25); border-color: #00ccff; font-size: 22px; }
     </style>
 
 <style id="device-screen-style">
@@ -98,14 +125,38 @@
     <div id="menu">
         <h1>TURBO RACING</h1>
         <div class="subtitle">COGUMELO GAMES</div>
+        <div id="coins-display">🪙 0 moedas</div>
+        <button id="shop-btn">🛒 LOJA DE CARROS</button>
         <div class="car-grid" id="car-grid"></div>
         <button id="start-btn">CORRER!</button>
         <div class="controls-hint">WASD = Mover | ESPAÇO = Turbo (6s)</div>
     </div>
+    <div id="map-screen">
+        <h1>ESCOLHA O MAPA</h1>
+        <div class="map-grid" id="map-grid"></div>
+        <button class="back-btn" id="map-back-btn">VOLTAR</button>
+    </div>
+    <div id="shop-screen">
+        <h1>🛒 LOJA DE CARROS EXCLUSIVOS</h1>
+        <div id="shop-coins" style="color:#ffd700;font-size:20px;font-weight:bold;">🪙 0 moedas</div>
+        <div class="map-grid" id="shop-grid"></div>
+        <button class="back-btn" id="shop-back-btn">VOLTAR</button>
+    </div>
     <div id="hud" style="display:none">
-        <span id="hud-pos">1º / 4</span>
-        <span id="hud-lap">Volta 1/3</span>
         <span id="hud-time">0:00</span>
+        <span id="hud-pos">1º / 10</span>
+        <span id="hud-lap">Volta 1/3</span>
+    </div>
+    <div id="touch-controls">
+        <div class="tc-group">
+            <div class="tc-btn" id="tc-left">◀</div>
+            <div class="tc-btn" id="tc-right">▶</div>
+        </div>
+        <div class="tc-group">
+            <div class="tc-btn" id="tc-turbo">🔥</div>
+            <div class="tc-btn" id="tc-brake">▼</div>
+            <div class="tc-btn" id="tc-gas">▲</div>
+        </div>
     </div>
     <div id="turbo-bar" style="display:none"><div id="turbo-fill"></div></div>
     <div id="turbo-label" style="display:none">TURBO [ESPAÇO]</div>
@@ -121,33 +172,155 @@ const CARS = [
     { id: 'control', name: 'Preciso', icon: '🎯', desc: 'Lento mas domina qualquer curva', color: 0x2266ff, speed: 4, control: 9, accel: 5, resist: 4 },
     { id: 'accel', name: 'Foguete', icon: '🚀', desc: 'Arranca forte e curva com estilo', color: 0xff8800, speed: 5, control: 6, accel: 9, resist: 3 },
     { id: 'tank', name: 'Tanque', icon: '🛡️', desc: 'Pesado, estável, não sai da pista', color: 0x44cc44, speed: 4, control: 5, accel: 3, resist: 9 },
+    { id: 'banana', name: 'Bananamóvel', icon: '🍌', desc: 'Escorregadio mas rapidinho', color: 0xffee00, speed: 7, control: 3, accel: 6, resist: 4 },
+    { id: 'tubarao', name: 'Tubarão Turbo', icon: '🦈', desc: 'Morde o asfalto nas curvas', color: 0x3399cc, speed: 6, control: 7, accel: 5, resist: 5 },
+    { id: 'fantasma', name: 'Fantasminha', icon: '👻', desc: 'Leve como o vento, some na reta', color: 0xddddff, speed: 7, control: 6, accel: 6, resist: 2 },
+    { id: 'dino', name: 'Dinossauro Rex', icon: '🦖', desc: 'Pisada forte, ninguém segura', color: 0x228833, speed: 5, control: 4, accel: 4, resist: 8 },
+    { id: 'pizza', name: 'Pizza Veloz', icon: '🍕', desc: 'Entrega quentinha em 30 minutos', color: 0xdd6622, speed: 6, control: 5, accel: 7, resist: 4 },
+    { id: 'robo', name: 'Robozão 3000', icon: '🤖', desc: 'Calculado, preciso, imbatível nas curvas', color: 0x8899aa, speed: 5, control: 8, accel: 5, resist: 6 },
+    { id: 'abelha', name: 'Abelha Zum-Zum', icon: '🐝', desc: 'Pequena, ágil e com ferrão', color: 0xffcc00, speed: 6, control: 8, accel: 7, resist: 2 },
+    { id: 'pirata', name: 'Pirata do Asfalto', icon: '🏴‍☠️', desc: 'Rouba a primeira posição', color: 0x333344, speed: 7, control: 5, accel: 5, resist: 5 },
+    { id: 'sorvete', name: 'Sorvetão Gelado', icon: '🍦', desc: 'Deixa a pista congelada atrás dele', color: 0xffbbdd, speed: 5, control: 6, accel: 6, resist: 5 },
+    { id: 'raio', name: 'Trovão Azul', icon: '🌩️', desc: 'Elétrico, arranca num piscar de olhos', color: 0x2244ff, speed: 7, control: 5, accel: 8, resist: 3 },
+    { id: 'gato', name: 'Gato Ninja', icon: '🐱', desc: 'Sete vidas e drift perfeito', color: 0x555555, speed: 6, control: 9, accel: 5, resist: 3 },
+    { id: 'fogo', name: 'Chamas Loucas', icon: '🔥', desc: 'Pega fogo mas não freia', color: 0xff4400, speed: 8, control: 3, accel: 7, resist: 3 },
+    { id: 'gelo', name: 'Iceberg', icon: '🧊', desc: 'Frio na cabeça, firme na pista', color: 0x99ddff, speed: 5, control: 7, accel: 4, resist: 7 },
+    { id: 'unicornio', name: 'Unicórnio Mágico', icon: '🦄', desc: 'Deixa purpurina no retrovisor', color: 0xee66ff, speed: 6, control: 6, accel: 6, resist: 5 },
+    { id: 'monstro', name: 'Monstrão', icon: '👾', desc: 'Assusta os adversários na largada', color: 0x9900cc, speed: 6, control: 4, accel: 6, resist: 7 },
+    { id: 'tartaruga', name: 'Tartaruga Blindada', icon: '🐢', desc: 'Devagar? Nunca! Casco de aço', color: 0x117744, speed: 4, control: 6, accel: 3, resist: 10 },
+    { id: 'aviao', name: 'Aviãozinho', icon: '✈️', desc: 'Quase voa nas retas longas', color: 0xeeeeee, speed: 8, control: 5, accel: 6, resist: 2 },
+    { id: 'polvo', name: 'Polvo Maluco', icon: '🐙', desc: 'Oito braços no volante', color: 0xcc3388, speed: 5, control: 8, accel: 6, resist: 4 },
+    { id: 'zebra', name: 'Zebra Listrada', icon: '🦓', desc: 'Confunde todo mundo na ultrapassagem', color: 0xbbbbbb, speed: 6, control: 6, accel: 5, resist: 5 },
+    { id: 'vampiro', name: 'Vampiro Noturno', icon: '🧛', desc: 'Suga a velocidade dos rivais', color: 0x660000, speed: 7, control: 6, accel: 5, resist: 4 },
 ];
+
+// Carros EXCLUSIVOS da loja (comprados com moedas)
+const SHOP_CARS = [
+    { id: 'ouro', name: 'Dragão de Ouro', icon: '🐉', desc: 'Todo folheado a ouro, cospe fogo dourado', color: 0xffd700, speed: 9, control: 7, accel: 8, resist: 6, price: 2000 },
+    { id: 'diamante', name: 'Diamante Real', icon: '💎', desc: 'Brilha tanto que cega os adversários', color: 0x66ffff, speed: 8, control: 8, accel: 8, resist: 5, price: 1500 },
+    { id: 'galaxia', name: 'Galáxia Infinita', icon: '🌌', desc: 'Veio de outra dimensão pra vencer', color: 0x6633ff, speed: 9, control: 6, accel: 9, resist: 4, price: 1800 },
+    { id: 'rei', name: 'Coroa do Rei', icon: '👑', desc: 'A realeza das pistas, majestoso', color: 0xcc9900, speed: 8, control: 7, accel: 7, resist: 8, price: 1200 },
+    { id: 'meteoro', name: 'Meteoro Flamejante', icon: '☄️', desc: 'Caiu do céu direto pra linha de chegada', color: 0xff6600, speed: 10, control: 5, accel: 9, resist: 3, price: 2000 },
+    { id: 'arcoiris', name: 'Arco-Íris Turbo', icon: '🌈', desc: 'Sete cores de pura velocidade', color: 0xff44aa, speed: 8, control: 8, accel: 7, resist: 6, price: 500 },
+];
+
+// ===== Moedas e garagem (localStorage prefixo corrida_) =====
+function getCoins() { return parseInt(localStorage.getItem('corrida_coins') || '0', 10); }
+function setCoins(v) { localStorage.setItem('corrida_coins', String(v)); updateCoinsUI(); }
+function getOwned() { try { return JSON.parse(localStorage.getItem('corrida_owned_cars') || '[]'); } catch (e) { return []; } }
+function setOwned(list) { localStorage.setItem('corrida_owned_cars', JSON.stringify(list)); }
+function updateCoinsUI() {
+    document.getElementById('coins-display').textContent = `🪙 ${getCoins()} moedas`;
+    document.getElementById('shop-coins').textContent = `🪙 ${getCoins()} moedas`;
+}
+
+// Lista de carros disponíveis pra correr = normais + exclusivos comprados
+function availableCars() {
+    const owned = getOwned();
+    return CARS.concat(SHOP_CARS.filter(c => owned.includes(c.id)));
+}
 
 let selectedCar = 0;
 
 // Render car selection
 const carGrid = document.getElementById('car-grid');
-CARS.forEach((car, i) => {
+function renderCarGrid() {
+    const cars = availableCars();
+    if (selectedCar >= cars.length) selectedCar = 0;
+    carGrid.innerHTML = '';
+    cars.forEach((car, i) => {
+        const card = document.createElement('div');
+        const exclusive = !!car.price;
+        card.className = 'car-card' + (i === selectedCar ? ' selected' : '');
+        if (exclusive) card.style.borderColor = i === selectedCar ? '#00ff88' : '#8800ff';
+        card.innerHTML = `
+            <div class="car-icon">${car.icon}</div>
+            <div class="car-name">${car.name}${exclusive ? ' ⭐' : ''}</div>
+            <div class="car-desc">${car.desc}</div>
+            <div class="car-stats">
+                <div class="stat-row"><span class="stat-label">Veloc.</span><div class="stat-bar"><div class="stat-fill stat-vel" style="width:${car.speed*10}%"></div></div></div>
+                <div class="stat-row"><span class="stat-label">Controle</span><div class="stat-bar"><div class="stat-fill stat-ctrl" style="width:${car.control*10}%"></div></div></div>
+                <div class="stat-row"><span class="stat-label">Aceler.</span><div class="stat-bar"><div class="stat-fill stat-acc" style="width:${car.accel*10}%"></div></div></div>
+                <div class="stat-row"><span class="stat-label">Resist.</span><div class="stat-bar"><div class="stat-fill stat-res" style="width:${car.resist*10}%"></div></div></div>
+            </div>
+        `;
+        card.onclick = () => { selectedCar = i; renderCarGrid(); };
+        carGrid.appendChild(card);
+    });
+}
+renderCarGrid();
+
+// ===== Mapas =====
+const MAPS = [
+    { id: 'campo', name: 'Campo Verde', icon: '🌳', ground: 0x2d5a27, track: 0x333333, sky: 0x1a1a1a, cardBg: 'linear-gradient(135deg,#2d5a27,#1a3a17)' },
+    { id: 'deserto', name: 'Deserto Escaldante', icon: '🏜️', ground: 0xd8a548, track: 0x8a6a3a, sky: 0xffcc88, cardBg: 'linear-gradient(135deg,#d8a548,#a5762c)' },
+    { id: 'neve', name: 'Neve Congelante', icon: '❄️', ground: 0xe8f0f8, track: 0x8899aa, sky: 0xcce0ff, cardBg: 'linear-gradient(135deg,#e8f0f8,#9db8d8)' },
+    { id: 'praia', name: 'Praia Tropical', icon: '🏖️', ground: 0xf0d9a0, track: 0x555566, sky: 0x88ddff, cardBg: 'linear-gradient(135deg,#f0d9a0,#48b8d8)' },
+    { id: 'noite', name: 'Cidade à Noite', icon: '🌃', ground: 0x1a1a2e, track: 0x444455, sky: 0x0a0a1a, cardBg: 'linear-gradient(135deg,#1a1a2e,#3a2a5a)' },
+    { id: 'floresta', name: 'Floresta Sombria', icon: '🌲', ground: 0x1a3a17, track: 0x2a2a22, sky: 0x203020, cardBg: 'linear-gradient(135deg,#1a3a17,#0a2008)' },
+    { id: 'vulcao', name: 'Vulcão Furioso', icon: '🌋', ground: 0x3a1408, track: 0x551100, sky: 0x441100, cardBg: 'linear-gradient(135deg,#661a00,#2a0a00)' },
+    { id: 'espaco', name: 'Espaço Sideral', icon: '🪐', ground: 0x110022, track: 0x8844ff, sky: 0x000011, cardBg: 'linear-gradient(135deg,#220044,#000022)' },
+    { id: 'chuva', name: 'Tempestade de Chuva', icon: '🌧️', ground: 0x2a3a3a, track: 0x223344, sky: 0x445566, cardBg: 'linear-gradient(135deg,#445566,#223344)' },
+    { id: 'arcoiris_mapa', name: 'Pista Arco-Íris', icon: '🌈', ground: 0x442266, track: 0xff66aa, sky: 0x8844cc, cardBg: 'linear-gradient(135deg,#ff5588,#5588ff)' },
+];
+let selectedMap = MAPS[0];
+
+const mapGrid = document.getElementById('map-grid');
+MAPS.forEach(map => {
     const card = document.createElement('div');
-    card.className = 'car-card' + (i === 0 ? ' selected' : '');
-    card.innerHTML = `
-        <div class="car-icon">${car.icon}</div>
-        <div class="car-name">${car.name}</div>
-        <div class="car-desc">${car.desc}</div>
-        <div class="car-stats">
-            <div class="stat-row"><span class="stat-label">Veloc.</span><div class="stat-bar"><div class="stat-fill stat-vel" style="width:${car.speed*10}%"></div></div></div>
-            <div class="stat-row"><span class="stat-label">Controle</span><div class="stat-bar"><div class="stat-fill stat-ctrl" style="width:${car.control*10}%"></div></div></div>
-            <div class="stat-row"><span class="stat-label">Aceler.</span><div class="stat-bar"><div class="stat-fill stat-acc" style="width:${car.accel*10}%"></div></div></div>
-            <div class="stat-row"><span class="stat-label">Resist.</span><div class="stat-bar"><div class="stat-fill stat-res" style="width:${car.resist*10}%"></div></div></div>
-        </div>
-    `;
+    card.className = 'map-card';
+    card.style.background = map.cardBg;
+    card.innerHTML = `<div class="map-icon">${map.icon}</div><div class="map-name">${map.name}</div>`;
     card.onclick = () => {
-        selectedCar = i;
-        document.querySelectorAll('.car-card').forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
+        selectedMap = map;
+        document.getElementById('map-screen').style.display = 'none';
+        startRace();
     };
-    carGrid.appendChild(card);
+    mapGrid.appendChild(card);
 });
+
+// ===== Loja =====
+function renderShop() {
+    const grid = document.getElementById('shop-grid');
+    const owned = getOwned();
+    grid.innerHTML = '';
+    SHOP_CARS.forEach(car => {
+        const has = owned.includes(car.id);
+        const card = document.createElement('div');
+        card.className = 'shop-card' + (has ? ' owned' : '');
+        card.innerHTML = `
+            <div class="car-icon">${car.icon}</div>
+            <div class="car-name">${car.name}</div>
+            <div class="car-desc">${car.desc}</div>
+            <div class="price">${has ? '✅ SEU!' : '🪙 ' + car.price + ' moedas'}</div>
+        `;
+        const btn = document.createElement('button');
+        if (has) {
+            btn.textContent = 'NA GARAGEM';
+            btn.disabled = true;
+        } else {
+            btn.textContent = 'COMPRAR';
+            btn.disabled = getCoins() < car.price;
+            btn.onclick = () => {
+                if (getCoins() < car.price) return;
+                setCoins(getCoins() - car.price);
+                setOwned(getOwned().concat([car.id]));
+                renderShop();
+                renderCarGrid();
+            };
+        }
+        card.appendChild(btn);
+        grid.appendChild(card);
+    });
+    updateCoinsUI();
+}
+document.getElementById('shop-btn').onclick = () => { renderShop(); document.getElementById('shop-screen').style.display = 'flex'; };
+document.getElementById('shop-back-btn').onclick = () => { document.getElementById('shop-screen').style.display = 'none'; };
+document.getElementById('map-back-btn').onclick = () => {
+    document.getElementById('map-screen').style.display = 'none';
+    document.getElementById('menu').style.display = 'flex';
+};
+updateCoinsUI();
 
 // Track definition — oval with curves (top-down 3D)
 const TRACK_POINTS = [];
@@ -218,6 +391,7 @@ ground.receiveShadow = true;
 scene.add(ground);
 
 // Build track mesh
+let trackMat;
 function buildTrack() {
     const shape = new THREE.Shape();
     const innerPts = [], outerPts = [];
@@ -246,7 +420,7 @@ function buildTrack() {
     trackGeo.setIndex(indices);
     trackGeo.computeVertexNormals();
 
-    const trackMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.7 });
+    trackMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.7 });
     const trackMesh = new THREE.Mesh(trackGeo, trackMat);
     trackMesh.position.y = 0.01;
     trackMesh.receiveShadow = true;
@@ -327,14 +501,44 @@ let keys = {};
 document.addEventListener('keydown', e => { keys[e.code] = true; });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
 
+// ===== Controles de toque (celular) =====
+const hasTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+function bindTouchBtn(id, code) {
+    const el = document.getElementById(id);
+    const on = e => { e.preventDefault(); keys[code] = true; };
+    const off = e => { e.preventDefault(); keys[code] = false; };
+    el.addEventListener('touchstart', on, { passive: false });
+    el.addEventListener('touchend', off, { passive: false });
+    el.addEventListener('touchcancel', off, { passive: false });
+    el.addEventListener('mousedown', on);
+    el.addEventListener('mouseup', off);
+    el.addEventListener('mouseleave', off);
+}
+bindTouchBtn('tc-left', 'KeyA');
+bindTouchBtn('tc-right', 'KeyD');
+bindTouchBtn('tc-gas', 'KeyW');
+bindTouchBtn('tc-brake', 'KeyS');
+bindTouchBtn('tc-turbo', 'Space');
+function showTouchControls(show) {
+    const mobile = hasTouch || document.body.classList.contains('mobile-mode');
+    document.getElementById('touch-controls').style.display = (show && mobile) ? 'flex' : 'none';
+}
+
 function startRace() {
     document.getElementById('menu').style.display = 'none';
     document.getElementById('hud').style.display = 'flex';
     document.getElementById('turbo-bar').style.display = 'block';
     document.getElementById('turbo-label').style.display = 'block';
     document.getElementById('race-result').style.display = 'none';
+    showTouchControls(true);
 
-    const car = CARS[selectedCar];
+    // Aplicar visual do mapa escolhido
+    groundMat.color.setHex(selectedMap.ground);
+    trackMat.color.setHex(selectedMap.track);
+    renderer.setClearColor(selectedMap.sky);
+    scene.fog.color.setHex(selectedMap.sky);
+
+    const car = availableCars()[selectedCar];
 
     // Remove old cars
     if (playerCar) scene.remove(playerCar);
@@ -349,10 +553,10 @@ function startRace() {
     playerCar.rotation.y = -startAngle + Math.PI / 2;
     scene.add(playerCar);
 
-    // AI cars
+    // AI cars — 9 bots (10 carros na pista)
     aiPositions = [];
-    const aiColors = [0xcccccc, 0xff00ff, 0xffff00];
-    for (let i = 0; i < 3; i++) {
+    const aiColors = [0xcccccc, 0xff00ff, 0xffff00, 0x00ffcc, 0xff6699, 0x66ff33, 0x9966ff, 0xff9933, 0x00aaff];
+    for (let i = 0; i < 9; i++) {
         const aiMesh = createCarMesh(aiColors[i]);
         const offset = (i + 1) * 3;
         const idx = offset % TRACK_POINTS.length;
@@ -376,7 +580,7 @@ function raceLoop() {
     if (!racing) return;
     requestAnimationFrame(raceLoop);
 
-    const car = CARS[selectedCar];
+    const car = availableCars()[selectedCar];
     const dt = 1;
 
     // Player input
@@ -470,7 +674,7 @@ function raceLoop() {
     const positions = [{ idx: playerPos.trackIdx, lap: playerPos.lap, name: 'player' }, ...aiPositions.map((a, i) => ({ idx: a.trackIdx, lap: a.lap, name: 'ai' + i }))];
     positions.sort((a, b) => (b.lap * 1000 + b.idx) - (a.lap * 1000 + a.idx));
     const playerRank = positions.findIndex(p => p.name === 'player') + 1;
-    document.getElementById('hud-pos').textContent = `${playerRank}º / 4`;
+    document.getElementById('hud-pos').textContent = `${playerRank}º / 10`;
     document.getElementById('hud-lap').textContent = `Volta ${Math.min(playerPos.lap + 1, totalLaps)}/${totalLaps}`;
     const elapsed = Math.floor((Date.now() - raceStartTime) / 1000);
     const min = Math.floor(elapsed / 60);
@@ -490,21 +694,34 @@ function endRace() {
     positions.sort((a, b) => (b.lap * 1000 + b.idx) - (a.lap * 1000 + a.idx));
     const rank = positions.findIndex(p => p.name === 'player') + 1;
 
-    const titles = ['1º LUGAR! 🏆', '2º LUGAR!', '3º LUGAR!', '4º LUGAR...'];
-    const classes = ['pos-1', 'pos-2', 'pos-3', ''];
-    document.getElementById('result-title').textContent = titles[rank - 1];
-    document.getElementById('result-title').className = classes[rank - 1];
-    document.getElementById('result-time').textContent = `Tempo: ${min}:${sec.toString().padStart(2, '0')}`;
+    const title = rank === 1 ? '1º LUGAR! 🏆' : rank <= 3 ? `${rank}º LUGAR!` : `${rank}º LUGAR...`;
+    const cls = rank === 1 ? 'pos-1' : rank === 2 ? 'pos-2' : rank === 3 ? 'pos-3' : '';
+    document.getElementById('result-title').textContent = title;
+    document.getElementById('result-title').className = cls;
+
+    // Moedas por posição: 1º=20, 2º=16, 3º=13, 4º=10, 5º pra baixo=0
+    const coinsByRank = { 1: 20, 2: 16, 3: 13, 4: 10 };
+    const earned = coinsByRank[rank] || 0;
+    if (earned > 0) setCoins(getCoins() + earned);
+    const coinMsg = earned > 0 ? ` | 🪙 +${earned} moedas!` : ' | Sem moedas dessa vez 😢';
+    document.getElementById('result-time').textContent = `Tempo: ${min}:${sec.toString().padStart(2, '0')}${coinMsg}`;
     document.getElementById('race-result').style.display = 'flex';
+    showTouchControls(false);
 }
 
-document.getElementById('start-btn').onclick = startRace;
+// CORRER! abre a tela de escolha de mapa
+document.getElementById('start-btn').onclick = () => {
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('map-screen').style.display = 'flex';
+};
 document.getElementById('result-btn').onclick = () => {
     document.getElementById('race-result').style.display = 'none';
     document.getElementById('menu').style.display = 'flex';
     document.getElementById('hud').style.display = 'none';
     document.getElementById('turbo-bar').style.display = 'none';
     document.getElementById('turbo-label').style.display = 'none';
+    showTouchControls(false);
+    updateCoinsUI();
 };
 
 // Resize

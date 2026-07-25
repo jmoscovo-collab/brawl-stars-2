@@ -1,5 +1,16 @@
 # Changelog - Cogumelo Games (site)
 
+## v1.6.0 (2026-07-24) — Fase 4
+### Turbo Racing
+- Botoes de toque pra celular; 20 carros novos + 6 exclusivos na loja (500-2000 moedas)
+- 10 mapas selecionaveis; cronometro no canto sup. esquerdo; 9 bots (10 na pista)
+- Moedas por posicao: 1o=20, 2o=16, 3o=13, 4o=10
+### Street Drive
+- Botoes de toque pra celular; TURBO com barra de recarga
+- FIX: pista sumia (todos os segmentos reciclavam no mesmo frame e teleportavam alem do far plane)
+- Loja: 6 carros novos por vitorias (5 a 20), saldo = vitorias - gastas
+
+
 ## v1.5.0 (2026-07-24) — Fase 3
 ### Capivara Run (v3.1.0)
 - Modo 2 jogadores agora e Voce vs Computador (bot com IA); modos 3 e 4 removidos

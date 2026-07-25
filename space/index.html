@@ -53,6 +53,21 @@
         .pos-1 { color: #ffd700; text-shadow: 0 0 20px rgba(255,215,0,0.5); }
         .pos-2 { color: #c0c0c0; }
         .pos-3 { color: #cd7f32; }
+        #turbo-bar { position: fixed; bottom: 20px; left: 20px; z-index: 50; width: 180px; }
+        #turbo-label { color: #fff; font-size: 11px; font-family: monospace; text-shadow: 0 0 5px #000; margin-bottom: 4px; }
+        #turbo-track { height: 14px; background: rgba(0,0,0,0.7); border: 2px solid #33aaff; border-radius: 8px; overflow: hidden; }
+        #turbo-fill { height: 100%; width: 100%; border-radius: 5px; transition: width 0.1s linear; }
+        #touch-controls { position: fixed; bottom: 70px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 14px; z-index: 60; pointer-events: none; }
+        .tc-group { display: flex; gap: 12px; align-items: flex-end; }
+        .tc-btn { width: 64px; height: 64px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.5); color: #fff; font-size: 26px; display: flex; align-items: center; justify-content: center; pointer-events: auto; user-select: none; -webkit-user-select: none; touch-action: none; }
+        .tc-btn.pressed { background: rgba(255,136,0,0.6); border-color: #ff8800; transform: scale(0.92); }
+        .tc-btn.tc-gas { width: 76px; height: 76px; background: rgba(0,255,136,0.2); border-color: #00ff88; }
+        .tc-btn.tc-brake { background: rgba(255,68,68,0.2); border-color: #ff4444; }
+        .tc-btn.tc-turbo { background: rgba(51,170,255,0.25); border-color: #33aaff; }
+        .tc-btn.tc-turbo.pressed { background: rgba(51,170,255,0.7); border-color: #88ddff; }
+        .buy-btn { margin-top: 4px; padding: 4px 10px; font-size: 11px; font-weight: bold; background: linear-gradient(135deg, #ffcc00, #ff8800); color: #222; border: none; border-radius: 12px; cursor: pointer; }
+        .buy-btn.no-money { background: #555; color: #999; }
+        .car-card.shop { border-color: #ffcc00; }
         @media (max-width: 600px) {
             #menu h1 { font-size: 32px; }
             .car-grid { grid-template-columns: repeat(2, 1fr); }
@@ -114,12 +129,12 @@
         <h1>STREET DRIVE</h1>
         <div class="subtitle">COGUMELO GAMES</div>
         <div class="progress-info" id="progress-info"></div>
-        <div class="section-title">ESCOLHA SEU CARRO</div>
+        <div class="section-title">ESCOLHA SEU CARRO 🛒 (carros com 🏆 = loja: compre com vitórias!)</div>
         <div class="car-grid" id="car-grid"></div>
         <div class="section-title">PISTA</div>
         <div class="track-grid" id="track-grid"></div>
         <button id="start-btn">CORRER! 🏁</button>
-        <div class="controls-hint">A/D = Virar | W = Acelerar | S = Frear</div>
+        <div class="controls-hint">A/D = Virar | W = Acelerar | S = Frear | Espaço/Shift = 🚀 TURBO | Celular = botões na tela</div>
     </div>
     <div id="hud" style="display:none">
         <span id="hud-lap">Volta 1/3</span>
@@ -127,6 +142,18 @@
     </div>
     <div id="speedometer" style="display:none">0 km/h</div>
     <div id="position-display" style="display:none">1º</div>
+    <div id="turbo-bar" style="display:none"><div id="turbo-label">🚀 TURBO (Espaço/Shift)</div><div id="turbo-track"><div id="turbo-fill"></div></div></div>
+    <div id="touch-controls" style="display:none">
+        <div class="tc-group">
+            <div class="tc-btn" id="tc-left">◀</div>
+            <div class="tc-btn" id="tc-right">▶</div>
+        </div>
+        <div class="tc-group">
+            <div class="tc-btn tc-turbo" id="tc-turbo">🚀</div>
+            <div class="tc-btn tc-brake" id="tc-brake">🛑</div>
+            <div class="tc-btn tc-gas" id="tc-gas">▲</div>
+        </div>
+    </div>
     <div id="race-result">
         <h1 id="result-title">1º LUGAR!</h1>
         <p id="result-time"></p>
@@ -143,6 +170,13 @@ const CARS = [
     { id: 'lambo', name: 'Lambo', emoji: '🔶', color: 0xff8800, speed: 4.41, accel: 0.0231, handling: 0.75, desc: 'Supercarro!', unlock: 4 },
     { id: 'f1', name: 'Fórmula 1', emoji: '🏁', color: 0x11aa11, speed: 5.25, accel: 0.0294, handling: 0.95, desc: 'O mais rápido', unlock: 7 },
     { id: 'cyber', name: 'Cybertruck', emoji: '🔷', color: 0xaaaacc, speed: 3.15, accel: 0.0147, handling: 0.6, desc: 'Tanque elétrico', unlock: 3 },
+    // === LOJA (compra com vitórias!) ===
+    { id: 'taxi', name: 'Táxi Maluco', emoji: '🚕', color: 0xffcc00, speed: 3.3, accel: 0.016, handling: 0.85, desc: 'Corre pelo troco', price: 5 },
+    { id: 'policia', name: 'Polícia Turbo', emoji: '🚓', color: 0x223399, speed: 3.8, accel: 0.019, handling: 0.8, desc: 'Perseguição total', price: 7 },
+    { id: 'picape', name: 'Picape Monstro', emoji: '🛻', color: 0x336633, speed: 3.4, accel: 0.015, handling: 0.65, desc: 'Rodão gigante', price: 9 },
+    { id: 'ufo', name: 'Disco Voador', emoji: '🛸', color: 0x66ffee, speed: 4.2, accel: 0.022, handling: 0.9, desc: 'Veio do espaço!', price: 12 },
+    { id: 'relampago', name: 'Relâmpago', emoji: '⚡', color: 0xdd1111, speed: 4.8, accel: 0.026, handling: 0.85, desc: 'Katchau!', price: 15 },
+    { id: 'ouro', name: 'Carro de Ouro', emoji: '👑', color: 0xffd700, speed: 5.1, accel: 0.028, handling: 0.9, desc: 'O rei da pista', price: 20 },
 ];
 
 // === TRACKS ===
@@ -159,10 +193,11 @@ let progress = loadProgress();
 function loadProgress() {
     try {
         const d = JSON.parse(localStorage.getItem('street_drive_progress'));
-        if (d) return d;
+        if (d) { if (!d.winsGastas) d.winsGastas = 0; return d; }
     } catch(e) {}
-    return { wins: 0, unlockedCars: ['fusca', 'civic'], unlockedTracks: ['cidade'], selectedCar: 0, selectedTrack: 0 };
+    return { wins: 0, winsGastas: 0, unlockedCars: ['fusca', 'civic'], unlockedTracks: ['cidade'], selectedCar: 0, selectedTrack: 0 };
 }
+function saldoVitorias() { return progress.wins - (progress.winsGastas || 0); }
 function saveProgress() { localStorage.setItem('street_drive_progress', JSON.stringify(progress)); }
 
 // === THREE.JS SETUP ===
@@ -685,7 +720,27 @@ let keys = {};
 let currentCar, currentTrack;
 let totalRaceDist = 0;
 
-document.addEventListener('keydown', e => { keys[e.code] = true; });
+// === TURBO ===
+let turboCharge = 100, turboActive = false, turboFlames = [];
+const TURBO_MULT = 1.45;       // 45% mais rápido
+const TURBO_DRAIN = 0.9;       // gasta rápido
+const TURBO_RECHARGE = 0.22;   // recarrega devagar (sem apelação!)
+
+// === TOUCH BUTTONS ===
+const touchBtns = { left: false, right: false, gas: false, brake: false, turbo: false };
+function bindTouchBtn(id, prop) {
+    const el = document.getElementById(id);
+    const on = e => { e.preventDefault(); touchBtns[prop] = true; el.classList.add('pressed'); };
+    const off = e => { e.preventDefault(); touchBtns[prop] = false; el.classList.remove('pressed'); };
+    el.addEventListener('touchstart', on, { passive: false });
+    el.addEventListener('touchend', off, { passive: false });
+    el.addEventListener('touchcancel', off, { passive: false });
+    el.addEventListener('mousedown', on);
+    el.addEventListener('mouseup', off);
+    el.addEventListener('mouseleave', off);
+}
+
+document.addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'Space' && playing) e.preventDefault(); });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
 
 let touchActive = false, touchX = 0, touchAccel = false;
@@ -704,17 +759,33 @@ function renderMenu() {
     carGrid.innerHTML = '';
     CARS.forEach((car, i) => {
         const unlocked = progress.unlockedCars.includes(car.id);
+        const isShop = car.price !== undefined && !unlocked;
+        const canBuy = isShop && saldoVitorias() >= car.price;
         const div = document.createElement('div');
-        div.className = 'car-card' + (i === progress.selectedCar ? ' selected' : '') + (!unlocked ? ' locked' : '');
+        div.className = 'car-card' + (i === progress.selectedCar ? ' selected' : '') + (!unlocked && !isShop ? ' locked' : '') + (isShop ? ' shop' : '');
+        const vel = Math.max(0, Math.min(5, Math.round(car.speed)));
+        const ctrl = Math.max(0, Math.min(5, Math.round(car.handling * 5)));
         div.innerHTML = `
             <div class="car-emoji">${car.emoji}</div>
             <div class="car-name">${car.name}</div>
-            <div class="car-stat">Vel: ${'█'.repeat(Math.round(car.speed))}${'░'.repeat(5 - Math.round(car.speed))}</div>
-            <div class="car-stat">Ctrl: ${'█'.repeat(Math.round(car.handling * 5))}${'░'.repeat(5 - Math.round(car.handling * 5))}</div>
-            ${!unlocked ? `<div class="lock-icon">🔒</div><div class="car-stat" style="color:#ff8800">${car.unlock} vitórias</div>` : ''}
+            <div class="car-stat">Vel: ${'█'.repeat(vel)}${'░'.repeat(5 - vel)}</div>
+            <div class="car-stat">Ctrl: ${'█'.repeat(ctrl)}${'░'.repeat(5 - ctrl)}</div>
+            ${!unlocked && !isShop ? `<div class="lock-icon">🔒</div><div class="car-stat" style="color:#ff8800">${car.unlock} vitórias</div>` : ''}
+            ${isShop ? `<div class="lock-icon">🛒</div><button class="buy-btn ${canBuy ? '' : 'no-money'}">🏆 ${car.price}</button>` : ''}
         `;
         if (unlocked) {
             div.onclick = () => { progress.selectedCar = i; saveProgress(); renderMenu(); };
+        } else if (isShop) {
+            div.querySelector('.buy-btn').onclick = (e) => {
+                e.stopPropagation();
+                if (saldoVitorias() < car.price) { alert(`Faltam ${car.price - saldoVitorias()} vitórias pra comprar o ${car.name}! Corre lá! 🏁`); return; }
+                if (!confirm(`Comprar ${car.name} ${car.emoji} por ${car.price} vitórias?`)) return;
+                progress.winsGastas = (progress.winsGastas || 0) + car.price;
+                progress.unlockedCars.push(car.id);
+                progress.selectedCar = i;
+                saveProgress();
+                renderMenu();
+            };
         }
         carGrid.appendChild(div);
     });
@@ -736,12 +807,13 @@ function renderMenu() {
         trackGrid.appendChild(div);
     });
 
-    document.getElementById('progress-info').textContent = `🏆 ${progress.wins} vitórias`;
+    document.getElementById('progress-info').textContent = `🏆 ${progress.wins} vitórias | 💰 ${saldoVitorias()} pra gastar na loja`;
 }
 renderMenu();
 
 // === START RACE ===
 function startRace() {
+    document.getElementById('start-btn').blur();
     currentCar = CARS[progress.selectedCar];
     currentTrack = TRACKS[progress.selectedTrack];
     totalRaceDist = currentTrack.length * currentTrack.laps;
@@ -755,6 +827,19 @@ function startRace() {
     scene.add(playerMesh);
     playerSpeed = 0; playerX = 0; playerSteer = 0;
     playerDist = 0; playerLap = 0;
+    turboCharge = 100; turboActive = false;
+
+    // Chamas do turbo (escondidas até apertar)
+    turboFlames = [];
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0x33aaff, transparent: true, opacity: 0.85 });
+    for (const fx of [-0.4, 0.4]) {
+        const flame = new THREE.Mesh(new THREE.ConeGeometry(0.12, 1.1, 8), flameMat);
+        flame.rotation.x = -Math.PI / 2;
+        flame.position.set(fx, 0.28, 3.2);
+        flame.visible = false;
+        playerMesh.add(flame);
+        turboFlames.push(flame);
+    }
 
     // AI opponents (3)
     aiMeshes = []; aiStates = [];
@@ -788,7 +873,11 @@ function startRace() {
     document.getElementById('hud').style.display = 'flex';
     document.getElementById('speedometer').style.display = 'block';
     document.getElementById('position-display').style.display = 'block';
+    document.getElementById('turbo-bar').style.display = 'block';
+    const isTouchDev = document.body.classList.contains('mobile-mode') || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    document.getElementById('touch-controls').style.display = isTouchDev ? 'flex' : 'none';
     keys = {};
+    Object.keys(touchBtns).forEach(k => touchBtns[k] = false);
     playing = true;
     gameLoop();
 }
@@ -798,19 +887,34 @@ function gameLoop() {
     if (!playing) return;
     requestAnimationFrame(gameLoop);
 
-    // Player input
-    if (keys['KeyW'] || keys['ArrowUp'] || touchAccel) {
-        playerSpeed = Math.min(playerSpeed + currentCar.accel, currentCar.speed);
-    } else if (keys['KeyS'] || keys['ArrowDown']) {
+    // Player input (teclado + botões de toque)
+    const inGas = keys['KeyW'] || keys['ArrowUp'] || touchAccel || touchBtns.gas;
+    const inBrake = keys['KeyS'] || keys['ArrowDown'] || touchBtns.brake;
+    const inLeft = keys['KeyA'] || keys['ArrowLeft'] || touchBtns.left;
+    const inRight = keys['KeyD'] || keys['ArrowRight'] || touchBtns.right;
+    const wantTurbo = keys['Space'] || keys['ShiftLeft'] || keys['ShiftRight'] || touchBtns.turbo;
+
+    // TURBO 🚀
+    turboActive = wantTurbo && turboCharge > 0 && inGas;
+    if (turboActive) turboCharge = Math.max(0, turboCharge - TURBO_DRAIN);
+    else turboCharge = Math.min(100, turboCharge + TURBO_RECHARGE);
+    const maxSpeed = currentCar.speed * (turboActive ? TURBO_MULT : 1);
+    const accel = currentCar.accel * (turboActive ? 2.5 : 1);
+
+    if (inGas) {
+        playerSpeed = Math.min(playerSpeed + accel, maxSpeed);
+    } else if (inBrake) {
         playerSpeed = Math.max(playerSpeed - 0.04, 0);
     } else {
         playerSpeed *= 0.997;
     }
+    // Sem turbo, volta suave pro limite normal
+    if (!turboActive && playerSpeed > currentCar.speed) playerSpeed = Math.max(currentCar.speed, playerSpeed * 0.99);
 
     // Steering
     const steerPower = currentCar.handling * 0.14;
-    if (keys['KeyA'] || keys['ArrowLeft']) playerSteer = Math.min(playerSteer + 0.06, 1);
-    else if (keys['KeyD'] || keys['ArrowRight']) playerSteer = Math.max(playerSteer - 0.06, -1);
+    if (inLeft) playerSteer = Math.min(playerSteer + 0.06, 1);
+    else if (inRight) playerSteer = Math.max(playerSteer - 0.06, -1);
     else playerSteer *= 0.88;
 
     // Touch steer
@@ -836,13 +940,26 @@ function gameLoop() {
     playerMesh.position.y = vibration;
     playerMesh.rotation.y = playerSteer * 0.2;
     playerMesh.rotation.z = -playerSteer * 0.06;
-    const pitching = (keys['KeyW'] || keys['ArrowUp']) ? -0.02 : (keys['KeyS'] || keys['ArrowDown']) ? 0.03 : 0;
+    const pitching = inGas ? (turboActive ? -0.04 : -0.02) : inBrake ? 0.03 : 0;
     playerMesh.rotation.x += (pitching - playerMesh.rotation.x) * 0.1;
 
+    // Efeito visual do turbo: chamas no escapamento + FOV extra
+    for (const f of turboFlames) {
+        f.visible = turboActive;
+        if (turboActive) {
+            const flick = 0.7 + Math.random() * 0.6;
+            f.scale.set(flick, flick, 1 + Math.random() * 0.8);
+        }
+    }
+
     // Road movement
+    // FIX bug "pista some": o segmento fica em seg.z (offset do filho) DENTRO do grupo,
+    // então a posição real é group.position.z + seg.z. Antes, o teste usava só
+    // group.position.z (igual pra todos), fazendo a pista INTEIRA teleportar 624
+    // unidades pra trás de uma vez — além do far plane da câmera = pista sumia.
     for (const seg of roadSegments) {
         seg.group.position.z += playerSpeed;
-        if (seg.group.position.z > ROAD_SEG_LEN * 2) {
+        if (seg.group.position.z + seg.z > ROAD_SEG_LEN * 2) {
             seg.group.position.z -= VISIBLE_SEGMENTS * ROAD_SEG_LEN;
         }
     }
@@ -910,7 +1027,10 @@ function gameLoop() {
     // HUD
     document.getElementById('hud-lap').textContent = `Volta ${Math.min(playerLap + 1, currentTrack.laps)}/${currentTrack.laps}`;
     document.getElementById('hud-pos').textContent = `${rank}º / 4`;
-    document.getElementById('speedometer').textContent = Math.floor(playerSpeed * 80) + ' km/h';
+    document.getElementById('speedometer').textContent = Math.floor(playerSpeed * 80) + ' km/h' + (turboActive ? ' 🚀' : '');
+    const tFill = document.getElementById('turbo-fill');
+    tFill.style.width = turboCharge + '%';
+    tFill.style.background = turboActive ? 'linear-gradient(90deg,#33aaff,#88ddff)' : (turboCharge >= 100 ? 'linear-gradient(90deg,#00ff88,#88ffcc)' : 'linear-gradient(90deg,#ff8800,#ffcc00)');
     const posEl = document.getElementById('position-display');
     posEl.textContent = rank + 'º';
     posEl.className = rank === 1 ? 'pos-1' : rank === 2 ? 'pos-2' : rank === 3 ? 'pos-3' : '';
@@ -966,9 +1086,16 @@ function endRace(playerFinished) {
     document.getElementById('hud').style.display = 'none';
     document.getElementById('speedometer').style.display = 'none';
     document.getElementById('position-display').style.display = 'none';
+    document.getElementById('turbo-bar').style.display = 'none';
+    document.getElementById('touch-controls').style.display = 'none';
 }
 
 // === EVENTS ===
+bindTouchBtn('tc-left', 'left');
+bindTouchBtn('tc-right', 'right');
+bindTouchBtn('tc-gas', 'gas');
+bindTouchBtn('tc-brake', 'brake');
+bindTouchBtn('tc-turbo', 'turbo');
 document.getElementById('start-btn').onclick = startRace;
 document.getElementById('result-btn').onclick = () => {
     document.getElementById('race-result').style.display = 'none';
