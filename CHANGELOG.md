@@ -1,5 +1,18 @@
 # Changelog - Cogumelo Games (site)
 
+## v1.8.0 (2026-07-24) — Fase 6 (final do plano do Davi)
+### Arena Cogumelo (ex-Brawl Stars 2, v2.0.0)
+- Nome novo (marca registrada removida); "Davi" removido da tela
+- 12 lutadores (+4 novos), +30% vida, loja funcional, trilha de trofeus com resgate
+- Kit medicos no lugar das caixas; zona battle royale que fecha; mato = invisivel
+- 4 modos: Battle Royale, Mata-Mata, Pega-Cristais, Duelo 1v1
+### Cogumelo Ninja
+- 4 espadas novas (3000 a 15000); nivel sobe a cada 500 cortes (mais bombas/velocidade)
+### Fuga da Prisao 3D
+- 23 niveis (20 novos, procedurais com validacao BFS de caminho); niveis 2 e 3 eram IMPOSSIVEIS e foram corrigidos
+- Moedas por nivel + loja com 7 skins; chave dourada nova; ser pego reinicia no mesmo nivel
+
+
 ## v1.7.0 (2026-07-24) — Fase 5
 ### Zumbi Survival
 - Cronometro de sobrevivencia; ondas mais dificeis com anuncio; barra de fome + comidas 3D

@@ -36,6 +36,44 @@
     box-shadow: 0 6px 20px rgba(255,170,0,0.5);
   }
   #msg button:hover { transform: scale(1.05); }
+  #moedas { color: #ffcc33; }
+  #msg .botoes { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  #msg button.loja-btn {
+    background: linear-gradient(135deg,#8844ff,#bb66ff); color: #fff;
+    box-shadow: 0 6px 20px rgba(136,68,255,0.5);
+  }
+  #loja {
+    position: absolute; inset: 0; z-index: 25; display: none;
+    flex-direction: column; align-items: center;
+    background: rgba(8,8,20,0.96); padding: 24px; overflow-y: auto;
+  }
+  #loja h1 {
+    font-size: 38px; margin-bottom: 6px;
+    background: linear-gradient(to right,#bb66ff,#ffd700);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  #loja .saldo { font-size: 22px; color: #ffcc33; margin-bottom: 18px; font-weight: bold; }
+  #skins { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; max-width: 720px; }
+  .skin-card {
+    background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 14px; padding: 14px; width: 150px; text-align: center;
+  }
+  .skin-card.equipada { border-color: #66ff99; box-shadow: 0 0 14px rgba(102,255,153,0.4); }
+  .skin-card .emoji { font-size: 40px; }
+  .skin-card .nome { font-size: 15px; font-weight: bold; margin: 6px 0; }
+  .skin-card .bolinha { width: 34px; height: 34px; border-radius: 50%; margin: 4px auto; border: 2px solid #fff; }
+  .skin-card button {
+    margin-top: 6px; padding: 7px 14px; font-size: 14px; font-weight: bold;
+    border: none; border-radius: 9px; cursor: pointer; font-family: inherit;
+    background: linear-gradient(135deg,#ffaa00,#ffd700); color: #222;
+  }
+  .skin-card button:disabled { background: #555; color: #999; cursor: default; }
+  .skin-card button.equipar { background: linear-gradient(135deg,#33bb55,#66ff99); }
+  #loja .fechar {
+    margin-top: 20px; padding: 12px 34px; font-size: 20px; font-weight: bold;
+    background: linear-gradient(135deg,#ffaa00,#ffd700); color: #222;
+    border: none; border-radius: 12px; cursor: pointer; font-family: inherit;
+  }
   a.back {
     position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
     z-index: 30; color: #fff; text-decoration: none; background: rgba(0,0,0,0.5);
@@ -46,6 +84,7 @@
 <body>
 <div id="hud">
   <div id="nivel">🏛️ Nível 1</div>
+  <div id="moedas">🪙 0</div>
   <div id="status">🔑 0/1</div>
 </div>
 <canvas id="game"></canvas>
@@ -57,7 +96,16 @@
   <p>💡 Dica: ande quando o holofote olhar pro outro lado!</p>
   <p class="key">⬆️⬇️⬅️➡️ ou WASD pra mover (ou arraste o dedo)</p>
   <div id="recorde"></div>
-  <button onclick="iniciar()">FUGIR! 🏃</button>
+  <div class="botoes">
+    <button onclick="iniciar()">FUGIR! 🏃</button>
+    <button class="loja-btn" onclick="abrirLoja()">LOJA 🛍️</button>
+  </div>
+</div>
+<div id="loja">
+  <h1>🛍️ Loja da Capivara</h1>
+  <div class="saldo" id="lojaSaldo">🪙 0 moedas</div>
+  <div id="skins"></div>
+  <button class="fechar" onclick="fecharLoja()">VOLTAR ✅</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -145,7 +193,7 @@ const NIVEIS = [
   [
     "####################",
     "#P...#......#.....K#",
-    "#.##.#.####.#.####.#",
+    "#.##.#.####...####.#",
     "#.#..#.#..#.#....#.#",
     "#.#.##.#.G#.####.#.#",
     "#.#....#..#....#.#.#",
@@ -169,14 +217,197 @@ const NIVEIS = [
     "####.#.#.#.#.#.####.",
     "#..#.#...#...#V...#.",
     "#.##.#######.####.#.",
-    "#............#...#D#",
+    "#............#....D#",
     "####################",
   ],
 ];
 
+// ====== GERADOR DE LABIRINTOS (níveis 4 a 23, seed fixa = sempre iguais) ======
+function rngSeed(seed) { // gerador determinístico (mulberry32)
+  let s = seed >>> 0;
+  return function() {
+    s |= 0; s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// BFS: garante que dá pra ir de 'a' até 'b' andando só por chão
+function caminhoExiste(mapa, a, b) {
+  const R = mapa.length, C = mapa[0].length;
+  const acha = ch => { for (let r = 0; r < R; r++) { const c = mapa[r].indexOf(ch); if (c >= 0) return [r, c]; } return null; };
+  const s = acha(a), t = acha(b);
+  if (!s || !t) return false;
+  const fila = [s], visto = new Set([s[0] + ',' + s[1]]);
+  while (fila.length) {
+    const [r, c] = fila.shift();
+    if (r === t[0] && c === t[1]) return true;
+    for (const [dr, dc] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const nr = r + dr, nc = c + dc;
+      // guarda (G/V) conta como bloqueio: tem que existir rota que não passe em cima de guarda
+      if (nr < 0 || nc < 0 || nr >= R || nc >= C || '#GV'.includes(mapa[nr][nc])) continue;
+      const k = nr + ',' + nc;
+      if (!visto.has(k)) { visto.add(k); fila.push([nr, nc]); }
+    }
+  }
+  return false;
+}
+
+function distBFS(mapa, a, b) {
+  const R = mapa.length, C = mapa[0].length;
+  const acha = ch => { for (let r = 0; r < R; r++) { const c = mapa[r].indexOf(ch); if (c >= 0) return [r, c]; } return null; };
+  const s = acha(a), t = acha(b);
+  if (!s || !t) return -1;
+  const fila = [[s[0], s[1], 0]], visto = new Set([s[0] + ',' + s[1]]);
+  while (fila.length) {
+    const [r, c, d] = fila.shift();
+    if (r === t[0] && c === t[1]) return d;
+    for (const [dr, dc] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const nr = r + dr, nc = c + dc;
+      if (nr < 0 || nc < 0 || nr >= R || nc >= C || mapa[nr][nc] === '#') continue;
+      const k = nr + ',' + nc;
+      if (!visto.has(k)) { visto.add(k); fila.push([nr, nc, d + 1]); }
+    }
+  }
+  return -1;
+}
+
+function gerarNivel(n) { // n = índice do nível (3..22)
+  const dif = n - 2; // 1..20 (dificuldade crescente)
+  // labirinto cresce com a dificuldade (dimensões ímpares pro algoritmo)
+  const rows = Math.min(13 + Math.floor(dif / 3) * 2, 25);
+  const cols = Math.min(21 + Math.floor(dif / 2) * 2, 39);
+  const nGuardas = Math.min(2 + Math.floor(dif / 3), 8);
+
+  for (let tent = 0; tent < 50; tent++) {
+    const rnd = rngSeed(1000 + n * 97 + tent * 7919);
+    // grade toda parede
+    const g = Array.from({ length: rows }, () => Array(cols).fill('#'));
+    // escavador (recursive backtracker) em células ímpares — labirinto sempre conectado
+    const pilha = [[1, 1]];
+    g[1][1] = '.';
+    while (pilha.length) {
+      const [r, c] = pilha[pilha.length - 1];
+      const viz = [[r-2,c],[r+2,c],[r,c-2],[r,c+2]]
+        .filter(([nr,nc]) => nr > 0 && nc > 0 && nr < rows-1 && nc < cols-1 && g[nr][nc] === '#');
+      if (!viz.length) { pilha.pop(); continue; }
+      const [nr, nc] = viz[Math.floor(rnd() * viz.length)];
+      g[(r+nr)/2][(c+nc)/2] = '.';
+      g[nr][nc] = '.';
+      pilha.push([nr, nc]);
+    }
+    // abre uns atalhos (loops) pra ter mais de um caminho — mais justo
+    const atalhos = 4 + Math.floor(dif / 2);
+    for (let i = 0; i < atalhos; i++) {
+      const r = 1 + Math.floor(rnd() * (rows - 2)), c = 1 + Math.floor(rnd() * (cols - 2));
+      if (g[r][c] === '#' &&
+          ((g[r-1][c] === '.' && g[r+1][c] === '.') || (g[r][c-1] === '.' && g[r][c+1] === '.')))
+        g[r][c] = '.';
+    }
+    // P no canto de cima, D no canto de baixo, K longe dos dois
+    g[1][1] = 'P';
+    g[rows-2][cols-2] = 'D';
+    // chave: célula livre bem longe do P
+    let melhorK = null, melhorD = -1;
+    for (let i = 0; i < 60; i++) {
+      const r = 1 + Math.floor(rnd() * (rows - 2)), c = 1 + Math.floor(rnd() * (cols - 2));
+      if (g[r][c] !== '.') continue;
+      const d = Math.abs(r - 1) + Math.abs(c - 1) + Math.abs(r - (rows-2)) + Math.abs(c - (cols-2));
+      if (d > melhorD) { melhorD = d; melhorK = [r, c]; }
+    }
+    if (!melhorK) continue;
+    g[melhorK[0]][melhorK[1]] = 'K';
+    // guardas: células livres longe do P (pra não nascer morto)
+    let postos = 0;
+    for (let i = 0; i < 300 && postos < nGuardas; i++) {
+      const r = 1 + Math.floor(rnd() * (rows - 2)), c = 1 + Math.floor(rnd() * (cols - 2));
+      if (g[r][c] !== '.') continue;
+      if (Math.abs(r - 1) + Math.abs(c - 1) < 6) continue; // longe da cela
+      if (Math.abs(r - melhorK[0]) + Math.abs(c - melhorK[1]) < 3) continue; // não em cima da chave
+      g[r][c] = rnd() < 0.5 ? 'G' : 'V';
+      postos++;
+    }
+    const mapa = g.map(l => l.join(''));
+    // VALIDAÇÃO: só aceita se dá pra ir P→K e P→D
+    if (caminhoExiste(mapa, 'P', 'K') && caminhoExiste(mapa, 'P', 'D') &&
+        distBFS(mapa, 'P', 'K') >= 8 && distBFS(mapa, 'P', 'D') >= 8) return mapa;
+  }
+  // fallback impossível de acontecer, mas garante que nunca quebra
+  return NIVEIS[n % 3];
+}
+
+for (let n = 3; n < 23; n++) NIVEIS.push(gerarNivel(n));
+
 let nivelIdx, grid, rows, cols, mundoGroup;
 let player, playerMesh, chaves, totalChaves, porta, portaMesh, guardas, rodando;
 let recorde = parseInt(localStorage.getItem('prisao_recorde3d') || '0');
+
+// ====== MOEDAS + SKINS (loja) ======
+let moedas = parseInt(localStorage.getItem('prisao_moedas') || '0');
+const SKINS = [
+  { id: 'classica', nome: 'Capivara Clássica', emoji: '🦫', preco: 0,   corpo: 0x9a6b43, escuro: 0x6b4a2a },
+  { id: 'ninja',    nome: 'Capivara Ninja',    emoji: '🥷', preco: 60,  corpo: 0x2a2a33, escuro: 0x111118 },
+  { id: 'rosa',     nome: 'Capivara Chiclete', emoji: '🍬', preco: 100, corpo: 0xff6fa5, escuro: 0xcc4477 },
+  { id: 'gelo',     nome: 'Capivara do Gelo',  emoji: '🧊', preco: 150, corpo: 0x7fd4ff, escuro: 0x3388bb },
+  { id: 'alien',    nome: 'Capivara Alien',    emoji: '👽', preco: 220, corpo: 0x55dd66, escuro: 0x228833 },
+  { id: 'dourada',  nome: 'Capivara Dourada',  emoji: '👑', preco: 300, corpo: 0xffd700, escuro: 0xaa8800, metal: true },
+  { id: 'fantasma', nome: 'Capivara Fantasma', emoji: '👻', preco: 400, corpo: 0xeeeeff, escuro: 0xaaaacc, ghost: true },
+];
+let skinsCompradas = JSON.parse(localStorage.getItem('prisao_skins') || '["classica"]');
+let skinAtual = localStorage.getItem('prisao_skin') || 'classica';
+if (!skinsCompradas.includes(skinAtual)) skinAtual = 'classica';
+
+function salvarLoja() {
+  localStorage.setItem('prisao_moedas', moedas);
+  localStorage.setItem('prisao_skins', JSON.stringify(skinsCompradas));
+  localStorage.setItem('prisao_skin', skinAtual);
+}
+function atualizaMoedasHud() {
+  document.getElementById('moedas').textContent = '🪙 ' + moedas;
+}
+function abrirLoja() {
+  document.getElementById('msg').style.display = 'none';
+  document.getElementById('loja').style.display = 'flex';
+  desenhaLoja();
+}
+function fecharLoja() {
+  document.getElementById('loja').style.display = 'none';
+  document.getElementById('msg').style.display = 'flex';
+}
+function desenhaLoja() {
+  document.getElementById('lojaSaldo').textContent = '🪙 ' + moedas + ' moedas';
+  const div = document.getElementById('skins');
+  div.innerHTML = '';
+  for (const s of SKINS) {
+    const tem = skinsCompradas.includes(s.id);
+    const eq = skinAtual === s.id;
+    const card = document.createElement('div');
+    card.className = 'skin-card' + (eq ? ' equipada' : '');
+    const cor = '#' + s.corpo.toString(16).padStart(6, '0');
+    let botao;
+    if (eq) botao = '<button disabled>USANDO ✅</button>';
+    else if (tem) botao = `<button class="equipar" onclick="equiparSkin('${s.id}')">USAR</button>`;
+    else if (moedas >= s.preco) botao = `<button onclick="comprarSkin('${s.id}')">🪙 ${s.preco}</button>`;
+    else botao = `<button disabled>🪙 ${s.preco}</button>`;
+    card.innerHTML = `<div class="emoji">${s.emoji}</div><div class="nome">${s.nome}</div>` +
+      `<div class="bolinha" style="background:${cor}"></div>${botao}`;
+    div.appendChild(card);
+  }
+}
+function comprarSkin(id) {
+  const s = SKINS.find(x => x.id === id);
+  if (!s || skinsCompradas.includes(id) || moedas < s.preco) return;
+  moedas -= s.preco;
+  skinsCompradas.push(id);
+  skinAtual = id;
+  salvarLoja(); atualizaMoedasHud(); desenhaLoja();
+}
+function equiparSkin(id) {
+  if (!skinsCompradas.includes(id)) return;
+  skinAtual = id;
+  salvarLoja(); desenhaLoja();
+}
 
 // converte coluna/linha do mapa pra posição no mundo 3D (centralizado)
 function mundoX(c) { return (c - cols/2) * TILE; }
@@ -243,9 +474,13 @@ const matParede = new THREE.MeshStandardMaterial({ map: texParede, color: 0xb0b6
 const matChao = new THREE.MeshStandardMaterial({ map: texChao, color: 0x9aa0c0, roughness: 0.9, metalness: 0.0 });
 
 function criarCapivara() {
+  const skin = SKINS.find(s => s.id === skinAtual) || SKINS[0];
   const g = new THREE.Group();
-  const corpoMat = new THREE.MeshStandardMaterial({ color: 0x9a6b43, roughness: 0.7 });
-  const escMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2a, roughness: 0.7 });
+  const extra = {};
+  if (skin.metal) { extra.metalness = 0.85; extra.roughness = 0.25; extra.emissive = skin.escuro; extra.emissiveIntensity = 0.25; }
+  if (skin.ghost) { extra.transparent = true; extra.opacity = 0.55; }
+  const corpoMat = new THREE.MeshStandardMaterial({ color: skin.corpo, roughness: 0.7, ...extra });
+  const escMat = new THREE.MeshStandardMaterial({ color: skin.escuro, roughness: 0.7, ...extra });
 
   const corpo = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.0, 2.0), corpoMat);
   corpo.position.y = 0.9; corpo.castShadow = true;
@@ -301,6 +536,47 @@ function criarGuarda() {
   return g;
 }
 
+// ====== CHAVE bonita (formato de chave de verdade, dourada e brilhante) ======
+function criarChave() {
+  const g = new THREE.Group();
+  const ouro = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 1, roughness: 0.15, emissive: 0xaa7700, emissiveIntensity: 0.55 });
+  // cabeça: argola dupla
+  const argola = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.09, 10, 24), ouro);
+  argola.position.y = 0.55;
+  g.add(argola);
+  const argolinha = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.06, 8, 18), ouro);
+  argolinha.position.y = 0.55;
+  g.add(argolinha);
+  // haste
+  const haste = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.9, 10), ouro);
+  haste.position.y = -0.15;
+  g.add(haste);
+  // dentes da chave (o segredo!)
+  for (const [dy, w] of [[-0.5, 0.3], [-0.34, 0.22]]) {
+    const dente = new THREE.Mesh(new THREE.BoxGeometry(w, 0.1, 0.1), ouro);
+    dente.position.set(0.07 + w / 2, dy, 0);
+    g.add(dente);
+  }
+  // ponta arredondada
+  const ponta = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), ouro);
+  ponta.position.y = -0.6;
+  g.add(ponta);
+  // brilho: luzinha dourada + faíscas girando
+  const luz = new THREE.PointLight(0xffcc44, 1.2, 6);
+  g.add(luz);
+  const faiscas = new THREE.Group();
+  for (let i = 0; i < 5; i++) {
+    const f = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6),
+      new THREE.MeshBasicMaterial({ color: 0xfff4aa, transparent: true, opacity: 0.9 }));
+    const a = (i / 5) * Math.PI * 2;
+    f.position.set(Math.cos(a) * 0.8, Math.sin(a * 2) * 0.3, Math.sin(a) * 0.8);
+    faiscas.add(f);
+  }
+  g.add(faiscas);
+  g.userData.faiscas = faiscas;
+  return g;
+}
+
 function parseNivel(mapa) {
   if (mundoGroup) scene.remove(mundoGroup);
   mundoGroup = new THREE.Group();
@@ -329,14 +605,10 @@ function parseNivel(mapa) {
       }
       if (ch === 'P') player = { c, r, x, z, ang: 0 };
       if (ch === 'K') {
-        const km = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.12, 8, 16),
-          new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 1, roughness: 0.2, emissive: 0xaa8800, emissiveIntensity: 0.5 }));
-        km.position.set(x, 1.2, z); km.rotation.x = Math.PI/2;
-        const haste = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.7, 0.18),
-          new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 1, roughness: 0.2 }));
-        haste.position.set(x, 0.9, z);
-        mundoGroup.add(km); mundoGroup.add(haste);
-        chaves.push({ x, z, pega: false, mesh: km, mesh2: haste }); totalChaves++;
+        const km = criarChave();
+        km.position.set(x, 1.4, z);
+        mundoGroup.add(km);
+        chaves.push({ x, z, pega: false, mesh: km }); totalChaves++;
       }
       if (ch === 'D') {
         portaMesh = new THREE.Mesh(new THREE.BoxGeometry(TILE*0.7, 3, 0.4),
@@ -380,9 +652,11 @@ function parseNivel(mapa) {
         facho.position.set(x, 0.15, z);
         facho.userData.mat = fachoMesh.material;
 
-        // a partir da fase 3 (nivelIdx>=2) os guardas ANDAM, ficando mais rápidos a cada fase
-        const andaVel = nivelIdx >= 2 ? 0.04 + (nivelIdx - 2) * 0.025 : 0;
-        guardas.push({ x, z, dir: 0, ang: (ch==='V'?Math.PI/2:0), vel: 0.012,
+        // a partir da fase 3 (nivelIdx>=2) os guardas ANDAM, ficando mais rápidos a cada fase (com teto pra ser justo)
+        const andaVel = nivelIdx >= 2 ? Math.min(0.04 + (nivelIdx - 2) * 0.006, 0.14) : 0;
+        // holofote gira mais rápido a cada nível (também com teto)
+        const velHolofote = Math.min(0.012 + nivelIdx * 0.0009, 0.032);
+        guardas.push({ x, z, dir: 0, ang: (ch==='V'?Math.PI/2:0), vel: velHolofote,
                        eixo: ch==='V'?'v':'h', mesh: gm, spot, alvo, facho,
                        andaVel, andaDir: 1, patrulhaEixo: ch==='V'?'z':'x' });
         mundoGroup.add(facho);
@@ -399,8 +673,10 @@ function paredeEm(x, z) {
   return grid[r][c] === 1;
 }
 
+let continuarNivel = false; // se foi pego, tenta de novo o MESMO nível
 function iniciar() {
-  nivelIdx = 0;
+  nivelIdx = continuarNivel ? nivelIdx : 0;
+  continuarNivel = false;
   carregaNivel();
   document.getElementById('msg').style.display = 'none';
   document.getElementById('backBtn').style.display = 'block';
@@ -414,8 +690,9 @@ function carregaNivel() {
   playerMesh = criarCapivara();
   playerMesh.position.set(player.x, 0, player.z);
   scene.add(playerMesh);
-  document.getElementById('nivel').textContent = '🏛️ Nível ' + (nivelIdx + 1);
+  document.getElementById('nivel').textContent = '🏛️ Nível ' + (nivelIdx + 1) + '/' + NIVEIS.length;
   atualizaHud();
+  atualizaMoedasHud();
 }
 
 function atualizaHud() {
@@ -508,11 +785,16 @@ function loop() {
   // chaves giram
   chaves.forEach(k => {
     if (!k.pega) {
-      k.mesh.rotation.z += 0.05;
-      k.mesh.position.y = 1.2 + Math.sin(Date.now()*0.004 + k.x) * 0.15;
-      k.mesh2.position.y = 0.9 + Math.sin(Date.now()*0.004 + k.x) * 0.15;
+      k.mesh.rotation.y += 0.04;
+      k.mesh.position.y = 1.4 + Math.sin(Date.now()*0.004 + k.x) * 0.18;
+      if (k.mesh.userData.faiscas) {
+        k.mesh.userData.faiscas.rotation.y -= 0.09;
+        k.mesh.userData.faiscas.children.forEach((f, i) => {
+          f.material.opacity = 0.5 + Math.sin(Date.now()*0.008 + i*2) * 0.4;
+        });
+      }
       if (Math.hypot(player.x-k.x, player.z-k.z) < 1.8) {
-        k.pega = true; k.mesh.visible = false; k.mesh2.visible = false; atualizaHud();
+        k.pega = true; k.mesh.visible = false; atualizaHud();
       }
     }
   });
@@ -586,6 +868,11 @@ function loop() {
 }
 
 function proximoNivel() {
+  // prêmio em moedas: cresce com o nível que acabou de passar
+  const premio = 10 + nivelIdx * 5;
+  moedas += premio;
+  salvarLoja();
+  atualizaMoedasHud();
   nivelIdx++;
   if (nivelIdx >= NIVEIS.length) { ganhou(); return; }
   if (nivelIdx > recorde) { recorde = nivelIdx; localStorage.setItem('prisao_recorde3d', recorde); }
@@ -595,11 +882,12 @@ function proximoNivel() {
 
 function pegoPeloGuarda() {
   rodando = false;
+  continuarNivel = true; // tenta de novo o MESMO nível
   const msg = document.getElementById('msg');
   msg.querySelector('h1').textContent = '🚨 PEGO!';
   msg.querySelectorAll('p').forEach(p => p.style.display = 'none');
   document.getElementById('recorde').innerHTML =
-    `<p style="display:block;font-size:24px">O holofote te pegou! Voltou pra cela 😅<br>Você chegou no Nível ${nivelIdx+1}</p>`;
+    `<p style="display:block;font-size:24px">O holofote te pegou! Voltou pra cela 😅<br>Tenta de novo o Nível ${nivelIdx+1}! 🪙 ${moedas} moedas</p>`;
   msg.querySelector('button').textContent = 'TENTAR DE NOVO 🏃';
   msg.style.display = 'flex';
 }
@@ -610,13 +898,14 @@ function ganhou() {
   msg.querySelector('h1').textContent = '🎉 FUGIU!';
   msg.querySelectorAll('p').forEach(p => p.style.display = 'none');
   document.getElementById('recorde').innerHTML =
-    `<p style="display:block;font-size:24px">🦫🏃 VOCÊ ESCAPOU DA PRISÃO!<br>Passou pelos ${NIVEIS.length} níveis! 🏆</p>`;
+    `<p style="display:block;font-size:24px">🦫🏃 VOCÊ ESCAPOU DA PRISÃO!<br>Passou pelos ${NIVEIS.length} níveis! 🏆<br>🪙 ${moedas} moedas — gasta na loja!</p>`;
   msg.querySelector('button').textContent = 'JOGAR DE NOVO 🚀';
   msg.style.display = 'flex';
 }
 
 document.getElementById('recorde').innerHTML = recorde > 0 ?
   `<p style="display:block">⭐ Melhor: chegou no Nível ${recorde+1}</p>` : '';
+atualizaMoedasHud();
 </script>
 </body>
 </html>

@@ -26,6 +26,15 @@
     text-shadow: 0 0 15px #00ffaa; opacity: 0; pointer-events: none;
     transition: opacity .2s;
   }
+  #nivelAviso {
+    position: absolute; top: 40%; left: 50%; transform: translate(-50%,-50%) scale(0.5);
+    z-index: 15; font-size: 64px; font-weight: 900; color: #ffd700;
+    text-shadow: 0 0 25px #ff8800, -3px -3px 0 #000, 3px 3px 0 #000;
+    opacity: 0; pointer-events: none;
+    transition: opacity .3s, transform .3s;
+  }
+  #nivelAviso.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  #nivelHud { color: #66ccff; }
   #msg {
     position: absolute; inset: 0; z-index: 20; display: flex;
     flex-direction: column; align-items: center; justify-content: flex-start;
@@ -82,9 +91,11 @@
 <body>
 <div id="hud">
   <div id="vidas">❤️❤️❤️❤️❤️</div>
+  <div id="nivelHud">⭐ Nível 1</div>
   <div id="score">🍄 0</div>
 </div>
 <div id="combo"></div>
+<div id="nivelAviso"></div>
 <canvas id="game"></canvas>
 <div id="msg">
   <h1>🥷 Cogumelo Ninja</h1>
@@ -124,7 +135,7 @@ const FRUTAS = [
 const COGU = { capivara: true, cor: '#ffd700', r: 62 }; // capivara dourada = bônus
 
 let objetos, particulas, rastro, score, vidas, rodando, frame, combo, comboTimer, best;
-let spawnTimer, dificuldade;
+let spawnTimer, dificuldade, cortes, nivel;
 
 best = parseInt(localStorage.getItem('ninja_best') || '0');
 
@@ -147,6 +158,14 @@ const ESPADAS = [
     lamina: 0xff66cc, cabo: 0x222222, guarda: 0xffffff, gema: 0x66ffcc, metal: 1.0, rug: 0.05, emiss: 0x000000, rainbow: true },
   { id: 'real',     nome: 'Real',      ico: '👑', brilho: 'rgba(255,215,0,0.7)',  larg: 20, preco: 1500,
     lamina: 0xffd700, cabo: 0x7a1f1f, guarda: 0xffe680, gema: 0xff0044, metal: 1.0, rug: 0.08, emiss: 0x332200 },
+  { id: 'vulcao',   nome: 'Vulcânica', ico: '🌋', brilho: 'rgba(255,60,0,0.75)', larg: 22, preco: 3000,
+    lamina: 0xff2a00, cabo: 0x1a0a05, guarda: 0xff6600, gema: 0xffcc00, metal: 0.95, rug: 0.12, emiss: 0xdd2200 },
+  { id: 'tempestade', nome: 'Tempestade', ico: '🌩️', brilho: 'rgba(120,180,255,0.8)', larg: 22, preco: 5000,
+    lamina: 0x99ccff, cabo: 0x0a1030, guarda: 0x4477ff, gema: 0xffff44, metal: 1.0, rug: 0.06, emiss: 0x2244cc },
+  { id: 'galactica', nome: 'Galáctica', ico: '🪐', brilho: 'rgba(180,80,255,0.8)', larg: 24, preco: 8000,
+    lamina: 0x7733ff, cabo: 0x120022, guarda: 0xcc88ff, gema: 0x33ffee, metal: 1.0, rug: 0.05, emiss: 0x4400bb },
+  { id: 'lendaria', nome: 'Lendária Dourada', ico: '🐉', brilho: 'rgba(255,220,80,0.9)', larg: 26, preco: 15000,
+    lamina: 0xffe14d, cabo: 0x3a0d0d, guarda: 0xfff2a0, gema: 0xff3300, metal: 1.0, rug: 0.03, emiss: 0x775500 },
 ];
 let espadaAtual = localStorage.getItem('ninja_espada') || 'classica';
 let espadaPreview = espadaAtual; // qual aparece no visor 3D
@@ -343,6 +362,7 @@ function comecar() {
   objetos = []; particulas = []; rastro = [];
   score = 0; vidas = 5; rodando = true; frame = 0;
   combo = 0; comboTimer = 0; spawnTimer = 0; dificuldade = 1;
+  cortes = 0; nivel = 1;
   document.getElementById('msg').style.display = 'none';
   document.getElementById('backBtn').style.display = 'block';
   atualizaHud();
@@ -351,6 +371,7 @@ function comecar() {
 
 function atualizaHud() {
   document.getElementById('vidas').textContent = '❤️'.repeat(vidas) || '💀';
+  document.getElementById('nivelHud').textContent = '⭐ Nível ' + nivel;
   document.getElementById('score').textContent = '🍄 ' + score;
 }
 
@@ -358,13 +379,13 @@ function spawnObjeto() {
   // poucas bombas, frutas grandes e lentas
   const sorte = Math.random();
   let tipo;
-  if (sorte < 0.08 + dificuldade * 0.008) tipo = { bomba: true, emoji: '💣', cor: '#333', r: 52 };
+  if (sorte < Math.min(0.30, 0.08 + (nivel - 1) * 0.035 + dificuldade * 0.004)) tipo = { bomba: true, emoji: '💣', cor: '#333', r: 52 };
   else if (sorte < 0.16) tipo = { ...COGU, dourado: true };
   else tipo = FRUTAS[Math.floor(Math.random() * FRUTAS.length)];
 
   const x = W * (0.25 + Math.random() * 0.5);
   const velX = (W/2 - x) * 0.003 + (Math.random() - 0.5) * 2.5;
-  const velY = -(11 + Math.random() * 3 + dificuldade * 0.25); // sobe mais devagar
+  const velY = -(11 + Math.random() * 3 + dificuldade * 0.25 + (nivel - 1) * 0.9); // sobe mais rápido a cada nível
   objetos.push({
     x, y: H + 60, vx: velX, vy: velY,
     rot: 0, vr: (Math.random()-0.5)*0.2,
@@ -428,8 +449,23 @@ function cortar(o) {
   comboTimer = 45;
   const pts = (o.dourado ? 50 : 10) * Math.max(1, combo);
   score += pts;
+  cortes++;
+  // a cada 500 cortes na partida, sobe de nível (fica mais difícil!)
+  const novoNivel = 1 + Math.floor(cortes / 500);
+  if (novoNivel > nivel) {
+    nivel = novoNivel;
+    mostraNivel();
+  }
   if (combo >= 3) mostraCombo();
   atualizaHud();
+}
+
+function mostraNivel() {
+  const el = document.getElementById('nivelAviso');
+  el.textContent = `⭐ NÍVEL ${nivel}! ⭐`;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 1800);
 }
 
 function mostraCombo() {
@@ -567,9 +603,11 @@ function loop() {
   // spawn (mais espaçado = mais calmo)
   spawnTimer--;
   if (spawnTimer <= 0) {
-    const qtd = 1 + (Math.random() < 0.15 + dificuldade*0.02 ? 1 : 0);
+    // a cada nível: mais chance de vir em dupla + itens extras juntos
+    let qtd = 1 + (Math.random() < 0.15 + dificuldade*0.02 + (nivel-1)*0.2 ? 1 : 0);
+    qtd += Math.min(3, Math.floor((nivel - 1) / 2)); // níveis altos = chuva de itens
     for (let i = 0; i < qtd; i++) spawnObjeto();
-    spawnTimer = Math.max(45, 90 - dificuldade * 2);
+    spawnTimer = Math.max(25, 90 - dificuldade * 2 - (nivel - 1) * 10);
   }
   dificuldade = 1 + score / 400;
 

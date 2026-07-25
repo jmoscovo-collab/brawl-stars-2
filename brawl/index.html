@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>Brawl Stars 2</title>
+    <title>Arena Cogumelo</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #0a0a1a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Arial', sans-serif; touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
@@ -19,6 +19,8 @@
         @media (max-width: 900px), (pointer: coarse) { #joystick-move, #joystick-shoot { display: block; } }
         #hud { position: absolute; top: 0; left: 0; right: 0; padding: 10px 20px; display: flex; justify-content: space-between; pointer-events: none; z-index: 10; }
         #hud div { color: #fff; font: bold 16px monospace; text-shadow: 0 0 5px #000, 0 0 10px #000; }
+        #zone-warning { position: absolute; top: 45px; left: 0; right: 0; text-align: center; color: #ff5544; font: bold 20px monospace; text-shadow: 0 0 8px #000; z-index: 11; pointer-events: none; display: none; }
+        #hidden-tag { position: absolute; top: 75px; left: 0; right: 0; text-align: center; color: #66ff99; font: bold 15px monospace; text-shadow: 0 0 8px #000; z-index: 11; pointer-events: none; display: none; }
         #overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; background: rgba(0,0,0,0.75); z-index: 20; flex-direction: column; align-items: center; justify-content: center; }
         #overlay.show { display: flex; }
         #overlay h1 { font-size: 48px; font-family: monospace; margin-bottom: 15px; }
@@ -29,7 +31,7 @@
         #minimap canvas { width: 100%; height: 100%; }
         .version { position: absolute; bottom: 5px; right: 10px; color: rgba(255,255,255,0.3); font: 11px monospace; pointer-events: none; z-index: 30; }
         #menu .version { position: absolute; bottom: 65px; right: 10px; }
-        @media (max-width: 900px) { #menu { width: 100vw; height: 100vh; border-radius: 0; border: none; } .game-title { font-size: 36px !important; } #btn-play { padding: 14px 50px; font-size: 18px; } .brawler-grid { grid-template-columns: repeat(2, 1fr) !important; } .shop-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+        @media (max-width: 900px) { #menu { width: 100vw; height: 100vh; border-radius: 0; border: none; } .game-title { font-size: 36px !important; } #btn-play { padding: 14px 50px; font-size: 18px; } .brawler-grid { grid-template-columns: repeat(2, 1fr) !important; } .shop-grid { grid-template-columns: repeat(2, 1fr) !important; } .mode-grid { grid-template-columns: 1fr !important; } }
 
         #menu {
             width: 900px; height: 600px;
@@ -65,12 +67,13 @@
         .nav-btn.active { color: #00ff88; background: rgba(0,255,136,0.08); }
         .nav-btn .nav-icon { font-size: 24px; }
 
-        #panel-brawlers, #panel-shop, #panel-trophies { display: none; position: absolute; top: 70px; left: 0; right: 0; bottom: 60px; overflow-y: auto; padding: 20px; z-index: 2; background: rgba(10,10,26,0.95); }
+        #panel-brawlers, #panel-shop, #panel-trophies, #panel-modes { display: none; position: absolute; top: 70px; left: 0; right: 0; bottom: 60px; overflow-y: auto; padding: 20px; z-index: 2; background: rgba(10,10,26,0.95); }
         .brawler-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
         .brawler-card { background: rgba(30,30,60,0.8); border-radius: 10px; padding: 12px; text-align: center; border: 2px solid #333; cursor: pointer; transition: all 0.2s; }
         .brawler-card:hover { border-color: #00ff88; transform: translateY(-2px); }
         .brawler-card.mitico { border-color: #ff00ff; background: rgba(80,0,80,0.3); }
         .brawler-card.selected { border-color: #00ff88; box-shadow: 0 0 15px rgba(0,255,136,0.3); }
+        .brawler-card.locked { opacity: 0.6; filter: grayscale(0.6); }
         .brawler-icon { font-size: 36px; margin-bottom: 6px; }
         .brawler-name { color: #fff; font-size: 12px; font-weight: bold; }
         .brawler-rarity { font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-top: 4px; display: inline-block; }
@@ -81,13 +84,23 @@
         .rarity-lendario { background: #aa6600; color: #ffcc00; }
         .brawler-trophies { color: #ffd700; font-size: 11px; margin-top: 4px; }
         .brawler-atk { color: #aaa; font-size: 10px; margin-top: 2px; }
+        .brawler-stats { color: #8fc; font-size: 10px; margin-top: 3px; }
+        .brawler-price { color: #ffcc00; font-size: 11px; font-weight: bold; margin-top: 4px; }
 
         .shop-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
         .shop-item { background: linear-gradient(135deg, rgba(30,30,60,0.9), rgba(20,20,40,0.9)); border-radius: 12px; padding: 16px; text-align: center; border: 2px solid #333; cursor: pointer; transition: all 0.2s; }
         .shop-item:hover { border-color: #ffcc00; transform: translateY(-2px); }
         .shop-icon { font-size: 40px; margin-bottom: 8px; }
         .shop-name { color: #fff; font-size: 13px; font-weight: bold; margin-bottom: 4px; }
+        .shop-desc { color: #999; font-size: 11px; margin-bottom: 6px; }
         .shop-price { color: #ffcc00; font-size: 14px; font-weight: bold; }
+
+        .mode-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .mode-card { background: linear-gradient(135deg, rgba(30,30,60,0.9), rgba(20,20,40,0.9)); border-radius: 12px; padding: 22px 16px; text-align: center; border: 2px solid #333; cursor: pointer; transition: all 0.2s; }
+        .mode-card:hover { border-color: #00ff88; transform: translateY(-2px); }
+        .mode-icon { font-size: 44px; margin-bottom: 8px; }
+        .mode-name { color: #fff; font-size: 16px; font-weight: bold; margin-bottom: 6px; }
+        .mode-desc { color: #999; font-size: 12px; line-height: 1.4; }
 
         .trophy-road { display: flex; flex-direction: column; gap: 12px; }
         .trophy-milestone { display: flex; align-items: center; gap: 15px; background: rgba(30,30,60,0.8); border-radius: 10px; padding: 14px; border: 2px solid #333; }
@@ -95,8 +108,10 @@
         .milestone-count { color: #ffd700; font-weight: bold; font-size: 18px; min-width: 60px; }
         .milestone-reward { color: #fff; font-size: 13px; }
         .milestone-status { margin-left: auto; font-size: 20px; }
+        .btn-claim { margin-left: auto; padding: 8px 16px; background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000; border: none; border-radius: 20px; font-weight: bold; font-size: 12px; cursor: pointer; }
         .panel-title { color: #fff; font-size: 22px; font-weight: bold; margin-bottom: 16px; text-align: center; }
         .close-panel { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #fff; font-size: 28px; cursor: pointer; z-index: 10; }
+        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: #00ff88; font: bold 15px monospace; padding: 12px 24px; border-radius: 30px; border: 1px solid #00ff88; z-index: 100000; display: none; }
     </style>
 
 <style id="device-screen-style">
@@ -121,7 +136,7 @@
 <body>
 
 <div id="device-screen">
-  <h1>🥊 BRAWL</h1>
+  <h1>🍄 ARENA COGUMELO</h1>
   <p>Como você está jogando?</p>
   <div class="opts">
     <div class="opt" id="ds-pc"><div class="ico">🖥️</div><div class="lbl">COMPUTADOR</div></div>
@@ -149,25 +164,26 @@
 
     <div id="menu">
         <div class="menu-top">
-            <div class="player-info"><div class="player-avatar">D</div><div><div class="player-name">Davi</div><div class="player-level">Nivel 1</div></div></div>
+            <div class="player-info"><div class="player-avatar">🍄</div><div><div class="player-name">Lutador</div><div class="player-level">Nivel 1</div></div></div>
             <div class="trophies"><span>🏆</span><span class="trophy-count" id="total-trophies">0</span></div>
-            <div class="gems"><span>💎</span><span class="gem-count">120</span></div>
-            <div class="gold"><span>🪙</span><span class="gold-count">2450</span></div>
+            <div class="gems"><span>💎</span><span class="gem-count" id="gem-count">120</span></div>
+            <div class="gold"><span>🪙</span><span class="gold-count" id="gold-count">2450</span></div>
         </div>
         <div class="menu-center">
-            <div class="game-title">BRAWL STARS 2</div>
-            <div class="game-subtitle">ARENA DE ROBOS</div>
+            <div class="game-title">ARENA COGUMELO</div>
+            <div class="game-subtitle">BATALHA DE ROBÔS</div>
             <button id="btn-play">JOGAR</button>
         </div>
-        <div id="panel-brawlers"><button class="close-panel" onclick="closePanel()">✕</button><div class="panel-title">BRAWLERS</div><div class="brawler-grid" id="brawler-grid"></div></div>
+        <div id="panel-brawlers"><button class="close-panel" onclick="closePanel()">✕</button><div class="panel-title">LUTADORES</div><div class="brawler-grid" id="brawler-grid"></div></div>
         <div id="panel-shop"><button class="close-panel" onclick="closePanel()">✕</button><div class="panel-title">LOJA</div><div class="shop-grid" id="shop-grid"></div></div>
-        <div id="panel-trophies"><button class="close-panel" onclick="closePanel()">✕</button><div class="panel-title">ESTRADA DE TROFEUS</div><div class="trophy-road" id="trophy-road"></div></div>
-        <div class="version">v1.2.0</div>
+        <div id="panel-trophies"><button class="close-panel" onclick="closePanel()">✕</button><div class="panel-title">TRILHA DE TROFÉUS</div><div class="trophy-road" id="trophy-road"></div></div>
+        <div id="panel-modes"><button class="close-panel" onclick="closePanel()">✕</button><div class="panel-title">ESCOLHA O MODO</div><div class="mode-grid" id="mode-grid"></div></div>
+        <div class="version">v2.0.0</div>
         <div class="menu-bottom">
             <button class="nav-btn" onclick="openPanel('shop')"><span class="nav-icon">🛒</span>LOJA</button>
-            <button class="nav-btn" onclick="openPanel('brawlers')"><span class="nav-icon">🤖</span>BRAWLERS</button>
+            <button class="nav-btn" onclick="openPanel('brawlers')"><span class="nav-icon">🤖</span>LUTADORES</button>
             <button class="nav-btn active" onclick="closePanel()"><span class="nav-icon">⚔️</span>BATALHA</button>
-            <button class="nav-btn" onclick="openPanel('trophies')"><span class="nav-icon">🏆</span>TROFEUS</button>
+            <button class="nav-btn" onclick="openPanel('trophies')"><span class="nav-icon">🏆</span>TROFÉUS</button>
         </div>
     </div>
 
@@ -177,12 +193,15 @@
             <div id="hud-alive"></div>
             <div id="hud-score"></div>
         </div>
+        <div id="zone-warning"></div>
+        <div id="hidden-tag">🌿 ESCONDIDO! Ninguém te vê</div>
         <div id="overlay"><h1 id="overlay-title"></h1><p id="overlay-text1"></p><p id="overlay-text2"></p><p class="sub" id="overlay-sub"></p></div>
         <div id="minimap"><canvas id="minimap-canvas" width="140" height="105"></canvas></div>
         <div id="joystick-move"><div class="stick" id="stick-move"></div></div>
         <div id="joystick-shoot"><div class="stick" id="stick-shoot"></div></div>
-        <div class="version">v1.2.0</div>
+        <div class="version">v2.0.0</div>
     </div>
+    <div id="toast"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
@@ -206,66 +225,205 @@ function sfxShotgun(){for(let i=0;i<3;i++)setTimeout(()=>playTone(200+i*50,0.04,
 function sfxLaser(){playTone(1200,0.15,'sine',0.12)}
 function sfxBoom(){playTone(60,0.35,'sawtooth',0.3)}
 function sfxZap(){playTone(900,0.04);playTone(1100,0.04)}
+function sfxHeal(){[600,800,1000].forEach((f,i)=>setTimeout(()=>playTone(f,0.08,'sine',0.15),i*60))}
+function sfxPickup(){playTone(1000,0.06,'sine',0.15);setTimeout(()=>playTone(1400,0.08,'sine',0.15),60)}
+function sfxBuy(){[800,1000,1300].forEach((f,i)=>setTimeout(()=>playTone(f,0.08),i*70))}
+function sfxWarn(){playTone(220,0.3,'sawtooth',0.18)}
 
-// === BRAWLERS ===
+// === BRAWLERS (10+, stats balanceados: força × velocidade × vida) ===
 const brawlers = [
-    { name:'Bolt', icon:'🤖', rarity:'comum', trophies:0, hp:100, dmg:18, speed:4, color:0x00ccff, unlocked:true, attack:'normal', atkDesc:'Tiro simples' },
-    { name:'Ferro', icon:'🦾', rarity:'comum', trophies:0, hp:150, dmg:12, speed:3, color:0x888888, unlocked:true, attack:'shotgun', atkDesc:'Espalha 5 tiros' },
-    { name:'Spark', icon:'⚡', rarity:'raro', trophies:0, hp:80, dmg:30, speed:5.5, color:0xffcc00, unlocked:true, attack:'zap', atkDesc:'Raio rapido' },
-    { name:'Tanque', icon:'🛡️', rarity:'raro', trophies:0, hp:220, dmg:10, speed:2.5, color:0x44aa44, unlocked:true, attack:'cannon', atkDesc:'Bala grande lenta' },
-    { name:'Laser', icon:'🔴', rarity:'epico', trophies:0, hp:90, dmg:35, speed:4, color:0xff3333, unlocked:true, attack:'laser', atkDesc:'Laser atravessa' },
-    { name:'Shadow', icon:'👁️', rarity:'epico', trophies:0, hp:70, dmg:22, speed:6, color:0x6600cc, unlocked:true, attack:'triple', atkDesc:'3 tiros em leque' },
-    { name:'Cogumelo', icon:'🍄', rarity:'mitico', trophies:0, hp:180, dmg:15, speed:4, color:0xff00ff, unlocked:true, attack:'spore', atkDesc:'Esporos venenosos', mitico:true },
-    { name:'Nuclear', icon:'☢️', rarity:'lendario', trophies:0, hp:110, dmg:50, speed:3.5, color:0xff8800, unlocked:true, attack:'bomb', atkDesc:'Bomba explosiva' },
+    { name:'Bolt',     icon:'🤖', rarity:'comum',    hp:130, dmg:18, speed:4,   color:0x00ccff, accent:0x0077aa, attack:'normal',  atkDesc:'Tiro simples',        unlocked:true },
+    { name:'Ferro',    icon:'🦾', rarity:'comum',    hp:190, dmg:11, speed:3,   color:0x888888, accent:0x555555, attack:'shotgun', atkDesc:'Espalha 5 tiros',     unlocked:true },
+    { name:'Spark',    icon:'⚡', rarity:'raro',     hp:105, dmg:26, speed:5.5, color:0xffcc00, accent:0xff8800, attack:'zap',     atkDesc:'Raio rápido',         unlocked:true },
+    { name:'Tanque',   icon:'🛡️', rarity:'raro',     hp:280, dmg:14, speed:2.5, color:0x44aa44, accent:0x226622, attack:'cannon',  atkDesc:'Bala grande lenta',   unlocked:true },
+    { name:'Laser',    icon:'🔴', rarity:'epico',    hp:120, dmg:30, speed:4,   color:0xff3333, accent:0x881111, attack:'laser',   atkDesc:'Laser atravessa',     unlocked:true },
+    { name:'Shadow',   icon:'👁️', rarity:'epico',    hp:95,  dmg:20, speed:6,   color:0x6600cc, accent:0x330066, attack:'triple',  atkDesc:'3 tiros em leque',    unlocked:true },
+    { name:'Cogumelo', icon:'🍄', rarity:'mitico',   hp:230, dmg:14, speed:4,   color:0xff00ff, accent:0xffffff, attack:'spore',   atkDesc:'Esporos venenosos',   unlocked:true, mitico:true },
+    { name:'Nuclear',  icon:'☢️', rarity:'lendario', hp:140, dmg:42, speed:3.5, color:0xff8800, accent:0xaa4400, attack:'bomb',    atkDesc:'Bomba explosiva',     unlocked:true },
+    { name:'Gelo',     icon:'❄️', rarity:'raro',     hp:150, dmg:22, speed:4.5, color:0x99ddff, accent:0x3388cc, attack:'sniper',  atkDesc:'Tiro longo veloz',    unlocked:false, price:800 },
+    { name:'Turbo',    icon:'🚀', rarity:'epico',    hp:110, dmg:16, speed:6.5, color:0xff5599, accent:0xaa1155, attack:'triple',  atkDesc:'Rápido demais!',      unlocked:false, price:1500 },
+    { name:'Rocha',    icon:'🪨', rarity:'epico',    hp:320, dmg:18, speed:2,   color:0x997755, accent:0x554433, attack:'cannon',  atkDesc:'Muralha que atira',   unlocked:false, price:1500 },
+    { name:'Fantasma', icon:'👻', rarity:'mitico',   hp:100, dmg:28, speed:5,   color:0xccddee, accent:0x8899aa, attack:'laser',   atkDesc:'Laser fantasmagórico', unlocked:false, price:2500, mitico:true },
 ];
+brawlers.forEach(b => b.trophies = 0);
+
+// === PERSISTÊNCIA (troféus, moedas, gemas, desbloqueios) ===
+const SAVE_KEY = 'arenaCogumeloSave';
+let gold = 2450, gems = 120, claimedMilestones = [];
 let selectedBrawler = 0;
+function saveGame() {
+    try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({
+            gold, gems, claimedMilestones, selectedBrawler,
+            brawlers: brawlers.map(b => ({ name: b.name, trophies: b.trophies, unlocked: b.unlocked }))
+        }));
+    } catch (e) {}
+}
+function loadGame() {
+    let s;
+    try { s = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { s = null; }
+    if (!s) return;
+    if (typeof s.gold === 'number') gold = s.gold;
+    if (typeof s.gems === 'number') gems = s.gems;
+    if (Array.isArray(s.claimedMilestones)) claimedMilestones = s.claimedMilestones;
+    if (Array.isArray(s.brawlers)) {
+        s.brawlers.forEach(sb => {
+            const b = brawlers.find(x => x.name === sb.name);
+            if (b) { b.trophies = sb.trophies || 0; if (sb.unlocked) b.unlocked = true; }
+        });
+    }
+    if (typeof s.selectedBrawler === 'number' && brawlers[s.selectedBrawler] && brawlers[s.selectedBrawler].unlocked) selectedBrawler = s.selectedBrawler;
+}
+loadGame();
 function getTotalTrophies(){ return brawlers.reduce((s,b)=>s+b.trophies,0); }
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.display = 'none'; }, 2500);
+}
+
+function updateCurrencyDisplay() {
+    document.getElementById('total-trophies').textContent = getTotalTrophies();
+    document.getElementById('gem-count').textContent = gems;
+    document.getElementById('gold-count').textContent = gold;
+}
 
 // === MENU ===
 function renderBrawlers(){
     const grid=document.getElementById('brawler-grid'); grid.innerHTML='';
     brawlers.forEach((b,i)=>{
         const c=document.createElement('div');
-        c.className=`brawler-card ${b.mitico?'mitico':''} ${i===selectedBrawler?'selected':''}`;
-        c.innerHTML=`<div class="brawler-icon">${b.icon}</div><div class="brawler-name">${b.name}</div><span class="brawler-rarity rarity-${b.rarity}">${b.rarity.toUpperCase()}</span><div class="brawler-atk">${b.atkDesc}</div><div class="brawler-trophies">🏆 ${b.trophies}</div>`;
-        c.onclick=()=>{selectedBrawler=i;renderBrawlers()};
+        c.className=`brawler-card ${b.mitico?'mitico':''} ${i===selectedBrawler?'selected':''} ${b.unlocked?'':'locked'}`;
+        const priceHtml = b.unlocked ? '' : `<div class="brawler-price">🔒 ${b.price} 🪙</div>`;
+        c.innerHTML=`<div class="brawler-icon">${b.icon}</div><div class="brawler-name">${b.name}</div><span class="brawler-rarity rarity-${b.rarity}">${b.rarity.toUpperCase()}</span><div class="brawler-atk">${b.atkDesc}</div><div class="brawler-stats">❤️${b.hp} ⚔️${b.dmg} 👟${b.speed}</div><div class="brawler-trophies">🏆 ${b.trophies}</div>${priceHtml}`;
+        c.onclick=()=>{
+            if (!b.unlocked) {
+                if (gold >= b.price) {
+                    gold -= b.price; b.unlocked = true; selectedBrawler = i;
+                    sfxBuy(); showToast(`🎉 ${b.name} desbloqueado!`);
+                    saveGame(); updateCurrencyDisplay();
+                } else {
+                    showToast(`Faltam ${b.price - gold} 🪙 pra desbloquear ${b.name}!`);
+                }
+            } else {
+                selectedBrawler = i; saveGame();
+            }
+            renderBrawlers();
+        };
         grid.appendChild(c);
     });
 }
+
+const shopItems = [
+    { icon:'📦', name:'Caixa Surpresa', desc:'Ganha 100 a 400 moedas', priceGems:30, action(){ const g=100+Math.floor(Math.random()*301); gold+=g; return `📦 Veio ${g} 🪙!`; } },
+    { icon:'🎁', name:'Mega Caixa', desc:'Ganha 400 a 1000 moedas', priceGems:80, action(){ const g=400+Math.floor(Math.random()*601); gold+=g; return `🎁 Veio ${g} 🪙!`; } },
+    { icon:'🪙', name:'500 Moedas', desc:'Pacotinho de moedas', priceGems:20, action(){ gold+=500; return '+500 🪙!'; } },
+    { icon:'💰', name:'2000 Moedas', desc:'Saco cheio de moedas', priceGems:60, action(){ gold+=2000; return '+2000 🪙!'; } },
+    { icon:'👻', name:'Oferta Mítica', desc:'Desbloqueia o Fantasma na hora', priceGems:150, action(){ const f=brawlers.find(b=>b.name==='Fantasma'); if(f.unlocked) { gold+=1000; return 'Já tinha o Fantasma! +1000 🪙'; } f.unlocked=true; return '👻 Fantasma desbloqueado!'; } },
+    { icon:'💎', name:'Bônus Diário', desc:'10 gemas grátis (1x por dia)', priceGems:0, action(){
+        const today = new Date().toDateString();
+        if (localStorage.getItem('arenaCogumeloDaily') === today) return '⏰ Já pegou hoje! Volta amanhã.';
+        try { localStorage.setItem('arenaCogumeloDaily', today); } catch(e) {}
+        gems += 10; return '+10 💎 de presente!';
+    } },
+];
 function renderShop(){
-    const grid=document.getElementById('shop-grid');
-    [{icon:'📦',name:'Caixa Brawl',price:'30 💎'},{icon:'🎁',name:'Mega Caixa',price:'80 💎'},{icon:'🍄',name:'Oferta Mitica',price:'350 💎'},{icon:'🪙',name:'500 Moedas',price:'20 💎'},{icon:'⚡',name:'Power Points',price:'1000 🪙'},{icon:'🎨',name:'Skin Neon',price:'150 💎'}].forEach(item=>{
+    const grid=document.getElementById('shop-grid'); grid.innerHTML='';
+    shopItems.forEach(item=>{
         const el=document.createElement('div');el.className='shop-item';
-        el.innerHTML=`<div class="shop-icon">${item.icon}</div><div class="shop-name">${item.name}</div><div class="shop-price">${item.price}</div>`;
+        const priceTxt = item.priceGems > 0 ? `${item.priceGems} 💎` : 'GRÁTIS';
+        el.innerHTML=`<div class="shop-icon">${item.icon}</div><div class="shop-name">${item.name}</div><div class="shop-desc">${item.desc}</div><div class="shop-price">${priceTxt}</div>`;
+        el.onclick=()=>{
+            if (item.priceGems > 0 && gems < item.priceGems) { showToast(`Faltam ${item.priceGems - gems} 💎!`); return; }
+            if (item.priceGems > 0) gems -= item.priceGems;
+            const msg = item.action();
+            sfxBuy(); showToast(msg);
+            saveGame(); updateCurrencyDisplay(); renderShop();
+        };
         grid.appendChild(el);
     });
 }
+
+const milestones = [
+    { count:50,   reward:'200 Moedas 🪙',              grant(){ gold+=200; } },
+    { count:100,  reward:'20 Gemas 💎',                grant(){ gems+=20; } },
+    { count:200,  reward:'500 Moedas 🪙',              grant(){ gold+=500; } },
+    { count:350,  reward:'Lutador Gelo ❄️ grátis!',    grant(){ const b=brawlers.find(x=>x.name==='Gelo'); if(!b.unlocked){b.unlocked=true;} else {gold+=800;} } },
+    { count:500,  reward:'50 Gemas 💎',                grant(){ gems+=50; } },
+    { count:750,  reward:'1500 Moedas 🪙',             grant(){ gold+=1500; } },
+    { count:1000, reward:'Lutador Turbo 🚀 grátis!',   grant(){ const b=brawlers.find(x=>x.name==='Turbo'); if(!b.unlocked){b.unlocked=true;} else {gold+=1500;} } },
+    { count:1500, reward:'100 Gemas 💎',               grant(){ gems+=100; } },
+];
 function renderTrophies(){
     const road=document.getElementById('trophy-road'),total=getTotalTrophies();
     road.innerHTML='';
-    [{count:50,reward:'Caixa Brawl 📦'},{count:100,reward:'100 Moedas 🪙'},{count:200,reward:'Mega Caixa 🎁'},{count:500,reward:'Skin Especial 🎨'},{count:1000,reward:'Caixa Lendaria ✨'}].forEach(m=>{
-        const el=document.createElement('div');el.className=`trophy-milestone ${total>=m.count?'unlocked':''}`;
-        el.innerHTML=`<div class="milestone-count">🏆 ${m.count}</div><div class="milestone-reward">${m.reward}</div><div class="milestone-status">${total>=m.count?'✅':'🔒'}</div>`;
+    const info=document.createElement('div');
+    info.style.cssText='color:#ffd700;text-align:center;font-size:14px;margin-bottom:10px;';
+    info.textContent=`Você tem ${total} 🏆 — ganhe troféus nas batalhas pra destravar prêmios!`;
+    road.appendChild(info);
+    milestones.forEach((m,idx)=>{
+        const reached = total>=m.count;
+        const claimed = claimedMilestones.includes(idx);
+        const el=document.createElement('div');el.className=`trophy-milestone ${reached?'unlocked':''}`;
+        let statusHtml;
+        if (claimed) statusHtml = '<div class="milestone-status">✅</div>';
+        else if (reached) statusHtml = `<button class="btn-claim" data-idx="${idx}">RESGATAR!</button>`;
+        else statusHtml = '<div class="milestone-status">🔒</div>';
+        el.innerHTML=`<div class="milestone-count">🏆 ${m.count}</div><div class="milestone-reward">${m.reward}</div>${statusHtml}`;
         road.appendChild(el);
     });
+    road.querySelectorAll('.btn-claim').forEach(btn=>{
+        btn.onclick=()=>{
+            const idx=parseInt(btn.dataset.idx);
+            if (claimedMilestones.includes(idx)) return;
+            claimedMilestones.push(idx);
+            milestones[idx].grant();
+            sfxBuy(); showToast(`🎉 Prêmio resgatado: ${milestones[idx].reward}`);
+            saveGame(); updateCurrencyDisplay(); renderTrophies();
+        };
+    });
 }
+
+// === MODOS DE JOGO ===
+const gameModes = [
+    { id:'royale',   icon:'🌪️', name:'Battle Royale', desc:'10 robôs, zona que fecha. Sobreviva até o fim!' },
+    { id:'matamata', icon:'⚔️', name:'Mata-Mata',     desc:'90 segundos, todo mundo renasce. Quem derrubar mais, vence!' },
+    { id:'cristais', icon:'💎', name:'Pega-Cristais', desc:'Colete 10 cristais antes dos robôs. Se cair, perde os seus!' },
+    { id:'duelo',    icon:'🤺', name:'Duelo 1v1',     desc:'Você contra UM robô gigante e fortão. Sem ajuda!' },
+];
+let gameMode = 'royale';
+function renderModes(){
+    const grid=document.getElementById('mode-grid'); grid.innerHTML='';
+    gameModes.forEach(m=>{
+        const el=document.createElement('div');el.className='mode-card';
+        el.innerHTML=`<div class="mode-icon">${m.icon}</div><div class="mode-name">${m.name}</div><div class="mode-desc">${m.desc}</div>`;
+        el.onclick=()=>{
+            gameMode=m.id;
+            closePanel();
+            document.getElementById('menu').style.display='none';
+            document.getElementById('game-container').style.display='block';
+            startGame();
+        };
+        grid.appendChild(el);
+    });
+}
+
 function openPanel(p){
-    ['brawlers','shop','trophies'].forEach(x=>document.getElementById('panel-'+x).style.display='none');
+    ['brawlers','shop','trophies','modes'].forEach(x=>document.getElementById('panel-'+x).style.display='none');
     document.getElementById('panel-'+p).style.display='block';
     document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-    if(p==='brawlers')renderBrawlers();if(p==='shop')renderShop();if(p==='trophies')renderTrophies();
+    if(p==='brawlers')renderBrawlers();if(p==='shop')renderShop();if(p==='trophies')renderTrophies();if(p==='modes')renderModes();
 }
 function closePanel(){
-    ['brawlers','shop','trophies'].forEach(x=>document.getElementById('panel-'+x).style.display='none');
+    ['brawlers','shop','trophies','modes'].forEach(x=>document.getElementById('panel-'+x).style.display='none');
     document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
     document.querySelectorAll('.nav-btn')[2].classList.add('active');
 }
-document.getElementById('total-trophies').textContent=getTotalTrophies();
-document.getElementById('btn-play').onclick=()=>{
-    document.getElementById('menu').style.display='none';
-    document.getElementById('game-container').style.display='block';
-    startGame();
-};
+updateCurrencyDisplay();
+document.getElementById('btn-play').onclick=()=>{ openPanel('modes'); };
 
 // === THREE.JS SETUP ===
 const container = document.getElementById('game-container');
@@ -299,10 +457,10 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
 container.insertBefore(renderer.domElement, container.firstChild);
 
-// Lights — sol realista
-const ambLight = new THREE.AmbientLight(0x6688aa, 0.4);
+// Lights — sol realista (1 directional com sombra + ambiente, leve pro FPS)
+const ambLight = new THREE.AmbientLight(0x6688aa, 0.35);
 scene.add(ambLight);
-const dirLight = new THREE.DirectionalLight(0xfff4e0, 1.2);
+const dirLight = new THREE.DirectionalLight(0xfff4e0, 1.3);
 dirLight.position.set(40, 60, 30);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.set(2048, 2048);
@@ -310,7 +468,7 @@ dirLight.shadow.camera.left = -80; dirLight.shadow.camera.right = 80;
 dirLight.shadow.camera.top = 80; dirLight.shadow.camera.bottom = -80;
 dirLight.shadow.bias = -0.001;
 scene.add(dirLight);
-const hemiLight = new THREE.HemisphereLight(0x99ccff, 0x445522, 0.5);
+const hemiLight = new THREE.HemisphereLight(0x99ccff, 0x445522, 0.55);
 scene.add(hemiLight);
 
 // Map
@@ -355,21 +513,20 @@ let waterMeshes = [];
 let waterData = [];
 let bushMeshes = [];
 let bushData = [];
-let powerBoxes = [];
-let playerPowerCubes = 0;
+let medkits = [];
+let crystals = [];
 
 function generateMapElements() {
     obstacleMeshes.forEach(m => scene.remove(m));
     waterMeshes.forEach(m => scene.remove(m));
     bushMeshes.forEach(m => scene.remove(m));
-    powerBoxes.forEach(b => scene.remove(b.mesh));
+    medkits.forEach(k => scene.remove(k.mesh));
+    crystals.forEach(c => scene.remove(c.mesh));
     obstacleMeshes = []; obstacleData = [];
     waterMeshes = []; waterData = [];
     bushMeshes = []; bushData = [];
-    powerBoxes = [];
-    playerPowerCubes = 0;
-
-    const half = MAP_SIZE/2 - 5;
+    medkits = [];
+    crystals = [];
 
     // PAREDES internas (pedra/concreto realista)
     const wallColor = new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.85, metalness: 0.05 });
@@ -395,13 +552,11 @@ function generateMapElements() {
         const d = 6 + Math.random() * 8;
         const x = (Math.random() - 0.5) * (MAP_SIZE - 20);
         const z = (Math.random() - 0.5) * (MAP_SIZE - 20);
-        // Pool depth visual
         const geo = new THREE.BoxGeometry(w, 0.4, d);
         const mesh = new THREE.Mesh(geo, waterMat);
         mesh.position.set(x, -0.1, z);
         mesh.receiveShadow = true;
         scene.add(mesh);
-        // Edge/border around water
         const edgeGeo = new THREE.BoxGeometry(w + 0.5, 0.3, d + 0.5);
         const edgeMat = new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.9 });
         const edge = new THREE.Mesh(edgeGeo, edgeMat);
@@ -412,7 +567,7 @@ function generateMapElements() {
         waterData.push({ x: x-w/2, z: z-d/2, w, d });
     }
 
-    // MOITAS (arbustos verdes realistas)
+    // MOITAS (quem entra fica invisível!)
     const bushMat = new THREE.MeshStandardMaterial({ color: 0x2d8c2d, roughness: 0.95, transparent: true, opacity: 0.9 });
     for (let i = 0; i < 12; i++) {
         const w = 4 + Math.random() * 5;
@@ -428,24 +583,57 @@ function generateMapElements() {
         bushData.push({ x: x-w/2, z: z-d/2, w, d });
     }
 
-    // CAIXAS COM CUBO DE PODER (destrutíveis)
-    for (let i = 0; i < 15; i++) {
-        const x = (Math.random() - 0.5) * (MAP_SIZE - 15);
-        const z = (Math.random() - 0.5) * (MAP_SIZE - 15);
-        const geo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-        const mat = new THREE.MeshStandardMaterial({ color: 0xcc8800, roughness: 0.5 });
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.position.set(x, 0.85, z);
-        mesh.castShadow = true;
-        // cubo brilhante dentro
-        const cubeGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-        const cubeMat = new THREE.MeshBasicMaterial({ color: 0xaa00ff });
-        const cube = new THREE.Mesh(cubeGeo, cubeMat);
-        cube.position.y = 0.2;
-        mesh.add(cube);
-        scene.add(mesh);
-        powerBoxes.push({ mesh, x, z, hp: 3, alive: true });
+    // KIT MÉDICOS (caixa branca com cruz vermelha — cura ao pegar!)
+    for (let i = 0; i < 12; i++) {
+        spawnMedkit();
     }
+}
+
+function makeMedkitMesh() {
+    const group = new THREE.Group();
+    const boxGeo = new THREE.BoxGeometry(1.3, 0.9, 1.3);
+    const boxMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+    const box = new THREE.Mesh(boxGeo, boxMat);
+    box.position.y = 0.45;
+    box.castShadow = true;
+    group.add(box);
+    const crossMat = new THREE.MeshBasicMaterial({ color: 0xdd2222 });
+    const c1 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 0.28), crossMat);
+    c1.position.y = 0.96;
+    group.add(c1);
+    const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.1, 0.8), crossMat);
+    c2.position.y = 0.96;
+    group.add(c2);
+    return group;
+}
+
+function spawnMedkit() {
+    const s = findSafeSpawn();
+    const mesh = makeMedkitMesh();
+    mesh.position.set(s.x, 0, s.z);
+    scene.add(mesh);
+    medkits.push({ mesh, x: s.x, z: s.z, alive: true });
+}
+
+function makeCrystalMesh() {
+    const geo = new THREE.OctahedronGeometry(0.6);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x00eeff, roughness: 0.15, metalness: 0.4, emissive: 0x0088aa, emissiveIntensity: 0.6 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    return mesh;
+}
+
+function spawnCrystal(px, pz) {
+    let x, z;
+    if (typeof px === 'number') { x = px + (Math.random()-0.5)*3; z = pz + (Math.random()-0.5)*3; }
+    else { const s = findSafeSpawn(); x = s.x; z = s.z; }
+    const half = MAP_SIZE/2 - 2;
+    x = Math.max(-half, Math.min(half, x));
+    z = Math.max(-half, Math.min(half, z));
+    const mesh = makeCrystalMesh();
+    mesh.position.set(x, 1, z);
+    scene.add(mesh);
+    crystals.push({ mesh, x, z, alive: true });
 }
 
 function isInWater(x, z) {
@@ -465,7 +653,6 @@ function pushFromWater(x, z, r) {
             x += (dx/dist) * (r - dist);
             z += (dz/dist) * (r - dist);
         } else if (dist === 0) {
-            // Inside water — push to nearest edge
             const toLeft = x - w.x, toRight = (w.x + w.w) - x;
             const toTop = z - w.z, toBottom = (w.z + w.d) - z;
             const minDist = Math.min(toLeft, toRight, toTop, toBottom);
@@ -486,47 +673,78 @@ function isInBush(x, z) {
 }
 
 // === GAME ENTITIES ===
-let playerMesh, playerObj;
+let playerObj;
 let enemyObjects = [];
-let bulletObjects = [];
-let particleObjects = [];
 
-function createRobot(color, size, mitico) {
+// Robô com visual próprio de cada lutador (cor + detalhe + formato pelo tipo de ataque)
+function createRobot(b, size) {
     const group = new THREE.Group();
-    // body
-    const bodyGeo = new THREE.BoxGeometry(size, size*1.2, size);
-    const bodyMat = new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.6 });
+    const mitico = !!b.mitico;
+    const accent = b.accent || 0x888888;
+
+    // body — formato varia pelo estilo do lutador
+    let bodyW = size, bodyD = size;
+    if (b.attack === 'cannon') { bodyW = size * 1.35; bodyD = size * 1.2; }   // tanques largos
+    if (b.speed >= 5.5) { bodyW = size * 0.8; bodyD = size * 0.8; }           // velozes magrinhos
+    const bodyGeo = new THREE.BoxGeometry(bodyW, size*1.2, bodyD);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.4, metalness: 0.6 });
     const body = new THREE.Mesh(bodyGeo, bodyMat);
     body.position.y = size * 0.7;
     body.castShadow = true;
     group.add(body);
 
+    // faixa no peito com a cor de detalhe
+    const beltGeo = new THREE.BoxGeometry(bodyW * 1.02, size*0.25, bodyD * 1.02);
+    const beltMat = new THREE.MeshStandardMaterial({ color: accent, roughness: 0.3, metalness: 0.7 });
+    const belt = new THREE.Mesh(beltGeo, beltMat);
+    belt.position.y = size * 0.7;
+    group.add(belt);
+
+    // ombreiras pros pesados (shotgun/cannon)
+    if (b.attack === 'shotgun' || b.attack === 'cannon') {
+        const padGeo = new THREE.BoxGeometry(size*0.35, size*0.35, size*0.5);
+        const padMat = new THREE.MeshStandardMaterial({ color: accent, roughness: 0.5, metalness: 0.5 });
+        const p1 = new THREE.Mesh(padGeo, padMat);
+        p1.position.set(-bodyW*0.62, size*1.15, 0);
+        group.add(p1);
+        const p2 = new THREE.Mesh(padGeo, padMat);
+        p2.position.set(bodyW*0.62, size*1.15, 0);
+        group.add(p2);
+    }
+
     // head
     const headGeo = new THREE.BoxGeometry(size*0.7, size*0.6, size*0.7);
-    const headMat = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.7 });
+    const headMat = new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.3, metalness: 0.7 });
     const head = new THREE.Mesh(headGeo, headMat);
     head.position.y = size * 1.5;
     head.castShadow = true;
     group.add(head);
 
-    // eyes
-    const eyeGeo = new THREE.SphereGeometry(size*0.12, 8, 8);
-    const eyeMat = new THREE.MeshBasicMaterial({ color: mitico ? 0xff0000 : 0x00ff00 });
-    const eye1 = new THREE.Mesh(eyeGeo, eyeMat);
-    eye1.position.set(-size*0.15, size*1.55, size*0.3);
-    group.add(eye1);
-    const eye2 = new THREE.Mesh(eyeGeo, eyeMat);
-    eye2.position.set(size*0.15, size*1.55, size*0.3);
-    group.add(eye2);
+    // eyes — laser/sniper têm visor único, os outros 2 olhos
+    if (b.attack === 'laser' || b.attack === 'sniper') {
+        const visorGeo = new THREE.BoxGeometry(size*0.5, size*0.12, size*0.1);
+        const visorMat = new THREE.MeshBasicMaterial({ color: mitico ? 0xff0000 : 0xff4444 });
+        const visor = new THREE.Mesh(visorGeo, visorMat);
+        visor.position.set(0, size*1.55, size*0.33);
+        group.add(visor);
+    } else {
+        const eyeGeo = new THREE.SphereGeometry(size*0.12, 8, 8);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: mitico ? 0xff0000 : 0x00ff00 });
+        const eye1 = new THREE.Mesh(eyeGeo, eyeMat);
+        eye1.position.set(-size*0.15, size*1.55, size*0.3);
+        group.add(eye1);
+        const eye2 = new THREE.Mesh(eyeGeo, eyeMat);
+        eye2.position.set(size*0.15, size*1.55, size*0.3);
+        group.add(eye2);
+    }
 
-    // antenna or mushroom cap
-    if (mitico) {
+    // antenna ou chapéu de cogumelo
+    if (mitico && b.attack === 'spore') {
         const capGeo = new THREE.SphereGeometry(size*0.6, 12, 8, 0, Math.PI*2, 0, Math.PI/2);
         const capMat = new THREE.MeshStandardMaterial({ color: 0xff00ff, roughness: 0.3 });
         const cap = new THREE.Mesh(capGeo, capMat);
         cap.position.y = size * 1.9;
         group.add(cap);
-        // dots on cap
         const dotGeo = new THREE.SphereGeometry(size*0.1, 6, 6);
         const dotMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
         for (let i = 0; i < 4; i++) {
@@ -541,7 +759,7 @@ function createRobot(color, size, mitico) {
         ant.position.y = size * 1.9;
         group.add(ant);
         const tipGeo = new THREE.SphereGeometry(size*0.1, 6, 6);
-        const tipMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const tipMat = new THREE.MeshBasicMaterial({ color: accent });
         const tip = new THREE.Mesh(tipGeo, tipMat);
         tip.position.y = size * 2.15;
         group.add(tip);
@@ -563,12 +781,34 @@ function createRobot(color, size, mitico) {
     return group;
 }
 
+// deixa todos os materiais do robô prontos pra ficar transparentes (modo escondido)
+function makeGhostable(group) {
+    const mats = [];
+    group.traverse(o => { if (o.isMesh && o.material) { o.material = o.material.clone(); o.material.transparent = true; mats.push(o.material); } });
+    group.userData.ghostMats = mats;
+}
+function setGhostOpacity(group, opacity) {
+    if (!group.userData.ghostMats) return;
+    group.userData.ghostMats.forEach(m => { m.opacity = opacity; });
+}
+
 // === GAME STATE ===
-const player = { x:0, z:0, hp:100, maxHp:100, speed:0.2, dmg:18, attack:'normal', shootCooldown:0 };
+const player = { x:0, z:0, hp:100, maxHp:100, speed:0.2, dmg:18, attack:'normal', shootCooldown:0, hidden:false, dead:false, respawnTimer:0, kills:0, crystals:0 };
 let enemies = [];
 let gBullets = [];
 let gParticles = [];
 let score = 0, aliveCount = 10, gameOver = false, victory = false, gameRunning = false;
+let matchTimer = 0, crystalSpawnTimer = 0, totalFighters = 10;
+const CRYSTAL_GOAL = 10;
+
+// Zona que fecha (battle royale)
+let zoneActive = false, zoneRadius = 90, zoneTargetRadius = 90, zonePhaseIdx = 0, zoneTimer = 0, zoneShrinking = false;
+let zoneMesh = null;
+const ZONE_PHASES = [90, 60, 40, 24, 12];
+const ZONE_HOLD = 900;    // 15s parada
+const ZONE_WARN = 300;    // avisa 5s antes
+const ZONE_SHRINK = 480;  // 8s encolhendo
+
 const keys = {};
 const mouse = { x: 0, y: 0 };
 const raycaster = new THREE.Raycaster();
@@ -614,17 +854,22 @@ function fireBullets(fromX, fromZ, angle, attack, damage, owner, color) {
         case 'triple': for(let i=-1;i<=1;i++) makeB(angle+i*0.25, spd*1.3, 0.18, 40, false, false); sfxShoot(); break;
         case 'spore': for(let i=0;i<5;i++) makeB(angle+(Math.random()-0.5)*0.8, spd*(0.7+Math.random()*0.5), 0.25, 35, false, false); break;
         case 'bomb': makeB(angle, spd*0.8, 0.4, 55, false, true); sfxBoom(); break;
+        case 'sniper': makeB(angle, spd*2.4, 0.15, 75, false, false); sfxZap(); break;
     }
 }
 
+function shootCooldownFor(attack) {
+    return attack==='zap'?8 : attack==='bomb'?25 : attack==='cannon'?22 : attack==='sniper'?20 : 15;
+}
+
 function shootPlayer() {
-    if (player.shootCooldown > 0) return;
+    if (player.shootCooldown > 0 || player.dead) return;
     const target = getWorldMouse();
     if (!target) return;
     const angle = Math.atan2(target.z - player.z, target.x - player.x);
     const b = brawlers[selectedBrawler];
     fireBullets(player.x, player.z, angle, b.attack, b.dmg, 'player', b.color);
-    player.shootCooldown = b.attack==='zap'?8 : b.attack==='bomb'?25 : b.attack==='cannon'?22 : 15;
+    player.shootCooldown = shootCooldownFor(b.attack);
 }
 
 function findSafeSpawn() {
@@ -638,33 +883,48 @@ function findSafeSpawn() {
 
 function spawnEnemies() {
     enemyObjects.forEach(o => scene.remove(o.mesh));
-    enemyObjects = []; enemies = [];
-    for (let i = 0; i < 9; i++) {
-        const bi = Math.floor(Math.random() * brawlers.length);
-        const b = brawlers[bi];
+    enemyObjects = [];
+    enemies.forEach(e => scene.remove(e.mesh));
+    enemies = [];
+    let count = 9;
+    if (gameMode === 'duelo') count = 1;
+    else if (gameMode === 'matamata' || gameMode === 'cristais') count = 7;
+    totalFighters = count + 1;
+
+    // no duelo o robô só pode ser de lutador desbloqueado forte
+    const pool = brawlers.filter(b => b.unlocked);
+    for (let i = 0; i < count; i++) {
+        const b = pool[Math.floor(Math.random() * pool.length)];
         const spawn = findSafeSpawn();
         const x = spawn.x, z = spawn.z;
-        const mesh = createRobot(b.color, b.mitico ? 1.4 : 1, b.mitico);
+        const isDuel = gameMode === 'duelo';
+        const sizeMul = isDuel ? 1.8 : (b.mitico ? 1.4 : 1);
+        const mesh = createRobot(b, sizeMul);
+        makeGhostable(mesh);
         mesh.position.set(x, 0, z);
         scene.add(mesh);
+        const hpMul = isDuel ? 2.2 : 1;
+        const dmgBonus = isDuel ? 6 : 0;
         enemies.push({
-            mesh, x, z, hp: b.hp, maxHp: b.hp, baseSpeed: b.speed*0.04, speed: b.speed*0.04,
-            dmg: b.dmg, attack: b.attack, color: b.color,
+            mesh, x, z, hp: b.hp * hpMul, maxHp: b.hp * hpMul, baseSpeed: b.speed*0.04, speed: b.speed*0.04,
+            dmg: b.dmg + dmgBonus, attack: b.attack, color: b.color, brawler: b,
             shootCooldown: Math.random()*60, shootRate: 50+Math.random()*40,
             targetX: x, targetZ: z, moveTimer: 0, alive: true, mitico: b.mitico||false, name: b.name,
-            powerCubes: 0, hidden: false
+            hidden: false, kills: 0, crystals: 0, respawnTimer: 0
         });
     }
-    aliveCount = 10;
+    aliveCount = totalFighters;
 }
 
 function findClosestTarget(e) {
     let closest = null, closestDist = Infinity;
-    // Check player
-    const dpx = player.x - e.x, dpz = player.z - e.z;
-    const distP = Math.sqrt(dpx*dpx + dpz*dpz);
-    if (distP < closestDist) { closest = { x: player.x, z: player.z, type: 'player' }; closestDist = distP; }
-    // Check other enemies
+    // Player (só se não estiver escondido no mato!)
+    if (!player.hidden && !player.dead) {
+        const dpx = player.x - e.x, dpz = player.z - e.z;
+        const distP = Math.sqrt(dpx*dpx + dpz*dpz);
+        if (distP < closestDist) { closest = { x: player.x, z: player.z, type: 'player' }; closestDist = distP; }
+    }
+    // Outros robôs
     for (const other of enemies) {
         if (!other.alive || other === e) continue;
         if (other.hidden) continue;
@@ -672,14 +932,98 @@ function findClosestTarget(e) {
         const d = Math.sqrt(dx*dx + dz*dz);
         if (d < closestDist) { closest = { x: other.x, z: other.z, type: 'enemy', ref: other }; closestDist = d; }
     }
-    // Check power boxes
-    for (const box of powerBoxes) {
-        if (!box.alive) continue;
-        const dx = box.x - e.x, dz = box.z - e.z;
-        const d = Math.sqrt(dx*dx + dz*dz);
-        if (d < closestDist * 0.6) { closest = { x: box.x, z: box.z, type: 'box' }; closestDist = d; }
+    // Kit médico (se estiver machucado, prefere ir curar)
+    if (e.hp < e.maxHp * 0.5) {
+        for (const k of medkits) {
+            if (!k.alive) continue;
+            const dx = k.x - e.x, dz = k.z - e.z;
+            const d = Math.sqrt(dx*dx + dz*dz);
+            if (d < closestDist * 0.8) { closest = { x: k.x, z: k.z, type: 'medkit' }; closestDist = d; }
+        }
+    }
+    // Cristais (modo pega-cristais: prioridade máxima)
+    if (gameMode === 'cristais') {
+        for (const c of crystals) {
+            if (!c.alive) continue;
+            const dx = c.x - e.x, dz = c.z - e.z;
+            const d = Math.sqrt(dx*dx + dz*dz);
+            if (d < closestDist * 1.5) { closest = { x: c.x, z: c.z, type: 'crystal' }; closestDist = d; }
+        }
     }
     return { target: closest, dist: closestDist };
+}
+
+// === ZONA QUE FECHA ===
+function setupZone() {
+    if (zoneMesh) { scene.remove(zoneMesh); zoneMesh = null; }
+    zoneActive = (gameMode === 'royale');
+    zonePhaseIdx = 0;
+    zoneRadius = ZONE_PHASES[0];
+    zoneTargetRadius = ZONE_PHASES[0];
+    zoneTimer = ZONE_HOLD;
+    zoneShrinking = false;
+    document.getElementById('zone-warning').style.display = 'none';
+    if (!zoneActive) return;
+    const ringGeo = new THREE.RingGeometry(0.97, 1.0, 64);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xff3333, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
+    zoneMesh = new THREE.Mesh(ringGeo, ringMat);
+    zoneMesh.rotation.x = -Math.PI / 2;
+    zoneMesh.position.y = 0.05;
+    zoneMesh.scale.set(zoneRadius, zoneRadius, 1);
+    scene.add(zoneMesh);
+}
+
+function updateZone() {
+    if (!zoneActive) return;
+    const warnEl = document.getElementById('zone-warning');
+    if (zoneShrinking) {
+        zoneRadius -= (zoneRadius - zoneTargetRadius) * 0.02 + 0.01;
+        if (zoneRadius <= zoneTargetRadius + 0.1) {
+            zoneRadius = zoneTargetRadius;
+            zoneShrinking = false;
+            zoneTimer = ZONE_HOLD;
+            warnEl.style.display = 'none';
+        } else {
+            warnEl.style.display = 'block';
+            warnEl.textContent = '🔴 A ZONA ESTÁ FECHANDO! CORRE PRO MEIO!';
+        }
+    } else if (zonePhaseIdx < ZONE_PHASES.length - 1) {
+        zoneTimer--;
+        if (zoneTimer <= ZONE_WARN && zoneTimer > 0) {
+            warnEl.style.display = 'block';
+            warnEl.textContent = `⚠️ A zona vai fechar em ${Math.ceil(zoneTimer/60)}s!`;
+            if (zoneTimer === ZONE_WARN) sfxWarn();
+        }
+        if (zoneTimer <= 0) {
+            zonePhaseIdx++;
+            zoneTargetRadius = ZONE_PHASES[zonePhaseIdx];
+            zoneShrinking = true;
+        }
+    } else {
+        warnEl.style.display = 'none';
+    }
+    zoneMesh.scale.set(zoneRadius, zoneRadius, 1);
+    // pulso visual
+    zoneMesh.material.opacity = 0.45 + Math.sin(Date.now()*0.005)*0.15;
+
+    // dano fora da zona
+    const ZONE_DPS = 0.2;
+    if (!player.dead) {
+        const pd = Math.sqrt(player.x*player.x + player.z*player.z);
+        if (pd > zoneRadius) {
+            player.hp -= ZONE_DPS;
+            if (Math.random() < 0.1) spawnParticle3D(player.x, player.z, 0xff3333);
+            if (player.hp <= 0) { killPlayer(); }
+        }
+    }
+    for (const e of enemies) {
+        if (!e.alive) continue;
+        const ed = Math.sqrt(e.x*e.x + e.z*e.z);
+        if (ed > zoneRadius) {
+            e.hp -= ZONE_DPS;
+            if (e.hp <= 0) killEnemy(e, null);
+        }
+    }
 }
 
 function startGame() {
@@ -688,7 +1032,11 @@ function startGame() {
     player.speed = b.speed * 0.05;
     player.dmg = b.dmg; player.attack = b.attack;
     player.shootCooldown = 0;
+    player.hidden = false; player.dead = false; player.respawnTimer = 0;
+    player.kills = 0; player.crystals = 0;
     score = 0; gameOver = false; victory = false;
+    matchTimer = gameMode === 'matamata' ? 90 * 60 : 0;
+    crystalSpawnTimer = 0;
 
     // Clear old
     if (playerObj) scene.remove(playerObj);
@@ -702,23 +1050,35 @@ function startGame() {
     const pSpawn = findSafeSpawn();
     player.x = pSpawn.x; player.z = pSpawn.z;
 
-    playerObj = createRobot(b.color, 1.2, b.mitico);
+    playerObj = createRobot(b, 1.2);
+    makeGhostable(playerObj);
     playerObj.position.set(player.x, 0, player.z);
     scene.add(playerObj);
 
     spawnEnemies();
+    setupZone();
+    if (gameMode === 'cristais') { for (let i = 0; i < 5; i++) spawnCrystal(); }
     gameRunning = true;
     document.getElementById('overlay').classList.remove('show');
+    document.getElementById('hidden-tag').style.display = 'none';
     resizeGame();
+}
+
+function trophiesEarned() {
+    return Math.floor(score/10) + (victory ? 10 : 0);
 }
 
 function backToMenu() {
     gameRunning = false;
     document.getElementById('game-container').style.display = 'none';
     document.getElementById('menu').style.display = 'flex';
+    document.getElementById('zone-warning').style.display = 'none';
+    document.getElementById('hidden-tag').style.display = 'none';
     if (score > 0 || victory) {
-        brawlers[selectedBrawler].trophies += Math.floor(score/10) + (victory ? 10 : 0);
-        document.getElementById('total-trophies').textContent = getTotalTrophies();
+        brawlers[selectedBrawler].trophies += trophiesEarned();
+        gold += score;  // moedas por batalha!
+        saveGame();
+        updateCurrencyDisplay();
     }
 }
 
@@ -755,29 +1115,143 @@ function spawnParticle3D(x, z, color) {
     gParticles.push({ mesh, vx: (Math.random()-0.5)*0.3, vy: Math.random()*0.2, vz: (Math.random()-0.5)*0.3, life: 20 });
 }
 
+const modeHasRespawn = () => gameMode === 'matamata' || gameMode === 'cristais';
+
+function killPlayer() {
+    if (player.dead) return;
+    sfxDamage();
+    for(let k=0;k<10;k++) spawnParticle3D(player.x, player.z, brawlers[selectedBrawler].color);
+    if (modeHasRespawn()) {
+        player.dead = true;
+        player.respawnTimer = 120;
+        playerObj.visible = false;
+        if (gameMode === 'cristais' && player.crystals > 0) {
+            for (let i = 0; i < player.crystals; i++) spawnCrystal(player.x, player.z);
+            player.crystals = 0;
+        }
+    } else {
+        gameOver = true;
+        sfxGameOver();
+        showOverlay();
+    }
+}
+
+function killEnemy(e, killerOwner) {
+    if (!e.alive) return;
+    e.alive = false;
+    sfxKill();
+    for(let k=0;k<10;k++) spawnParticle3D(e.x, e.z, e.color);
+    if (killerOwner === 'player') {
+        player.kills++;
+        score += e.mitico ? 50 : 10;
+    } else if (killerOwner && killerOwner.startsWith('enemy_')) {
+        const ki = parseInt(killerOwner.split('_')[1]);
+        if (enemies[ki]) enemies[ki].kills++;
+    }
+    if (gameMode === 'cristais' && e.crystals > 0) {
+        for (let i = 0; i < e.crystals; i++) spawnCrystal(e.x, e.z);
+        e.crystals = 0;
+    }
+    if (modeHasRespawn()) {
+        e.respawnTimer = 120;
+        e.mesh.visible = false;
+    } else {
+        aliveCount--;
+        scene.remove(e.mesh);
+        checkEndConditions();
+    }
+}
+
+function checkEndConditions() {
+    if (gameOver || victory) return;
+    if (gameMode === 'royale' || gameMode === 'duelo') {
+        if (!player.dead && player.hp > 0 && aliveCount <= 1) { victory = true; sfxVictory(); showOverlay(); }
+    }
+}
+
+function respawnEntity() {
+    // player
+    if (player.dead && player.respawnTimer > 0) {
+        player.respawnTimer--;
+        if (player.respawnTimer <= 0) {
+            const s = findSafeSpawn();
+            player.x = s.x; player.z = s.z;
+            player.hp = player.maxHp;
+            player.dead = false;
+            playerObj.visible = true;
+            sfxHeal();
+        }
+    }
+    for (const e of enemies) {
+        if (!e.alive && e.respawnTimer > 0) {
+            e.respawnTimer--;
+            if (e.respawnTimer <= 0) {
+                const s = findSafeSpawn();
+                e.x = s.x; e.z = s.z;
+                e.hp = e.maxHp;
+                e.alive = true;
+                e.mesh.visible = true;
+                e.mesh.position.set(e.x, 0, e.z);
+            }
+        }
+    }
+}
+
+function endMataMata() {
+    // ranking por abates
+    const ranking = [{ name: 'Você', kills: player.kills }].concat(
+        enemies.map(e => ({ name: e.name, kills: e.kills }))
+    ).sort((a, b) => b.kills - a.kills);
+    const myPos = ranking.findIndex(r => r.name === 'Você') + 1;
+    score = player.kills * 10;
+    if (myPos === 1) { victory = true; sfxVictory(); }
+    else { gameOver = true; sfxGameOver(); }
+    showOverlayMataMata(myPos, ranking[0]);
+}
+
 function update() {
     if (!gameRunning || gameOver || victory) return;
 
-    // Player movement — keyboard + touch
-    let dx = 0, dz = 0;
-    if (keys['KeyW']||keys['ArrowUp']) dz -= 1;
-    if (keys['KeyS']||keys['ArrowDown']) dz += 1;
-    if (keys['KeyA']||keys['ArrowLeft']) dx -= 1;
-    if (keys['KeyD']||keys['ArrowRight']) dx += 1;
-    // Touch joystick
-    if (touchMove.active) { dx += touchMove.dx; dz += touchMove.dz; }
-    if (dx || dz) {
-        const len = Math.sqrt(dx*dx+dz*dz);
-        player.x += (dx/len) * player.speed;
-        player.z += (dz/len) * player.speed;
+    respawnEntity();
+
+    // timer do mata-mata
+    if (gameMode === 'matamata') {
+        matchTimer--;
+        if (matchTimer <= 0) { endMataMata(); return; }
     }
-    // Touch shoot
-    if (touchShoot.active && touchShoot.shooting && (touchShoot.dx !== 0 || touchShoot.dz !== 0)) {
-        if (player.shootCooldown <= 0) {
-            const angle = Math.atan2(touchShoot.dz, touchShoot.dx);
-            const b = brawlers[selectedBrawler];
-            fireBullets(player.x, player.z, angle, b.attack, b.dmg, 'player', b.color);
-            player.shootCooldown = b.attack==='zap'?8 : b.attack==='bomb'?25 : b.attack==='cannon'?22 : 15;
+
+    // cristais aparecendo
+    if (gameMode === 'cristais') {
+        crystalSpawnTimer--;
+        if (crystalSpawnTimer <= 0 && crystals.filter(c => c.alive).length < 8) {
+            spawnCrystal();
+            crystalSpawnTimer = 240;
+        }
+        // gira os cristais
+        for (const c of crystals) { if (c.alive) { c.mesh.rotation.y += 0.04; c.mesh.position.y = 1 + Math.sin(Date.now()*0.003 + c.x)*0.2; } }
+    }
+
+    // Player movement — keyboard + touch
+    if (!player.dead) {
+        let dx = 0, dz = 0;
+        if (keys['KeyW']||keys['ArrowUp']) dz -= 1;
+        if (keys['KeyS']||keys['ArrowDown']) dz += 1;
+        if (keys['KeyA']||keys['ArrowLeft']) dx -= 1;
+        if (keys['KeyD']||keys['ArrowRight']) dx += 1;
+        if (touchMove.active) { dx += touchMove.dx; dz += touchMove.dz; }
+        if (dx || dz) {
+            const len = Math.sqrt(dx*dx+dz*dz);
+            player.x += (dx/len) * player.speed;
+            player.z += (dz/len) * player.speed;
+        }
+        // Touch shoot
+        if (touchShoot.active && touchShoot.shooting && (touchShoot.dx !== 0 || touchShoot.dz !== 0)) {
+            if (player.shootCooldown <= 0) {
+                const angle = Math.atan2(touchShoot.dz, touchShoot.dx);
+                const b = brawlers[selectedBrawler];
+                fireBullets(player.x, player.z, angle, b.attack, b.dmg, 'player', b.color);
+                player.shootCooldown = shootCooldownFor(b.attack);
+            }
         }
     }
     const half = MAP_SIZE/2 - 1;
@@ -790,6 +1264,11 @@ function update() {
 
     playerObj.position.set(player.x, 0, player.z);
 
+    // MATO = INVISÍVEL! (bots não te veem, e você fica translúcido pra saber)
+    player.hidden = !player.dead && isInBush(player.x, player.z);
+    setGhostOpacity(playerObj, player.hidden ? 0.3 : 1);
+    document.getElementById('hidden-tag').style.display = player.hidden ? 'block' : 'none';
+
     // Player face mouse
     const target = getWorldMouse();
     if (target) playerObj.lookAt(target.x, 0, target.z);
@@ -801,13 +1280,48 @@ function update() {
 
     if (player.shootCooldown > 0) player.shootCooldown--;
 
+    // pega kit médico
+    if (!player.dead) {
+        for (const k of medkits) {
+            if (!k.alive) continue;
+            if (Math.abs(player.x - k.x) < 1.4 && Math.abs(player.z - k.z) < 1.4) {
+                if (player.hp < player.maxHp) {
+                    player.hp = Math.min(player.maxHp, player.hp + 50);
+                    k.alive = false;
+                    scene.remove(k.mesh);
+                    sfxHeal();
+                    for(let p=0;p<6;p++) spawnParticle3D(k.x, k.z, 0x00ff88);
+                }
+            }
+        }
+        // pega cristal
+        if (gameMode === 'cristais') {
+            for (const c of crystals) {
+                if (!c.alive) continue;
+                if (Math.abs(player.x - c.x) < 1.4 && Math.abs(player.z - c.z) < 1.4) {
+                    c.alive = false;
+                    scene.remove(c.mesh);
+                    player.crystals++;
+                    score += 10;
+                    sfxPickup();
+                    for(let p=0;p<5;p++) spawnParticle3D(c.x, c.z, 0x00eeff);
+                    if (player.crystals >= CRYSTAL_GOAL) { victory = true; sfxVictory(); showOverlay(); return; }
+                }
+            }
+        }
+    }
+
     // Camera follow
     cam.position.x = player.x;
     cam.position.z = player.z + 30;
     cam.position.y = 45;
     cam.lookAt(player.x, 0, player.z + 5);
 
-    // Enemies — AI: each one for themselves
+    // zona
+    updateZone();
+    if (gameOver || victory) return;
+
+    // Enemies — AI: cada um por si
     for (let ei = 0; ei < enemies.length; ei++) {
         const e = enemies[ei];
         if (!e.alive) continue;
@@ -820,10 +1334,17 @@ function update() {
         e.moveTimer--;
         const { target, dist } = findClosestTarget(e);
 
-        if (target && dist < 25) {
+        // fora da zona? corre pro meio!
+        const eDistCenter = Math.sqrt(e.x*e.x + e.z*e.z);
+        if (zoneActive && eDistCenter > zoneRadius - 4) {
+            const md = eDistCenter || 1;
+            e.x -= (e.x/md)*e.speed*1.2;
+            e.z -= (e.z/md)*e.speed*1.2;
+        } else if (target && dist < 25) {
             const mx = target.x - e.x, mz = target.z - e.z;
             const md = Math.sqrt(mx*mx + mz*mz);
-            if (md > 1) { e.x += (mx/md)*e.speed; e.z += (mz/md)*e.speed; }
+            const stopDist = (target.type === 'medkit' || target.type === 'crystal') ? 0.3 : 1;
+            if (md > stopDist) { e.x += (mx/md)*e.speed; e.z += (mz/md)*e.speed; }
         } else {
             if (e.moveTimer <= 0) {
                 e.targetX = Math.max(-half, Math.min(half, e.x + (Math.random()-0.5)*30));
@@ -843,6 +1364,33 @@ function update() {
         e.x = ew.x; e.z = ew.z;
         e.mesh.position.set(e.x, 0, e.z);
 
+        // bot pega kit médico
+        for (const k of medkits) {
+            if (!k.alive) continue;
+            if (Math.abs(e.x - k.x) < 1.4 && Math.abs(e.z - k.z) < 1.4 && e.hp < e.maxHp) {
+                e.hp = Math.min(e.maxHp, e.hp + 50);
+                k.alive = false;
+                scene.remove(k.mesh);
+                for(let p=0;p<4;p++) spawnParticle3D(k.x, k.z, 0x00ff88);
+            }
+        }
+        // bot pega cristal
+        if (gameMode === 'cristais') {
+            for (const c of crystals) {
+                if (!c.alive) continue;
+                if (Math.abs(e.x - c.x) < 1.4 && Math.abs(e.z - c.z) < 1.4) {
+                    c.alive = false;
+                    scene.remove(c.mesh);
+                    e.crystals++;
+                    if (e.crystals >= CRYSTAL_GOAL) {
+                        gameOver = true; sfxGameOver();
+                        showOverlayCrystalLoss(e);
+                        return;
+                    }
+                }
+            }
+        }
+
         // Face target
         if (target) e.mesh.lookAt(target.x, 0, target.z);
 
@@ -851,11 +1399,11 @@ function update() {
         e.mesh.userData.hpBar.scale.x = er;
         e.mesh.userData.hpBar.material.color.setHex(er > 0.5 ? 0x00ff00 : er > 0.25 ? 0xffff00 : 0xff0000);
 
-        // Shoot at closest target
+        // Shoot at closest target (não atira em kit/cristal!)
         e.shootCooldown--;
-        if (e.shootCooldown <= 0 && target && dist < 25) {
+        if (e.shootCooldown <= 0 && target && dist < 25 && (target.type === 'player' || target.type === 'enemy')) {
             const a = Math.atan2(target.z - e.z, target.x - e.x);
-            fireBullets(e.x, e.z, a, e.attack, e.dmg + e.powerCubes * 3, 'enemy_'+ei, e.color);
+            fireBullets(e.x, e.z, a, e.attack, e.dmg, 'enemy_'+ei, e.color);
             e.shootCooldown = e.shootRate;
         }
     }
@@ -876,52 +1424,17 @@ function update() {
             scene.remove(b.mesh); gBullets.splice(i,1); continue;
         }
 
-        // Hit power boxes (any bullet)
-        let hitBox = false;
-        for (const box of powerBoxes) {
-            if (!box.alive) continue;
-            if (Math.abs(bx-box.x)<1.2 && Math.abs(bz-box.z)<1.2) {
-                box.hp--;
-                for(let k=0;k<3;k++) spawnParticle3D(box.x, box.z, 0xcc8800);
-                if (box.hp <= 0) {
-                    box.alive = false;
-                    scene.remove(box.mesh);
-                    sfxKill();
-                    for(let k=0;k<6;k++) spawnParticle3D(box.x, box.z, 0xaa00ff);
-                    // Drop power cube — whoever is closest picks it up
-                    const distToPlayer = Math.sqrt((player.x-box.x)**2 + (player.z-box.z)**2);
-                    let closestEnemy = null, closestDist = distToPlayer;
-                    for (const e of enemies) {
-                        if (!e.alive) continue;
-                        const d = Math.sqrt((e.x-box.x)**2 + (e.z-box.z)**2);
-                        if (d < closestDist) { closestDist = d; closestEnemy = e; }
-                    }
-                    if (closestEnemy) { closestEnemy.powerCubes++; closestEnemy.hp = Math.min(closestEnemy.hp + 20, closestEnemy.maxHp + closestEnemy.powerCubes*20); closestEnemy.maxHp += 20; }
-                    else { playerPowerCubes++; player.hp = Math.min(player.hp + 20, player.maxHp + playerPowerCubes*20); player.maxHp += 20; }
-                }
-                if (!b.pierce) { scene.remove(b.mesh); gBullets.splice(i,1); }
-                hitBox = true;
-                break;
-            }
-        }
-        if (hitBox) continue;
-
         // Hit enemies
         if (b.owner === 'player') {
             for (const e of enemies) {
                 if (!e.alive) continue;
                 if (Math.abs(bx-e.x)<1.2 && Math.abs(bz-e.z)<1.2) {
-                    const dmg = b.damage + playerPowerCubes * 3;
-                    e.hp -= dmg;
+                    e.hp -= b.damage;
                     sfxHit();
                     for(let k=0;k<3;k++) spawnParticle3D(bx, bz, e.color);
                     if (!b.pierce) { scene.remove(b.mesh); gBullets.splice(i,1); }
-                    if (e.hp <= 0) {
-                        e.alive = false; aliveCount--;
-                        scene.remove(e.mesh); sfxKill(); score += e.mitico ? 50 : 10;
-                        for(let k=0;k<10;k++) spawnParticle3D(e.x, e.z, e.color);
-                        if (aliveCount <= 1) { victory = true; sfxVictory(); showOverlay(); }
-                    }
+                    if (e.hp <= 0) killEnemy(e, 'player');
+                    if (gameOver || victory) return;
                     break;
                 }
             }
@@ -930,12 +1443,13 @@ function update() {
             const ownerIdx = parseInt(b.owner.split('_')[1]);
 
             // Hit player
-            if (Math.abs(bx-player.x)<1 && Math.abs(bz-player.z)<1) {
+            if (!player.dead && Math.abs(bx-player.x)<1 && Math.abs(bz-player.z)<1) {
                 player.hp -= b.damage;
                 sfxDamage();
                 for(let k=0;k<3;k++) spawnParticle3D(player.x, player.z, brawlers[selectedBrawler].color);
                 scene.remove(b.mesh); gBullets.splice(i,1);
-                if (player.hp <= 0) { gameOver = true; sfxGameOver(); showOverlay(); }
+                if (player.hp <= 0) killPlayer();
+                if (gameOver || victory) return;
                 continue;
             }
 
@@ -947,12 +1461,8 @@ function update() {
                     e.hp -= b.damage;
                     for(let k=0;k<3;k++) spawnParticle3D(bx, bz, e.color);
                     if (!b.pierce) { scene.remove(b.mesh); gBullets.splice(i,1); }
-                    if (e.hp <= 0) {
-                        e.alive = false; aliveCount--;
-                        scene.remove(e.mesh); sfxKill();
-                        for(let k=0;k<10;k++) spawnParticle3D(e.x, e.z, e.color);
-                        if (aliveCount <= 1 && player.hp > 0) { victory = true; sfxVictory(); showOverlay(); }
-                    }
+                    if (e.hp <= 0) killEnemy(e, b.owner);
+                    if (gameOver || victory) return;
                     break;
                 }
             }
@@ -970,16 +1480,28 @@ function update() {
         if (p.life <= 0) { scene.remove(p.mesh); gParticles.splice(i,1); }
     }
 
-    // Animate power boxes (rotate)
-    for (const box of powerBoxes) {
-        if (!box.alive) continue;
-        box.mesh.rotation.y += 0.02;
+    // Kit médicos flutuam de leve
+    for (const k of medkits) {
+        if (!k.alive) continue;
+        k.mesh.rotation.y += 0.02;
+        k.mesh.position.y = Math.sin(Date.now()*0.003 + k.x)*0.1;
     }
 
     // HUD
-    const cubeText = playerPowerCubes > 0 ? ` | ⚡${playerPowerCubes}` : '';
-    document.getElementById('hud-brawler').textContent = `${brawlers[selectedBrawler].icon} ${brawlers[selectedBrawler].name} | HP: ${Math.max(0,Math.round(player.hp))}${cubeText}`;
-    document.getElementById('hud-alive').textContent = `Vivos: ${aliveCount}/10`;
+    const bSel = brawlers[selectedBrawler];
+    const deadTxt = player.dead ? ' 💀 renascendo...' : '';
+    document.getElementById('hud-brawler').textContent = `${bSel.icon} ${bSel.name} | HP: ${Math.max(0,Math.round(player.hp))}${deadTxt}`;
+    if (gameMode === 'matamata') {
+        document.getElementById('hud-alive').textContent = `⏱ ${Math.ceil(matchTimer/60)}s | Abates: ${player.kills}`;
+    } else if (gameMode === 'cristais') {
+        const best = enemies.reduce((m,e)=>Math.max(m,e.crystals),0);
+        document.getElementById('hud-alive').textContent = `💎 ${player.crystals}/${CRYSTAL_GOAL} (robô melhor: ${best})`;
+    } else if (gameMode === 'duelo') {
+        const foe = enemies[0];
+        document.getElementById('hud-alive').textContent = foe && foe.alive ? `🤺 ${foe.name}: ${Math.max(0,Math.round(foe.hp))} HP` : '🤺 Duelo';
+    } else {
+        document.getElementById('hud-alive').textContent = `Vivos: ${aliveCount}/${totalFighters}`;
+    }
     document.getElementById('hud-score').textContent = `Pontos: ${score}`;
 
     // Minimap
@@ -990,14 +1512,37 @@ function showOverlay() {
     const ol = document.getElementById('overlay');
     ol.classList.add('show');
     if (victory) {
-        document.getElementById('overlay-title').innerHTML = '<span style="color:#ffd700">VITORIA!</span>';
-        document.getElementById('overlay-text1').textContent = '#1 LUGAR!';
-        document.getElementById('overlay-text2').textContent = `Pontos: ${score} | +${Math.floor(score/10)+10} 🏆`;
+        document.getElementById('overlay-title').innerHTML = '<span style="color:#ffd700">VITÓRIA!</span>';
+        document.getElementById('overlay-text1').textContent = gameMode === 'cristais' ? `💎 ${CRYSTAL_GOAL} cristais! Você venceu!` : '#1 LUGAR!';
+        document.getElementById('overlay-text2').textContent = `Pontos: ${score} | +${trophiesEarned()} 🏆 | +${score} 🪙`;
     } else {
         document.getElementById('overlay-title').innerHTML = '<span style="color:#ff4444">ELIMINADO!</span>';
-        document.getElementById('overlay-text1').textContent = `Posicao: #${aliveCount}`;
-        document.getElementById('overlay-text2').textContent = `Pontos: ${score} | +${Math.floor(score/10)} 🏆`;
+        document.getElementById('overlay-text1').textContent = `Posição: #${aliveCount}`;
+        document.getElementById('overlay-text2').textContent = `Pontos: ${score} | +${trophiesEarned()} 🏆 | +${score} 🪙`;
     }
+    document.getElementById('overlay-sub').textContent = 'Clique pra voltar ao menu';
+}
+
+function showOverlayMataMata(myPos, top) {
+    const ol = document.getElementById('overlay');
+    ol.classList.add('show');
+    if (victory) {
+        document.getElementById('overlay-title').innerHTML = '<span style="color:#ffd700">CAMPEÃO!</span>';
+        document.getElementById('overlay-text1').textContent = `⚔️ ${player.kills} abates — ninguém te segurou!`;
+    } else {
+        document.getElementById('overlay-title').innerHTML = '<span style="color:#ff4444">FIM DE JOGO!</span>';
+        document.getElementById('overlay-text1').textContent = `Você ficou em #${myPos} (${player.kills} abates). Campeão: ${top.name} com ${top.kills}`;
+    }
+    document.getElementById('overlay-text2').textContent = `Pontos: ${score} | +${trophiesEarned()} 🏆 | +${score} 🪙`;
+    document.getElementById('overlay-sub').textContent = 'Clique pra voltar ao menu';
+}
+
+function showOverlayCrystalLoss(e) {
+    const ol = document.getElementById('overlay');
+    ol.classList.add('show');
+    document.getElementById('overlay-title').innerHTML = '<span style="color:#ff4444">PERDEU!</span>';
+    document.getElementById('overlay-text1').textContent = `O robô ${e.name} juntou ${CRYSTAL_GOAL} cristais primeiro!`;
+    document.getElementById('overlay-text2').textContent = `Você pegou ${player.crystals} 💎 | Pontos: ${score} | +${trophiesEarned()} 🏆`;
     document.getElementById('overlay-sub').textContent = 'Clique pra voltar ao menu';
 }
 
@@ -1012,9 +1557,22 @@ function drawMinimap() {
     // bushes
     mc.fillStyle = 'rgba(30,100,30,0.5)';
     for (const b of bushData) mc.fillRect(cx + (b.x+b.w/2)*scale - b.w*scale/2, cy + (b.z+b.d/2)*scale - b.d*scale/2, b.w*scale, b.d*scale);
-    // boxes
-    mc.fillStyle = '#cc8800';
-    for (const b of powerBoxes) { if(b.alive) mc.fillRect(cx + b.x*scale - 1, cy + b.z*scale - 1, 2, 2); }
+    // kit médicos
+    mc.fillStyle = '#ffffff';
+    for (const k of medkits) { if(k.alive) mc.fillRect(cx + k.x*scale - 1, cy + k.z*scale - 1, 2, 2); }
+    // cristais
+    if (gameMode === 'cristais') {
+        mc.fillStyle = '#00eeff';
+        for (const c of crystals) { if(c.alive) mc.fillRect(cx + c.x*scale - 1.5, cy + c.z*scale - 1.5, 3, 3); }
+    }
+    // zona
+    if (zoneActive) {
+        mc.strokeStyle = 'rgba(255,60,60,0.9)';
+        mc.lineWidth = 1.5;
+        mc.beginPath();
+        mc.arc(cx, cy, zoneRadius * scale, 0, Math.PI * 2);
+        mc.stroke();
+    }
     // player
     mc.fillStyle = '#00ff88';
     mc.fillRect(cx + player.x * scale - 2, cy + player.z * scale - 2, 4, 4);
