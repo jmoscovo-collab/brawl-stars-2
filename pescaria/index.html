@@ -123,6 +123,16 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
 
 <div id="cartaPeixe"></div>
 
+<div class="painel" id="dispositivo" style="display:flex; justify-content:center; z-index:50;">
+    <h1>🎣 Pescaria Maluca</h1>
+    <div class="sub">Onde você está jogando?</div>
+    <div style="display:flex; gap:16px; margin-top:10px;">
+        <button class="fechar" style="background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a; font-size:22px;" onclick="escolheDisp('pc')">💻 COMPUTADOR</button>
+        <button class="fechar" style="background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200; font-size:22px;" onclick="escolheDisp('celular')">📱 CELULAR</button>
+    </div>
+    <div class="sub" style="margin-top:14px;">💻 Computador: <b>BARRA DE ESPAÇO</b> ou mouse<br>📱 Celular: <b>toque na tela</b></div>
+</div>
+
 <script src="/stats.js"></script>
 <script>
 if (window.initStats) initStats('pescaria');
@@ -326,9 +336,21 @@ function pescar(){
         som(200,0.2,'sawtooth');
     }
 }
-// clicar na água também pesca (bom pro celular)
+// ============ DISPOSITIVO ============
+let disp = localStorage.getItem('pescaria_disp')||'';
+function escolheDisp(d){
+    disp = d; localStorage.setItem('pescaria_disp', d);
+    document.getElementById('dispositivo').style.display='none';
+    mostraMsg(d==='pc' ? '💻 ESPAÇO ou mouse pra pescar!' : '📱 Toca na tela pra pescar!', '#00ccff', 1800);
+}
+if(disp) document.getElementById('dispositivo').style.display='none';
+
+// celular: toque na tela | computador: mouse ou BARRA DE ESPAÇO
 cv.addEventListener('mousedown', pescar);
 cv.addEventListener('touchend', e=>{ e.preventDefault(); pescar(); });
+document.addEventListener('keydown', e=>{
+    if(e.code==='Space'){ e.preventDefault(); pescar(); }
+});
 
 function pegouPeixe(p){
     inventario.push(p);
