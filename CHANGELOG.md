@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v2.3.0 (2026-07-26)
+- JOGO NOVO: Capy.io — capivara-cobra estilo .io, arena 3000x3000, 10 bots com IA, boost,
+  ranking ao vivo, moedas por partida e 130 skins (10 series x 13 paletas)
+
+
 ## v2.2.0 (2026-07-25)
 - JOGO NOVO: Luta de Capivara — 100 niveis vs bots animais, soco (ESPACO) + chute (mouse) no PC,
   botoes no celular, moedas por vitoria, 14 skins de animais (Capivara gratis ate Unicornio 60k)

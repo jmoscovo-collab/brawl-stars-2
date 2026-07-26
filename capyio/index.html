@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Capy.io — Cogumelo Games</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100dvh; overflow:hidden; background:#1a2332; font-family:'Comic Sans MS','Chalkboard SE',sans-serif; touch-action:none; }
+  #gameCanvas { display:block; width:100%; height:100dvh; }
+  .tela { position:fixed; inset:0; height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(160deg,#12324a,#1a5c3a); z-index:10; padding:16px; overflow-y:auto; }
+  .oculta { display:none !important; }
+  h1.titulo { font-size:clamp(40px,10vw,80px); color:#ffd54f; text-shadow:3px 3px 0 #8b5a2b, 6px 6px 0 rgba(0,0,0,.3); margin-bottom:4px; }
+  .subtitulo { color:#c8f7d0; font-size:clamp(14px,3vw,20px); margin-bottom:20px; }
+  .botao { font-family:inherit; font-size:clamp(18px,4vw,26px); font-weight:bold; padding:14px 40px; margin:8px; border:none; border-radius:16px; cursor:pointer; color:#fff; background:linear-gradient(180deg,#ffb347,#ff8c1a); box-shadow:0 5px 0 #b35900; transition:transform .1s; }
+  .botao:active { transform:translateY(4px); box-shadow:0 1px 0 #b35900; }
+  .botao.verde { background:linear-gradient(180deg,#6fdc6f,#2eb82e); box-shadow:0 5px 0 #1a7a1a; }
+  .botao.verde:active { box-shadow:0 1px 0 #1a7a1a; }
+  .botao.azul { background:linear-gradient(180deg,#5bc0eb,#2a7fbf); box-shadow:0 5px 0 #1a5a8a; }
+  .botao.azul:active { box-shadow:0 1px 0 #1a5a8a; }
+  .botao.pequeno { font-size:16px; padding:8px 20px; }
+  .modo-botoes { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; justify-content:center; }
+  .modo-btn { font-family:inherit; font-size:18px; padding:10px 22px; border-radius:14px; border:3px solid transparent; background:#0f2537; color:#9fc3d9; cursor:pointer; }
+  .modo-btn.ativo { border-color:#ffd54f; color:#fff; background:#1c3d57; }
+  .info-linha { color:#ffe082; font-size:clamp(15px,3.5vw,20px); margin:6px 0; }
+  /* Loja */
+  #telaLoja { justify-content:flex-start; }
+  #listaSkins { width:100%; max-width:640px; flex:1; overflow-y:auto; margin-top:10px; padding-bottom:20px; -webkit-overflow-scrolling:touch; }
+  .serie-titulo { color:#ffd54f; font-size:20px; margin:16px 4px 8px; text-shadow:1px 1px 0 rgba(0,0,0,.4); }
+  .skin-card { display:flex; align-items:center; gap:12px; background:rgba(255,255,255,.08); border-radius:14px; padding:10px 14px; margin-bottom:8px; }
+  .skin-card.equipada { outline:3px solid #ffd54f; }
+  .skin-preview { width:110px; height:34px; border-radius:17px; flex-shrink:0; display:flex; align-items:center; padding-left:4px; font-size:24px; }
+  .skin-nome { flex:1; color:#fff; font-size:clamp(13px,3vw,17px); }
+  .skin-preco { color:#ffe082; font-size:14px; white-space:nowrap; }
+  .skin-btn { font-family:inherit; font-size:14px; font-weight:bold; padding:8px 14px; border:none; border-radius:10px; cursor:pointer; color:#fff; white-space:nowrap; }
+  .skin-btn.comprar { background:#ff8c1a; }
+  .skin-btn.equipar { background:#2eb82e; }
+  .skin-btn.usando { background:#666; cursor:default; }
+  .skin-btn.caro { background:#444; color:#999; cursor:default; }
+  /* HUD */
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:5; }
+  #hudScore { position:absolute; top:10px; left:12px; color:#fff; font-size:clamp(16px,4vw,22px); text-shadow:2px 2px 0 rgba(0,0,0,.5); }
+  #hudRanking { position:absolute; top:10px; right:12px; color:#fff; font-size:clamp(11px,2.6vw,15px); text-align:right; text-shadow:1px 1px 0 rgba(0,0,0,.6); background:rgba(0,0,0,.25); border-radius:10px; padding:8px 12px; }
+  #hudTempo { position:absolute; bottom:10px; left:12px; color:#c8f7d0; font-size:clamp(13px,3vw,17px); text-shadow:1px 1px 0 rgba(0,0,0,.6); }
+  #hudDica { position:absolute; bottom:10px; right:12px; color:rgba(255,255,255,.55); font-size:clamp(11px,2.5vw,14px); }
+  /* Fim de jogo */
+  #telaFim { background:rgba(10,20,35,.88); }
+  #telaFim h2 { color:#ff6b6b; font-size:clamp(30px,8vw,56px); text-shadow:3px 3px 0 rgba(0,0,0,.4); margin-bottom:10px; }
+  .moedas-topo { position:absolute; top:12px; left:12px; color:#ffd54f; font-size:18px; text-shadow:1px 1px 0 rgba(0,0,0,.5); }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+
+<div id="hud" class="oculta">
+  <div id="hudScore">🦫 0</div>
+  <div id="hudRanking"></div>
+  <div id="hudTempo">⏱️ 0s</div>
+  <div id="hudDica">segura pra dar BOOST 💨</div>
+</div>
+
+<div id="telaMenu" class="tela">
+  <div class="moedas-topo" id="menuMoedas">🪙 0</div>
+  <h1 class="titulo">Capy.io</h1>
+  <div class="subtitulo">A capivara-cobra mais faminta do lago! 🦫🐍</div>
+  <div class="modo-botoes">
+    <button class="modo-btn" id="btnPC">💻 Computador</button>
+    <button class="modo-btn" id="btnCel">📱 Celular</button>
+  </div>
+  <button class="botao verde" id="btnJogar">▶ JOGAR</button>
+  <button class="botao azul" id="btnLoja">🛍️ LOJA DE SKINS</button>
+  <div class="info-linha" id="menuRecorde">🏆 Recorde: 0</div>
+  <div class="info-linha" style="color:#9fc3d9;font-size:14px;">Coma as bolinhas, cresça e derrube as outras cobras!</div>
+</div>
+
+<div id="telaLoja" class="tela oculta">
+  <h1 class="titulo" style="font-size:clamp(28px,7vw,44px);">🛍️ Loja de Skins</h1>
+  <div class="info-linha"><span id="lojaMoedas">🪙 0</span></div>
+  <button class="botao pequeno" id="btnVoltarLoja">⬅ Voltar</button>
+  <div id="listaSkins"></div>
+</div>
+
+<div id="telaFim" class="tela oculta">
+  <h2>💥 Xiii, bateu!</h2>
+  <div class="info-linha" id="fimPontos">Pontos: 0</div>
+  <div class="info-linha" id="fimMoedas">🪙 Moedas ganhas: 0</div>
+  <div class="info-linha" id="fimRecorde"></div>
+  <div class="info-linha" id="fimTempo"></div>
+  <button class="botao verde" id="btnDeNovo">🔄 Jogar de novo</button>
+  <button class="botao pequeno" id="btnMenuFim">🏠 Menu</button>
+</div>
+
+<script>
+'use strict';
+(function(){
+
+/* ================= PERSISTÊNCIA ================= */
+const LS = {
+  get(k, d){ try { const v = localStorage.getItem('capyio_'+k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem('capyio_'+k, JSON.stringify(v)); } catch(e){} }
+};
+let moedas = LS.get('moedas', 0);
+let recorde = LS.get('recorde', 0);
+let compradas = LS.get('skins', ['capivara_0']);
+let skinEquipada = LS.get('equipada', 'capivara_0');
+let modo = LS.get('modo', ('ontouchstart' in window) ? 'cel' : 'pc');
+
+/* ================= SKINS (geradas: 10 séries x 13 paletas = 130) ================= */
+const SERIES = [
+  { id:'capivara', nome:'Capivara', emoji:'🦫' },
+  { id:'cogumelo', nome:'Cogumelo', emoji:'🍄' },
+  { id:'gato',     nome:'Gato',     emoji:'🐱' },
+  { id:'raposa',   nome:'Raposa',   emoji:'🦊' },
+  { id:'panda',    nome:'Panda',    emoji:'🐼' },
+  { id:'tigre',    nome:'Tigre',    emoji:'🐯' },
+  { id:'sapo',     nome:'Sapo',     emoji:'🐸' },
+  { id:'polvo',    nome:'Polvo',    emoji:'🐙' },
+  { id:'robo',     nome:'Robô',     emoji:'🤖' },
+  { id:'dragao',   nome:'Dragão',   emoji:'🐉' }
+];
+const PALETAS = [
+  { suf:'Clássico(a)', cores:['#b5835a','#96683f'], pat:'listras' },
+  { suf:'Azul',        cores:['#4fc3f7','#1976d2'], pat:'degrade' },
+  { suf:'Verde',       cores:['#81c784','#2e7d32'], pat:'degrade' },
+  { suf:'Rosa',        cores:['#f48fb1','#e91e63'], pat:'bolinhas' },
+  { suf:'Vermelho(a)', cores:['#ef5350','#b71c1c'], pat:'listras' },
+  { suf:'Roxo(a)',     cores:['#ba68c8','#6a1b9a'], pat:'degrade' },
+  { suf:'Laranja',     cores:['#ffb74d','#ef6c00'], pat:'listras' },
+  { suf:'de Gelo',     cores:['#e0f7fa','#4dd0e1','#0288d1'], pat:'degrade' },
+  { suf:'de Fogo',     cores:['#ffee58','#ff9800','#e53935'], pat:'listras' },
+  { suf:'Ninja',       cores:['#37474f','#111111','#e53935'], pat:'listras' },
+  { suf:'Neon',        cores:['#00e5ff','#76ff03','#ff4081'], pat:'bolinhas' },
+  { suf:'Arco-Íris',   cores:['#ef5350','#ffb300','#ffee58','#66bb6a','#42a5f5','#ab47bc'], pat:'listras' },
+  { suf:'Galáctico(a)',cores:['#311b92','#7c4dff','#e1bee7','#ffd54f'], pat:'bolinhas' }
+];
+function nomeSkin(serie, pal){
+  const fem = ['capivara','raposa'].includes(serie.id);
+  const suf = pal.suf.replace('o(a)', fem ? 'a' : 'o');
+  return serie.nome + ' ' + suf;
+}
+const SKINS = [];
+(function(){
+  const total = SERIES.length * PALETAS.length; // 130
+  let i = 0;
+  for (const serie of SERIES){
+    for (let p = 0; p < PALETAS.length; p++){
+      const pal = PALETAS[p];
+      // preço geométrico: 0 (grátis) → ~100 → ... → 50000
+      const preco = i === 0 ? 0 : Math.round(100 * Math.pow(50000/100, (i-1)/(total-2)) / 5) * 5;
+      SKINS.push({
+        id: serie.id + '_' + p,
+        nome: nomeSkin(serie, pal),
+        emoji: serie.emoji,
+        serie: serie.nome,
+        cores: pal.cores,
+        pat: pal.pat,
+        preco: preco
+      });
+      i++;
+    }
+  }
+})();
+function acharSkin(id){ return SKINS.find(s => s.id === id) || SKINS[0]; }
+
+/* ================= SOM (WebAudio, sem arquivos) ================= */
+let actx = null;
+function som(freq, dur, tipo, vol){
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = tipo || 'square'; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || 0.06, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(); o.stop(actx.currentTime + dur);
+  } catch(e){}
+}
+const somComer = () => som(500 + Math.random()*300, 0.08, 'square', 0.04);
+const somMorte = () => { som(300, 0.3, 'sawtooth', 0.08); setTimeout(()=>som(150, 0.4, 'sawtooth', 0.08), 120); };
+const somMata  = () => { som(600, 0.12, 'triangle', 0.07); setTimeout(()=>som(900, 0.15, 'triangle', 0.07), 100); };
+const somCompra= () => { som(700, 0.1, 'sine', 0.07); setTimeout(()=>som(1050, 0.15, 'sine', 0.07), 90); };
+
+/* ================= MUNDO ================= */
+const MUNDO = 3000;
+const MAX_PELLETS = 400;
+const N_BOTS = 10;
+const ESPACO_SEG = 6;          // px entre pontos do caminho
+const SEG_A_CADA = 3;          // desenha segmento a cada N pontos do caminho
+const RAIO_BASE = 9;
+
+const NOMES_BOTS = ['Capivarão','Dona Cobra','Zé Minhoca','Bili Boinha','Serpentina','Tio Réptil','Minhocão','Capi Fofa','Cobrinha Zen','Lagartixa Turbo','Rei do Lago','Naja Neném'];
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0;
+function redimensionar(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', redimensionar);
+redimensionar();
+
+let pellets = [];
+let cobras = [];
+let jogador = null;
+let rodando = false;
+let tInicio = 0;
+let camX = MUNDO/2, camY = MUNDO/2;
+let ponteiro = { x: 0, y: 0, ativo: false, boost: false };
+
+function novoPellet(x, y, valor, cor){
+  return {
+    x: x !== undefined ? x : 60 + Math.random()*(MUNDO-120),
+    y: y !== undefined ? y : 60 + Math.random()*(MUNDO-120),
+    v: valor || 1,
+    r: 4 + (valor || 1) * 1.2,
+    cor: cor || ('hsl(' + Math.floor(Math.random()*360) + ',85%,60%)')
+  };
+}
+
+function novaCobra(nome, skin, ehJogador){
+  const x = 300 + Math.random()*(MUNDO-600);
+  const y = 300 + Math.random()*(MUNDO-600);
+  const ang = Math.random()*Math.PI*2;
+  const c = {
+    nome, skin, ehJogador: !!ehJogador,
+    x, y, ang,
+    velBase: ehJogador ? 3.1 : 2.7 + Math.random()*0.4,
+    giro: ehJogador ? 0.07 : 0.055,
+    caminho: [],
+    comprimento: 12,      // em segmentos visíveis
+    pontos: 0,
+    viva: true,
+    boost: false,
+    tRespawn: 0,
+    iaAlvo: null, iaTimer: 0, iaModo: 'comida'
+  };
+  // preenche caminho inicial
+  for (let i = 0; i < c.comprimento * SEG_A_CADA + 10; i++){
+    c.caminho.push({ x: x - Math.cos(ang) * i * ESPACO_SEG, y: y - Math.sin(ang) * i * ESPACO_SEG });
+  }
+  return c;
+}
+
+function raioCobra(c){ return RAIO_BASE + Math.min(10, c.comprimento * 0.04); }
+function nSegs(c){ return Math.floor(c.comprimento); }
+
+function skinBot(){
+  return SKINS[Math.floor(Math.random()*SKINS.length)];
+}
+
+function iniciarJogo(){
+  pellets = [];
+  for (let i = 0; i < MAX_PELLETS; i++) pellets.push(novoPellet());
+  cobras = [];
+  jogador = novaCobra('Você', acharSkin(skinEquipada), true);
+  jogador.x = MUNDO/2; jogador.y = MUNDO/2;
+  cobras.push(jogador);
+  const nomes = NOMES_BOTS.slice().sort(() => Math.random() - 0.5);
+  for (let i = 0; i < N_BOTS; i++) cobras.push(novaCobra(nomes[i % nomes.length], skinBot(), false));
+  camX = jogador.x; camY = jogador.y;
+  tInicio = performance.now();
+  rodando = true;
+}
+
+/* ================= ATUALIZAÇÃO ================= */
+function anguloPara(c, tx, ty){ return Math.atan2(ty - c.y, tx - c.x); }
+function difAng(a, b){ let d = b - a; while (d > Math.PI) d -= Math.PI*2; while (d < -Math.PI) d += Math.PI*2; return d; }
+
+function atualizarIA(c, dt){
+  c.iaTimer -= dt;
+  const margem = 220;
+  // desviar da borda tem prioridade
+  if (c.x < margem || c.x > MUNDO - margem || c.y < margem || c.y > MUNDO - margem){
+    c.iaAlvo = { x: MUNDO/2 + (Math.random()-0.5)*600, y: MUNDO/2 + (Math.random()-0.5)*600 };
+    c.iaModo = 'fugir'; c.iaTimer = 1.2;
+  } else if (c.iaTimer <= 0){
+    // às vezes tenta cortar o jogador
+    if (jogador && jogador.viva && Math.random() < 0.18){
+      const d = Math.hypot(jogador.x - c.x, jogador.y - c.y);
+      if (d < 600){
+        const adiante = 90 + Math.random()*80;
+        c.iaAlvo = { x: jogador.x + Math.cos(jogador.ang)*adiante, y: jogador.y + Math.sin(jogador.ang)*adiante };
+        c.iaModo = 'cacar'; c.iaTimer = 1.5 + Math.random();
+      }
+    }
+    if (c.iaModo !== 'cacar' || c.iaTimer <= 0){
+      // procura pellet perto
+      let melhor = null, md = 1e9;
+      for (let i = 0; i < pellets.length; i += 4){
+        const p = pellets[i];
+        const d = (p.x-c.x)*(p.x-c.x) + (p.y-c.y)*(p.y-c.y);
+        if (d < md){ md = d; melhor = p; }
+      }
+      c.iaAlvo = melhor ? { x: melhor.x, y: melhor.y } : { x: MUNDO/2, y: MUNDO/2 };
+      c.iaModo = 'comida'; c.iaTimer = 0.6 + Math.random()*0.8;
+    }
+    // boost aleatório curtinho
+    c.boost = c.iaModo === 'cacar' && c.comprimento > 20 && Math.random() < 0.4;
+  }
+  if (c.iaAlvo){
+    const alvoAng = anguloPara(c, c.iaAlvo.x, c.iaAlvo.y);
+    const d = difAng(c.ang, alvoAng);
+    c.ang += Math.max(-c.giro, Math.min(c.giro, d));
+  }
+}
+
+function moverCobra(c, dt){
+  let vel = c.velBase;
+  const podeBoost = c.comprimento > 14;
+  const boostando = c.boost && podeBoost;
+  if (boostando){
+    vel *= 1.75;
+    c.comprimento -= 0.045;
+    c.pontos = Math.max(0, c.pontos - 0.08);
+    // solta pellet atrás de vez em quando
+    if (Math.random() < 0.25 && pellets.length < MAX_PELLETS + 60){
+      const rabo = c.caminho[Math.min(c.caminho.length-1, nSegs(c)*SEG_A_CADA)];
+      if (rabo) pellets.push(novoPellet(rabo.x + (Math.random()-0.5)*10, rabo.y + (Math.random()-0.5)*10, 1, c.skin.cores[0]));
+    }
+  }
+  const passo = vel * dt * 60;
+  c.x += Math.cos(c.ang) * passo;
+  c.y += Math.sin(c.ang) * passo;
+  // registra caminho em pontos espaçados
+  const ult = c.caminho[0];
+  const dd = Math.hypot(c.x - ult.x, c.y - ult.y);
+  if (dd >= ESPACO_SEG){
+    const n = Math.floor(dd / ESPACO_SEG);
+    for (let i = n; i >= 1; i--){
+      const t = i / n;
+      c.caminho.unshift({ x: ult.x + (c.x-ult.x)*t, y: ult.y + (c.y-ult.y)*t });
+    }
+  }
+  const maxCam = nSegs(c) * SEG_A_CADA + 20;
+  if (c.caminho.length > maxCam) c.caminho.length = maxCam;
+  // borda mata
+  const r = raioCobra(c);
+  if (c.x < r || c.x > MUNDO - r || c.y < r || c.y > MUNDO - r) matarCobra(c, null);
+}
+
+function comerPellets(c){
+  const r = raioCobra(c) + 10;
+  for (let i = pellets.length - 1; i >= 0; i--){
+    const p = pellets[i];
+    const dx = p.x - c.x, dy = p.y - c.y;
+    if (dx*dx + dy*dy < (r + p.r)*(r + p.r)){
+      pellets.splice(i, 1);
+      c.comprimento += 0.35 * p.v;
+      c.pontos += p.v;
+      if (c.ehJogador) somComer();
+    }
+  }
+}
+
+function matarCobra(c, assassino){
+  if (!c.viva) return;
+  c.viva = false;
+  // chuva de pellets ao longo do corpo
+  const segs = nSegs(c);
+  for (let i = 0; i < segs; i += 2){
+    const p = c.caminho[Math.min(c.caminho.length-1, i * SEG_A_CADA)];
+    if (p && pellets.length < MAX_PELLETS + 120){
+      pellets.push(novoPellet(p.x + (Math.random()-0.5)*14, p.y + (Math.random()-0.5)*14, 3, c.skin.cores[i % c.skin.cores.length]));
+    }
+  }
+  if (c.ehJogador){
+    somMorte();
+    fimDeJogo();
+  } else {
+    if (assassino === jogador) somMata();
+    c.tRespawn = 3 + Math.random()*2;
+  }
+}
+
+function checarColisoes(){
+  for (const c of cobras){
+    if (!c.viva) continue;
+    const rc = raioCobra(c);
+    for (const outra of cobras){
+      if (outra === c || !outra.viva) continue;
+      const ro = raioCobra(outra);
+      const segs = nSegs(outra);
+      // pula os primeiros segmentos (perto da cabeça da outra ainda é "cabeçada", vale)
+      for (let i = 2; i < segs; i++){
+        const p = outra.caminho[i * SEG_A_CADA];
+        if (!p) break;
+        const dx = p.x - c.x, dy = p.y - c.y;
+        const lim = rc + ro * 0.85;
+        if (dx*dx + dy*dy < lim*lim){
+          matarCobra(c, outra);
+          break;
+        }
+      }
+      if (!c.viva) break;
+    }
+  }
+}
+
+function reporPellets(){
+  while (pellets.length < MAX_PELLETS) pellets.push(novoPellet());
+  if (pellets.length > MAX_PELLETS + 150) pellets.splice(0, pellets.length - (MAX_PELLETS + 150));
+}
+
+/* ================= DESENHO ================= */
+function corSegmento(skin, i){
+  const cores = skin.cores;
+  if (skin.pat === 'listras') return cores[Math.floor(i / 3) % cores.length];
+  if (skin.pat === 'degrade') return cores[Math.min(cores.length - 1, Math.floor(i / 14) % cores.length)];
+  return cores[0]; // bolinhas: base + bolinha desenhada por cima
+}
+
+function desenhar(){
+  ctx.fillStyle = '#16202e';
+  ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(W/2 - camX, H/2 - camY);
+
+  // fundo quadriculado (só na área visível)
+  const grade = 60;
+  const x0 = Math.max(0, Math.floor((camX - W/2) / grade) * grade);
+  const x1 = Math.min(MUNDO, camX + W/2 + grade);
+  const y0 = Math.max(0, Math.floor((camY - H/2) / grade) * grade);
+  const y1 = Math.min(MUNDO, camY + H/2 + grade);
+  ctx.fillStyle = '#1c2a3d';
+  ctx.fillRect(Math.max(0, camX - W/2), Math.max(0, camY - H/2), Math.min(MUNDO, camX + W/2) - Math.max(0, camX - W/2), Math.min(MUNDO, camY + H/2) - Math.max(0, camY - H/2));
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = x0; x <= x1; x += grade){ ctx.moveTo(x, y0); ctx.lineTo(x, y1); }
+  for (let y = y0; y <= y1; y += grade){ ctx.moveTo(x0, y); ctx.lineTo(x1, y); }
+  ctx.stroke();
+
+  // borda mortal
+  ctx.strokeStyle = '#e53935';
+  ctx.lineWidth = 8;
+  ctx.strokeRect(0, 0, MUNDO, MUNDO);
+
+  // pellets
+  const margem = 40;
+  for (const p of pellets){
+    if (p.x < camX - W/2 - margem || p.x > camX + W/2 + margem || p.y < camY - H/2 - margem || p.y > camY + H/2 + margem) continue;
+    ctx.fillStyle = p.cor;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // cobras (corpo do rabo pra cabeça)
+  for (const c of cobras){
+    if (!c.viva) continue;
+    const r = raioCobra(c);
+    const segs = nSegs(c);
+    for (let i = segs - 1; i >= 0; i--){
+      const p = c.caminho[i * SEG_A_CADA];
+      if (!p) continue;
+      if (p.x < camX - W/2 - 30 || p.x > camX + W/2 + 30 || p.y < camY - H/2 - 30 || p.y > camY + H/2 + 30) continue;
+      ctx.fillStyle = corSegmento(c.skin, i);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+      ctx.fill();
+      if (c.skin.pat === 'bolinhas' && i % 4 === 2){
+        ctx.fillStyle = c.skin.cores[1 + (Math.floor(i/4) % (c.skin.cores.length - 1))] || '#fff';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r * 0.45, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+    // cabeça: círculo claro + emoji
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, r * 1.15, 0, Math.PI*2);
+    ctx.fill();
+    ctx.font = Math.round(r * 1.7) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(c.skin.emoji, c.x, c.y + 1);
+    // nome
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText(c.nome, c.x, c.y - r - 12);
+  }
+  ctx.restore();
+}
+
+/* ================= HUD ================= */
+const elScore = document.getElementById('hudScore');
+const elRank = document.getElementById('hudRanking');
+const elTempo = document.getElementById('hudTempo');
+function atualizarHUD(){
+  elScore.textContent = '🦫 ' + Math.floor(jogador.pontos) + ' pts';
+  const vivas = cobras.filter(c => c.viva).sort((a, b) => b.pontos - a.pontos).slice(0, 5);
+  elRank.innerHTML = '🏅 TOP 5<br>' + vivas.map((c, i) =>
+    (i+1) + 'º ' + (c.ehJogador ? '⭐ ' : '') + escapeHtml(c.nome) + ' — ' + Math.floor(c.pontos)
+  ).join('<br>');
+  const s = Math.floor((performance.now() - tInicio) / 1000);
+  elTempo.textContent = '⏱️ ' + (s >= 60 ? Math.floor(s/60) + 'min ' + (s%60) + 's' : s + 's');
+}
+function escapeHtml(s){ return s.replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch])); }
+
+/* ================= LOOP ================= */
+let tAnt = 0;
+function loop(t){
+  if (!rodando) return;
+  const dt = Math.min(0.05, (t - tAnt) / 1000 || 0.016);
+  tAnt = t;
+
+  // jogador segue o ponteiro
+  if (jogador.viva){
+    const alvoX = camX + (ponteiro.x - W/2);
+    const alvoY = camY + (ponteiro.y - H/2);
+    if (Math.hypot(alvoX - jogador.x, alvoY - jogador.y) > 12){
+      const d = difAng(jogador.ang, anguloPara(jogador, alvoX, alvoY));
+      jogador.ang += Math.max(-jogador.giro, Math.min(jogador.giro, d));
+    }
+    jogador.boost = ponteiro.boost;
+  }
+
+  for (const c of cobras){
+    if (!c.viva){
+      if (!c.ehJogador){
+        c.tRespawn -= dt;
+        if (c.tRespawn <= 0){
+          const nova = novaCobra(c.nome, skinBot(), false);
+          Object.assign(c, nova);
+        }
+      }
+      continue;
+    }
+    if (!c.ehJogador) atualizarIA(c, dt);
+    moverCobra(c, dt);
+    if (c.viva) comerPellets(c);
+  }
+  checarColisoes();
+  reporPellets();
+
+  // câmera suave
+  if (jogador.viva){
+    camX += (jogador.x - camX) * 0.12;
+    camY += (jogador.y - camY) * 0.12;
+  }
+  desenhar();
+  atualizarHUD();
+  requestAnimationFrame(loop);
+}
+
+/* ================= CONTROLES ================= */
+ponteiro.x = W/2; ponteiro.y = H/2;
+canvas.addEventListener('pointermove', e => { ponteiro.x = e.clientX; ponteiro.y = e.clientY; });
+canvas.addEventListener('pointerdown', e => { ponteiro.x = e.clientX; ponteiro.y = e.clientY; ponteiro.boost = true; });
+window.addEventListener('pointerup', () => { ponteiro.boost = false; });
+window.addEventListener('pointercancel', () => { ponteiro.boost = false; });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+/* ================= TELAS ================= */
+const telaMenu = document.getElementById('telaMenu');
+const telaLoja = document.getElementById('telaLoja');
+const telaFim = document.getElementById('telaFim');
+const hud = document.getElementById('hud');
+
+function fmtMoedas(n){ return '🪙 ' + Math.floor(n).toLocaleString('pt-BR'); }
+function atualizarMenu(){
+  document.getElementById('menuMoedas').textContent = fmtMoedas(moedas);
+  document.getElementById('menuRecorde').textContent = '🏆 Recorde: ' + Math.floor(recorde);
+  document.getElementById('btnPC').classList.toggle('ativo', modo === 'pc');
+  document.getElementById('btnCel').classList.toggle('ativo', modo === 'cel');
+}
+document.getElementById('btnPC').onclick = () => { modo = 'pc'; LS.set('modo', modo); atualizarMenu(); };
+document.getElementById('btnCel').onclick = () => { modo = 'cel'; LS.set('modo', modo); atualizarMenu(); };
+
+document.getElementById('btnJogar').onclick = () => {
+  telaMenu.classList.add('oculta');
+  hud.classList.remove('oculta');
+  document.getElementById('hudDica').textContent = modo === 'cel' ? 'arrasta o dedo pra guiar, segura pra BOOST 💨' : 'mouse guia, segura o clique pra BOOST 💨';
+  som(440, 0.1, 'sine', 0.05);
+  iniciarJogo();
+  tAnt = performance.now();
+  requestAnimationFrame(loop);
+};
+
+function fimDeJogo(){
+  rodando = false;
+  const pts = Math.floor(jogador.pontos);
+  const ganho = Math.max(5, Math.floor(pts / 10));
+  moedas += ganho;
+  LS.set('moedas', moedas);
+  let novoRec = '';
+  if (pts > recorde){ recorde = pts; LS.set('recorde', recorde); novoRec = '🎉 NOVO RECORDE!'; }
+  const s = Math.floor((performance.now() - tInicio) / 1000);
+  document.getElementById('fimPontos').textContent = 'Pontos: ' + pts;
+  document.getElementById('fimMoedas').textContent = '🪙 Moedas ganhas: +' + ganho + ' (total ' + Math.floor(moedas) + ')';
+  document.getElementById('fimRecorde').textContent = novoRec || ('🏆 Recorde: ' + Math.floor(recorde));
+  document.getElementById('fimTempo').textContent = '⏱️ Você sobreviveu ' + s + ' segundos!';
+  hud.classList.add('oculta');
+  telaFim.classList.remove('oculta');
+}
+document.getElementById('btnDeNovo').onclick = () => {
+  telaFim.classList.add('oculta');
+  hud.classList.remove('oculta');
+  iniciarJogo();
+  tAnt = performance.now();
+  requestAnimationFrame(loop);
+};
+document.getElementById('btnMenuFim').onclick = () => {
+  telaFim.classList.add('oculta');
+  atualizarMenu();
+  telaMenu.classList.remove('oculta');
+};
+
+/* ================= LOJA ================= */
+const listaSkins = document.getElementById('listaSkins');
+function previewCSS(skin){
+  const cores = skin.cores;
+  if (skin.pat === 'degrade') return 'linear-gradient(90deg,' + cores.join(',') + ')';
+  const passo = 100 / (cores.length * 2);
+  let stops = [], pos = 0;
+  for (let r = 0; r < 2; r++) for (const c of cores){ stops.push(c + ' ' + pos + '% ' + (pos + passo) + '%'); pos += passo; }
+  return 'linear-gradient(90deg,' + stops.join(',') + ')';
+}
+function montarLoja(){
+  document.getElementById('lojaMoedas').textContent = fmtMoedas(moedas);
+  let html = '';
+  let serieAtual = '';
+  for (const s of SKINS){
+    if (s.serie !== serieAtual){
+      serieAtual = s.serie;
+      html += '<div class="serie-titulo">' + s.emoji + ' Série ' + s.serie + '</div>';
+    }
+    const tem = compradas.includes(s.id);
+    const equipada = skinEquipada === s.id;
+    let btn;
+    if (equipada) btn = '<button class="skin-btn usando">✔ Usando</button>';
+    else if (tem) btn = '<button class="skin-btn equipar" data-acao="equipar" data-id="' + s.id + '">Equipar</button>';
+    else if (moedas >= s.preco) btn = '<button class="skin-btn comprar" data-acao="comprar" data-id="' + s.id + '">Comprar</button>';
+    else btn = '<button class="skin-btn caro">🔒</button>';
+    html += '<div class="skin-card' + (equipada ? ' equipada' : '') + '">' +
+      '<div class="skin-preview" style="background:' + previewCSS(s) + '">' + s.emoji + '</div>' +
+      '<div class="skin-nome">' + s.nome + '</div>' +
+      '<div class="skin-preco">' + (s.preco === 0 ? 'GRÁTIS' : '🪙 ' + s.preco.toLocaleString('pt-BR')) + '</div>' +
+      btn + '</div>';
+  }
+  listaSkins.innerHTML = html;
+}
+listaSkins.addEventListener('click', e => {
+  const btn = e.target.closest('[data-acao]');
+  if (!btn) return;
+  const skin = acharSkin(btn.dataset.id);
+  if (btn.dataset.acao === 'comprar'){
+    if (moedas < skin.preco) return;
+    moedas -= skin.preco;
+    compradas.push(skin.id);
+    skinEquipada = skin.id;
+    LS.set('moedas', moedas); LS.set('skins', compradas); LS.set('equipada', skinEquipada);
+    somCompra();
+  } else {
+    skinEquipada = skin.id;
+    LS.set('equipada', skinEquipada);
+    som(660, 0.08, 'sine', 0.05);
+  }
+  montarLoja();
+});
+document.getElementById('btnLoja').onclick = () => {
+  telaMenu.classList.add('oculta');
+  montarLoja();
+  telaLoja.classList.remove('oculta');
+};
+document.getElementById('btnVoltarLoja').onclick = () => {
+  telaLoja.classList.add('oculta');
+  atualizarMenu();
+  telaMenu.classList.remove('oculta');
+};
+
+atualizarMenu();
+})();
+</script>
+<script src="/stats.js"></script>
+<script>if (window.initStats) initStats('capyio');</script>
+</body>
+</html>
