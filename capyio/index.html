@@ -70,6 +70,7 @@
   <button class="botao verde" id="btnJogar">▶ JOGAR</button>
   <button class="botao azul" id="btnLoja">🛍️ LOJA DE SKINS</button>
   <div class="info-linha" id="menuRecorde">🏆 Recorde: 0</div>
+  <div class="info-linha" id="menuTop" style="line-height:1.7"></div>
   <div class="info-linha" style="color:#9fc3d9;font-size:14px;">Coma as bolinhas, cresça e derrube as outras cobras!</div>
 </div>
 
@@ -101,6 +102,19 @@ const LS = {
 };
 let moedas = LS.get('moedas', 0);
 let recorde = LS.get('recorde', 0);
+let topScores = LS.get('top', []);
+function salvaTop(pts){
+    const nome = localStorage.getItem('cg_usuario') || 'Você';
+    topScores.push({ nome, pts: Math.floor(pts), quando: new Date().toLocaleDateString('pt-BR') });
+    topScores.sort((a,b)=>b.pts-a.pts);
+    topScores = topScores.slice(0,5);
+    LS.set('top', topScores);
+}
+function htmlTop(){
+    if(!topScores.length) return '🏅 TOP JOGADORES<br><span style="opacity:.6">Jogue pra entrar no top!</span>';
+    return '🏅 TOP JOGADORES<br>' + topScores.map((t,i)=>
+        `${['🥇','🥈','🥉','4º','5º'][i]} ${t.nome} — ${t.pts} pts <span style="opacity:.5;font-size:11px">(${t.quando})</span>`).join('<br>');
+}
 let compradas = LS.get('skins', ['capivara_0']);
 let skinEquipada = LS.get('equipada', 'capivara_0');
 let modo = LS.get('modo', ('ontouchstart' in window) ? 'cel' : 'pc');
@@ -232,7 +246,7 @@ function novaCobra(nome, skin, ehJogador){
     velBase: ehJogador ? 3.1 : 2.7 + Math.random()*0.4,
     giro: ehJogador ? 0.07 : 0.055,
     caminho: [],
-    comprimento: 12,      // em segmentos visíveis
+    comprimento: 24,      // já começa com corpo!
     pontos: 0,
     viva: true,
     boost: false,
@@ -455,7 +469,7 @@ function desenhar(){
     if (!c.viva) continue;
     const r = raioCobra(c);
     const segs = nSegs(c);
-    // corpo ESTICADO: traço contínuo grosso (não bolinhas!) + bracinhos
+    // corpo ESTICADO: traço contínuo grosso e liso
     const tw = performance.now() / 250;
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     for (let i = segs - 1; i >= 1; i--){
@@ -464,22 +478,6 @@ function desenhar(){
       if (!p || !q) continue;
       if (p.x < camX - W/2 - 60 || p.x > camX + W/2 + 60 || p.y < camY - H/2 - 60 || p.y > camY + H/2 + 60) continue;
       const cor = corSegmento(c.skin, i);
-      // bracinhos perpendiculares (par de patinhas balançando)
-      if (i % 5 === 2 && i > 2){
-        const dx = q.x - p.x, dy = q.y - p.y, len = Math.hypot(dx, dy) || 1;
-        const nx = -dy/len, ny = dx/len;
-        const bal = Math.sin(tw + i) * 0.25 + 1;         // balança ao andar
-        ctx.strokeStyle = cor;
-        ctx.lineWidth = r * 0.5;
-        for (const lado of [1, -1]){
-          const ax = p.x + nx * r * 0.7 * lado, ay = p.y + ny * r * 0.7 * lado;
-          const bx = p.x + nx * r * 1.55 * bal * lado, by = p.y + ny * r * 1.55 * bal * lado;
-          ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
-          // mãozinha
-          ctx.fillStyle = 'rgba(0,0,0,0.25)';
-          ctx.beginPath(); ctx.arc(bx, by, r * 0.28, 0, Math.PI*2); ctx.fill();
-        }
-      }
       // pedaço do corpo (traço grosso = corpo liso e esticado)
       ctx.strokeStyle = cor;
       ctx.lineWidth = r * 2;
@@ -491,15 +489,50 @@ function desenhar(){
         ctx.fill();
       }
     }
-    // cabeça: círculo claro + emoji
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(c.x, c.y, r * 1.15, 0, Math.PI*2);
-    ctx.fill();
-    ctx.font = Math.round(r * 1.7) + 'px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(c.skin.emoji, c.x, c.y + 1);
+    // cabeça
+    if (c.skin.emoji === '🦫'){
+      // CABEÇA DE CAPIVARA desenhada!
+      const hr = r * 1.25;
+      const corCab = c.skin.cores[0] || '#8d6e4a';
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.rotate(c.ang);
+      // orelhinhas
+      ctx.fillStyle = corCab;
+      ctx.beginPath(); ctx.arc(-hr*0.45, -hr*0.75, hr*0.32, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(-hr*0.45,  hr*0.75, hr*0.32, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath(); ctx.arc(-hr*0.45, -hr*0.75, hr*0.15, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(-hr*0.45,  hr*0.75, hr*0.15, 0, Math.PI*2); ctx.fill();
+      // cabeça oval (mais comprida pra frente = focinho de capivara)
+      ctx.fillStyle = corCab;
+      ctx.beginPath(); ctx.ellipse(0, 0, hr*1.15, hr*0.85, 0, 0, Math.PI*2); ctx.fill();
+      // focinho mais claro
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.beginPath(); ctx.ellipse(hr*0.62, 0, hr*0.48, hr*0.42, 0, 0, Math.PI*2); ctx.fill();
+      // narinas
+      ctx.fillStyle = '#3a2a1a';
+      ctx.beginPath(); ctx.arc(hr*0.85, -hr*0.16, hr*0.09, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(hr*0.85,  hr*0.16, hr*0.09, 0, Math.PI*2); ctx.fill();
+      // olhos
+      ctx.fillStyle = '#1a1208';
+      ctx.beginPath(); ctx.arc(hr*0.05, -hr*0.42, hr*0.14, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(hr*0.05,  hr*0.42, hr*0.14, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(hr*0.09, -hr*0.46, hr*0.05, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(hr*0.09,  hr*0.38, hr*0.05, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, r * 1.15, 0, Math.PI*2);
+      ctx.fill();
+      ctx.font = Math.round(r * 1.7) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(c.skin.emoji, c.x, c.y + 1);
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     // nome
     ctx.font = 'bold 12px sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
@@ -587,6 +620,7 @@ function fmtMoedas(n){ return '🪙 ' + Math.floor(n).toLocaleString('pt-BR'); }
 function atualizarMenu(){
   document.getElementById('menuMoedas').textContent = fmtMoedas(moedas);
   document.getElementById('menuRecorde').textContent = '🏆 Recorde: ' + Math.floor(recorde);
+  document.getElementById('menuTop').innerHTML = htmlTop();
   document.getElementById('btnPC').classList.toggle('ativo', modo === 'pc');
   document.getElementById('btnCel').classList.toggle('ativo', modo === 'cel');
 }
@@ -611,6 +645,7 @@ function fimDeJogo(){
   LS.set('moedas', moedas);
   let novoRec = '';
   if (pts > recorde){ recorde = pts; LS.set('recorde', recorde); novoRec = '🎉 NOVO RECORDE!'; }
+  salvaTop(pts);
   const s = Math.floor((performance.now() - tInicio) / 1000);
   document.getElementById('fimPontos').textContent = 'Pontos: ' + pts;
   document.getElementById('fimMoedas').textContent = '🪙 Moedas ganhas: +' + ganho + ' (total ' + Math.floor(moedas) + ')';
