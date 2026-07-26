@@ -262,7 +262,7 @@ function novaCobra(nome, skin, ehJogador){
     nome, skin, ehJogador: !!ehJogador,
     x, y, ang,
     velBase: ehJogador ? 3.1 : 2.7 + Math.random()*0.4,
-    giro: ehJogador ? 0.10 : 0.06,
+    giro: ehJogador ? 0.082 : 0.055,
     caminho: [],
     comprimento: 24,      // já começa com corpo!
     pontos: 0,
@@ -645,8 +645,9 @@ function desenhar(){
     const segs = nSegs(c);
     // corpo = UMA curva contínua suave (nas curvas fica lisa, sem dobras!)
     const pts = [];
-    for (let i = 0; i < segs; i++){
-      const p = c.caminho[i * SEG_A_CADA];
+    const maxIdx = segs * SEG_A_CADA;
+    for (let i = 0; i <= maxIdx; i += 4){
+      const p = c.caminho[i];
       if (p) pts.push(p);
     }
     if (pts.length > 1){
@@ -661,10 +662,6 @@ function desenhar(){
         ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
       }
       ctx.lineTo(pts[pts.length-1].x, pts[pts.length-1].y);
-      ctx.stroke();
-      // brilho suave em cima (deixa com volume, sem textura estranha)
-      ctx.strokeStyle = 'rgba(255,255,255,0.13)';
-      ctx.lineWidth = r * 0.8;
       ctx.stroke();
     }
     // cabeça DESENHADA pra todos os bichos!
