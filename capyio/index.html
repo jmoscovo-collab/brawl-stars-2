@@ -46,6 +46,22 @@
   /* Fim de jogo */
   #telaFim { background:rgba(10,20,35,.88); }
   #telaFim h2 { color:#ff6b6b; font-size:clamp(30px,8vw,56px); text-shadow:3px 3px 0 rgba(0,0,0,.4); margin-bottom:10px; }
+  #joyBase {
+    position:fixed; left:22px; bottom:26px; width:130px; height:130px; border-radius:50%;
+    background:rgba(255,255,255,0.10); border:3px solid rgba(255,255,255,0.35);
+    display:none; align-items:center; justify-content:center; z-index:6; pointer-events:auto; touch-action:none;
+  }
+  #joyKnob {
+    width:56px; height:56px; border-radius:50%;
+    background:rgba(255,213,79,0.85); border:3px solid #ffd54f; box-shadow:0 0 14px rgba(255,213,79,0.5);
+  }
+  #btnBoost {
+    position:fixed; right:22px; bottom:30px; width:92px; height:92px; border-radius:50%;
+    background:rgba(46,184,46,0.3); border:3px solid #2eb82e; color:#fff; font-size:34px;
+    display:none; align-items:center; justify-content:center; z-index:6; pointer-events:auto;
+    user-select:none; -webkit-user-select:none; touch-action:none;
+  }
+  #btnBoost.ativo { background:rgba(46,184,46,0.75); }
   .moedas-topo { position:absolute; top:12px; left:12px; color:#ffd54f; font-size:18px; text-shadow:1px 1px 0 rgba(0,0,0,.5); }
 </style>
 </head>
@@ -56,8 +72,10 @@
   <div id="hudScore">🦫 0</div>
   <div id="hudRanking"></div>
   <div id="hudTempo">⏱️ 0s</div>
-  <div id="hudDica">segura pra dar BOOST 💨</div>
+  <div id="hudDica" ></div>
 </div>
+<div id="joyBase"><div id="joyKnob"></div></div>
+<div id="btnBoost">💨</div>
 
 <div id="telaMenu" class="tela">
   <div class="moedas-topo" id="menuMoedas">🪙 0</div>
@@ -563,15 +581,23 @@ function loop(t){
   const dt = Math.min(0.05, (t - tAnt) / 1000 || 0.016);
   tAnt = t;
 
-  // jogador segue o ponteiro
+  // jogador: celular = joystick + botão de correr | PC = segue o mouse
   if (jogador.viva){
-    const alvoX = camX + (ponteiro.x - W/2);
-    const alvoY = camY + (ponteiro.y - H/2);
-    if (Math.hypot(alvoX - jogador.x, alvoY - jogador.y) > 12){
-      const d = difAng(jogador.ang, anguloPara(jogador, alvoX, alvoY));
-      jogador.ang += Math.max(-jogador.giro, Math.min(jogador.giro, d));
+    if (modo === 'cel'){
+      if (joy.ativo){
+        const d = difAng(jogador.ang, joy.ang);
+        jogador.ang += Math.max(-jogador.giro, Math.min(jogador.giro, d));
+      }
+      jogador.boost = boostBtnAtivo;
+    } else {
+      const alvoX = camX + (ponteiro.x - W/2);
+      const alvoY = camY + (ponteiro.y - H/2);
+      if (Math.hypot(alvoX - jogador.x, alvoY - jogador.y) > 12){
+        const d = difAng(jogador.ang, anguloPara(jogador, alvoX, alvoY));
+        jogador.ang += Math.max(-jogador.giro, Math.min(jogador.giro, d));
+      }
+      jogador.boost = ponteiro.boost;
     }
-    jogador.boost = ponteiro.boost;
   }
 
   for (const c of cobras){
@@ -603,6 +629,35 @@ function loop(t){
 }
 
 /* ================= CONTROLES ================= */
+// joystick de círculo + botão de CORRER (modo celular)
+const joy = { ativo:false, ang:0 };
+let boostBtnAtivo = false;
+const joyBase = document.getElementById('joyBase');
+const joyKnob = document.getElementById('joyKnob');
+const elBoost = document.getElementById('btnBoost');
+function joyMexe(e){
+    const t = e.touches ? e.touches[0] : e;
+    const r = joyBase.getBoundingClientRect();
+    const cx = r.left + r.width/2, cy = r.top + r.height/2;
+    let dx = t.clientX - cx, dy = t.clientY - cy;
+    const dist = Math.hypot(dx, dy), max = r.width/2 - 20;
+    if (dist > 4){ joy.ativo = true; joy.ang = Math.atan2(dy, dx); }
+    const k = Math.min(1, dist/max);
+    joyKnob.style.transform = `translate(${Math.cos(joy.ang)*max*k}px, ${Math.sin(joy.ang)*max*k}px)`;
+}
+function joySolta(){ joy.ativo = false; joyKnob.style.transform = 'translate(0,0)'; }
+joyBase.addEventListener('touchstart', e => { e.preventDefault(); joyMexe(e); }, { passive:false });
+joyBase.addEventListener('touchmove', e => { e.preventDefault(); joyMexe(e); }, { passive:false });
+joyBase.addEventListener('touchend', e => { e.preventDefault(); joySolta(); }, { passive:false });
+joyBase.addEventListener('touchcancel', joySolta);
+elBoost.addEventListener('touchstart', e => { e.preventDefault(); boostBtnAtivo = true; elBoost.classList.add('ativo'); }, { passive:false });
+elBoost.addEventListener('touchend', e => { e.preventDefault(); boostBtnAtivo = false; elBoost.classList.remove('ativo'); }, { passive:false });
+elBoost.addEventListener('touchcancel', () => { boostBtnAtivo = false; elBoost.classList.remove('ativo'); });
+function mostraControlesCel(mostrar){
+    const v = (mostrar && modo === 'cel') ? 'flex' : 'none';
+    joyBase.style.display = v; elBoost.style.display = v;
+    document.getElementById('hudDica').textContent = modo === 'cel' ? '🕹️ círculo move · 💨 botão corre' : 'segura o clique pra dar BOOST 💨';
+}
 ponteiro.x = W/2; ponteiro.y = H/2;
 canvas.addEventListener('pointermove', e => { ponteiro.x = e.clientX; ponteiro.y = e.clientY; });
 canvas.addEventListener('pointerdown', e => { ponteiro.x = e.clientX; ponteiro.y = e.clientY; ponteiro.boost = true; });
@@ -630,6 +685,7 @@ document.getElementById('btnCel').onclick = () => { modo = 'cel'; LS.set('modo',
 document.getElementById('btnJogar').onclick = () => {
   telaMenu.classList.add('oculta');
   hud.classList.remove('oculta');
+  mostraControlesCel(true);
   document.getElementById('hudDica').textContent = modo === 'cel' ? 'arrasta o dedo pra guiar, segura pra BOOST 💨' : 'mouse guia, segura o clique pra BOOST 💨';
   som(440, 0.1, 'sine', 0.05);
   iniciarJogo();
@@ -652,11 +708,13 @@ function fimDeJogo(){
   document.getElementById('fimRecorde').textContent = novoRec || ('🏆 Recorde: ' + Math.floor(recorde));
   document.getElementById('fimTempo').textContent = '⏱️ Você sobreviveu ' + s + ' segundos!';
   hud.classList.add('oculta');
+  mostraControlesCel(false);
   telaFim.classList.remove('oculta');
 }
 document.getElementById('btnDeNovo').onclick = () => {
   telaFim.classList.add('oculta');
   hud.classList.remove('oculta');
+  mostraControlesCel(true);
   iniciarJogo();
   tAnt = performance.now();
   requestAnimationFrame(loop);
