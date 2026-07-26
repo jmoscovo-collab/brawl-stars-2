@@ -455,14 +455,35 @@ function desenhar(){
     if (!c.viva) continue;
     const r = raioCobra(c);
     const segs = nSegs(c);
-    for (let i = segs - 1; i >= 0; i--){
+    // corpo ESTICADO: traço contínuo grosso (não bolinhas!) + bracinhos
+    const tw = performance.now() / 250;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (let i = segs - 1; i >= 1; i--){
       const p = c.caminho[i * SEG_A_CADA];
-      if (!p) continue;
-      if (p.x < camX - W/2 - 30 || p.x > camX + W/2 + 30 || p.y < camY - H/2 - 30 || p.y > camY + H/2 + 30) continue;
-      ctx.fillStyle = corSegmento(c.skin, i);
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, Math.PI*2);
-      ctx.fill();
+      const q = c.caminho[(i - 1) * SEG_A_CADA];
+      if (!p || !q) continue;
+      if (p.x < camX - W/2 - 60 || p.x > camX + W/2 + 60 || p.y < camY - H/2 - 60 || p.y > camY + H/2 + 60) continue;
+      const cor = corSegmento(c.skin, i);
+      // bracinhos perpendiculares (par de patinhas balançando)
+      if (i % 5 === 2 && i > 2){
+        const dx = q.x - p.x, dy = q.y - p.y, len = Math.hypot(dx, dy) || 1;
+        const nx = -dy/len, ny = dx/len;
+        const bal = Math.sin(tw + i) * 0.25 + 1;         // balança ao andar
+        ctx.strokeStyle = cor;
+        ctx.lineWidth = r * 0.5;
+        for (const lado of [1, -1]){
+          const ax = p.x + nx * r * 0.7 * lado, ay = p.y + ny * r * 0.7 * lado;
+          const bx = p.x + nx * r * 1.55 * bal * lado, by = p.y + ny * r * 1.55 * bal * lado;
+          ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+          // mãozinha
+          ctx.fillStyle = 'rgba(0,0,0,0.25)';
+          ctx.beginPath(); ctx.arc(bx, by, r * 0.28, 0, Math.PI*2); ctx.fill();
+        }
+      }
+      // pedaço do corpo (traço grosso = corpo liso e esticado)
+      ctx.strokeStyle = cor;
+      ctx.lineWidth = r * 2;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
       if (c.skin.pat === 'bolinhas' && i % 4 === 2){
         ctx.fillStyle = c.skin.cores[1 + (Math.floor(i/4) % (c.skin.cores.length - 1))] || '#fff';
         ctx.beginPath();
