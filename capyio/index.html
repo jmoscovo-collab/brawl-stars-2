@@ -643,19 +643,29 @@ function desenhar(){
     if (!c.viva) continue;
     const r = raioCobra(c);
     const segs = nSegs(c);
-    // corpo ESTICADO: traço contínuo grosso e liso
-    const tw = performance.now() / 250;
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    for (let i = segs - 1; i >= 1; i--){
+    // corpo = UMA curva contínua suave (nas curvas fica lisa, sem dobras!)
+    const pts = [];
+    for (let i = 0; i < segs; i++){
       const p = c.caminho[i * SEG_A_CADA];
-      const q = c.caminho[(i - 1) * SEG_A_CADA];
-      if (!p || !q) continue;
-      if (p.x < camX - W/2 - 60 || p.x > camX + W/2 + 60 || p.y < camY - H/2 - 60 || p.y > camY + H/2 + 60) continue;
-      const cor = corSegmento(c.skin, i);
-      // pedaço do corpo (traço grosso = corpo liso e esticado)
-      ctx.strokeStyle = cor;
+      if (p) pts.push(p);
+    }
+    if (pts.length > 1){
+      ctx.strokeStyle = corSegmento(c.skin, 0);
       ctx.lineWidth = r * 2;
-      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length - 1; i++){
+        const mx = (pts[i].x + pts[i+1].x) / 2;
+        const my = (pts[i].y + pts[i+1].y) / 2;
+        ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+      }
+      ctx.lineTo(pts[pts.length-1].x, pts[pts.length-1].y);
+      ctx.stroke();
+      // brilho suave em cima (deixa com volume, sem textura estranha)
+      ctx.strokeStyle = 'rgba(255,255,255,0.13)';
+      ctx.lineWidth = r * 0.8;
+      ctx.stroke();
     }
     // cabeça DESENHADA pra todos os bichos!
     desenhaCabeca(c, r);
