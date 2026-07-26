@@ -440,10 +440,166 @@ function reporPellets(){
 
 /* ================= DESENHO ================= */
 function corSegmento(skin, i){
-  const cores = skin.cores;
-  if (skin.pat === 'listras') return cores[Math.floor(i / 3) % cores.length];
-  if (skin.pat === 'degrade') return cores[Math.min(cores.length - 1, Math.floor(i / 14) % cores.length)];
-  return cores[0]; // bolinhas: base + bolinha desenhada por cima
+  return skin.cores[0]; // corpo liso de uma cor só (normal!)
+}
+
+function desenhaCabeca(c, r){
+  const hr = r * 1.25;
+  const cor = c.skin.cores[0];
+  const escuro = c.skin.cores[1] || 'rgba(0,0,0,0.3)';
+  const tipo = c.skin.emoji;
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.rotate(c.ang);
+  function olhos(dx, dy, tam){
+    ctx.fillStyle='#1a1208';
+    ctx.beginPath(); ctx.arc(dx,-dy,tam,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(dx, dy,tam,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.arc(dx+tam*0.3,-dy-tam*0.3,tam*0.35,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(dx+tam*0.3, dy-tam*0.3,tam*0.35,0,Math.PI*2); ctx.fill();
+  }
+  function orelhasRedondas(){
+    ctx.fillStyle=cor;
+    ctx.beginPath(); ctx.arc(-hr*0.45,-hr*0.75,hr*0.32,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-hr*0.45, hr*0.75,hr*0.32,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=escuro;
+    ctx.beginPath(); ctx.arc(-hr*0.45,-hr*0.75,hr*0.15,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-hr*0.45, hr*0.75,hr*0.15,0,Math.PI*2); ctx.fill();
+  }
+  function orelhasPontudas(){
+    ctx.fillStyle=cor;
+    for(const l of [-1,1]){
+      ctx.beginPath();
+      ctx.moveTo(-hr*0.7, l*hr*0.4); ctx.lineTo(-hr*0.35, l*hr*1.15); ctx.lineTo(-hr*0.05, l*hr*0.55);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  function cabecaBase(){
+    ctx.fillStyle=cor;
+    ctx.beginPath(); ctx.ellipse(0,0,hr*1.05,hr*0.9,0,0,Math.PI*2); ctx.fill();
+  }
+  if(tipo==='🦫'){
+    orelhasRedondas();
+    ctx.fillStyle=cor;
+    ctx.beginPath(); ctx.ellipse(0,0,hr*1.15,hr*0.85,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.35)';
+    ctx.beginPath(); ctx.ellipse(hr*0.62,0,hr*0.48,hr*0.42,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#3a2a1a';
+    ctx.beginPath(); ctx.arc(hr*0.85,-hr*0.16,hr*0.09,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(hr*0.85, hr*0.16,hr*0.09,0,Math.PI*2); ctx.fill();
+    olhos(hr*0.05, hr*0.42, hr*0.14);
+  } else if(tipo==='🍄'){
+    // cogumelo: chapéu com pintas + carinha
+    ctx.fillStyle=escuro;
+    ctx.beginPath(); ctx.ellipse(hr*0.1,0,hr*0.75,hr*0.7,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=cor;
+    ctx.beginPath(); ctx.ellipse(-hr*0.15,0,hr*0.95,hr*1.05,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.85)';
+    ctx.beginPath(); ctx.arc(-hr*0.4,-hr*0.45,hr*0.18,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-hr*0.3, hr*0.5,hr*0.14,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-hr*0.75, hr*0.05,hr*0.12,0,Math.PI*2); ctx.fill();
+    olhos(hr*0.55, hr*0.3, hr*0.12);
+  } else if(tipo==='🐱' || tipo==='🦊'){
+    orelhasPontudas();
+    cabecaBase();
+    if(tipo==='🦊'){
+      ctx.fillStyle='rgba(255,255,255,0.8)';
+      ctx.beginPath(); ctx.ellipse(hr*0.6,0,hr*0.45,hr*0.4,0,0,Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle='#3a2a1a';
+    ctx.beginPath(); ctx.arc(hr*0.9,0,hr*0.12,0,Math.PI*2); ctx.fill();
+    // bigodes
+    ctx.strokeStyle='rgba(255,255,255,0.6)'; ctx.lineWidth=1.5;
+    for(const l of [-1,1]){
+      ctx.beginPath(); ctx.moveTo(hr*0.5,l*hr*0.2); ctx.lineTo(hr*1.1,l*hr*0.45); ctx.stroke();
+    }
+    olhos(hr*0.15, hr*0.35, hr*0.13);
+  } else if(tipo==='🐼'){
+    ctx.fillStyle='#222';
+    ctx.beginPath(); ctx.arc(-hr*0.45,-hr*0.75,hr*0.3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-hr*0.45, hr*0.75,hr*0.3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#f5f5f5';
+    ctx.beginPath(); ctx.ellipse(0,0,hr*1.05,hr*0.9,0,0,Math.PI*2); ctx.fill();
+    // manchas dos olhos
+    ctx.fillStyle='#222';
+    ctx.beginPath(); ctx.ellipse(hr*0.15,-hr*0.4,hr*0.22,hr*0.28,0.4,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(hr*0.15, hr*0.4,hr*0.22,hr*0.28,-0.4,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#3a2a1a';
+    ctx.beginPath(); ctx.arc(hr*0.85,0,hr*0.12,0,Math.PI*2); ctx.fill();
+    olhos(hr*0.18, hr*0.4, hr*0.09);
+  } else if(tipo==='🐯'){
+    orelhasRedondas();
+    cabecaBase();
+    // listras
+    ctx.strokeStyle='rgba(0,0,0,0.6)'; ctx.lineWidth=hr*0.1; ctx.lineCap='round';
+    for(const l of [-1,1]){
+      ctx.beginPath(); ctx.moveTo(-hr*0.5,l*hr*0.5); ctx.lineTo(-hr*0.15,l*hr*0.35); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-hr*0.2,l*hr*0.75); ctx.lineTo(hr*0.05,l*hr*0.5); ctx.stroke();
+    }
+    ctx.fillStyle='#3a2a1a';
+    ctx.beginPath(); ctx.arc(hr*0.88,0,hr*0.12,0,Math.PI*2); ctx.fill();
+    olhos(hr*0.2, hr*0.35, hr*0.13);
+  } else if(tipo==='🐸'){
+    // olhos pra cima em bolotas
+    cabecaBase();
+    ctx.fillStyle=cor;
+    ctx.beginPath(); ctx.arc(hr*0.35,-hr*0.65,hr*0.35,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(hr*0.35, hr*0.65,hr*0.35,0,Math.PI*2); ctx.fill();
+    olhos(hr*0.4, hr*0.65, hr*0.18);
+    // boca
+    ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=hr*0.08;
+    ctx.beginPath(); ctx.arc(hr*0.3,0,hr*0.5,-0.7,0.7); ctx.stroke();
+  } else if(tipo==='🐙'){
+    ctx.fillStyle=cor;
+    ctx.beginPath(); ctx.ellipse(-hr*0.1,0,hr*1.0,hr*0.95,0,0,Math.PI*2); ctx.fill();
+    // tentaculozinhos atrás
+    ctx.strokeStyle=cor; ctx.lineWidth=hr*0.22; ctx.lineCap='round';
+    for(const l of [-1,0,1]){
+      ctx.beginPath(); ctx.moveTo(-hr*0.7,l*hr*0.5);
+      ctx.quadraticCurveTo(-hr*1.3,l*hr*0.7,-hr*1.5,l*hr*0.35);
+      ctx.stroke();
+    }
+    olhos(hr*0.35, hr*0.35, hr*0.17);
+  } else if(tipo==='🤖'){
+    // cabeça quadrada com antena
+    ctx.fillStyle=cor;
+    ctx.beginPath(); ctx.roundRect(-hr*0.9,-hr*0.8,hr*1.8,hr*1.6,hr*0.25); ctx.fill();
+    ctx.strokeStyle=escuro; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(-hr*0.9,-hr*0.0); ctx.lineTo(-hr*1.4,0); ctx.stroke();
+    ctx.fillStyle='#ffee58';
+    ctx.beginPath(); ctx.arc(-hr*1.45,0,hr*0.16,0,Math.PI*2); ctx.fill();
+    // olhos de LED
+    ctx.fillStyle='#00e5ff';
+    ctx.beginPath(); ctx.arc(hr*0.35,-hr*0.35,hr*0.18,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(hr*0.35, hr*0.35,hr*0.18,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=escuro;
+    ctx.fillRect(hr*0.15,-hr*0.08,hr*0.6,hr*0.16);
+  } else if(tipo==='🐉'){
+    // chifres + focinho
+    ctx.fillStyle='#ffe082';
+    for(const l of [-1,1]){
+      ctx.beginPath();
+      ctx.moveTo(-hr*0.6,l*hr*0.35); ctx.lineTo(-hr*1.25,l*hr*0.8); ctx.lineTo(-hr*0.45,l*hr*0.7);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle=cor;
+    ctx.beginPath(); ctx.ellipse(0,0,hr*1.2,hr*0.85,0,0,Math.PI*2); ctx.fill();
+    // narinas fumegantes
+    ctx.fillStyle='#3a2a1a';
+    ctx.beginPath(); ctx.arc(hr*0.95,-hr*0.2,hr*0.1,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(hr*0.95, hr*0.2,hr*0.1,0,Math.PI*2); ctx.fill();
+    olhos(hr*0.2, hr*0.38, hr*0.14);
+  } else {
+    // genérico fofo (usado se aparecer skin nova)
+    orelhasRedondas();
+    cabecaBase();
+    ctx.fillStyle='#3a2a1a';
+    ctx.beginPath(); ctx.arc(hr*0.85,0,hr*0.11,0,Math.PI*2); ctx.fill();
+    olhos(hr*0.15, hr*0.38, hr*0.13);
+  }
+  ctx.restore();
+  ctx.textAlign='center'; ctx.textBaseline='middle';
 }
 
 function desenhar(){
@@ -500,57 +656,10 @@ function desenhar(){
       ctx.strokeStyle = cor;
       ctx.lineWidth = r * 2;
       ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
-      if (c.skin.pat === 'bolinhas' && i % 4 === 2){
-        ctx.fillStyle = c.skin.cores[1 + (Math.floor(i/4) % (c.skin.cores.length - 1))] || '#fff';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, r * 0.45, 0, Math.PI*2);
-        ctx.fill();
-      }
     }
-    // cabeça
-    if (c.skin.emoji === '🦫'){
-      // CABEÇA DE CAPIVARA desenhada!
-      const hr = r * 1.25;
-      const corCab = c.skin.cores[0] || '#8d6e4a';
-      ctx.save();
-      ctx.translate(c.x, c.y);
-      ctx.rotate(c.ang);
-      // orelhinhas
-      ctx.fillStyle = corCab;
-      ctx.beginPath(); ctx.arc(-hr*0.45, -hr*0.75, hr*0.32, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(-hr*0.45,  hr*0.75, hr*0.32, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = 'rgba(0,0,0,0.25)';
-      ctx.beginPath(); ctx.arc(-hr*0.45, -hr*0.75, hr*0.15, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(-hr*0.45,  hr*0.75, hr*0.15, 0, Math.PI*2); ctx.fill();
-      // cabeça oval (mais comprida pra frente = focinho de capivara)
-      ctx.fillStyle = corCab;
-      ctx.beginPath(); ctx.ellipse(0, 0, hr*1.15, hr*0.85, 0, 0, Math.PI*2); ctx.fill();
-      // focinho mais claro
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      ctx.beginPath(); ctx.ellipse(hr*0.62, 0, hr*0.48, hr*0.42, 0, 0, Math.PI*2); ctx.fill();
-      // narinas
-      ctx.fillStyle = '#3a2a1a';
-      ctx.beginPath(); ctx.arc(hr*0.85, -hr*0.16, hr*0.09, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(hr*0.85,  hr*0.16, hr*0.09, 0, Math.PI*2); ctx.fill();
-      // olhos
-      ctx.fillStyle = '#1a1208';
-      ctx.beginPath(); ctx.arc(hr*0.05, -hr*0.42, hr*0.14, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(hr*0.05,  hr*0.42, hr*0.14, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(hr*0.09, -hr*0.46, hr*0.05, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(hr*0.09,  hr*0.38, hr*0.05, 0, Math.PI*2); ctx.fill();
-      ctx.restore();
-    } else {
-      ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.arc(c.x, c.y, r * 1.15, 0, Math.PI*2);
-      ctx.fill();
-      ctx.font = Math.round(r * 1.7) + 'px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(c.skin.emoji, c.x, c.y + 1);
-    }
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    // cabeça DESENHADA pra todos os bichos!
+    desenhaCabeca(c, r);
+
     // nome
     ctx.font = 'bold 12px sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
