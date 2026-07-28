@@ -189,10 +189,17 @@
         /* ===== Controles de toque (celular) ===== */
         #touch-controls { display: none; }
         body.mobile-mode #touch-controls { display: block; }
-        #touch-dpad {
-            position: fixed; bottom: 25px; left: 25px; z-index: 250;
-            display: grid; grid-template-columns: repeat(3, 62px); grid-template-rows: repeat(2, 62px);
-            gap: 8px;
+        #joy-base {
+            position: fixed; bottom: 30px; left: 28px; z-index: 250;
+            width: 140px; height: 140px; border-radius: 50%;
+            background: rgba(255,255,255,0.12); border: 3px solid rgba(255,255,255,0.4);
+            display: flex; align-items: center; justify-content: center;
+            touch-action: none;
+        }
+        #joy-knob {
+            width: 58px; height: 58px; border-radius: 50%;
+            background: rgba(136,255,68,0.8); border: 3px solid #88ff44;
+            box-shadow: 0 0 14px rgba(136,255,68,0.5);
         }
         .tbtn {
             width: 62px; height: 62px; border-radius: 50%;
@@ -202,10 +209,6 @@
             -webkit-tap-highlight-color: transparent;
         }
         .tbtn:active { background: rgba(136,255,68,0.4); border-color: #88ff44; }
-        #tb-up { grid-column: 2; grid-row: 1; }
-        #tb-left { grid-column: 1; grid-row: 2; }
-        #tb-down { grid-column: 2; grid-row: 2; }
-        #tb-right { grid-column: 3; grid-row: 2; }
         #tb-attack {
             position: fixed; bottom: 45px; right: 30px; z-index: 250;
             width: 90px; height: 90px; font-size: 42px;
@@ -323,12 +326,7 @@
     <div id="wave-announce"></div>
 
     <div id="touch-controls">
-        <div id="touch-dpad">
-            <button class="tbtn" id="tb-up" data-key="KeyW">▲</button>
-            <button class="tbtn" id="tb-left" data-key="KeyA">◀</button>
-            <button class="tbtn" id="tb-down" data-key="KeyS">▼</button>
-            <button class="tbtn" id="tb-right" data-key="KeyD">▶</button>
-        </div>
+        <div id="joy-base"><div id="joy-knob"></div></div>
         <button class="tbtn" id="tb-attack">🪓</button>
     </div>
 
@@ -1544,13 +1542,31 @@
 
     // ===== Controles de toque (celular): botões de andar, atacar e arrastar pra girar =====
     function setupTouchControls() {
-        // Botões de andar (◀▲▼▶) simulam as teclas WASD
-        document.querySelectorAll('#touch-controls .tbtn[data-key]').forEach(btn => {
-            const k = btn.dataset.key;
-            btn.addEventListener('touchstart', e => { e.preventDefault(); keys[k] = true; }, { passive: false });
-            btn.addEventListener('touchend', e => { e.preventDefault(); keys[k] = false; }, { passive: false });
-            btn.addEventListener('touchcancel', () => { keys[k] = false; });
-        });
+        // Joystick de bolinha — controla o WASD pela direção do dedo
+        const joyBase = document.getElementById('joy-base');
+        const joyKnob = document.getElementById('joy-knob');
+        function joyLimpa(){ keys['KeyW']=keys['KeyA']=keys['KeyS']=keys['KeyD']=false; }
+        function joyMexe(e){
+            const t = e.touches[0];
+            const r = joyBase.getBoundingClientRect();
+            const cx = r.left + r.width/2, cy = r.top + r.height/2;
+            let dx = t.clientX - cx, dy = t.clientY - cy;
+            const dist = Math.hypot(dx, dy), max = r.width/2 - 22;
+            const k = Math.min(1, dist/max);
+            const ang = Math.atan2(dy, dx);
+            joyKnob.style.transform = `translate(${Math.cos(ang)*max*k}px, ${Math.sin(ang)*max*k}px)`;
+            joyLimpa();
+            if(dist > 14){
+                if(dy < -Math.abs(dx)*0.4) keys['KeyW'] = true;
+                if(dy >  Math.abs(dx)*0.4) keys['KeyS'] = true;
+                if(dx < -Math.abs(dy)*0.4) keys['KeyA'] = true;
+                if(dx >  Math.abs(dy)*0.4) keys['KeyD'] = true;
+            }
+        }
+        joyBase.addEventListener('touchstart', e => { e.preventDefault(); joyMexe(e); }, { passive: false });
+        joyBase.addEventListener('touchmove', e => { e.preventDefault(); joyMexe(e); }, { passive: false });
+        joyBase.addEventListener('touchend', e => { e.preventDefault(); joyLimpa(); joyKnob.style.transform='translate(0,0)'; }, { passive: false });
+        joyBase.addEventListener('touchcancel', () => { joyLimpa(); joyKnob.style.transform='translate(0,0)'; });
         // Botão de atacar 🪓
         const atk = document.getElementById('tb-attack');
         atk.addEventListener('touchstart', e => {
