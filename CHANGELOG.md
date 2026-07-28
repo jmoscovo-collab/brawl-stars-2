@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v2.5.0 (2026-07-27)
+- Sorte do Cogumelo PUBLICADO (aprovado pelo Julio via Telegram): clicker + Maquina Maluca de numeros,
+  fichas fixas Bronze/Prata/Ouro/Diamante, 12 melhorias de clique, 777 = jackpot
+
+
 ## v2.4.0 (2026-07-27) — pacotao do Davi
 - JOGO NOVO: Policia VS Ladrao (250 niveis procedurais validados, lasers/armarios/canos, 10 skins, 5 habilidades)
 - JOGO NOVO: Chuva de Cogumelos (6 tipos de cogumelo, dash, loja de consumiveis, inventario)
