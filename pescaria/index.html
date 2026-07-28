@@ -56,6 +56,7 @@ canvas { background:#000; border-radius:10px; max-width:100vw; max-height:calc(1
 .r-comum { color:#bbb; } .b-comum { border-color:#888; }
 .r-raro { color:#44aaff; } .b-raro { border-color:#44aaff; }
 .r-epico { color:#bb66ff; } .b-epico { border-color:#bb66ff; }
+.r-mistico { color:#2bff9f; text-shadow:0 0 8px rgba(43,255,159,0.7); } .b-mistico { border-color:#2bff9f; box-shadow:0 0 14px rgba(43,255,159,0.45); }
 .r-lendario { color:#ffd700; } .b-lendario { border-color:#ffd700; box-shadow:0 0 12px rgba(255,215,0,0.3); }
 .r-ultra { color:#ff55cc; } .b-ultra { border-color:#ff55cc; box-shadow:0 0 18px rgba(255,85,204,0.6); }
 .r-secreto { color:#00ffee; text-shadow:0 0 10px #00ffee; } .b-secreto { border-color:#00ffee; box-shadow:0 0 26px rgba(0,255,238,0.9), 0 0 50px rgba(0,255,238,0.4); }
@@ -172,33 +173,66 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
 <script>
 if (window.initStats) initStats('pescaria');
 
-// ============ PEIXES (5 raridades) ============
-// comum 50% | raro 30% | epico 15% | lendario 4.99% | ultra 0.01%
+// ============ PEIXES (7 raridades) ============
+// comum ~41.2% | raro 30% | epico 15% | mistico 8% | lendario 4.99% | secreto 0.8% | ultra 0.01%
 const RARIDADES = {
-    comum:    { nome:'COMUM',    chance:49.999, valor:[9,24],     cor:'#bbb' },
+    comum:    { nome:'COMUM',    chance:41.2,  valor:[9,24],     cor:'#bbb' },
     raro:     { nome:'RARO',     chance:30,    valor:[45,105],   cor:'#44aaff' },
     epico:    { nome:'ÉPICO',    chance:15,    valor:[240,450],  cor:'#bb66ff' },
+    mistico:  { nome:'MÍSTICO',  chance:8,     valor:[700,1300], cor:'#2bff9f' },
     lendario: { nome:'LENDÁRIO', chance:4.99,  valor:[1500,2700], cor:'#ffd700' },
+    secreto:  { nome:'SECRETO',  chance:0.8,   valor:[8000,20000], cor:'#00ffee' },
     ultra:    { nome:'ULTRA',    chance:0.01,  valor:[75000,150000], cor:'#ff55cc' },
-    secreto:  { nome:'SECRETO',  chance:0.001, valor:[200000,400000], cor:'#00ffee' },
     item:     { nome:'TESOURO',  chance:0,     valor:[0,0],         cor:'#ffaa44' }
 };
 const PEIXES = {
     comum:    [['Lambari','🐟'],['Sardinha','🐟'],['Tilápia','🐠'],['Bagre','🐟'],['Carpa','🐟'],
                ['Piaba','🐟'],['Cascudo','🐟'],['Traíra','🐟'],['Acará','🐠'],['Manjuba','🐟'],
-               ['Peixe-Gato','🐱'],['Corvina','🐟'],['Piau','🐟'],['Jundiá','🐟'],['Saguiru','🐟']],
+               ['Peixe-Gato','🐱'],['Corvina','🐟'],['Piau','🐟'],['Jundiá','🐟'],['Saguiru','🐟'],
+               ['Lambari Fujão','💨'],['Sardinha Dorminhoca','😴'],['Peixe Bocejo','🥱'],['Tilápia Tímida','😳'],['Bagre Bagunceiro','🤪'],
+               ['Peixe Soneca','💤'],['Carpa Capivara','🦫'],['Peixe Meia-Boca','😐'],['Piaba Pirralha','👶'],['Peixe Resfriado','🤧'],
+               ['Cascudo Cascão','🧽'],['Peixe Chiclete','🍬'],['Sardinha de Lata','🥫'],['Peixe Pão-Duro','🍞'],['Traíra Trapalhona','🤡'],
+               ['Peixe Bocudo','😮'],['Acará Atrasado','⏰'],['Peixe Xereta','👀'],['Manjuba Manhosa','😪'],['Peixe Perna-de-Pau','🦵'],
+               ['Peixe Espirro','🤧'],['Lambari Levado','😜'],['Peixe Tanajura','🐜'],['Bagre Barbudo','🧔'],['Peixe Mole','🍮'],
+               ['Peixe Café-com-Leite','☕'],['Sardinha Salgada','🧂'],['Peixe Pijama','🩳'],['Carpa Comilona','🍔'],['Peixe Zé Ninguém','🫥']],
     raro:     [['Dourado','🐠'],['Tucunaré','🐠'],['Pintado','🐟'],['Robalo','🐠'],
                ['Pacu','🐟'],['Matrinxã','🐠'],['Curimba','🐟'],['Piraputanga','🐠'],['Truta','🐟'],
-               ['Salmão','🍣'],['Enguia','🪱'],['Baiacu','🐡'],['Peixe-Palhaço','🤡'],['Piranha','🦷']],
+               ['Salmão','🍣'],['Enguia','🪱'],['Baiacu','🐡'],['Peixe-Palhaço','🤡'],['Piranha','🦷'],
+               ['Dourado Vaidoso','💅'],['Tucunaré Turbinado','🚀'],['Peixe Foguete','🎆'],['Robalo Roqueiro','🎸'],['Peixe Detetive','🔍'],
+               ['Truta Trapaceira','🃏'],['Peixe Malabarista','🤹'],['Pacu Paraquedista','🪂'],['Peixe Bombeiro','🚒'],['Enguia Elétrica','🔌'],
+               ['Peixe Carteiro','📬'],['Baiacu Balão','🎈'],['Peixe Skatista','🛹'],['Piranha Dentuça','😬'],['Peixe Cozinheiro','👨‍🍳'],
+               ['Salmão Saltador','🤸'],['Peixe Pintor','🎨'],['Curimba Cantora','🎤'],['Peixe Motoqueiro','🏍️'],['Pintado Pichador','🖌️'],
+               ['Peixe Jardineiro','🌻'],['Matrinxã Marrenta','😤'],['Peixe Goleiro','🧤'],['Piraputanga Popstar','⭐'],['Peixe Encanador','🔧'],
+               ['Truta Tagarela','🗣️'],['Peixe Surfista','🏄'],['Robalo Risonho','😂'],['Peixe Fofoqueiro','🤫'],['Dourado Dançarino','🕺']],
     epico:    [['Peixe-Espada','🗡️'],['Arraia Elétrica','⚡'],['Polvo Gigante','🐙'],['Peixe-Lua','🌙'],
                ['Pirarucu','🐊'],['Peixe-Serra','🪚'],['Atum Gigante','🐟'],['Espadarte','⚔️'],['Peixe-Leão','🦁'],
-               ['Moreia','🐍'],['Peixe-Pedra','🪨'],['Barracuda','💨'],['Anchova Real','👑'],['Caranguejo Rei','🦀']],
+               ['Moreia','🐍'],['Peixe-Pedra','🪨'],['Barracuda','💨'],['Anchova Real','👑'],['Caranguejo Rei','🦀'],
+               ['Peixe Ciclone','🌀'],['Arraia Sombria','🌑'],['Polvo Mágico','🎩'],['Peixe Meteoro','☄️'],['Lula Colossal','🦑'],
+               ['Peixe Gladiador','🛡️'],['Tartaruga Blindada','🐢'],['Peixe Vampiro','🧛'],['Enguia Tempestade','🌩️'],['Peixe Robô','🤖'],
+               ['Caranguejo Samurai','⚔️'],['Peixe Gelado','🧊'],['Arraia Fantasminha','👻'],['Peixe Labareda','🔥'],['Polvo Oito Espadas','🗡️'],
+               ['Peixe Cavaleiro','🏇'],['Moreia Misteriosa','❓'],['Peixe Furacão','🌪️'],['Atum Atômico','☢️'],['Peixe Cristal','🔷'],
+               ['Barracuda Bandida','🏴‍☠️'],['Peixe Mago','🧙'],['Espadarte Espião','🕵️'],['Peixe Trovejante','⛈️'],['Lagosta Imperial','🦞'],
+               ['Peixe Titânio','🔩'],['Arraia Radiante','🌟'],['Peixe Vulcânico','🌋'],['Polvo Pistoleiro','🔫'],['Peixe Sombra','🌚']],
     lendario: [['Tubarão-Martelo','🦈'],['Peixe Dragão','🐉'],['Baleia Dourada','🐋'],
                ['Peixe Fantasma','👻'],['Kraken Bebê','🦑'],['Peixe Sereia','🧜'],['Peixe de Ouro','✨'],
                ['Celacanto','🦕'],['Peixe Vulcão','🌋'],['Peixe Ninja','🥷'],['Tartaruga Ancestral','🐢'],
-               ['Peixe Trovão','⚡'],['Anjo-do-Mar','😇']],
+               ['Peixe Trovão','⚡'],['Anjo-do-Mar','😇'],
+               ['Fênix das Águas','🐦‍🔥'],['Peixe Imperador','👑'],['Leviatã Júnior','🐉'],['Peixe Meia-Noite','🌃'],['Baleia de Cristal','🐋'],
+               ['Peixe Feiticeiro','🪄'],['Tubarão Dourado','🦈'],['Peixe Estrela Cadente','🌠'],['Serpente das Profundezas','🐍'],['Peixe Aurora','🌅'],
+               ['Kraken Adolescente','🦑'],['Peixe Relâmpago Real','⚡'],['Golfinho de Prata','🐬'],['Peixe Guardião','🛡️'],['Hidra Aquática','🐲'],
+               ['Peixe Eclipse','🌒'],['Tartaruga de Diamante','💎'],['Peixe Alquimista','⚗️'],['Cavalo-Marinho Rei','🐴'],['Peixe Supernova','💥'],
+               ['Medusa Ancestral','🪼'],['Peixe Coração de Fogo','❤️‍🔥'],['Narval Encantado','🦄'],['Peixe do Destino','🔮'],['Orca Espectral','🐳'],
+               ['Peixe Samurai Lendário','🥋'],['Sereia do Abismo','🧜‍♀️'],['Peixe Galáctico','🌌'],['Dragão-Marinho Ancião','🐉'],['Peixe Coroa de Gelo','❄️']],
+    mistico:  [['Peixe Esmeralda','💚'],['Espírito do Lago','🌫️'],['Peixe Duende','🧝'],['Carpa Encantada','✨'],['Peixe Trevo','🍀'],
+               ['Salamandra Aquática','🦎'],['Peixe Oráculo','🔮'],['Jacaré Místico','🐊'],['Peixe Vagalume','🪲'],['Boto Encantado','🐬'],
+               ['Peixe Xamã','🪶'],['Iara Peixinha','🧜'],['Peixe Floresta','🌲'],['Curupira do Rio','👣'],['Peixe Poção','🧪'],
+               ['Saci Aquático','🌀'],['Peixe Lua Verde','🌙'],['Tartaruga Sábia','🐢'],['Peixe Névoa','☁️'],['Grilo do Mar','🦗'],
+               ['Peixe Amuleto','🧿'],['Fada dos Rios','🧚'],['Peixe Bambu','🎋'],['Lobisomem Marinho','🐺'],['Peixe Jade','🟢'],
+               ['Mandrágora Aquática','🌱'],['Peixe Cristal Verde','💎'],['Coruja do Lago','🦉'],['Peixe Ritual','🕯️'],['Gnomo Pescador','🍄']],
     ultra:    [['Tubarão','🦈'],['Golfinho','🐬'],['Peixe Lanterna','🔦']],
-    secreto:  [['Peixe Dourado Real','👑'],['Serpente do Lago','🐲'],['PEIXE COGUMELO','🍄']]
+    secreto:  [['Peixe Dourado Real','👑'],['Serpente do Lago','🐲'],['PEIXE COGUMELO','🍄'],
+               ['Peixe Arco-Íris Secreto','🌈'],['Guardião de Atlântida','🏛️'],['Peixe Pirâmide','🔺'],['Olho do Oceano','👁️'],['Peixe Tesouro Vivo','💰'],
+               ['Rei dos Abismos','🫅'],['Peixe Constelação','✨'],['Sombra de Netuno','🔱'],['Peixe Enigma','❓'],['Cometa dos Mares','☄️']]
 };
 
 // ============ TESOUROS (chance rara de fisgar um item em vez de peixe!) ============
@@ -220,6 +254,11 @@ const TESOUROS = [
     { nome:'Relógio de Ouro',   emoji:'⌚', valor:500,  peso:3 },
     { nome:'Baú do Pirata',     emoji:'🧰', valor:1500,  peso:1.5 },
     { nome:'Coroa de Diamante', emoji:'👑', valor:5000, peso:0.5 },
+    { nome:'Âncora Antiga',        emoji:'⚓', valor:60,    peso:8 },
+    { nome:'Garrafa com Mensagem', emoji:'📜', valor:80,    peso:7 },
+    { nome:'Violão Afundado',      emoji:'🎸', valor:150,   peso:5 },
+    { nome:'Dente de Megalodonte', emoji:'🦷', valor:800,   peso:2 },
+    { nome:'Mapa do Tesouro',      emoji:'🗺️', valor:3000,  peso:0.8 },
     // === MELHORES QUE O DIAMANTE (cada vez mais raros!) ===
     { nome:'Espada de Rei',        emoji:'⚔️', valor:7000,   peso:0.4 },
     { nome:'Cálice Sagrado',       emoji:'🏆', valor:9000,   peso:0.33 },
@@ -308,15 +347,16 @@ function sorteiaRaridade(){
     const s = varaAtual().sorte;
     // sorte multiplica as chances das raridades altas; comum absorve o resto
     const pesos = {
-        secreto: RARIDADES.secreto.chance * s,
         ultra: RARIDADES.ultra.chance * s,
+        secreto: RARIDADES.secreto.chance * s,
         lendario: RARIDADES.lendario.chance * s,
+        mistico: RARIDADES.mistico.chance * Math.min(s,2.5),
         epico: RARIDADES.epico.chance * Math.min(s,2),
         raro: RARIDADES.raro.chance * Math.min(s,1.5)
     };
-    pesos.comum = Math.max(5, 100 - pesos.secreto - pesos.ultra - pesos.lendario - pesos.epico - pesos.raro);
-    let r = Math.random() * (pesos.secreto + pesos.ultra + pesos.lendario + pesos.epico + pesos.raro + pesos.comum);
-    for (const k of ['secreto','ultra','lendario','epico','raro','comum']){
+    pesos.comum = Math.max(5, 100 - pesos.ultra - pesos.secreto - pesos.lendario - pesos.mistico - pesos.epico - pesos.raro);
+    let r = Math.random() * (pesos.ultra + pesos.secreto + pesos.lendario + pesos.mistico + pesos.epico + pesos.raro + pesos.comum);
+    for (const k of ['ultra','secreto','lendario','mistico','epico','raro','comum']){
         if (r < pesos[k]) return k;
         r -= pesos[k];
     }
@@ -347,7 +387,7 @@ const W = cv.width, H = cv.height;
 let estado = 'parado';
 let fisgadaTimeout = null, mordidaTimeout = null, lutaTimeout = null;
 // briga: cliques pra encher a barra — quanto mais raro, mais cliques!
-const CLIQUES_POR_RARIDADE = { comum:8, raro:14, epico:22, lendario:32, ultra:45, secreto:60, item:10 };
+const CLIQUES_POR_RARIDADE = { comum:8, raro:14, epico:22, mistico:27, lendario:32, secreto:38, ultra:45, item:10 };
 const TEMPO_LUTA = 10000; // 10 segundos pro peixe escapar (1.5x no celular)
 // no celular, mais tempo pra fisgar e pra brigar (toque é mais difícil que mouse)
 function bonusCelular(){ return disp==='celular' ? 1.5 : 1; }
@@ -478,6 +518,7 @@ function pegouPeixe(p){
     else if(p.rar==='comum'){ som(400,0.15); }
     else if(p.rar==='raro'){ som(500,0.1); setTimeout(()=>som(700,0.2),100); }
     else if(p.rar==='epico'){ som(500,0.1); setTimeout(()=>som(700,0.1),100); setTimeout(()=>som(900,0.25),200); soltaConfete(20); }
+    else if(p.rar==='mistico'){ mostraMsg('MÍSTICO! 🍀','#2bff9f',2000); som(550,0.1); setTimeout(()=>som(750,0.1),110); setTimeout(()=>som(950,0.3),220); soltaConfete(40); }
     else if(p.rar==='lendario'){ mostraMsg('LENDÁRIO!!! 🌟','#ffd700',2000); som(600,0.1); setTimeout(()=>som(800,0.1),120); setTimeout(()=>som(1000,0.1),240); setTimeout(()=>som(1200,0.4),360); soltaConfete(60); }
     else if(p.rar==='ultra'){ mostraMsg('⭐ ULTRA!!! O PEIXE REI!!! ⭐','#ff55cc',4000); for(let i=0;i<5;i++) setTimeout(()=>som(600+i*200,0.2),i*150); soltaConfete(150); }
     else if(p.rar==='secreto'){
@@ -510,10 +551,11 @@ const PAGINAS = [
     { chave:'comum',    titulo:'⚪ Página 1 — COMUNS' },
     { chave:'raro',     titulo:'🔵 Página 2 — RAROS' },
     { chave:'epico',    titulo:'🟣 Página 3 — ÉPICOS' },
-    { chave:'lendario', titulo:'🟡 Página 4 — LENDÁRIOS' },
-    { chave:'ultra',    titulo:'🌸 Página 5 — ULTRA' },
+    { chave:'mistico',  titulo:'🟢 Página 4 — MÍSTICOS' },
+    { chave:'lendario', titulo:'🟡 Página 5 — LENDÁRIOS' },
     { chave:'secreto',  titulo:'💠 Página 6 — SECRETOS' },
-    { chave:'tesouros', titulo:'🧰 Página 7 — TESOUROS' }
+    { chave:'ultra',    titulo:'🌸 Página 7 — ULTRA' },
+    { chave:'tesouros', titulo:'🧰 Página 8 — TESOUROS' }
 ];
 let paginaAtual = 0;
 function mudaPagina(d){
