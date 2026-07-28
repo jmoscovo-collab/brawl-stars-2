@@ -795,6 +795,19 @@ if(new URLSearchParams(location.search).get('presente')==='meteoro' && !localSto
     salva();
     setTimeout(()=>{ mostraMsg('🎁 VARA METEORO equipada! ☄️','#ffaa44',3500); soltaConfete(100); }, 600);
 }
+// 🎉 PROMOÇÃO: as 2 PRIMEIRAS pessoas que entrarem ganham 50.000! (contador global)
+if(!localStorage.getItem('pescaria_promo50k')){
+    localStorage.setItem('pescaria_promo50k','tentou');
+    fetch('https://api.counterapi.dev/v1/cogumelogames-br/promo50k/up')
+        .then(r=>r.json())
+        .then(d=>{
+            if(d.count && d.count <= 2){
+                dinheiro += 50000; salva(); atualizaHud();
+                mostraMsg(`🎉 PARABÉNS! Você foi a ${d.count}ª pessoa a entrar e ganhou 💰 50.000!!!`,'#ffd700',5000);
+                soltaConfete(200);
+            }
+        }).catch(()=>{});
+}
 atualizaHud();
 desenha();
 </script>
