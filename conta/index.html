@@ -50,6 +50,14 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
     <button class="cinza" id="btnSair">🚪 Sair da conta</button>
 </div>
 
+<div class="card" id="cardAmigos" style="display:none">
+    <h2>👥 Amigos</h2>
+    <input id="buscaAmigo" placeholder="🔍 Pesquisar jogador..." maxlength="20">
+    <div id="resultadosBusca" style="margin-top:6px"></div>
+    <div style="color:#889; font-size:13px; margin-top:12px">Meus amigos:</div>
+    <div id="listaAmigos" style="margin-top:6px; font-size:16px; line-height:1.9">—</div>
+</div>
+
 <div class="card" id="cardEntrar">
     <h2>🔑 Entrar</h2>
     <input id="loginNome" placeholder="Seu nome" maxlength="20">
@@ -165,8 +173,11 @@ async function entrar(){
         const r = await chamaAPI({ acao:'entrar', nome, senhaHash:h });
         localStorage.setItem('cg_usuario', nome);
         localStorage.setItem('cg_senhaHash', h);
+        localStorage.setItem('cg_amigos', JSON.stringify(r.amigos||[]));
+        meusAmigos = r.amigos||[];
         aplicaProgresso(r.dados);
         aviso('✅ Bem-vindo de volta, '+nome+'! Progresso da nuvem carregado.', true);
+        mostraAmigos();
         return mostraEstado();
     } catch(e) {
         // fallback: conta antiga só deste aparelho
@@ -184,6 +195,8 @@ async function entrar(){
 
 function sair(){
     try { salvarProgresso(false); } catch(e) {}
+    localStorage.removeItem('cg_amigos'); meusAmigos=[];
+    setTimeout(mostraAmigos, 50);
     localStorage.removeItem('cg_usuario');
     localStorage.removeItem('cg_senhaHash');
     aviso('Você saiu. Progresso guardado na conta!', true);
@@ -206,6 +219,38 @@ function mostraEstado(){
     }
 }
 mostraEstado();
+
+// ============ AMIGOS ============
+let meusAmigos = JSON.parse(localStorage.getItem('cg_amigos')||'[]');
+function mostraAmigos(){
+    document.getElementById('cardAmigos').style.display = usuario() ? 'block' : 'none';
+    document.getElementById('listaAmigos').innerHTML =
+        meusAmigos.length ? meusAmigos.map(a=>'🍄 '+a).join('<br>') : '<span style="color:#667">Nenhum ainda — pesquisa aí em cima!</span>';
+}
+let buscaTimer = null;
+document.getElementById('buscaAmigo').addEventListener('input', function(){
+    const q = this.value.trim();
+    clearTimeout(buscaTimer);
+    if(q.length < 2){ document.getElementById('resultadosBusca').innerHTML=''; return; }
+    buscaTimer = setTimeout(async ()=>{
+        try {
+            const r = await chamaAPI({ acao:'buscar', nome:usuario(), senhaHash:localStorage.getItem('cg_senhaHash'), busca:q });
+            document.getElementById('resultadosBusca').innerHTML = r.resultados.length
+                ? r.resultados.map(n=>`<button style="margin:3px 0" onclick="addAmigo('${n.replace(/'/g,'')}')">➕ ${n}</button>`).join('')
+                : '<span style="color:#667; font-size:13px">Ninguém com esse nome ainda 😕</span>';
+        } catch(e){ document.getElementById('resultadosBusca').innerHTML = '<span style="color:#f66; font-size:13px">'+e.message+'</span>'; }
+    }, 450);
+});
+async function addAmigo(n){
+    try {
+        const r = await chamaAPI({ acao:'amigo', nome:usuario(), senhaHash:localStorage.getItem('cg_senhaHash'), amigo:n });
+        meusAmigos = r.amigos;
+        localStorage.setItem('cg_amigos', JSON.stringify(meusAmigos));
+        aviso('👥 '+n+' agora é seu amigo!', true);
+        mostraAmigos();
+    } catch(e){ aviso('😕 '+e.message); }
+}
+mostraAmigos();
 </script>
 </body>
 </html>
