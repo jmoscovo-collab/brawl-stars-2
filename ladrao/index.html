@@ -23,6 +23,7 @@
   .shopgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;width:min(920px,95vw);padding-bottom:40px}
   .card{background:#243055;border-radius:14px;padding:12px;text-align:center}
   .card .emo{font-size:40px}
+  .card canvas.prev{display:block;margin:0 auto 4px;background:#1a2445;border-radius:10px}
   .card .nm{font-weight:bold;margin:4px 0}
   .card .pc{color:#ffd166}
   .card .ds{font-size:13px;opacity:.8;min-height:34px}
@@ -184,17 +185,17 @@ function saveAll(){LS('coins',coins);LS('won',JSON.stringify(won));LS('skins',JS
 
 // ---------------- catálogo ----------------
 var SKINS=[
- {id:'base',  nm:'Ladrãozinho Clássico', emo:'🦹', pc:0,    ds:'Roupa listrada e máscara. Um fofo.'},
- {id:'pato',  nm:'Cabeça de Pato de Borracha', emo:'🦆', pc:100, ds:'Quack! Ninguém desconfia de um pato.'},
- {id:'tenis', nm:'Tênis Gigante', emo:'👟', pc:200, ds:'Pés enormes, estilo gigante.'},
- {id:'azul',  nm:'Corredor Azul Turbo', emo:'🔵', pc:350, ds:'Rápido demais pra câmera pegar!'},
- {id:'banana',nm:'Fantasia de Banana', emo:'🍌', pc:500, ds:'Cuidado pra não escorregar em si mesmo.'},
- {id:'tv',    nm:'Cabeça de Televisão', emo:'📺', pc:700, ds:'Passando o canal do crime... de fofura.'},
- {id:'robo',  nm:'Robô Enferrujado', emo:'🤖', pc:900, ds:'Bip bop, range ao andar.'},
- {id:'pirata',nm:'Pirata com Tapa-olho', emo:'🏴‍☠️', pc:1200, ds:'Arrr! Vim buscar o tesouro.'},
- {id:'ninja', nm:'Ninja Todo Preto', emo:'🥷', pc:1500, ds:'Silencioso como uma sombra.'},
- {id:'astro', nm:'Astronauta', emo:'🚀', pc:1800, ds:'Roubando... corações espaciais.'},
- {id:'mumia', nm:'Múmia', emo:'🧻', pc:2200, ds:'Enrolado, mas chega lá.'}
+ {id:'base',  nm:'Ladrãozinho Clássico', pc:0,    ds:'Roupa listrada e máscara. Um fofo.'},
+ {id:'pato',  nm:'Cabeça de Pato de Borracha', pc:100, ds:'Quack! Ninguém desconfia de um pato.'},
+ {id:'tenis', nm:'Tênis Gigante', pc:200, ds:'Pés enormes, estilo gigante.'},
+ {id:'azul',  nm:'Corredor Azul Turbo', pc:350, ds:'Rápido demais pra câmera pegar!'},
+ {id:'banana',nm:'Fantasia de Banana', pc:500, ds:'Cuidado pra não escorregar em si mesmo.'},
+ {id:'tv',    nm:'Cabeça de Televisão', pc:700, ds:'Passando o canal do crime... de fofura.'},
+ {id:'robo',  nm:'Robô Enferrujado', pc:900, ds:'Bip bop, range ao andar.'},
+ {id:'pirata',nm:'Pirata com Tapa-olho', pc:1200, ds:'Arrr! Vim buscar o tesouro.'},
+ {id:'ninja', nm:'Ninja Todo Preto', pc:1500, ds:'Silencioso como uma sombra.'},
+ {id:'astro', nm:'Astronauta', pc:1800, ds:'Roubando... corações espaciais.'},
+ {id:'mumia', nm:'Múmia', pc:2200, ds:'Enrolado, mas chega lá.'}
 ];
 var ABILS=[
  {id:'escudo',nm:'Escudo',emo:'🛡️',pc:300, ds:'5 segundos sem poder ser pego.'},
@@ -250,7 +251,10 @@ function buildShop(){
   SKINS.forEach(function(s){
     var c=document.createElement('div');c.className='card';
     var ownedS=skinsOwned.indexOf(s.id)>=0;
-    c.innerHTML='<div class="emo">'+s.emo+'</div><div class="nm">'+s.nm+'</div><div class="ds">'+s.ds+'</div><div class="pc">'+(s.pc?'🪙 '+s.pc:'Grátis')+'</div>';
+    c.innerHTML='<div class="nm">'+s.nm+'</div><div class="ds">'+s.ds+'</div><div class="pc">'+(s.pc?'🪙 '+s.pc:'Grátis')+'</div>';
+    var pv=document.createElement('canvas');pv.width=84;pv.height=100;pv.className='prev';
+    paintPreview(pv,s.id);
+    c.insertBefore(pv,c.firstChild);
     var b=document.createElement('button');
     if(!ownedS){b.textContent='Comprar';b.className='buy';b.disabled=coins<s.pc;
       b.onclick=function(){coins-=s.pc;skinsOwned.push(s.id);curSkin=s.id;saveAll();sCoin();buildShop()};}
@@ -549,55 +553,221 @@ function draw(){
   ctx.fillStyle='rgba(255,255,255,.2)';ctx.fillRect(20,16,920,8);
   ctx.fillStyle='#80ed99';ctx.fillRect(20,16,920*Math.min(p.x/G.W,1),8);
 }
+// ---------- ladrão & skins (100% desenhados, sem emoji) ----------
+function oRect(g,x,y,w,h,fill){g.fillStyle=fill;g.fillRect(x,y,w,h);g.strokeStyle='rgba(15,18,30,.55)';g.lineWidth=1.5;g.strokeRect(x+.75,y+.75,w-1.5,h-1.5)}
+function olhos(g,cx,ey,face,opt){ // dois olhos expressivos olhando pro lado do movimento
+  opt=opt||{};var off=face*2;
+  if(opt.glow){g.fillStyle=opt.glow;g.fillRect(cx-8+off,ey-1,7,7);g.fillRect(cx+1+off,ey-1,7,7)}
+  g.fillStyle=opt.branco||'#fff';g.fillRect(cx-7+off,ey,5,5);g.fillRect(cx+2+off,ey,5,5);
+  g.fillStyle=opt.iris||'#111';g.fillRect(cx-6+off+face,ey+1,3,3);g.fillRect(cx+3+off+face,ey+1,3,3);
+}
+function drawSkinHead(g,cx,ty,sk,face,t){
+  var x=cx-10,y=ty;
+  if(sk==='pato'){ // cabeça amarela redonda + bico laranja achatado
+    g.fillStyle='#ffd23f';g.beginPath();g.arc(cx,y+7,11,0,7);g.fill();
+    g.strokeStyle='rgba(15,18,30,.55)';g.lineWidth=1.5;g.stroke();
+    var bx=face===1?cx+6:cx-16;
+    g.fillStyle='#ff8c1a';g.fillRect(bx,y+6,10,4);g.fillRect(bx+(face===1?1:-1),y+10,9,2);
+    g.strokeRect(bx+.75,y+6.75,8.5,4.5);
+    g.fillStyle='#fff';g.fillRect(cx+face*3-3,y,6,6);
+    g.fillStyle='#111';g.fillRect(cx+face*4-1,y+2,3,3);
+    return;
+  }
+  if(sk==='tv'){ // TV retrô cinza, tela azul com olhos de pixel, antenas
+    g.strokeStyle='#8b93a5';g.lineWidth=2;
+    g.beginPath();g.moveTo(cx-4,y-2);g.lineTo(cx-9,y-11);g.moveTo(cx+4,y-2);g.lineTo(cx+9,y-11);g.stroke();
+    g.fillStyle='#cfd6e4';g.fillRect(cx-11,y-13,4,4);g.fillRect(cx+7,y-13,4,4);
+    oRect(g,x-3,y-2,26,20,'#9aa0a8');
+    oRect(g,x,y+1,20,14,'#2a63ff');
+    g.fillStyle='#bfe3ff';
+    g.fillRect(x+4+face,y+5,4,4);g.fillRect(x+12+face,y+5,4,4);
+    g.fillRect(x+7,y+11,6,2);
+    g.fillStyle='#6f767f';g.fillRect(x+20,y+3,2,2);g.fillRect(x+20,y+7,2,2);
+    return;
+  }
+  if(sk==='robo'){ // cabeça metálica enferrujada, olho de LED piscando
+    var led=(Math.floor(t/20)%2===0)?'#ff5252':'#ff9e9e';
+    g.strokeStyle='#666';g.lineWidth=2;g.beginPath();g.moveTo(cx,y-1);g.lineTo(cx,y-7);g.stroke();
+    g.fillStyle=led;g.fillRect(cx-2,y-10,4,4);
+    oRect(g,x-2,y-1,24,18,'#a05a1e');
+    g.fillStyle='#c77b33';g.fillRect(x,y+1,20,4);
+    g.fillStyle='#7c3f10';g.fillRect(x+2,y+12,7,3);g.fillRect(x+14,y+3,5,3);
+    g.fillStyle='#3a1c05';g.fillRect(cx-5+face*2,y+5,10,7);
+    g.fillStyle=led;g.fillRect(cx-3+face*2,y+7,6,3);
+    return;
+  }
+  if(sk==='astro'){ // capacete de vidro com reflexo
+    g.fillStyle='#fff';g.beginPath();g.arc(cx,y+8,12,0,7);g.fill();
+    g.strokeStyle='#aab';g.lineWidth=2;g.stroke();
+    g.fillStyle='#9fd8ff';g.beginPath();g.arc(cx+face,y+8,9,0,7);g.fill();
+    g.fillStyle='#ffd9b3';g.fillRect(cx-5+face,y+5,10,7);
+    olhos(g,cx+face,y+6,face);
+    g.strokeStyle='rgba(255,255,255,.85)';g.lineWidth=2;
+    g.beginPath();g.arc(cx-3,y+5,5,3.6,4.9);g.stroke();
+    return;
+  }
+  if(sk==='ninja'){ // faixa vermelha, olhos brilhando
+    oRect(g,x,y,20,16,'#181820');
+    g.fillStyle='#d62828';g.fillRect(x-1,y+2,22,4);
+    g.fillStyle='#a51f1f';g.fillRect(face===1?x-6:x+20,y+3,6,3);
+    olhos(g,cx,y+8,face,{branco:'#ffe36e',iris:'#7a4a00',glow:'rgba(255,220,90,.35)'});
+    return;
+  }
+  if(sk==='mumia'){ // olhos aparecendo entre as faixas
+    oRect(g,x,y,20,16,'#f3ecdc');
+    g.fillStyle='#2b2117';g.fillRect(x+1,y+5,18,7);
+    olhos(g,cx,y+6,face);
+    g.strokeStyle='#cfc4ab';g.lineWidth=2;
+    g.beginPath();g.moveTo(x,y+2);g.lineTo(x+20,y+4);g.moveTo(x,y+13);g.lineTo(x+20,y+15);g.stroke();
+    return;
+  }
+  if(sk==='pirata'){ // bandana de bolinhas, tapa-olho, barba
+    oRect(g,x,y,20,16,'#ffd9b3');
+    g.fillStyle='#d62828';g.fillRect(x-1,y-3,22,7);
+    g.fillStyle='#fff';g.fillRect(x+3,y-1,2,2);g.fillRect(x+9,y-2,2,2);g.fillRect(x+15,y-1,2,2);
+    g.fillStyle='#a51f1f';g.fillRect(face===1?x-6:x+20,y-1,6,4);
+    g.strokeStyle='#111';g.lineWidth=2;
+    g.beginPath();g.moveTo(x,y+7);g.lineTo(x+20,y+5);g.stroke();
+    g.fillStyle='#111';g.fillRect(cx+face*3-3,y+3,7,6);      // tapa-olho
+    g.fillStyle='#fff';g.fillRect(cx-face*4-2,y+4,5,5);      // olho bom
+    g.fillStyle='#111';g.fillRect(cx-face*4-1+face,y+5,3,3);
+    g.fillStyle='#6b4423';g.fillRect(x+2,y+11,16,6);         // barba
+    g.fillStyle='#ffd9b3';g.fillRect(cx-2+face,y+11,4,3);    // boca no meio da barba
+    return;
+  }
+  if(sk==='banana'){ // rostinho na janela da banana
+    g.fillStyle='#ffd9b3';g.beginPath();g.ellipse(cx+face,y+8,8,7,0,0,7);g.fill();
+    g.strokeStyle='rgba(15,18,30,.4)';g.lineWidth=1.5;g.stroke();
+    olhos(g,cx+face,y+5,face);
+    g.strokeStyle='#5b3a1a';g.lineWidth=2;g.beginPath();g.arc(cx+face,y+10,3,0.3,2.8);g.stroke();
+    return;
+  }
+  // base / tenis / azul
+  var headC= sk==='azul' ? '#1e6ef5' : '#ffd9b3';
+  if(sk==='azul'){ // espinhos/topete pra trás
+    g.fillStyle='#1450b8';
+    for(var s5=0;s5<3;s5++){
+      var tipX=face===1?x-3-s5*4:x+23+s5*4;
+      g.beginPath();g.moveTo(cx-face*6,y+1+s5*4);g.lineTo(tipX,y+4+s5*4);g.lineTo(cx-face*3,y+5+s5*4);g.closePath();g.fill();
+    }
+  }
+  oRect(g,x,y,20,16,headC);
+  if(sk!=='azul'){g.fillStyle='#222';g.fillRect(x-1,y-3,22,5)}  // gorro
+  g.fillStyle='#2b2b33';g.fillRect(x-1,y+4,22,6);               // máscara
+  olhos(g,cx,y+5,face);
+  g.strokeStyle='#7a4a1e';g.lineWidth=2;
+  g.beginPath();g.arc(cx+face,y+12,3,0.3,2.8);g.stroke();       // sorriso
+}
+function paintThief(g,x,y,o){
+  var sk=o.sk,pose=o.pose||'stand',face=o.face||1,h=o.h||56,w=28,t=o.t||0;
+  var walking=o.moving&&o.onGround&&pose!=='fly';
+  var swing=walking?Math.sin(t*0.35)*4:0;
+  var air=o.onGround===false&&pose!=='fly';
+  g.save();
+  var P={body:'#ececec',stripe:'#2f2f38',perna:'#33333d'};
+  if(sk==='azul'){P.body='#1e6ef5';P.stripe='#1450b8';P.perna='#123c8c'}
+  if(sk==='banana'){P.body='#ffe135';P.stripe='#f2c200';P.perna='#f2c200'}
+  if(sk==='robo'){P.body='#b5651d';P.stripe='#8a4b12';P.perna='#7c3f10'}
+  if(sk==='ninja'){P.body='#181820';P.stripe='#26262f';P.perna='#000'}
+  if(sk==='mumia'){P.body='#f3ecdc';P.stripe='#d8cdb2';P.perna='#e6dcc4'}
+  if(sk==='astro'){P.body='#f4f4fa';P.stripe='#c9c9dd';P.perna='#d8d8e8'}
+  if(sk==='pirata'){P.body='#fff';P.stripe='#d62828';P.perna='#2b2b33'}
+  if(sk==='pato'){P.body='#ffd23f';P.stripe='#f0b21a';P.perna='#e8960c'}
+  if(pose==='crawl'){ // rastejando
+    oRect(g,x,y-16,w+16,12,P.body);
+    g.fillStyle=P.stripe;
+    for(var s=0;s<3;s++)g.fillRect(x+5+s*13,y-15,6,10);
+    g.fillStyle=P.perna;
+    g.fillRect(face===1?x-4:x+w+14,y-9,6,6);                    // pezinho atrás
+    drawSkinHead(g,face===1?x+w+20:x-6,y-28,sk,face,t);
+    g.restore();return;
+  }
+  var legH=pose==='crouch'?9:14;
+  var l1=x+3+swing,l2=x+w-11-swing;
+  if(air){l1=x+2;l2=x+w-10}
+  // pernas com animação de andar
+  oRect(g,l1,y-legH,8,legH,P.perna);oRect(g,l2,y-legH,8,legH,P.perna);
+  // sapatos
+  if(sk==='tenis'){ // tênis GIGANTES com cadarço
+    [l1,l2].forEach(function(lx){
+      oRect(g,lx-9,y-12,26,12,'#fafafa');
+      g.fillStyle='#c1121f';g.fillRect(lx-9,y-7,26,4);
+      g.fillStyle='#888';g.fillRect(lx-9,y-2,26,2);
+      g.strokeStyle='#c1121f';g.lineWidth=1.5;
+      g.beginPath();g.moveTo(lx-2,y-11);g.lineTo(lx+8,y-8);g.moveTo(lx+8,y-11);g.lineTo(lx-2,y-8);g.stroke();
+    });
+  } else if(sk==='azul'){
+    oRect(g,l1-2,y-5,12,5,'#e53935');oRect(g,l2-2,y-5,12,5,'#e53935');
+  } else {
+    oRect(g,l1-1,y-5,11,5,'#3a3a44');oRect(g,l2-1,y-5,11,5,'#3a3a44');
+  }
+  var bTop=y-h+16,bBot=y-legH+2,bH=bBot-bTop;
+  if(sk==='banana'){ // casca de banana envolvendo o corpo
+    g.fillStyle='#ffe135';
+    g.beginPath();g.ellipse(x+w/2,(bTop+y-4)/2,w/2+6,(y-4-bTop)/2+10,0,0,7);g.fill();
+    g.strokeStyle='rgba(15,18,30,.55)';g.lineWidth=1.5;g.stroke();
+    g.fillStyle='#5b3a1a';g.fillRect(x+w/2-3,bTop-15,6,7);      // pontas marrons
+    g.fillRect(x+w/2-3,y-6,6,5);
+    g.strokeStyle='#f2c200';g.lineWidth=2;
+    g.beginPath();g.moveTo(x+4,bTop);g.lineTo(x+4,y-10);g.moveTo(x+w-4,bTop);g.lineTo(x+w-4,y-10);g.stroke();
+    drawSkinHead(g,x+w/2,y-h+2,sk,face,t);
+    g.restore();return;
+  }
+  oRect(g,x,bTop,w,bH,P.body);
+  if(sk!=='ninja'&&sk!=='astro'&&sk!=='robo'&&sk!=='mumia'){    // listras
+    g.fillStyle=P.stripe;
+    for(var i=bTop+4;i<bBot-3;i+=8)g.fillRect(x+1,i,w-2,4);
+  }
+  // bracinhos com luvas
+  var armY=bTop+2;
+  g.fillStyle=P.body;
+  g.fillRect(x-5,armY,5,12);g.fillRect(x+w,armY,5,12);
+  g.fillStyle= sk==='ninja'?'#000':'#222';
+  g.fillRect(x-5,armY+12,5,5);g.fillRect(x+w,armY+12,5,5);
+  // detalhes por skin
+  if(sk==='robo'){
+    g.fillStyle='#d9d9d9';
+    g.fillRect(x+2,bTop+2,2,2);g.fillRect(x+w-4,bTop+2,2,2);g.fillRect(x+2,bBot-4,2,2);g.fillRect(x+w-4,bBot-4,2,2); // rebites
+    g.fillStyle='#7c3f10';g.fillRect(x+4,bTop+8,8,4);g.fillRect(x+w-11,bBot-9,7,4);   // ferrugem
+    g.strokeStyle='#8a4b12';g.lineWidth=1.5;g.strokeRect(x+6.5,bTop+4.5,w-13,Math.max(4,bH-9)); // placa
+  }
+  if(sk==='mumia'){
+    g.strokeStyle='#cfc4ab';g.lineWidth=2;
+    for(var m=0;m<4;m++){g.beginPath();g.moveTo(x,bTop+2+m*6);g.lineTo(x+w,bTop+5+m*6);g.stroke();}
+    var wav=Math.sin(t*0.15)*4;                                 // faixa solta balançando
+    g.beginPath();g.moveTo(x+w,bTop+6);g.quadraticCurveTo(x+w+8,bTop+10+wav,x+w+5,bTop+18+wav);g.stroke();
+  }
+  if(sk==='astro'){
+    g.fillStyle='#9aa0b5';g.fillRect(face===1?x-8:x+w+3,bTop+1,5,16);  // mochila
+    g.fillStyle='#2a63ff';g.fillRect(x+w/2-4,bTop+4,8,2);              // patch
+    g.fillStyle='#d62828';g.fillRect(x+w/2-4,bTop+6,8,3);
+  }
+  if(sk==='ninja'){g.fillStyle='#3a3a46';g.fillRect(x,bBot-5,w,3)}     // faixa da cintura
+  drawSkinHead(g,x+w/2,y-h+2,sk,face,t);
+  g.restore();
+}
 function drawThief(x,y,p){
-  var h=p.h,w=p.w,inv=G.abilActive==='invis';
+  var inv=G.abilActive==='invis';
   ctx.save();
   if(inv)ctx.globalAlpha=0.35;
-  var sk=curSkin;
-  var bodyC='#e8e8e8',stripeC='#333',headC='#ffd9b3',maskC='#222';
-  if(sk==='azul'){bodyC='#1e6ef5';stripeC='#0b3fa0'} if(sk==='banana'){bodyC='#ffe135';stripeC='#e5b800'}
-  if(sk==='robo'){bodyC='#9a8f7f';stripeC='#6e5f4b';headC='#b0a696'}
-  if(sk==='ninja'){bodyC='#1a1a1a';stripeC='#000';headC='#1a1a1a'}
-  if(sk==='mumia'){bodyC='#f5f0e6';stripeC='#d9cfba';headC='#f5f0e6'}
-  if(sk==='astro'){bodyC='#f0f0f5';stripeC='#c0c0d0'}
-  if(sk==='pirata'){bodyC='#fff';stripeC='#c1121f'}
-  var pose=p.pose;
-  if(pose==='crawl'){ // deitado
-    rr(x,y-18,w+16,14,bodyC);
-    for(var s=0;s<3;s++)rr(x+4+s*13,y-18,6,14,stripeC);
-    drawHead(x+(p.face===1?w+8:-14),y-22,16,sk,headC,maskC,p.face);
-  } else {
-    var bh=pose==='crouch'?22:34;
-    rr(x,y-h+18,w,bh,bodyC);
-    for(var s2=0;s2<3;s2++)rr(x,y-h+20+s2*10,w,5,stripeC);
-    // pernas
-    var legC=sk==='ninja'?'#000':'#2b2b2b';
-    rr(x+2,y-14,8,14,legC);rr(x+w-10,y-14,8,14,legC);
-    if(sk==='tenis'){rr(x-4,y-8,18,8,'#f00');rr(x+w-12,y-8,18,8,'#f00')}
-    drawHead(x+w/2-8,y-h+2,16,sk,headC,maskC,p.face);
-    if(G.abilActive==='asas'&&p.flying){ctx.font='20px sans-serif';ctx.fillText('🪽',x-18,y-h+18);ctx.fillText('🪽',x+w+2,y-h+18)}
-  }
+  // sombra no chão (encolhe quando pula)
+  var sc=Math.max(.35,1-(FLOOR-p.y)/240);
+  ctx.fillStyle='rgba(0,0,0,'+(0.28*sc).toFixed(2)+')';
+  ctx.beginPath();ctx.ellipse(x+p.w/2,FLOOR+6,14*sc+7,4,0,0,7);ctx.fill();
+  paintThief(ctx,x,y,{sk:curSkin,pose:p.pose,face:p.face,h:p.h,t:G.t,moving:p.vx!==0,onGround:p.onGround});
+  if(G.abilActive==='asas'&&p.flying){ctx.font='20px sans-serif';ctx.fillText('🪽',x-18,y-p.h+18);ctx.fillText('🪽',x+p.w+2,y-p.h+18)}
   ctx.restore();
-}
-function drawHead(x,y,s,sk,headC,maskC,face){
-  ctx.font=(s+6)+'px sans-serif';
-  if(sk==='pato'){ctx.fillText('🦆',x-4,y+s);return}
-  if(sk==='tv'){rr(x-4,y-4,s+8,s+6,'#333');rr(x-1,y-1,s+2,s,'#5ee1ff');rr(x+s+4,y-8,2,6,'#333');return}
-  if(sk==='banana'){ctx.fillText('🍌',x-4,y+s);return}
-  if(sk==='robo'){rr(x-2,y-2,s+4,s+4,'#8d8172');rr(x+1,y+3,4,4,'#ff5252');rr(x+s-4,y+3,4,4,'#ff5252');rr(x+s/2-1,y-7,2,6,'#666');return}
-  if(sk==='astro'){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x+s/2,y+s/2,s/2+4,0,7);ctx.fill();ctx.fillStyle='#123';ctx.beginPath();ctx.arc(x+s/2+face*2,y+s/2,s/2-2,0,7);ctx.fill();return}
-  // cabeça base
-  rr(x,y,s,s,headC);
-  if(sk==='ninja'){rr(x,y+4,s,5,'#eee');ctx.fillStyle='#000';ctx.fillRect(x+(face===1?s-6:2),y+5,3,3);return}
-  if(sk==='mumia'){ctx.strokeStyle='#cfc4ab';ctx.lineWidth=2;for(var i=0;i<3;i++){ctx.beginPath();ctx.moveTo(x,y+3+i*5);ctx.lineTo(x+s,y+5+i*5);ctx.stroke()}ctx.fillStyle='#000';ctx.fillRect(x+(face===1?s-6:2),y+5,3,3);return}
-  // máscara de ladrão
-  rr(x-1,y+4,s+2,6,maskC);
-  ctx.fillStyle='#fff';ctx.fillRect(x+(face===1?s-7:3),y+5,4,4);
-  ctx.fillStyle='#000';ctx.fillRect(x+(face===1?s-6:4),y+6,2,2);
-  if(sk==='pirata'){rr(x-1,y-4,s+2,5,'#111');ctx.fillStyle='#111';ctx.fillRect(x+(face===1?s-8:2),y+4,6,6)}
-  if(sk==='azul'){ctx.fillStyle='#0b3fa0';ctx.beginPath();ctx.moveTo(x+s/2,y-8);ctx.lineTo(x+s/2-6,y);ctx.lineTo(x+s/2+6,y);ctx.closePath();ctx.fill()}
-  if(sk==='pato'){} // tratado acima
   ctx.font='22px sans-serif';
+}
+function paintPreview(canvas,skid){ // mini-prévia da skin nos cards da loja
+  var g=canvas.getContext('2d');
+  g.clearRect(0,0,canvas.width,canvas.height);
+  g.save();
+  g.translate(canvas.width/2-18,10);g.scale(1.3,1.3);
+  g.fillStyle='rgba(0,0,0,.3)';
+  g.beginPath();g.ellipse(14,62,20,4,0,0,7);g.fill();
+  paintThief(g,0,60,{sk:skid,pose:'stand',face:1,h:56,t:0,moving:false,onGround:true});
+  g.restore();
 }
 
 // boot
