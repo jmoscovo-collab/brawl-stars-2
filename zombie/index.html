@@ -186,6 +186,32 @@
             60%, 80% { transform: rotate(90deg); }
             100% { transform: rotate(90deg); }
         }
+        /* ===== Controles de toque (celular) ===== */
+        #touch-controls { display: none; }
+        body.mobile-mode #touch-controls { display: block; }
+        #touch-dpad {
+            position: fixed; bottom: 25px; left: 25px; z-index: 250;
+            display: grid; grid-template-columns: repeat(3, 62px); grid-template-rows: repeat(2, 62px);
+            gap: 8px;
+        }
+        .tbtn {
+            width: 62px; height: 62px; border-radius: 50%;
+            background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.4);
+            color: #fff; font-size: 26px; font-weight: bold;
+            touch-action: none; user-select: none; -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .tbtn:active { background: rgba(136,255,68,0.4); border-color: #88ff44; }
+        #tb-up { grid-column: 2; grid-row: 1; }
+        #tb-left { grid-column: 1; grid-row: 2; }
+        #tb-down { grid-column: 2; grid-row: 2; }
+        #tb-right { grid-column: 3; grid-row: 2; }
+        #tb-attack {
+            position: fixed; bottom: 45px; right: 30px; z-index: 250;
+            width: 90px; height: 90px; font-size: 42px;
+            background: rgba(255,60,60,0.3); border-color: rgba(255,80,80,0.7);
+        }
+        #tb-attack:active { background: rgba(255,60,60,0.6); border-color: #ff5555; }
     </style>
 
 <style id="device-screen-style">
@@ -293,6 +319,16 @@
     <div id="weapon-display">🪓 Machado Antigo</div>
     <div id="crosshair"></div>
     <div id="wave-announce"></div>
+
+    <div id="touch-controls">
+        <div id="touch-dpad">
+            <button class="tbtn" id="tb-up" data-key="KeyW">▲</button>
+            <button class="tbtn" id="tb-left" data-key="KeyA">◀</button>
+            <button class="tbtn" id="tb-down" data-key="KeyS">▼</button>
+            <button class="tbtn" id="tb-right" data-key="KeyD">▶</button>
+        </div>
+        <button class="tbtn" id="tb-attack">🪓</button>
+    </div>
 
     <div id="game-over">
         <h1>VOCÊ MORREU</h1>
@@ -1450,8 +1486,13 @@
     }
 
     function formatTime(sec) {
-        const m = Math.floor(sec / 60);
-        const s = Math.floor(sec % 60);
+        const total = Math.floor(sec);
+        const h = Math.floor(total / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const s = total % 60;
+        if (h > 0) {
+            return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+        }
         return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
     }
 
@@ -1481,6 +1522,7 @@
             }
         });
         document.addEventListener('mousedown', () => {
+            if (document.body.classList.contains('mobile-mode')) return;
             if (!document.pointerLockElement && gameRunning) {
                 renderer.domElement.requestPointerLock();
             } else if (gameRunning) {
@@ -1488,6 +1530,57 @@
             }
         });
         document.addEventListener('pointerlockchange', () => {});
+        setupTouchControls();
+    }
+
+    // ===== Controles de toque (celular): botões de andar, atacar e arrastar pra girar =====
+    function setupTouchControls() {
+        // Botões de andar (◀▲▼▶) simulam as teclas WASD
+        document.querySelectorAll('#touch-controls .tbtn[data-key]').forEach(btn => {
+            const k = btn.dataset.key;
+            btn.addEventListener('touchstart', e => { e.preventDefault(); keys[k] = true; }, { passive: false });
+            btn.addEventListener('touchend', e => { e.preventDefault(); keys[k] = false; }, { passive: false });
+            btn.addEventListener('touchcancel', () => { keys[k] = false; });
+        });
+        // Botão de atacar 🪓
+        const atk = document.getElementById('tb-attack');
+        atk.addEventListener('touchstart', e => {
+            e.preventDefault();
+            if (gameRunning) attack();
+        }, { passive: false });
+
+        // Arrastar na tela (no canvas do jogo) gira a câmera
+        let lookTouchId = null, lastTX = 0, lastTY = 0;
+        document.addEventListener('touchstart', e => {
+            if (!gameRunning || !document.body.classList.contains('mobile-mode')) return;
+            for (const t of e.changedTouches) {
+                if (lookTouchId === null && t.target.tagName === 'CANVAS') {
+                    lookTouchId = t.identifier;
+                    lastTX = t.clientX;
+                    lastTY = t.clientY;
+                }
+            }
+        }, { passive: false });
+        document.addEventListener('touchmove', e => {
+            if (lookTouchId === null) return;
+            for (const t of e.changedTouches) {
+                if (t.identifier === lookTouchId) {
+                    playerAngle -= (t.clientX - lastTX) * 0.005;
+                    cameraPitch -= (t.clientY - lastTY) * 0.005;
+                    cameraPitch = Math.max(-1.2, Math.min(1.2, cameraPitch));
+                    lastTX = t.clientX;
+                    lastTY = t.clientY;
+                    e.preventDefault();
+                }
+            }
+        }, { passive: false });
+        const endLook = e => {
+            for (const t of e.changedTouches) {
+                if (t.identifier === lookTouchId) lookTouchId = null;
+            }
+        };
+        document.addEventListener('touchend', endLook);
+        document.addEventListener('touchcancel', endLook);
     }
 
     function updatePlayer(dt) {
@@ -1665,7 +1758,9 @@
         init();
         document.getElementById('weapon-display').textContent = weapons[currentWeapon].name;
         gameRunning = true;
-        renderer.domElement.requestPointerLock();
+        if (!document.body.classList.contains('mobile-mode')) {
+            renderer.domElement.requestPointerLock();
+        }
         spawnWave();
         animate();
     }

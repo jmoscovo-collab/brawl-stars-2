@@ -1,5 +1,15 @@
 # Changelog - Cogumelo Games (site)
 
+## v2.4.0 (2026-07-27) — pacotao do Davi
+- JOGO NOVO: Policia VS Ladrao (250 niveis procedurais validados, lasers/armarios/canos, 10 skins, 5 habilidades)
+- JOGO NOVO: Chuva de Cogumelos (6 tipos de cogumelo, dash, loja de consumiveis, inventario)
+- Turbo Racing: arquibancadas, pista 2x mais larga, 3 modos (3/5/9 voltas), raridades, roleta 1x/hora
+  (secretos 1%), 5 batidas = 3s travado, colisao entre carros (2s), foguinho no turbo
+- Zumbi: dpad + botao de ataque no celular, camera por arrasto, timer h:mm:ss
+- Pescaria: varas 60% mais baratas, peixes valem 3x, raridade SECRETA (0,001%), +50% de tempo no celular
+- Home: barra de pesquisa de jogos
+
+
 ## v2.3.0 (2026-07-26)
 - JOGO NOVO: Capy.io — capivara-cobra estilo .io, arena 3000x3000, 10 bots com IA, boost,
   ranking ao vivo, moedas por partida e 130 skins (10 series x 13 paletas)

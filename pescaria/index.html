@@ -58,6 +58,7 @@ canvas { background:#000; border-radius:10px; max-width:100vw; max-height:calc(1
 .r-epico { color:#bb66ff; } .b-epico { border-color:#bb66ff; }
 .r-lendario { color:#ffd700; } .b-lendario { border-color:#ffd700; box-shadow:0 0 12px rgba(255,215,0,0.3); }
 .r-ultra { color:#ff55cc; } .b-ultra { border-color:#ff55cc; box-shadow:0 0 18px rgba(255,85,204,0.6); }
+.r-secreto { color:#00ffee; text-shadow:0 0 10px #00ffee; } .b-secreto { border-color:#00ffee; box-shadow:0 0 26px rgba(0,255,238,0.9), 0 0 50px rgba(0,255,238,0.4); }
 .r-item { color:#ffaa44; } .b-item { border-color:#ffaa44; }
 #botoes {
     position:fixed; bottom:12px; left:50%; transform:translateX(-50%); z-index:15;
@@ -174,11 +175,12 @@ if (window.initStats) initStats('pescaria');
 // ============ PEIXES (5 raridades) ============
 // comum 50% | raro 30% | epico 15% | lendario 4.99% | ultra 0.01%
 const RARIDADES = {
-    comum:    { nome:'COMUM',    chance:50,    valor:[3,8],     cor:'#bbb' },
-    raro:     { nome:'RARO',     chance:30,    valor:[15,35],   cor:'#44aaff' },
-    epico:    { nome:'ÉPICO',    chance:15,    valor:[80,150],  cor:'#bb66ff' },
-    lendario: { nome:'LENDÁRIO', chance:4.99,  valor:[500,900], cor:'#ffd700' },
-    ultra:    { nome:'ULTRA',    chance:0.01,  valor:[25000,50000], cor:'#ff55cc' },
+    comum:    { nome:'COMUM',    chance:49.999, valor:[9,24],     cor:'#bbb' },
+    raro:     { nome:'RARO',     chance:30,    valor:[45,105],   cor:'#44aaff' },
+    epico:    { nome:'ÉPICO',    chance:15,    valor:[240,450],  cor:'#bb66ff' },
+    lendario: { nome:'LENDÁRIO', chance:4.99,  valor:[1500,2700], cor:'#ffd700' },
+    ultra:    { nome:'ULTRA',    chance:0.01,  valor:[75000,150000], cor:'#ff55cc' },
+    secreto:  { nome:'SECRETO',  chance:0.001, valor:[200000,400000], cor:'#00ffee' },
     item:     { nome:'TESOURO',  chance:0,     valor:[0,0],         cor:'#ffaa44' }
 };
 const PEIXES = {
@@ -195,7 +197,8 @@ const PEIXES = {
                ['Peixe Fantasma','👻'],['Kraken Bebê','🦑'],['Peixe Sereia','🧜'],['Peixe de Ouro','✨'],
                ['Celacanto','🦕'],['Peixe Vulcão','🌋'],['Peixe Ninja','🥷'],['Tartaruga Ancestral','🐢'],
                ['Peixe Trovão','⚡'],['Anjo-do-Mar','😇']],
-    ultra:    [['Tubarão','🦈'],['Golfinho','🐬'],['Peixe Lanterna','🔦']]
+    ultra:    [['Tubarão','🦈'],['Golfinho','🐬'],['Peixe Lanterna','🔦']],
+    secreto:  [['Peixe Dourado Real','👑'],['Serpente do Lago','🐲'],['PEIXE COGUMELO','🍄']]
 };
 
 // ============ TESOUROS (chance rara de fisgar um item em vez de peixe!) ============
@@ -240,41 +243,41 @@ const CHANCE_TESOURO = 0.08; // 8% da fisgada ser um tesouro
 // janela = tempo pra fisgar | sorte = chance de raridades altas | forca = quanto cada clique enche a barra na briga
 const VARAS_DEF = [
     ['graveto','Graveto','🥢',0,'Um graveto com barbante. Funciona... às vezes.'],
-    ['bambu','Vara de Bambu','🎋',100,'Clássica! Mais tempo pra fisgar.'],
-    ['fibra','Vara de Fibra','🎣',500,'Profissional de verdade.'],
-    ['ouro','Vara de Ouro','✨',2500,'Brilhante! Os peixes ficam curiosos.'],
-    ['diamante','Vara de Diamante','💎',10000,'Os peixes ADORAM ela.'],
-    ['mistica','Vara Mística','🔮',50000,'O Peixe Rei te espera!'],
-    ['eletrica','Vara Elétrica','⚡',75000,'Choque! O peixe cansa mais rápido.'],
-    ['gelo','Vara de Gelo','❄️',100000,'Congela a preguiça dos peixes.'],
-    ['lava','Vara de Lava','🌋',150000,'Quente demais pra escapar!'],
-    ['ninja','Vara Ninja','🥷',200000,'Fisgada silenciosa e mortal.'],
-    ['pirata','Vara Pirata','🏴‍☠️',300000,'Yarr! Tesouro do fundo do mar.'],
-    ['robo','Vara Robô','🤖',400000,'Puxa sozinha (quase).'],
-    ['fantasma','Vara Fantasma','👻',500000,'O peixe nem vê o anzol.'],
-    ['cristal','Vara de Cristal','🔷',650000,'Pura e poderosa.'],
-    ['arcoiris','Vara Arco-Íris','🌈',800000,'Sorte colorida!'],
-    ['trovao','Vara do Trovão','🌩️',1000000,'BRUM! Peixes tremem.'],
-    ['dragao','Vara do Dragão','🐉',1200000,'Forjada com fogo de dragão.'],
-    ['capivara','Vara Capivara','🦫',1500000,'A mais relaxada. E forte!'],
-    ['cogumelo','Vara Cogumelo','🍄',1800000,'O poder do Cogumelo Games!'],
-    ['solar','Vara Solar','☀️',2200000,'Energia do sol.'],
-    ['lunar','Vara Lunar','🌙',2600000,'Pesca melhor à noite (sempre).'],
-    ['tsunami','Vara Tsunami','🌊',3000000,'Domina as ondas.'],
-    ['atlante','Vara Atlante','🔱',3500000,'Tridente de Atlântida.'],
-    ['espacial','Vara Espacial','🚀',4000000,'Pesca em gravidade zero.'],
-    ['meteoro','Vara Meteoro','☄️',4500000,'Caiu do céu direto na loja.'],
-    ['galaxia','Vara Galáxia','🌌',5000000,'Estrelas no anzol.'],
-    ['titanio','Vara de Titânio','🔩',5500000,'Indestrutível.'],
-    ['vulcanica','Vara Vulcânica','🔥',6000000,'Erupção de sorte!'],
-    ['real','Vara Real','👑',6500000,'Digna de um rei.'],
-    ['sombria','Vara Sombria','🌑',7000000,'Os peixes têm medo dela.'],
-    ['angelical','Vara Angelical','😇',7500000,'Abençoada.'],
-    ['infinita','Vara Infinita','♾️',8000000,'Nunca quebra. Nunca erra. Quase.'],
-    ['mestre','Vara do Mestre','🥋',8500000,'Só os melhores pescadores.'],
-    ['cosmica','Vara Cósmica','💫',9000000,'Feita de poeira de estrela.'],
-    ['divina','Vara Divina','✨',9500000,'Os deuses pescam com ela.'],
-    ['suprema','Vara SUPREMA','🏆',10000000,'A ÚLTIMA. A MELHOR. A LENDA.']
+    ['bambu','Vara de Bambu','🎋',40,'Clássica! Mais tempo pra fisgar.'],
+    ['fibra','Vara de Fibra','🎣',200,'Profissional de verdade.'],
+    ['ouro','Vara de Ouro','✨',1000,'Brilhante! Os peixes ficam curiosos.'],
+    ['diamante','Vara de Diamante','💎',4000,'Os peixes ADORAM ela.'],
+    ['mistica','Vara Mística','🔮',20000,'O Peixe Rei te espera!'],
+    ['eletrica','Vara Elétrica','⚡',30000,'Choque! O peixe cansa mais rápido.'],
+    ['gelo','Vara de Gelo','❄️',40000,'Congela a preguiça dos peixes.'],
+    ['lava','Vara de Lava','🌋',60000,'Quente demais pra escapar!'],
+    ['ninja','Vara Ninja','🥷',80000,'Fisgada silenciosa e mortal.'],
+    ['pirata','Vara Pirata','🏴‍☠️',120000,'Yarr! Tesouro do fundo do mar.'],
+    ['robo','Vara Robô','🤖',160000,'Puxa sozinha (quase).'],
+    ['fantasma','Vara Fantasma','👻',200000,'O peixe nem vê o anzol.'],
+    ['cristal','Vara de Cristal','🔷',260000,'Pura e poderosa.'],
+    ['arcoiris','Vara Arco-Íris','🌈',320000,'Sorte colorida!'],
+    ['trovao','Vara do Trovão','🌩️',400000,'BRUM! Peixes tremem.'],
+    ['dragao','Vara do Dragão','🐉',480000,'Forjada com fogo de dragão.'],
+    ['capivara','Vara Capivara','🦫',600000,'A mais relaxada. E forte!'],
+    ['cogumelo','Vara Cogumelo','🍄',720000,'O poder do Cogumelo Games!'],
+    ['solar','Vara Solar','☀️',880000,'Energia do sol.'],
+    ['lunar','Vara Lunar','🌙',1000000,'Pesca melhor à noite (sempre).'],
+    ['tsunami','Vara Tsunami','🌊',1200000,'Domina as ondas.'],
+    ['atlante','Vara Atlante','🔱',1400000,'Tridente de Atlântida.'],
+    ['espacial','Vara Espacial','🚀',1600000,'Pesca em gravidade zero.'],
+    ['meteoro','Vara Meteoro','☄️',1800000,'Caiu do céu direto na loja.'],
+    ['galaxia','Vara Galáxia','🌌',2000000,'Estrelas no anzol.'],
+    ['titanio','Vara de Titânio','🔩',2200000,'Indestrutível.'],
+    ['vulcanica','Vara Vulcânica','🔥',2400000,'Erupção de sorte!'],
+    ['real','Vara Real','👑',2600000,'Digna de um rei.'],
+    ['sombria','Vara Sombria','🌑',2800000,'Os peixes têm medo dela.'],
+    ['angelical','Vara Angelical','😇',3000000,'Abençoada.'],
+    ['infinita','Vara Infinita','♾️',3200000,'Nunca quebra. Nunca erra. Quase.'],
+    ['mestre','Vara do Mestre','🥋',3400000,'Só os melhores pescadores.'],
+    ['cosmica','Vara Cósmica','💫',3600000,'Feita de poeira de estrela.'],
+    ['divina','Vara Divina','✨',3800000,'Os deuses pescam com ela.'],
+    ['suprema','Vara SUPREMA','🏆',4000000,'A ÚLTIMA. A MELHOR. A LENDA.']
 ];
 const VARAS = VARAS_DEF.map(([id,nome,icone,preco,desc],i)=>({
     id, nome, icone, preco, desc,
@@ -305,14 +308,15 @@ function sorteiaRaridade(){
     const s = varaAtual().sorte;
     // sorte multiplica as chances das raridades altas; comum absorve o resto
     const pesos = {
+        secreto: RARIDADES.secreto.chance * s,
         ultra: RARIDADES.ultra.chance * s,
         lendario: RARIDADES.lendario.chance * s,
         epico: RARIDADES.epico.chance * Math.min(s,2),
         raro: RARIDADES.raro.chance * Math.min(s,1.5)
     };
-    pesos.comum = Math.max(5, 100 - pesos.ultra - pesos.lendario - pesos.epico - pesos.raro);
-    let r = Math.random() * (pesos.ultra + pesos.lendario + pesos.epico + pesos.raro + pesos.comum);
-    for (const k of ['ultra','lendario','epico','raro','comum']){
+    pesos.comum = Math.max(5, 100 - pesos.secreto - pesos.ultra - pesos.lendario - pesos.epico - pesos.raro);
+    let r = Math.random() * (pesos.secreto + pesos.ultra + pesos.lendario + pesos.epico + pesos.raro + pesos.comum);
+    for (const k of ['secreto','ultra','lendario','epico','raro','comum']){
         if (r < pesos[k]) return k;
         r -= pesos[k];
     }
@@ -343,8 +347,10 @@ const W = cv.width, H = cv.height;
 let estado = 'parado';
 let fisgadaTimeout = null, mordidaTimeout = null, lutaTimeout = null;
 // briga: cliques pra encher a barra — quanto mais raro, mais cliques!
-const CLIQUES_POR_RARIDADE = { comum:8, raro:14, epico:22, lendario:32, ultra:45, item:10 };
-const TEMPO_LUTA = 10000; // 10 segundos pro peixe escapar
+const CLIQUES_POR_RARIDADE = { comum:8, raro:14, epico:22, lendario:32, ultra:45, secreto:60, item:10 };
+const TEMPO_LUTA = 10000; // 10 segundos pro peixe escapar (1.5x no celular)
+// no celular, mais tempo pra fisgar e pra brigar (toque é mais difícil que mouse)
+function bonusCelular(){ return disp==='celular' ? 1.5 : 1; }
 let luta = null; // { peixe, progresso, precisa, fim }
 let boiaY = 0, tremor = 0;
 let audio;
@@ -387,17 +393,18 @@ function pescar(){
                     mostraMsg('Escapou... 🐟💨','#ff8888');
                     som(150,0.4,'sawtooth');
                 }
-            }, varaAtual().janela*1000);
+            }, varaAtual().janela*1000*bonusCelular());
         }, 1500+Math.random()*3500);
     } else if(estado==='fisgada'){
         clearTimeout(fisgadaTimeout);
         // FISGOU! Começa a BRIGA — o peixe é segredo até você vencer!
         const peixe = sorteiaPeixe();
+        const tempoLuta = TEMPO_LUTA * bonusCelular();
         luta = {
             peixe,
             progresso: 0,
             precisa: CLIQUES_POR_RARIDADE[peixe.rar],
-            fim: Date.now() + TEMPO_LUTA
+            fim: Date.now() + tempoLuta
         };
         estado='puxando'; tremor=1;
         document.getElementById('pescarBtn').textContent='💪 CLICA CLICA CLICA!';
@@ -409,7 +416,7 @@ function pescar(){
                 mostraMsg('O peixe ESCAPOU! 🐟💨','#ff8888');
                 som(150,0.5,'sawtooth');
             }
-        }, TEMPO_LUTA);
+        }, tempoLuta);
     } else if(estado==='puxando'){
         // cada clique enche a barra (varas melhores enchem mais!)
         luta.progresso += varaAtual().forca;
@@ -463,7 +470,7 @@ function pegouPeixe(p){
         <div class="prar" style="color:${r.cor}">★ ${r.nome} ★</div>
         <div class="pval">vale 💰 ${p.valor}</div>`;
     carta.classList.add('mostra');
-    setTimeout(()=>carta.classList.remove('mostra'), p.rar==='ultra'?5000:2200);
+    setTimeout(()=>carta.classList.remove('mostra'), p.rar==='secreto'?6500:(p.rar==='ultra'?5000:2200));
     if(p.rar==='item'){
         if(p.valor>=500){ mostraMsg('TESOURO VALIOSO! 💎','#ffaa44',2000); som(600,0.1); setTimeout(()=>som(900,0.25),120); soltaConfete(40); }
         else { mostraMsg(p.valor>10?'Achou um tesouro! 🪙':'Eca... 🤢','#ffaa44'); som(300,0.2); }
@@ -472,7 +479,17 @@ function pegouPeixe(p){
     else if(p.rar==='raro'){ som(500,0.1); setTimeout(()=>som(700,0.2),100); }
     else if(p.rar==='epico'){ som(500,0.1); setTimeout(()=>som(700,0.1),100); setTimeout(()=>som(900,0.25),200); soltaConfete(20); }
     else if(p.rar==='lendario'){ mostraMsg('LENDÁRIO!!! 🌟','#ffd700',2000); som(600,0.1); setTimeout(()=>som(800,0.1),120); setTimeout(()=>som(1000,0.1),240); setTimeout(()=>som(1200,0.4),360); soltaConfete(60); }
-    else { mostraMsg('⭐ ULTRA!!! O PEIXE REI!!! ⭐','#ff55cc',4000); for(let i=0;i<5;i++) setTimeout(()=>som(600+i*200,0.2),i*150); soltaConfete(150); }
+    else if(p.rar==='ultra'){ mostraMsg('⭐ ULTRA!!! O PEIXE REI!!! ⭐','#ff55cc',4000); for(let i=0;i<5;i++) setTimeout(()=>som(600+i*200,0.2),i*150); soltaConfete(150); }
+    else if(p.rar==='secreto'){
+        // 🌟 SECRETO — o mais raro de todos! Festa máxima!
+        carta.classList.add('b-secreto');
+        mostraMsg('🌟 SECRETO!!!','#00ffee',6000);
+        for(let i=0;i<8;i++) setTimeout(()=>som(500+i*180,0.25,'square',0.2),i*130);
+        setTimeout(()=>som(2000,0.8,'sine',0.25),1100);
+        soltaConfete(300);
+        setTimeout(()=>soltaConfete(200),800);
+        setTimeout(()=>soltaConfete(200),1600);
+    }
 }
 
 // ============ PAINÉIS ============
@@ -495,7 +512,8 @@ const PAGINAS = [
     { chave:'epico',    titulo:'🟣 Página 3 — ÉPICOS' },
     { chave:'lendario', titulo:'🟡 Página 4 — LENDÁRIOS' },
     { chave:'ultra',    titulo:'🌸 Página 5 — ULTRA' },
-    { chave:'tesouros', titulo:'🧰 Página 6 — TESOUROS' }
+    { chave:'secreto',  titulo:'💠 Página 6 — SECRETOS' },
+    { chave:'tesouros', titulo:'🧰 Página 7 — TESOUROS' }
 ];
 let paginaAtual = 0;
 function mudaPagina(d){

@@ -1,0 +1,605 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Polícia VS Ladrão — Cogumelo Games</title>
+<style>
+  html,body{margin:0;padding:0;background:#0e1220;color:#fff;font-family:'Comic Sans MS','Chalkboard SE',sans-serif;height:100%;overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0e1220}
+  canvas{background:#1a2138;max-width:100vw;max-height:100vh;image-rendering:pixelated;touch-action:none}
+  .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;background:linear-gradient(180deg,#1b2a52,#0e1220);overflow-y:auto;padding:16px;box-sizing:border-box;z-index:20}
+  .hidden{display:none!important}
+  h1{font-size:clamp(22px,5vw,42px);margin:10px 0 2px;text-align:center;text-shadow:3px 3px 0 #000}
+  h2{margin:8px 0}
+  .sub{opacity:.85;margin:0 0 14px;text-align:center}
+  button{font-family:inherit;cursor:pointer;border:0;border-radius:14px;padding:12px 20px;font-size:18px;background:#ffb703;color:#3a2a00;font-weight:bold;box-shadow:0 4px 0 #b57e00;margin:6px}
+  button:active{transform:translateY(3px);box-shadow:0 1px 0 #b57e00}
+  button.sec{background:#4cc9f0;color:#04263a;box-shadow:0 4px 0 #2a7ea3}
+  button.buy{background:#80ed99;color:#0a3a17;box-shadow:0 4px 0 #3f9e58}
+  button.eq{background:#c77dff;color:#2a0044;box-shadow:0 4px 0 #7b2cbf}
+  button:disabled{opacity:.45;cursor:default}
+  #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:8px;width:min(920px,95vw);padding-bottom:30px}
+  #grid button{margin:0;padding:10px 0;font-size:15px;border-radius:10px}
+  #grid button.won{background:#80ed99;box-shadow:0 4px 0 #3f9e58}
+  #grid button.lock{background:#3a4468;color:#8b93b5;box-shadow:0 4px 0 #232a45}
+  .shopgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;width:min(920px,95vw);padding-bottom:40px}
+  .card{background:#243055;border-radius:14px;padding:12px;text-align:center}
+  .card .emo{font-size:40px}
+  .card .nm{font-weight:bold;margin:4px 0}
+  .card .pc{color:#ffd166}
+  .card .ds{font-size:13px;opacity:.8;min-height:34px}
+  .topbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;width:100%;margin-bottom:8px}
+  .coins{background:#243055;border-radius:12px;padding:8px 14px;font-size:18px}
+  #hud{position:fixed;top:8px;left:8px;right:8px;display:flex;justify-content:space-between;pointer-events:none;z-index:15;font-size:16px}
+  #hud div{background:rgba(10,14,30,.7);border-radius:10px;padding:6px 12px}
+  #hud button{pointer-events:auto;padding:6px 12px;font-size:14px;margin:0}
+  #touch{position:fixed;inset:0;pointer-events:none;z-index:16}
+  #touch .tb{position:absolute;pointer-events:auto;width:64px;height:64px;border-radius:50%;background:rgba(255,183,3,.85);color:#3a2a00;font-size:26px;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 0 rgba(0,0,0,.4)}
+  #btnE{position:fixed;pointer-events:auto;right:14px;top:56px;width:58px;height:58px;border-radius:50%;background:rgba(199,125,255,.9);color:#2a0044;font-size:24px;font-weight:bold;display:flex;align-items:center;justify-content:center;z-index:16;box-shadow:0 4px 0 rgba(0,0,0,.4)}
+  .ovl{position:fixed;inset:0;background:rgba(5,8,20,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:30;text-align:center;padding:20px}
+  .ovl .big{font-size:clamp(26px,6vw,50px);margin-bottom:8px}
+  .hint{background:#243055;border-radius:12px;padding:10px 16px;margin:10px;max-width:640px;text-align:center;font-size:15px}
+</style>
+
+<!-- ESCOLHA DE CONTROLES -->
+<div id="scCtrl" class="screen">
+  <h1>🚨 Polícia VS Ladrão 🚨</h1>
+  <p class="sub">O ladrãozinho atrapalhado quer atravessar a casa sem ninguém ver!<br>Como você vai jogar?</p>
+  <button id="btnPC" style="font-size:24px">💻 Computador</button>
+  <button id="btnMob" class="sec" style="font-size:24px">📱 Celular</button>
+</div>
+
+<!-- MENU -->
+<div id="scMenu" class="screen hidden">
+  <h1>🚨 Polícia VS Ladrão 🚨</h1>
+  <div class="topbar">
+    <div class="coins">🪙 <span id="mCoins">0</span></div>
+    <button id="btnShop" class="sec">🛒 Loja</button>
+    <button id="btnCtrl">🎮 Trocar controle</button>
+  </div>
+  <div class="hint" id="ctrlHint"></div>
+  <h2>Escolha o nível (250 casas!)</h2>
+  <div id="grid"></div>
+</div>
+
+<!-- LOJA -->
+<div id="scShop" class="screen hidden">
+  <h1>🛒 Loja do Ladrãozinho</h1>
+  <div class="topbar">
+    <div class="coins">🪙 <span id="sCoins">0</span></div>
+    <button id="btnBack" class="sec">⬅ Voltar</button>
+  </div>
+  <h2>👕 Skins</h2>
+  <div class="shopgrid" id="skinGrid"></div>
+  <h2>✨ Habilidades (equipa 1, usa 1x por nível com E)</h2>
+  <div class="shopgrid" id="abilGrid"></div>
+</div>
+
+<!-- JOGO -->
+<div id="scGame" class="hidden">
+  <div id="wrap"><canvas id="cv" width="960" height="540"></canvas></div>
+  <div id="hud">
+    <div>🏠 Nível <span id="hLvl">1</span></div>
+    <div>🪙 <span id="hCoins">0</span> &nbsp; <span id="hAbil"></span></div>
+    <button id="btnMenu">🏠 Menu</button>
+  </div>
+  <div id="btnE" class="hidden">E</div>
+  <div id="touch" class="hidden">
+    <div class="tb" id="tL"  style="left:14px;bottom:84px">◀</div>
+    <div class="tb" id="tR"  style="left:96px;bottom:84px">▶</div>
+    <div class="tb" id="tJ"  style="right:14px;bottom:150px">⤒</div>
+    <div class="tb" id="tC"  style="right:96px;bottom:84px">🙇</div>
+    <div class="tb" id="tX"  style="right:14px;bottom:14px">🐍</div>
+  </div>
+</div>
+
+<div id="ovl" class="ovl hidden">
+  <div class="big" id="ovTitle"></div>
+  <div id="ovMsg" style="font-size:18px;max-width:600px"></div>
+  <div style="margin-top:14px">
+    <button id="ovA"></button>
+    <button id="ovB" class="sec">🏠 Menu</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ================================================================
+// Polícia VS Ladrão — Cogumelo Games (jogo do Davi)
+// ================================================================
+
+// ==GEN_START==  (gerador procedural — testável em node)
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var FLOOR=470, CEIL=120;
+function genLevel(lvl){
+  var rng=mulberry32(lvl*9301+49297);
+  var width=Math.min(1500+lvl*45,12500);
+  var diff=Math.min(lvl/250,1);
+  var obs=[]; var x=380;
+  var copSpd=1.1+diff*1.1;           // sempre < velocidade do jogador (3.6)
+  var copVis=130+diff*120;
+  function gap(){return 200-40*diff+rng()*120}
+  var kinds=['window','laserL','laserH','cop','pipe'];
+  var pipePending=null;
+  while(x<width-360){
+    var r=rng(); var k;
+    if(r<0.22)k='window'; else if(r<0.42)k='laserL'; else if(r<0.62)k='laserH';
+    else if(r<0.88)k='cop'; else k='pipe';
+    if(k==='pipe'&&(pipePending||x>width-900))k='laserL';
+    if(k==='window'){ obs.push({type:'window',x:x,w:90}); x+=90+gap(); }
+    else if(k==='laserL'){ obs.push({type:'laserL',x:x,w:10,h:22}); x+=10+gap(); }  // pula por cima
+    else if(k==='laserH'){ obs.push({type:'laserH',x:x,w:10,h:30}); x+=10+gap(); }  // rasteja por baixo (vão 30 > 22)
+    else if(k==='cop'){
+      var zone=150+rng()*130;
+      obs.push({type:'cabinet',x:x,w:46});                       // GARANTIA: armário antes do policial
+      var zx=x+46+70;
+      obs.push({type:'cop',x:zx,x2:zx+zone,spd:copSpd*(0.8+rng()*0.4),vis:copVis*(0.8+rng()*0.4)});
+      x=zx+zone+gap();
+    }
+    else { // pipe: cano de entrada + saída mais à frente (atalho seguro)
+      var ent=x, skip=280+rng()*220;
+      obs.push({type:'pipeIn',x:ent,w:44,out:ent+skip});
+      obs.push({type:'pipeOut',x:ent+skip,w:44});
+      x=ent+44+gap();  // hazards continuam sendo gerados normalmente; saída fica num ponto seguro checado abaixo
+    }
+  }
+  // afasta saídas de cano de qualquer hazard (garantia de spawn seguro)
+  for(var i=0;i<obs.length;i++){
+    var o=obs[i];
+    if(o.type!=='pipeOut')continue;
+    var moved=true, guard=0;
+    while(moved&&guard++<50){
+      moved=false;
+      for(var j=0;j<obs.length;j++){
+        var h=obs[j];
+        var hx1,hx2;
+        if(h.type==='cop'){hx1=h.x-h.vis-40;hx2=h.x2+h.vis+40}
+        else if(h.type==='laserL'||h.type==='laserH'||h.type==='window'){hx1=h.x-50;hx2=h.x+(h.w||10)+50}
+        else continue;
+        if(o.x+44>hx1&&o.x<hx2){o.x=hx2+10;moved=true}
+      }
+    }
+    if(o.x>width-200)o.x=width-200;
+    // atualiza referência do pipeIn correspondente
+    for(var j2=0;j2<obs.length;j2++)if(obs[j2].type==='pipeIn'&&Math.abs(obs[j2].out-(o._orig||o.x))<1)obs[j2].out=o.x;
+  }
+  // liga pipeIn->pipeOut por ordem (mais simples e robusto)
+  var ins=obs.filter(function(o){return o.type==='pipeIn'});
+  var outs=obs.filter(function(o){return o.type==='pipeOut'});
+  for(var p=0;p<ins.length;p++)if(outs[p])ins[p].out=outs[p].x;
+  obs.push({type:'exit',x:width-120,w:70});
+  return {width:width,obstacles:obs};
+}
+if(typeof module!=='undefined'&&module.exports){module.exports={genLevel:genLevel,mulberry32:mulberry32,FLOOR:FLOOR};}
+// ==GEN_END==
+
+// ---------------- persistência ----------------
+function LS(k,v){ if(v===undefined){try{return localStorage.getItem('ladrao_'+k)}catch(e){return null}} try{localStorage.setItem('ladrao_'+k,v)}catch(e){} }
+var coins=parseInt(LS('coins')||'0',10);
+var won=JSON.parse(LS('won')||'[]');
+var skinsOwned=JSON.parse(LS('skins')||'["base"]');
+var curSkin=LS('skin')||'base';
+var abilsOwned=JSON.parse(LS('abils')||'[]');
+var curAbil=LS('abil')||'';
+var ctrlMode=LS('ctrl'); // 'pc' | 'mob'
+function saveAll(){LS('coins',coins);LS('won',JSON.stringify(won));LS('skins',JSON.stringify(skinsOwned));LS('skin',curSkin);LS('abils',JSON.stringify(abilsOwned));LS('abil',curAbil);}
+
+// ---------------- catálogo ----------------
+var SKINS=[
+ {id:'base',  nm:'Ladrãozinho Clássico', emo:'🦹', pc:0,    ds:'Roupa listrada e máscara. Um fofo.'},
+ {id:'pato',  nm:'Cabeça de Pato de Borracha', emo:'🦆', pc:100, ds:'Quack! Ninguém desconfia de um pato.'},
+ {id:'tenis', nm:'Tênis Gigante', emo:'👟', pc:200, ds:'Pés enormes, estilo gigante.'},
+ {id:'azul',  nm:'Corredor Azul Turbo', emo:'🔵', pc:350, ds:'Rápido demais pra câmera pegar!'},
+ {id:'banana',nm:'Fantasia de Banana', emo:'🍌', pc:500, ds:'Cuidado pra não escorregar em si mesmo.'},
+ {id:'tv',    nm:'Cabeça de Televisão', emo:'📺', pc:700, ds:'Passando o canal do crime... de fofura.'},
+ {id:'robo',  nm:'Robô Enferrujado', emo:'🤖', pc:900, ds:'Bip bop, range ao andar.'},
+ {id:'pirata',nm:'Pirata com Tapa-olho', emo:'🏴‍☠️', pc:1200, ds:'Arrr! Vim buscar o tesouro.'},
+ {id:'ninja', nm:'Ninja Todo Preto', emo:'🥷', pc:1500, ds:'Silencioso como uma sombra.'},
+ {id:'astro', nm:'Astronauta', emo:'🚀', pc:1800, ds:'Roubando... corações espaciais.'},
+ {id:'mumia', nm:'Múmia', emo:'🧻', pc:2200, ds:'Enrolado, mas chega lá.'}
+];
+var ABILS=[
+ {id:'escudo',nm:'Escudo',emo:'🛡️',pc:300, ds:'5 segundos sem poder ser pego.'},
+ {id:'vida',  nm:'Vida Extra',emo:'❤️',pc:500, ds:'Uma segunda chance no nível (automática).'},
+ {id:'turbo', nm:'Turbo',emo:'⚡',pc:600, ds:'Velocidade 2x por 5 segundos.'},
+ {id:'invis', nm:'Invisibilidade',emo:'👻',pc:800, ds:'3 segundos invisível pros policiais e janelas.'},
+ {id:'asas',  nm:'Asas Ninja',emo:'🪽',pc:1200, ds:'VOA por 3 segundos e fica imortal voando!'}
+];
+
+// ---------------- som (WebAudio) ----------------
+var AC=null;
+function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}return AC}
+function beep(f,d,type,vol){var c=ac();if(!c)return;var o=c.createOscillator(),g=c.createGain();o.type=type||'square';o.frequency.value=f;g.gain.value=vol||0.06;g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d)}
+function sJump(){beep(300,.12,'square');beep(500,.12,'square')}
+function sCoin(){beep(880,.1,'triangle',.08);setTimeout(function(){beep(1320,.15,'triangle',.08)},80)}
+function sCaught(){beep(200,.3,'sawtooth',.1);setTimeout(function(){beep(150,.4,'sawtooth',.1)},150)}
+function sWin(){[523,659,784,1046].forEach(function(f,i){setTimeout(function(){beep(f,.18,'triangle',.09)},i*120)})}
+function sAbil(){beep(700,.15,'sine',.08);setTimeout(function(){beep(1000,.2,'sine',.08)},100)}
+function sPipe(){beep(400,.1,'sine',.08);setTimeout(function(){beep(250,.15,'sine',.08)},90)}
+
+// ---------------- telas ----------------
+function $(id){return document.getElementById(id)}
+function show(id){['scCtrl','scMenu','scShop','scGame'].forEach(function(s){$(s).classList.toggle('hidden',s!==id)})}
+
+$('btnPC').onclick=function(){ctrlMode='pc';LS('ctrl','pc');buildMenu();show('scMenu')};
+$('btnMob').onclick=function(){ctrlMode='mob';LS('ctrl','mob');buildMenu();show('scMenu')};
+$('btnCtrl').onclick=function(){show('scCtrl')};
+$('btnShop').onclick=function(){buildShop();show('scShop')};
+$('btnBack').onclick=function(){buildMenu();show('scMenu')};
+$('btnMenu').onclick=function(){stopGame();buildMenu();show('scMenu')};
+
+function maxUnlocked(){var m=1;for(var i=1;i<=250;i++){if(won.indexOf(i)>=0&&i+1>m)m=i+1}return Math.min(m,250)}
+function buildMenu(){
+  $('mCoins').textContent=coins;
+  $('ctrlHint').innerHTML= ctrlMode==='pc'
+   ? '💻 <b>A/D</b> andar · <b>ESPAÇO</b> pular · <b>F</b> arrastar (rastejar) · <b>CLIQUE do mouse</b> agachar · <b>E</b> habilidade'
+   : '📱 Use os botões na tela: ◀ ▶ andar · ⤒ pular · 🙇 agachar · 🐍 arrastar · E habilidade';
+  var g=$('grid');g.innerHTML='';
+  var mx=maxUnlocked();
+  for(var i=1;i<=250;i++){
+    var b=document.createElement('button');
+    if(won.indexOf(i)>=0){b.textContent='⭐'+i;b.className='won'}
+    else if(i<=mx){b.textContent=i}
+    else{b.textContent='🔒';b.className='lock';b.disabled=true}
+    b.dataset.lvl=i;
+    b.onclick=function(){startLevel(parseInt(this.dataset.lvl,10))};
+    g.appendChild(b);
+  }
+}
+function buildShop(){
+  $('sCoins').textContent=coins;
+  var sg=$('skinGrid');sg.innerHTML='';
+  SKINS.forEach(function(s){
+    var c=document.createElement('div');c.className='card';
+    var ownedS=skinsOwned.indexOf(s.id)>=0;
+    c.innerHTML='<div class="emo">'+s.emo+'</div><div class="nm">'+s.nm+'</div><div class="ds">'+s.ds+'</div><div class="pc">'+(s.pc?'🪙 '+s.pc:'Grátis')+'</div>';
+    var b=document.createElement('button');
+    if(!ownedS){b.textContent='Comprar';b.className='buy';b.disabled=coins<s.pc;
+      b.onclick=function(){coins-=s.pc;skinsOwned.push(s.id);curSkin=s.id;saveAll();sCoin();buildShop()};}
+    else if(curSkin===s.id){b.textContent='✔ Usando';b.className='eq';b.disabled=true;}
+    else{b.textContent='Usar';b.className='eq';b.onclick=function(){curSkin=s.id;saveAll();buildShop()};}
+    c.appendChild(b);sg.appendChild(c);
+  });
+  var ag=$('abilGrid');ag.innerHTML='';
+  ABILS.forEach(function(a){
+    var c=document.createElement('div');c.className='card';
+    var ownedA=abilsOwned.indexOf(a.id)>=0;
+    c.innerHTML='<div class="emo">'+a.emo+'</div><div class="nm">'+a.nm+'</div><div class="ds">'+a.ds+'</div><div class="pc">🪙 '+a.pc+'</div>';
+    var b=document.createElement('button');
+    if(!ownedA){b.textContent='Comprar';b.className='buy';b.disabled=coins<a.pc;
+      b.onclick=function(){coins-=a.pc;abilsOwned.push(a.id);curAbil=a.id;saveAll();sCoin();buildShop()};}
+    else if(curAbil===a.id){b.textContent='✔ Equipada';b.className='eq';
+      b.onclick=function(){curAbil='';saveAll();buildShop()};}
+    else{b.textContent='Equipar';b.className='eq';b.onclick=function(){curAbil=a.id;saveAll();buildShop()};}
+    c.appendChild(b);ag.appendChild(c);
+  });
+}
+
+// ---------------- input ----------------
+var keys={L:false,R:false,J:false,C:false,X:false};
+document.addEventListener('keydown',function(e){
+  if($('scGame').classList.contains('hidden'))return;
+  var k=e.key.toLowerCase();
+  if(k==='a'||k==='arrowleft')keys.L=true;
+  if(k==='d'||k==='arrowright')keys.R=true;
+  if(k===' '){keys.J=true;e.preventDefault()}
+  if(k==='f')keys.X=true;
+  if(k==='e')useAbility();
+});
+document.addEventListener('keyup',function(e){
+  var k=e.key.toLowerCase();
+  if(k==='a'||k==='arrowleft')keys.L=false;
+  if(k==='d'||k==='arrowright')keys.R=false;
+  if(k===' ')keys.J=false;
+  if(k==='f')keys.X=false;
+});
+var cv=$('cv');
+cv.addEventListener('mousedown',function(e){if(ctrlMode==='pc'){keys.C=true;e.preventDefault()}});
+document.addEventListener('mouseup',function(){keys.C=false});
+cv.addEventListener('contextmenu',function(e){e.preventDefault()});
+function bindHold(id,k){var el=$(id);
+  ['pointerdown','touchstart'].forEach(function(ev){el.addEventListener(ev,function(e){keys[k]=true;e.preventDefault()},{passive:false})});
+  ['pointerup','pointercancel','pointerleave','touchend'].forEach(function(ev){el.addEventListener(ev,function(e){keys[k]=false;e.preventDefault()},{passive:false})});
+}
+bindHold('tL','L');bindHold('tR','R');bindHold('tJ','J');bindHold('tC','C');bindHold('tX','X');
+$('btnE').addEventListener('pointerdown',function(e){useAbility();e.preventDefault()});
+
+// ---------------- jogo ----------------
+var ctx=cv.getContext('2d');
+var G=null; // estado do jogo corrente
+var rafId=0;
+
+function startLevel(lvl){
+  var data=genLevel(lvl);
+  G={lvl:lvl,W:data.width,obs:data.obstacles,
+     p:{x:80,y:FLOOR,vx:0,vy:0,w:28,h:56,pose:'stand',face:1,onGround:true,flying:false},
+     cam:0,t:0,dead:false,winFlag:false,
+     abilUsed:false,abilTimer:0,abilActive:'',extraLife:(curAbil==='vida'&&abilsOwned.indexOf('vida')>=0),
+     pipeCD:0,alertT:0,msg:''};
+  // reset cops
+  G.obs.forEach(function(o){if(o.type==='cop'){o.cx=o.x;o.dir=1;o.phT=0;o.distracted=true}});
+  $('hLvl').textContent=lvl;$('hCoins').textContent=coins;
+  $('hAbil').textContent= curAbil? (ABILS.find(function(a){return a.id===curAbil}).emo+' pronta'):'';
+  $('touch').classList.toggle('hidden',ctrlMode!=='mob');
+  $('btnE').classList.toggle('hidden',!curAbil);
+  $('ovl').classList.add('hidden');
+  show('scGame');
+  keys={L:false,R:false,J:false,C:false,X:false};
+  cancelAnimationFrame(rafId);
+  rafId=requestAnimationFrame(loop);
+}
+function stopGame(){cancelAnimationFrame(rafId);G=null}
+
+function useAbility(){
+  if(!G||G.dead||G.winFlag)return;
+  if(!curAbil||curAbil==='vida'||G.abilUsed)return;
+  G.abilUsed=true;G.abilActive=curAbil;
+  G.abilTimer= curAbil==='escudo'?300: curAbil==='turbo'?300: 180; // frames (~60fps)
+  if(curAbil==='asas'){G.p.flying=true}
+  $('hAbil').textContent='';
+  sAbil();
+}
+
+function caught(reason){
+  if(G.dead||G.winFlag)return;
+  var p=G.p;
+  var immune= G.abilActive==='escudo' || (G.abilActive==='asas'&&p.flying);
+  if(immune)return;
+  if(G.extraLife){G.extraLife=false;G.abilActive='escudo';G.abilTimer=120;sAbil();G.msg='❤️ Vida extra usada!';G.alertT=90;return}
+  G.dead=true;sCaught();
+  setTimeout(function(){
+    showOvl('👮 Te pegaram!','Ih! '+reason+' O ladrãozinho foi levado pra tomar um suquinho na delegacia. Tenta de novo!','🔄 Tentar de novo',function(){startLevel(G.lvl)});
+  },500);
+}
+function winLevel(){
+  if(G.winFlag||G.dead)return;
+  G.winFlag=true;sWin();
+  var first=won.indexOf(G.lvl)<0;
+  var reward=(10+Math.floor(G.lvl*0.8))*(first?2:1);
+  coins+=reward;
+  if(first)won.push(G.lvl);
+  saveAll();
+  var nxt=G.lvl<250?G.lvl+1:null;
+  setTimeout(function(){
+    showOvl('🎉 Conseguiu!','Você atravessou a casa sem ser visto e ganhou 🪙 '+reward+' moedas'+(first?' (dobro por ser a primeira vez!)':'')+'!',
+      nxt?('▶ Nível '+nxt):'🏆 Zerou o jogo!',
+      function(){ if(nxt)startLevel(nxt); else {stopGame();buildMenu();show('scMenu')} });
+  },400);
+}
+function showOvl(t,m,btnA,fnA){
+  $('ovTitle').textContent=t;$('ovMsg').textContent=m;
+  $('ovA').textContent=btnA;$('ovA').onclick=function(){$('ovl').classList.add('hidden');fnA()};
+  $('ovB').onclick=function(){$('ovl').classList.add('hidden');stopGame();buildMenu();show('scMenu')};
+  $('ovl').classList.remove('hidden');
+}
+
+// física / regras
+var SPD=3.6,GRAV=0.5,JUMPV=-11;
+function loop(){
+  if(!G)return;
+  rafId=requestAnimationFrame(loop);
+  var p=G.p;G.t++;
+  if(G.pipeCD>0)G.pipeCD--;
+  if(G.alertT>0)G.alertT--;
+  if(G.abilTimer>0){G.abilTimer--;if(G.abilTimer===0){if(G.abilActive==='asas')p.flying=false;G.abilActive=''}}
+
+  if(!G.dead&&!G.winFlag){
+    // pose
+    if(p.flying)p.pose='fly';
+    else if(keys.X&&p.onGround)p.pose='crawl';
+    else if(keys.C&&p.onGround)p.pose='crouch';
+    else p.pose='stand';
+    p.h= p.pose==='crawl'?22 : p.pose==='crouch'?36 : 56;
+    var spd=SPD*(G.abilActive==='turbo'?2:1)*(p.pose==='crawl'?0.45:p.pose==='crouch'?0.6:1);
+    p.vx=0;
+    if(keys.L){p.vx=-spd;p.face=-1}
+    if(keys.R){p.vx=spd;p.face=1}
+    if(p.flying){ p.vy = keys.J? -3.2 : (keys.C?3.2:0); }
+    else{
+      if(keys.J&&p.onGround&&p.pose==='stand'){p.vy=JUMPV;p.onGround=false;sJump()}
+      p.vy+=GRAV;
+    }
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.y>=FLOOR){p.y=FLOOR;p.vy=0;p.onGround=true}else p.onGround=false;
+    if(p.y-p.h<CEIL)p.y=CEIL+p.h;
+    if(p.x<20)p.x=20; if(p.x>G.W-30)p.x=G.W-30;
+
+    // escondido no armário?
+    var hidden=false;
+    G.obs.forEach(function(o){
+      if(o.type==='cabinet'&&(keys.C||keys.X)&&p.x+p.w>o.x&&p.x<o.x+o.w&&p.onGround)hidden=true;
+    });
+    G.hidden=hidden;
+    var invis=G.abilActive==='invis';
+
+    // obstáculos
+    for(var i=0;i<G.obs.length;i++){
+      var o=G.obs[i];
+      if(o.type==='window'){
+        if(!hidden&&!invis&&p.x+p.w>o.x&&p.x<o.x+o.w&&p.pose!=='crouch'&&p.pose!=='crawl')
+          {caught('Um policial te viu pela janela!');break}
+      }
+      else if(o.type==='laserL'){ // do chão até FLOOR-h*? baixo: pula por cima
+        var topL=FLOOR-o.h;
+        if(p.x+p.w>o.x&&p.x<o.x+o.w&&p.y>topL){caught('Você encostou no laser e o alarme tocou!');break}
+      }
+      else if(o.type==='laserH'){ // do teto até FLOOR-h: rasteja por baixo
+        var botH=FLOOR-o.h;
+        if(p.x+p.w>o.x&&p.x<o.x+o.w&&p.y-p.h<botH){caught('Você encostou no laser e o alarme tocou!');break}
+      }
+      else if(o.type==='cop'){
+        // ciclo: 240 frames distraído no celular (dá pra passar!) + 180 patrulhando
+        o.phT=(o.phT||0)+1; if(o.phT>=420)o.phT=0;
+        o.distracted=o.phT<240;
+        if(!o.distracted){
+          o.cx+=o.spd*o.dir;
+          if(o.cx>o.x2){o.cx=o.x2;o.dir=-1}
+          if(o.cx<o.x){o.cx=o.x;o.dir=1}
+        }
+        if(!hidden&&!invis&&!p.flying&&!o.distracted){
+          var vis=o.vis*(p.pose==='crawl'?0.5:p.pose==='crouch'?0.7:1);
+          var dx=p.x-o.cx;
+          var inFront=(o.dir===1&&dx>0&&dx<vis)||(o.dir===-1&&dx<0&&dx>-vis);
+          var near=Math.abs(dx)<26&&p.y>FLOOR-60; // esbarrou nele (dá pra pular por cima)
+          if(inFront||near){caught('O policial te viu e gritou "PARADO AÍ, AMIGUINHO!"');break}
+        }
+      }
+      else if(o.type==='pipeIn'){
+        if(keys.X&&G.pipeCD===0&&p.onGround&&p.x+p.w>o.x&&p.x<o.x+o.w){
+          p.x=o.out+8;p.y=FLOOR;G.pipeCD=60;sPipe();G.msg='🕳️ Uhuu, viagem de cano!';G.alertT=80;
+        }
+      }
+      else if(o.type==='exit'){
+        if(p.x+p.w>o.x+20){winLevel()}
+      }
+    }
+  }
+  // câmera
+  G.cam=Math.max(0,Math.min(p.x-320,G.W-960));
+  draw();
+}
+
+// ---------------- desenho ----------------
+function rr(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x,y,w,h)}
+function draw(){
+  var c=G.cam,p=G.p;
+  // fundo casa
+  rr(0,0,960,540,'#2b3358');                 // parede
+  rr(0,FLOOR,960,540-FLOOR,'#5b4636');       // chão
+  rr(0,FLOOR,960,8,'#3d2e23');
+  rr(0,CEIL-24,960,24,'#1c2340');            // teto
+  // divisórias de cômodos (visuais)
+  for(var wx=600;wx<G.W;wx+=560){
+    var sx=wx-c; if(sx<-60||sx>1020)continue;
+    rr(sx,CEIL,14,110,'#222a4d'); rr(sx,FLOOR-90,14,90,'#222a4d');
+  }
+  // quadros fofos
+  for(var qx=250;qx<G.W;qx+=730){
+    var q=qx-c;if(q<-60||q>1000)continue;
+    rr(q,200,54,44,'#caa46a');rr(q+6,206,42,32,'#8fd3f4');
+    ctx.font='20px sans-serif';ctx.fillText(['🐱','🌻','🐶','🍕'][Math.floor(qx/730)%4],q+16,230);
+  }
+  // obstáculos
+  ctx.font='22px sans-serif';
+  G.obs.forEach(function(o){
+    var x=o.x-c; if(x<-400||x>1400)return;
+    if(o.type==='window'){
+      rr(x,180,o.w,160,'#0f1830');rr(x+4,184,o.w-8,152,'#9fd8ff');
+      rr(x+o.w/2-3,184,6,152,'#0f1830');rr(x+4,256,o.w-8,6,'#0f1830');
+      ctx.fillText('👮',x+o.w/2-12,250); // policial olhando de fora
+      ctx.fillStyle='#fff';ctx.font='12px sans-serif';ctx.fillText('abaixe!',x+18,346);ctx.font='22px sans-serif';
+    }
+    else if(o.type==='laserL'){
+      rr(x-4,FLOOR-o.h-8,18,8,'#888');
+      ctx.fillStyle='rgba(255,40,60,.85)';ctx.fillRect(x,FLOOR-o.h,10,o.h);
+      if(G.t%20<10){ctx.fillStyle='rgba(255,120,120,.4)';ctx.fillRect(x-3,FLOOR-o.h,16,o.h)}
+    }
+    else if(o.type==='laserH'){
+      rr(x-4,CEIL,18,8,'#888');
+      ctx.fillStyle='rgba(255,40,60,.85)';ctx.fillRect(x,CEIL,10,FLOOR-o.h-CEIL);
+      if(G.t%20<10){ctx.fillStyle='rgba(255,120,120,.4)';ctx.fillRect(x-3,CEIL,16,FLOOR-o.h-CEIL)}
+    }
+    else if(o.type==='cabinet'){
+      rr(x,FLOOR-92,o.w,92,'#8a5a2b');rr(x+3,FLOOR-88,o.w-6,84,'#a06a34');
+      rr(x+o.w/2-2,FLOOR-88,4,84,'#6d4522');rr(x+o.w/2-10,FLOOR-52,5,10,'#3a2a15');rr(x+o.w/2+5,FLOOR-52,5,10,'#3a2a15');
+      if(G.hidden&&G.p.x+G.p.w>o.x&&G.p.x<o.x+o.w){ctx.fillText('🫣',x+o.w/2-11,FLOOR-40)}
+    }
+    else if(o.type==='cop'){
+      // faixa de patrulha
+      ctx.fillStyle='rgba(255,255,255,.05)';ctx.fillRect(o.x-c,FLOOR-4,o.x2-o.x,4);
+      var cx=o.cx-c;
+      // cone de visão (some quando distraído no celular)
+      if(!o.distracted){
+        var vis=o.vis;
+        ctx.fillStyle='rgba(255,230,80,.13)';
+        ctx.beginPath();ctx.moveTo(cx+14,FLOOR-40);
+        ctx.lineTo(cx+14+o.dir*vis,FLOOR-70);ctx.lineTo(cx+14+o.dir*vis,FLOOR);
+        ctx.lineTo(cx+14,FLOOR);ctx.closePath();ctx.fill();
+      }
+      // corpo do policial
+      rr(cx,FLOOR-52,26,34,'#1d4ed8');rr(cx,FLOOR-18,10,18,'#12275e');rr(cx+16,FLOOR-18,10,18,'#12275e');
+      rr(cx+3,FLOOR-70,20,20,'#ffd9b3');rr(cx,FLOOR-76,26,8,'#12275e');rr(cx+8,FLOOR-82,10,8,'#12275e');
+      ctx.fillStyle='#000';ctx.fillRect(cx+(o.dir===1?15:6),FLOOR-64,4,4);
+      if(G.t%40<20)rr(cx+11,FLOOR-88,4,4,'#f00');
+      if(o.distracted){ctx.font='18px sans-serif';ctx.fillText('📱',cx+(o.dir===1?24:-14),FLOOR-46);ctx.fillText('💤',cx+6,FLOOR-92);ctx.font='22px sans-serif'}
+    }
+    else if(o.type==='pipeIn'||o.type==='pipeOut'){
+      rr(x,FLOOR-46,o.w,46,'#2e7d32');rr(x-4,FLOOR-52,o.w+8,10,'#1b5e20');
+      ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(x+o.w/2,FLOOR-42,o.w/2-8,6,0,0,7);ctx.fill();
+      ctx.fillStyle='#fff';ctx.font='11px sans-serif';ctx.fillText(o.type==='pipeIn'?'🐍 entrar':'saída',x+2,FLOOR+14);ctx.font='22px sans-serif';
+    }
+    else if(o.type==='exit'){
+      rr(x,FLOOR-130,o.w,130,'#7b4b1e');rr(x+8,FLOOR-122,o.w-16,122,'#9c6428');
+      rr(x+o.w-20,FLOOR-70,8,8,'#ffd166');
+      ctx.fillText('🚪',x+o.w/2-12,FLOOR-140);
+      ctx.fillStyle='#80ed99';ctx.font='14px sans-serif';ctx.fillText('SAÍDA!',x+8,FLOOR-135);ctx.font='22px sans-serif';
+    }
+  });
+  // jogador
+  if(!(G.hidden)) drawThief(p.x-c,p.y,p);
+  // efeitos de habilidade
+  if(G.abilActive){
+    ctx.font='20px sans-serif';
+    var em=G.abilActive==='escudo'?'🛡️':G.abilActive==='turbo'?'⚡':G.abilActive==='invis'?'👻':'🪽';
+    ctx.fillText(em,p.x-c-2,p.y-p.h-14);
+    if(G.abilActive==='escudo'){ctx.strokeStyle='rgba(120,200,255,.8)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x-c+14,p.y-p.h/2,34,0,7);ctx.stroke()}
+  }
+  if(G.alertT>0&&G.msg){ctx.fillStyle='#ffd166';ctx.font='18px sans-serif';ctx.fillText(G.msg,p.x-c-40,p.y-p.h-34)}
+  // progresso
+  ctx.fillStyle='rgba(255,255,255,.2)';ctx.fillRect(20,16,920,8);
+  ctx.fillStyle='#80ed99';ctx.fillRect(20,16,920*Math.min(p.x/G.W,1),8);
+}
+function drawThief(x,y,p){
+  var h=p.h,w=p.w,inv=G.abilActive==='invis';
+  ctx.save();
+  if(inv)ctx.globalAlpha=0.35;
+  var sk=curSkin;
+  var bodyC='#e8e8e8',stripeC='#333',headC='#ffd9b3',maskC='#222';
+  if(sk==='azul'){bodyC='#1e6ef5';stripeC='#0b3fa0'} if(sk==='banana'){bodyC='#ffe135';stripeC='#e5b800'}
+  if(sk==='robo'){bodyC='#9a8f7f';stripeC='#6e5f4b';headC='#b0a696'}
+  if(sk==='ninja'){bodyC='#1a1a1a';stripeC='#000';headC='#1a1a1a'}
+  if(sk==='mumia'){bodyC='#f5f0e6';stripeC='#d9cfba';headC='#f5f0e6'}
+  if(sk==='astro'){bodyC='#f0f0f5';stripeC='#c0c0d0'}
+  if(sk==='pirata'){bodyC='#fff';stripeC='#c1121f'}
+  var pose=p.pose;
+  if(pose==='crawl'){ // deitado
+    rr(x,y-18,w+16,14,bodyC);
+    for(var s=0;s<3;s++)rr(x+4+s*13,y-18,6,14,stripeC);
+    drawHead(x+(p.face===1?w+8:-14),y-22,16,sk,headC,maskC,p.face);
+  } else {
+    var bh=pose==='crouch'?22:34;
+    rr(x,y-h+18,w,bh,bodyC);
+    for(var s2=0;s2<3;s2++)rr(x,y-h+20+s2*10,w,5,stripeC);
+    // pernas
+    var legC=sk==='ninja'?'#000':'#2b2b2b';
+    rr(x+2,y-14,8,14,legC);rr(x+w-10,y-14,8,14,legC);
+    if(sk==='tenis'){rr(x-4,y-8,18,8,'#f00');rr(x+w-12,y-8,18,8,'#f00')}
+    drawHead(x+w/2-8,y-h+2,16,sk,headC,maskC,p.face);
+    if(G.abilActive==='asas'&&p.flying){ctx.font='20px sans-serif';ctx.fillText('🪽',x-18,y-h+18);ctx.fillText('🪽',x+w+2,y-h+18)}
+  }
+  ctx.restore();
+}
+function drawHead(x,y,s,sk,headC,maskC,face){
+  ctx.font=(s+6)+'px sans-serif';
+  if(sk==='pato'){ctx.fillText('🦆',x-4,y+s);return}
+  if(sk==='tv'){rr(x-4,y-4,s+8,s+6,'#333');rr(x-1,y-1,s+2,s,'#5ee1ff');rr(x+s+4,y-8,2,6,'#333');return}
+  if(sk==='banana'){ctx.fillText('🍌',x-4,y+s);return}
+  if(sk==='robo'){rr(x-2,y-2,s+4,s+4,'#8d8172');rr(x+1,y+3,4,4,'#ff5252');rr(x+s-4,y+3,4,4,'#ff5252');rr(x+s/2-1,y-7,2,6,'#666');return}
+  if(sk==='astro'){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x+s/2,y+s/2,s/2+4,0,7);ctx.fill();ctx.fillStyle='#123';ctx.beginPath();ctx.arc(x+s/2+face*2,y+s/2,s/2-2,0,7);ctx.fill();return}
+  // cabeça base
+  rr(x,y,s,s,headC);
+  if(sk==='ninja'){rr(x,y+4,s,5,'#eee');ctx.fillStyle='#000';ctx.fillRect(x+(face===1?s-6:2),y+5,3,3);return}
+  if(sk==='mumia'){ctx.strokeStyle='#cfc4ab';ctx.lineWidth=2;for(var i=0;i<3;i++){ctx.beginPath();ctx.moveTo(x,y+3+i*5);ctx.lineTo(x+s,y+5+i*5);ctx.stroke()}ctx.fillStyle='#000';ctx.fillRect(x+(face===1?s-6:2),y+5,3,3);return}
+  // máscara de ladrão
+  rr(x-1,y+4,s+2,6,maskC);
+  ctx.fillStyle='#fff';ctx.fillRect(x+(face===1?s-7:3),y+5,4,4);
+  ctx.fillStyle='#000';ctx.fillRect(x+(face===1?s-6:4),y+6,2,2);
+  if(sk==='pirata'){rr(x-1,y-4,s+2,5,'#111');ctx.fillStyle='#111';ctx.fillRect(x+(face===1?s-8:2),y+4,6,6)}
+  if(sk==='azul'){ctx.fillStyle='#0b3fa0';ctx.beginPath();ctx.moveTo(x+s/2,y-8);ctx.lineTo(x+s/2-6,y);ctx.lineTo(x+s/2+6,y);ctx.closePath();ctx.fill()}
+  if(sk==='pato'){} // tratado acima
+  ctx.font='22px sans-serif';
+}
+
+// boot
+if(ctrlMode){buildMenu();show('scMenu')}else{show('scCtrl')}
+</script>
+<script src="/stats.js"></script>
+<script>if (window.initStats) initStats('ladrao');</script>
