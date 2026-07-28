@@ -114,6 +114,8 @@ function genLevel(lvl){
   var rng=mulberry32(lvl*9301+49297);
   var width=Math.min(1500+lvl*45,12500);
   var diff=Math.min(lvl/250,1);
+  var tema=Math.floor(rng()*6);          // cada fase tem uma casa com cara diferente!
+  var perfil=Math.floor(rng()*4);        // 0=normal 1=cheia de laser 2=cheia de policial 3=janelas+canos
   var obs=[]; var x=380;
   var copSpd=1.1+diff*1.1;           // sempre < velocidade do jogador (3.6)
   var copVis=130+diff*120;
@@ -122,12 +124,14 @@ function genLevel(lvl){
   var pipePending=null;
   while(x<width-360){
     var r=rng(); var k;
-    if(r<0.22)k='window'; else if(r<0.42)k='laserL'; else if(r<0.62)k='laserH';
-    else if(r<0.88)k='cop'; else k='pipe';
+    if(perfil===1){ if(r<0.12)k='window'; else if(r<0.45)k='laserL'; else if(r<0.78)k='laserH'; else if(r<0.92)k='cop'; else k='pipe'; }
+    else if(perfil===2){ if(r<0.15)k='window'; else if(r<0.28)k='laserL'; else if(r<0.4)k='laserH'; else if(r<0.9)k='cop'; else k='pipe'; }
+    else if(perfil===3){ if(r<0.4)k='window'; else if(r<0.52)k='laserL'; else if(r<0.64)k='laserH'; else if(r<0.78)k='cop'; else k='pipe'; }
+    else { if(r<0.22)k='window'; else if(r<0.42)k='laserL'; else if(r<0.62)k='laserH'; else if(r<0.88)k='cop'; else k='pipe'; }
     if(k==='pipe'&&(pipePending||x>width-900))k='laserL';
     if(k==='window'){ obs.push({type:'window',x:x,w:90}); x+=90+gap(); }
     else if(k==='laserL'){ obs.push({type:'laserL',x:x,w:10,h:22}); x+=10+gap(); }  // pula por cima
-    else if(k==='laserH'){ obs.push({type:'laserH',x:x,w:10,h:30}); x+=10+gap(); }  // rasteja por baixo (vão 30 > 22)
+    else if(k==='laserH'){ obs.push({type:'laserH',x:x,w:10,h:42}); x+=10+gap(); }  // passa AGACHADO (vão 42 > 36) ou rastejando
     else if(k==='cop'){
       var zone=150+rng()*130;
       obs.push({type:'cabinet',x:x,w:46});                       // GARANTIA: armário antes do policial
@@ -166,8 +170,21 @@ function genLevel(lvl){
   var ins=obs.filter(function(o){return o.type==='pipeIn'});
   var outs=obs.filter(function(o){return o.type==='pipeOut'});
   for(var p=0;p<ins.length;p++)if(outs[p])ins[p].out=outs[p].x;
-  obs.push({type:'exit',x:width-120,w:70});
-  return {width:width,obstacles:obs};
+  // BOTÃO VERMELHO escondido: em algumas fases a porta nasce trancada!
+  var temBotao = lvl>=3 && rng()<0.4;
+  if(temBotao){
+    // esconde numa posição aleatória do meio da casa (pertinho do chão, pequenininho)
+    var bx = 500 + rng()*(width-1200);
+    // não deixa em cima de laser/cop
+    for(var bi=0;bi<obs.length;bi++){
+      var bo=obs[bi];
+      if((bo.type==='laserL'||bo.type==='laserH')&&Math.abs(bo.x-bx)<70) bx=bo.x+90;
+      if(bo.type==='cop'&&bx>bo.x-60&&bx<bo.x2+60) bx=bo.x2+80;
+    }
+    obs.push({type:'botao',x:Math.min(bx,width-420),w:18});
+  }
+  obs.push({type:'exit',x:width-120,w:70,trancada:temBotao});
+  return {width:width,obstacles:obs,tema:tema};
 }
 if(typeof module!=='undefined'&&module.exports){module.exports={genLevel:genLevel,mulberry32:mulberry32,FLOOR:FLOOR};}
 // ==GEN_END==
@@ -315,8 +332,8 @@ var rafId=0;
 
 function startLevel(lvl){
   var data=genLevel(lvl);
-  G={lvl:lvl,W:data.width,obs:data.obstacles,
-     p:{x:80,y:FLOOR,vx:0,vy:0,w:28,h:56,pose:'stand',face:1,onGround:true,flying:false},
+  G={lvl:lvl,W:data.width,obs:data.obstacles,tema:data.tema||0,
+     p:{x:80,y:FLOOR,vx:0,vy:0,w:28,h:56,pose:'stand',face:1,onGround:true,flying:false,botaoApertado:false},
      cam:0,t:0,dead:false,winFlag:false,
      abilUsed:false,abilTimer:0,abilActive:'',extraLife:(curAbil==='vida'&&abilsOwned.indexOf('vida')>=0),
      pipeCD:0,alertT:0,msg:''};
@@ -453,8 +470,17 @@ function loop(){
           p.x=o.out+8;p.y=FLOOR;G.pipeCD=60;sPipe();G.msg='🕳️ Uhuu, viagem de cano!';G.alertT=80;
         }
       }
+      else if(o.type==='botao'){
+        if(!G.botaoApertado&&p.x+p.w>o.x&&p.x<o.x+o.w+10&&(keys.C||keys.X)){
+          G.botaoApertado=true;sPipe();G.msg='🔴 CLICK! A porta destrancou! 🔓';G.alertT=120;
+        }
+      }
       else if(o.type==='exit'){
-        if(p.x+p.w>o.x+20){winLevel()}
+        if(p.x+p.w>o.x+20){
+          if(o.trancada&&!G.botaoApertado){
+            if(G.alertT<=0){G.msg='🔒 Trancada! Ache o BOTÃO VERMELHO escondido!';G.alertT=110;}
+          } else winLevel();
+        }
       }
     }
   }
@@ -467,11 +493,20 @@ function loop(){
 function rr(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x,y,w,h)}
 function draw(){
   var c=G.cam,p=G.p;
-  // fundo casa
-  rr(0,0,960,540,'#2b3358');                 // parede
-  rr(0,FLOOR,960,540-FLOOR,'#5b4636');       // chão
-  rr(0,FLOOR,960,8,'#3d2e23');
-  rr(0,CEIL-24,960,24,'#1c2340');            // teto
+  // fundo casa — cada fase tem um tema!
+  var TEMAS=[
+    {parede:'#2b3358',chao:'#5b4636',rodape:'#3d2e23',teto:'#1c2340'},  // casa azul clássica
+    {parede:'#4a2b3a',chao:'#3a2a2a',rodape:'#241818',teto:'#2e1a26'},  // mansão vinho
+    {parede:'#23422e',chao:'#6b5a3a',rodape:'#463b25',teto:'#152a1d'},  // casa de campo verde
+    {parede:'#3a3a3f',chao:'#2e2e33',rodape:'#1c1c20',teto:'#26262b'},  // BANCO cinza chique
+    {parede:'#4a3a1c',chao:'#7a5230',rodape:'#4d341e',teto:'#33280f'},  // museu dourado
+    {parede:'#1e2f4a',chao:'#31425e',rodape:'#1c2438',teto:'#141e30'}   // laboratório noturno
+  ];
+  var T=TEMAS[G.tema||0];
+  rr(0,0,960,540,T.parede);                  // parede
+  rr(0,FLOOR,960,540-FLOOR,T.chao);          // chão
+  rr(0,FLOOR,960,8,T.rodape);
+  rr(0,CEIL-24,960,24,T.teto);               // teto
   // divisórias de cômodos (visuais)
   for(var wx=600;wx<G.W;wx+=560){
     var sx=wx-c; if(sx<-60||sx>1020)continue;
@@ -538,7 +573,17 @@ function draw(){
       ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(x+o.w/2,FLOOR-42,o.w/2-8,6,0,0,7);ctx.fill();
       ctx.fillStyle='#fff';ctx.font='11px sans-serif';ctx.fillText(o.type==='pipeIn'?'🐍 entrar':'saída',x+2,FLOOR+14);ctx.font='22px sans-serif';
     }
+    else if(o.type==='botao'){
+      if(!G.botaoApertado){
+        rr(x,FLOOR-16,o.w,16,'#3a3a4a');                              // caixinha discreta
+        ctx.fillStyle='#7a1020';ctx.beginPath();ctx.arc(x+o.w/2,FLOOR-16,6,Math.PI,0);ctx.fill(); // botão vermelho escuro (camuflado!)
+      } else {
+        rr(x,FLOOR-16,o.w,16,'#3a3a4a');
+        ctx.fillStyle='#2e7d32';ctx.beginPath();ctx.arc(x+o.w/2,FLOOR-14,6,Math.PI,0);ctx.fill(); // apertado = verde
+      }
+    }
     else if(o.type==='exit'){
+      if(o.trancada&&!G.botaoApertado){ctx.font='18px sans-serif';ctx.fillText('🔒',x+o.w/2-9,FLOOR-160);ctx.font='22px sans-serif';}
       rr(x,FLOOR-130,o.w,130,'#7b4b1e');rr(x+8,FLOOR-122,o.w-16,122,'#9c6428');
       rr(x+o.w-20,FLOOR-70,8,8,'#ffd166');
       ctx.fillText('🚪',x+o.w/2-12,FLOOR-140);
