@@ -170,6 +170,7 @@ document.addEventListener('keydown', e=>{
 function girar(){
     if(girando) return;
     const FICHA = FICHAS[fichaIdx].valor;
+    const MULT = FICHAS[fichaIdx].mult;   // trava o prêmio da ficha PAGA (sem troca no meio!)
     if(moedas < FICHA){
         document.getElementById('resultado').textContent = 'Moedas de menos! Clica no cogumelo! 🍄';
         som(180,0.3,'sawtooth');
@@ -194,7 +195,7 @@ function girar(){
         if(frame % 3 === 0) som(200+frame*10, 0.04, 'square', 0.05);
         if(frame >= 14 + 2*10 + 2){
             clearInterval(anim);
-            resolve(fin, rolos, FICHAS[fichaIdx].mult);
+            resolve(fin, rolos, MULT);
         }
     }, 70);
 }
@@ -281,7 +282,7 @@ function montaFichas(){
         const b = document.createElement('button');
         b.className = 'ficha-btn' + (i===fichaIdx?' sel':'');
         b.textContent = `${f.nome} 🪙${f.valor}`;
-        b.onclick = ()=>{ fichaIdx=i; montaFichas(); som(500,0.06); };
+        b.onclick = ()=>{ if(girando) return; fichaIdx=i; montaFichas(); som(500,0.06); };
         el.appendChild(b);
     });
     const f = FICHAS[fichaIdx];
