@@ -135,7 +135,6 @@ function salvarProgresso(mostra){
             .then(()=>{ if(mostra) aviso('☁️ Progresso salvo NA NUVEM!', true); })
             .catch(e=>{ if(mostra) aviso('💾 Salvo só neste aparelho ('+e.message+')'); });
     } else if(mostra) aviso('💾 Progresso salvo neste aparelho!', true);
-    mostraEstado();
 }
 
 async function criar(){
@@ -203,7 +202,7 @@ function mostraEstado(){
         const c=contas();
         const ts = c[u] && c[u].atualizado ? new Date(c[u].atualizado).toLocaleString('pt-BR') : '—';
         document.getElementById('infoSave').textContent = 'Último save: '+ts+' ☁️';
-        salvarProgresso(false); // auto-save ao abrir a página
+        if(!window._autoSaveFeito){ window._autoSaveFeito = true; salvarProgresso(false); } // 1x só!
     }
 }
 mostraEstado();
