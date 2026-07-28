@@ -39,7 +39,7 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
 </head>
 <body>
 <h1>👤 Minha Conta</h1>
-<div class="sub">Crie uma conta pra não perder o progresso dos seus jogos! Ou jogue como visitante.</div>
+<div class="sub">Crie uma conta NA NUVEM ☁️ — entre com nome e senha em QUALQUER aparelho e continue de onde parou! Ou jogue como visitante.</div>
 <div id="aviso"></div>
 
 <div class="card logado" id="cardLogado" style="display:none">
@@ -78,7 +78,14 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
 <script>
 if (window.initStats) initStats('conta');
 
-// Contas locais (v1 — neste aparelho). Sincronização entre aparelhos vem na v2 com servidor.
+// Contas NA NUVEM (v2!) — funciona em qualquer aparelho. Fallback local se estiver sem internet.
+const API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+async function chamaAPI(corpo){
+    const r = await fetch(API, { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(corpo) });
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(j.erro || 'erro no servidor');
+    return j;
+}
 function contas(){ return JSON.parse(localStorage.getItem('cg_contas')||'{}'); }
 function salvaContas(c){ localStorage.setItem('cg_contas', JSON.stringify(c)); }
 function usuario(){ return localStorage.getItem('cg_usuario')||''; }
@@ -115,12 +122,19 @@ function aplicaProgresso(dados){
 
 function salvarProgresso(mostra){
     const u=usuario(); if(!u) return;
+    const h=localStorage.getItem('cg_senhaHash');
+    // espelho local
     const c=contas();
-    if(!c[u]) return;
+    c[u] = c[u] || { senha:h };
     c[u].dados = pegaProgresso();
     c[u].atualizado = Date.now();
     salvaContas(c);
-    if(mostra) aviso('💾 Progresso salvo na conta '+u+'!', true);
+    // nuvem
+    if(h){
+        chamaAPI({ acao:'salvar', nome:u, senhaHash:h, dados: pegaProgresso() })
+            .then(()=>{ if(mostra) aviso('☁️ Progresso salvo NA NUVEM!', true); })
+            .catch(e=>{ if(mostra) aviso('💾 Salvo só neste aparelho ('+e.message+')'); });
+    } else if(mostra) aviso('💾 Progresso salvo neste aparelho!', true);
     mostraEstado();
 }
 
@@ -130,31 +144,49 @@ async function criar(){
     if(nome.length<2) return aviso('O nome precisa ter pelo menos 2 letras!');
     if(s1.length<4) return aviso('A senha precisa ter pelo menos 4 letras/números!');
     if(s1!==s2) return aviso('As senhas não são iguais!');
-    const c=contas();
-    if(c[nome]) return aviso('Já existe uma conta com esse nome!');
-    c[nome]={ senha: await hash(s1), dados: pegaProgresso(), atualizado: Date.now() };
-    salvaContas(c);
+    const h = await hash(s1);
+    aviso('⏳ Criando sua conta na nuvem...', true);
+    try {
+        await chamaAPI({ acao:'registrar', nome, senhaHash:h, dados: pegaProgresso() });
+    } catch(e) {
+        return aviso('😕 ' + e.message);
+    }
     localStorage.setItem('cg_usuario', nome);
-    aviso('🎉 Conta criada! Seu progresso atual já foi guardado.', true);
+    localStorage.setItem('cg_senhaHash', h);
+    aviso('🎉 Conta criada NA NUVEM! Agora dá pra entrar em qualquer aparelho!', true);
     mostraEstado();
 }
 
 async function entrar(){
     const nome=document.getElementById('loginNome').value.trim();
     const senha=document.getElementById('loginSenha').value;
-    const c=contas();
-    if(!c[nome]) return aviso('Não achei essa conta neste aparelho 😕');
-    if(c[nome].senha !== await hash(senha)) return aviso('Senha errada!');
-    // guarda o progresso do visitante? não — entra na conta e carrega o progresso dela
-    localStorage.setItem('cg_usuario', nome);
-    aplicaProgresso(c[nome].dados);
-    aviso('✅ Bem-vindo de volta, '+nome+'!', true);
-    mostraEstado();
+    const h = await hash(senha);
+    aviso('⏳ Entrando...', true);
+    try {
+        const r = await chamaAPI({ acao:'entrar', nome, senhaHash:h });
+        localStorage.setItem('cg_usuario', nome);
+        localStorage.setItem('cg_senhaHash', h);
+        aplicaProgresso(r.dados);
+        aviso('✅ Bem-vindo de volta, '+nome+'! Progresso da nuvem carregado.', true);
+        return mostraEstado();
+    } catch(e) {
+        // fallback: conta antiga só deste aparelho
+        const c=contas();
+        if(c[nome] && c[nome].senha===h){
+            localStorage.setItem('cg_usuario', nome);
+            localStorage.setItem('cg_senhaHash', h);
+            aplicaProgresso(c[nome].dados);
+            aviso('✅ Entrou (conta local). '+e.message, true);
+            return mostraEstado();
+        }
+        aviso('😕 ' + e.message);
+    }
 }
 
 function sair(){
     try { salvarProgresso(false); } catch(e) {}
     localStorage.removeItem('cg_usuario');
+    localStorage.removeItem('cg_senhaHash');
     aviso('Você saiu. Progresso guardado na conta!', true);
     mostraEstado();
 }
@@ -170,7 +202,7 @@ function mostraEstado(){
         document.getElementById('nomeLogado').textContent = '🍄 '+u;
         const c=contas();
         const ts = c[u] && c[u].atualizado ? new Date(c[u].atualizado).toLocaleString('pt-BR') : '—';
-        document.getElementById('infoSave').textContent = 'Último save: '+ts+' (neste aparelho)';
+        document.getElementById('infoSave').textContent = 'Último save: '+ts+' ☁️';
         salvarProgresso(false); // auto-save ao abrir a página
     }
 }

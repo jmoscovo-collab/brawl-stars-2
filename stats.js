@@ -44,7 +44,7 @@ function cgAutoSave() {
         const u = localStorage.getItem('cg_usuario');
         if (!u) return;
         const contas = JSON.parse(localStorage.getItem('cg_contas') || '{}');
-        if (!contas[u]) return;
+        if (!contas[u]) contas[u] = { senha: localStorage.getItem('cg_senhaHash') || '' };
         const dados = {};
         for (let i = 0; i < localStorage.length; i++) {
             const k = localStorage.key(i);
@@ -53,6 +53,17 @@ function cgAutoSave() {
         contas[u].dados = dados;
         contas[u].atualizado = Date.now();
         localStorage.setItem('cg_contas', JSON.stringify(contas));
+        // ☁️ sincroniza com a nuvem no máximo a cada 60s
+        const h = localStorage.getItem('cg_senhaHash');
+        const agora = Date.now();
+        const ultimo = parseInt(localStorage.getItem('cg_sync_last') || '0');
+        if (h && agora - ultimo > 60000) {
+            localStorage.setItem('cg_sync_last', String(agora));
+            fetch('https://y67msybrr8.execute-api.sa-east-1.amazonaws.com', {
+                method: 'POST', headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ acao: 'salvar', nome: u, senhaHash: h, dados: dados })
+            }).catch(function(){});
+        }
     } catch (e) {}
 }
 

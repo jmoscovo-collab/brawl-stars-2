@@ -1,5 +1,12 @@
 # Changelog - Cogumelo Games (site)
 
+## v2.6.0 (2026-07-27) — CONTAS NA NUVEM
+- Conta agora funciona em QUALQUER aparelho: registrar/entrar/salvar via API na AWS pessoal 049
+  (Lambda cogumelo-contas + API Gateway y67msybrr8 + DynamoDB cogumelo-contas, sa-east-1)
+- Auto-save sincroniza com a nuvem a cada 60s (stats.js); fallback local se sem internet
+- Penaltis: bolas e poderes pela metade do preco
+
+
 ## v2.5.0 (2026-07-27)
 - Sorte do Cogumelo PUBLICADO (aprovado pelo Julio via Telegram): clicker + Maquina Maluca de numeros,
   fichas fixas Bronze/Prata/Ouro/Diamante, 12 melhorias de clique, 777 = jackpot
