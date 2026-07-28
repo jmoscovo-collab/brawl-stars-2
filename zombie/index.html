@@ -825,8 +825,30 @@
     }
 
     function spawnCollectibles() {
-        // Health packs (green cross)
-        for (let i = 0; i < 8; i++) {
+        spawnKits(8);
+
+        // Score gems (blue diamonds)
+        for (let i = 0; i < 12; i++) {
+            const gem = new THREE.Mesh(
+                new THREE.OctahedronGeometry(0.15, 0),
+                new THREE.MeshBasicMaterial({ color: 0x44aaff })
+            );
+            gem.position.set(
+                (Math.random()-0.5) * 50,
+                0.4,
+                (Math.random()-0.5) * 50
+            );
+            gem.userData = { type: 'score', amount: 50 };
+            scene.add(gem);
+            collectibles.push(gem);
+        }
+
+        spawnFood(6);
+    }
+
+    // Kit médicos (cruz vermelha) — usado no começo e a cada onda!
+    function spawnKits(count) {
+        for (let i = 0; i < count; i++) {
             const pickup = new THREE.Group();
             const base = new THREE.Mesh(
                 new THREE.BoxGeometry(0.4, 0.25, 0.4),
@@ -857,24 +879,6 @@
             scene.add(pickup);
             collectibles.push(pickup);
         }
-
-        // Score gems (blue diamonds)
-        for (let i = 0; i < 12; i++) {
-            const gem = new THREE.Mesh(
-                new THREE.OctahedronGeometry(0.15, 0),
-                new THREE.MeshBasicMaterial({ color: 0x44aaff })
-            );
-            gem.position.set(
-                (Math.random()-0.5) * 50,
-                0.4,
-                (Math.random()-0.5) * 50
-            );
-            gem.userData = { type: 'score', amount: 50 };
-            scene.add(gem);
-            collectibles.push(gem);
-        }
-
-        spawnFood(6);
     }
 
     // ===== Comidas (fome) =====
@@ -1365,6 +1369,9 @@
             setTimeout(() => spawnZombie(), i * 500);
         }
         document.getElementById('wave-sub').textContent = `Zumbis restantes: ${count}`;
+        // reforços! mais kit médico e comida a cada onda
+        spawnKits(3 + Math.floor(wave/3));
+        spawnFood(4 + Math.floor(wave/2));
         announceWave();
         updateWeapon();
     }
