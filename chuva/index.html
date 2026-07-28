@@ -250,6 +250,7 @@ function startGame(){
   player = { x:W/2, y:GROUND, w:34*s, h:44*s, vx:0, vy:0, onGround:true, face:1 };
   shrooms = []; particles = []; elapsed = 0; lives = 5; runCoins = 0;
   coinTimer = 0; spawnTimer = 0; dashCd = 0; invulnT = 0; shieldT = 0; freezeT = 0;
+  window._nivelChuva = 1; window._nivelMsgT = 0;
   tapTimes = []; skillUsed = false;
   clouds = [];
   for(var i=0;i<5;i++) clouds.push({ x:Math.random()*W, y:Math.random()*H*0.35, s:(0.6+Math.random())*s, v:(6+Math.random()*12)*s });
@@ -349,28 +350,50 @@ function spawn(diff){
     x: (0.04 + Math.random()*0.92) * W,
     y: -30*s,
     r: (14 + Math.random()*8) * s,
-    vy: (120 + Math.random()*80 + diff*28) * s,
+    vy: (120 + Math.random()*80 + diff*45) * s,
     wob: Math.random()*Math.PI*2
   });
 }
 
 // ---------- update / draw ----------
+function desenhaAvisoNivel(){
+  if(window._nivelMsgT > 0 && window._nivelChuva > 1){
+    ctx.save();
+    ctx.font = 'bold ' + Math.round(34*S()) + 'px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff5544';
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 5;
+    ctx.strokeText('⚠️ NÍVEL ' + window._nivelChuva + ' — MAIS DIFÍCIL!', W/2, H*0.25);
+    ctx.fillText('⚠️ NÍVEL ' + window._nivelChuva + ' — MAIS DIFÍCIL!', W/2, H*0.25);
+    ctx.restore();
+  }
+}
 function loop(ts){
   if(!playing) return;
   var dt = Math.min((ts - lastTs)/1000, 0.05); lastTs = ts;
   update(dt);
   draw();
+  desenhaAvisoNivel();
   requestAnimationFrame(loop);
 }
 
 function update(dt){
   var s = S();
   elapsed += dt;
-  var diff = elapsed/20; // dificuldade
+  var diff = elapsed/12; // dificuldade (sobe rápido!)
 
   // moeda automática a cada 2s
   coinTimer += dt;
   if(coinTimer >= 2){ coinTimer -= 2; runCoins++; snd.coin(); }
+
+  // aviso de dificuldade a cada 15s: "NÍVEL X — MAIS RÁPIDO!"
+  var nivelAtualChuva = Math.floor(elapsed/15) + 1;
+  if(nivelAtualChuva > (window._nivelChuva||1)){
+    window._nivelChuva = nivelAtualChuva;
+    window._nivelMsgT = 2;
+    try{ snd.coin(); }catch(e){}
+  }
+  if(window._nivelMsgT > 0) window._nivelMsgT -= dt;
 
   // timers
   if(dashCd > 0) dashCd = Math.max(0, dashCd - dt);
@@ -382,7 +405,7 @@ function update(dt){
   spawnTimer -= dt;
   if(spawnTimer <= 0){
     spawn(diff);
-    spawnTimer = Math.max(0.18, 0.85 - diff*0.09);
+    spawnTimer = Math.max(0.10, 0.85 - diff*0.13);
   }
 
   // player
