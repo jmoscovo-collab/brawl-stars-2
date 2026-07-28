@@ -81,6 +81,22 @@
     background: linear-gradient(135deg, #ff6b00, #ffb300); color: #fff;
     border: none; border-radius: 12px; cursor: pointer; font-family: inherit;
   }
+  /* Controles de toque (só aparecem em aparelho touch) */
+  #touchControls { display: none; }
+  #touchControls.ativo { display: block; }
+  .tbtn {
+    position: absolute; bottom: 18px; width: 68px; height: 68px;
+    border-radius: 50%; background: rgba(255,255,255,0.22);
+    border: 3px solid rgba(255,255,255,0.5); color: #fff;
+    font-size: 30px; line-height: 62px; text-align: center;
+    z-index: 12; user-select: none; -webkit-user-select: none;
+    touch-action: none; -webkit-tap-highlight-color: transparent;
+  }
+  .tbtn:active { background: rgba(255,255,255,0.5); transform: scale(0.92); }
+  #tEsq { left: 18px; }
+  #tDir { left: 100px; }
+  #tPulo { right: 18px; bottom: 100px; }
+  #tDesliza { right: 18px; }
 </style>
 </head>
 <body>
@@ -100,6 +116,12 @@
   <button class="fechar" onclick="fecharLoja()">FECHAR ✖</button>
 </div>
 <canvas id="game"></canvas>
+<div id="touchControls">
+  <div class="tbtn" id="tEsq">◀</div>
+  <div class="tbtn" id="tDir">▶</div>
+  <div class="tbtn" id="tPulo">⤒</div>
+  <div class="tbtn" id="tDesliza">🙇</div>
+</div>
 <div id="flash"></div>
 <div id="controls">← → / A D = pista &nbsp;|&nbsp; ESPAÇO / ↑ = pular &nbsp;|&nbsp; ↓ / S = deslizar</div>
 <div id="msg">
@@ -606,6 +628,25 @@ canvas.addEventListener('touchend', e => {
   }
   touchStart = null;
 }, { passive: true });
+
+// Botões de toque — só em aparelho touch; disparam os mesmos handlers do teclado
+if ('ontouchstart' in window) {
+  document.getElementById('touchControls').classList.add('ativo');
+  document.getElementById('controls').style.display = 'none';
+  const simularTecla = code => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true }));
+  };
+  const ligarBotao = (id, code) => {
+    document.getElementById(id).addEventListener('touchstart', e => {
+      e.preventDefault();
+      simularTecla(code);
+    }, { passive: false });
+  };
+  ligarBotao('tEsq', 'ArrowLeft');
+  ligarBotao('tDir', 'ArrowRight');
+  ligarBotao('tPulo', 'ArrowUp');
+  ligarBotao('tDesliza', 'ArrowDown');
+}
 
 // ---------- COLISÃO (AABB limpo) ----------
 function checaColisao() {
