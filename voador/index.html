@@ -159,6 +159,7 @@ document.addEventListener('keydown', e=>{
 });
 
 function fimDeJogo(){
+    if(!jogando) return;
     jogando=false;
     som(150,0.5,'sawtooth');
     const ganho = coinsRun + Math.floor(pts/2);
@@ -256,12 +257,12 @@ function desenha(){
                 m.pega = true; coinsRun++; som(900,0.08,'square',0.09);
             }
         }
-        // colisão
+        // colisão (sem return — o loop de desenho continua vivo!)
         const px = W*0.3;
-        if(y > H-40-14 || y < 10) return fimDeJogo();
-        for(const c of canos){
+        if(y > H-40-14 || y < 10) fimDeJogo();
+        if(jogando) for(const c of canos){
             if(px+14 > c.x && px-14 < c.x+LARG){
-                if(y-12 < c.topo || y+14 > c.topo+VAO) return fimDeJogo();
+                if(y-12 < c.topo || y+14 > c.topo+VAO){ fimDeJogo(); break; }
             }
         }
     }
