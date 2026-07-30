@@ -35,6 +35,23 @@ button:hover { transform:scale(1.02); }
 .logado .nomeUser { font-size:26px; color:#00ff88; font-weight:bold; }
 a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-block; }
 .dica { font-size:12px; color:#667; margin-top:10px; }
+.perfilBox { display:flex; align-items:center; gap:14px; justify-content:center; margin:10px 0; }
+.fotoAvatar { width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid #00ff88; background:#111130; }
+.fotoEmoji { width:72px; height:72px; border-radius:50%; border:3px solid #00ff88; background:#111130;
+    display:flex; align-items:center; justify-content:center; font-size:44px; }
+.gradeEmoji { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:10px; }
+.gradeEmoji button { margin:0; padding:8px 0; font-size:26px; background:#222250; }
+.linhaItem { display:flex; align-items:center; gap:8px; background:#181840; border-radius:12px; padding:8px 10px; margin:5px 0; text-align:left; }
+.linhaItem .miniFoto { width:36px; height:36px; border-radius:50%; object-fit:cover; background:#111130; flex:none;
+    display:flex; align-items:center; justify-content:center; font-size:24px; }
+.linhaItem .nomeItem { flex:1; font-weight:bold; overflow:hidden; text-overflow:ellipsis; }
+.linhaItem button { width:auto; margin:0; padding:7px 9px; font-size:15px; }
+.tituloLista { color:#889; font-size:13px; margin-top:16px; text-align:left; }
+#overlayPerfil { position:fixed; inset:0; background:rgba(0,0,10,0.85); display:none;
+    align-items:center; justify-content:center; z-index:50; }
+#overlayPerfil .card { margin:0; }
+#overlayPerfil .fotoGrande { width:120px; height:120px; border-radius:50%; object-fit:cover; border:4px solid #00ccff;
+    background:#111130; display:flex; align-items:center; justify-content:center; font-size:72px; margin:0 auto 12px; }
 </style>
 </head>
 <body>
@@ -44,7 +61,19 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
 
 <div class="card logado" id="cardLogado" style="display:none">
     <h2>Você está conectado!</h2>
-    <div class="nomeUser" id="nomeLogado"></div>
+    <div class="perfilBox">
+        <div id="minhaFoto"></div>
+        <div style="text-align:left">
+            <div class="nomeUser" id="nomeLogado"></div>
+            <div style="color:#889; font-size:13px" id="jogandoDesde"></div>
+        </div>
+    </div>
+    <button class="roxo" onclick="abreTrocaFoto()">🖼️ Trocar foto</button>
+    <div id="painelFoto" style="display:none">
+        <div class="gradeEmoji" id="gradeEmoji"></div>
+        <button onclick="document.getElementById('arquivoFoto').click()">📁 Escolher da galeria</button>
+        <input type="file" id="arquivoFoto" accept="image/*" style="display:none">
+    </div>
     <p style="color:#889; font-size:13px; margin-top:8px" id="infoSave"></p>
     <button onclick="salvarProgresso(true)">💾 Salvar progresso agora</button>
     <button class="cinza" id="btnSair">🚪 Sair da conta</button>
@@ -54,8 +83,23 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
     <h2>👥 Amigos</h2>
     <input id="buscaAmigo" placeholder="🔍 Pesquisar jogador..." maxlength="20">
     <div id="resultadosBusca" style="margin-top:6px"></div>
-    <div style="color:#889; font-size:13px; margin-top:12px">Meus amigos:</div>
-    <div id="listaAmigos" style="margin-top:6px; font-size:16px; line-height:1.9">—</div>
+    <div class="tituloLista">📥 Pedidos recebidos:</div>
+    <div id="listaRecebidos"></div>
+    <div class="tituloLista">📤 Pedidos enviados:</div>
+    <div id="listaEnviados"></div>
+    <div class="tituloLista">👥 Amigos:</div>
+    <div id="listaAmigos"></div>
+    <div class="tituloLista">🚫 Bloqueados:</div>
+    <div id="listaBloqueados"></div>
+</div>
+
+<div id="overlayPerfil" onclick="if(event.target===this)fechaPerfil()">
+    <div class="card">
+        <div class="fotoGrande" id="perfilFoto"></div>
+        <div class="nomeUser" id="perfilNome"></div>
+        <div style="color:#889; font-size:14px; margin-top:6px" id="perfilDesde"></div>
+        <button class="cinza" onclick="fechaPerfil()">Fechar</button>
+    </div>
 </div>
 
 <div class="card" id="cardEntrar">
@@ -173,8 +217,7 @@ async function entrar(){
         const r = await chamaAPI({ acao:'entrar', nome, senhaHash:h });
         localStorage.setItem('cg_usuario', nome);
         localStorage.setItem('cg_senhaHash', h);
-        localStorage.setItem('cg_amigos', JSON.stringify(r.amigos||[]));
-        meusAmigos = r.amigos||[];
+        guardaSocial(r);
         aplicaProgresso(r.dados);
         aviso('✅ Bem-vindo de volta, '+nome+'! Progresso da nuvem carregado.', true);
         mostraAmigos();
@@ -195,7 +238,8 @@ async function entrar(){
 
 function sair(){
     try { salvarProgresso(false); } catch(e) {}
-    localStorage.removeItem('cg_amigos'); meusAmigos=[];
+    ['cg_amigos','cg_pedidosEnviados','cg_pedidosRecebidos','cg_bloqueados','cg_foto','cg_criado'].forEach(k=>localStorage.removeItem(k));
+    social = { amigos:[], pedidosEnviados:[], pedidosRecebidos:[], bloqueados:[] };
     setTimeout(mostraAmigos, 50);
     localStorage.removeItem('cg_usuario');
     localStorage.removeItem('cg_senhaHash');
@@ -215,42 +259,203 @@ function mostraEstado(){
         const c=contas();
         const ts = c[u] && c[u].atualizado ? new Date(c[u].atualizado).toLocaleString('pt-BR') : '—';
         document.getElementById('infoSave').textContent = 'Último save: '+ts+' ☁️';
+        mostraMeuPerfil();
         if(!window._autoSaveFeito){ window._autoSaveFeito = true; salvarProgresso(false); } // 1x só!
     }
 }
 mostraEstado();
 
-// ============ AMIGOS ============
-let meusAmigos = JSON.parse(localStorage.getItem('cg_amigos')||'[]');
+// ============ PERFIL + AMIGOS (v3, na nuvem!) ============
+function lsJSON(k){ try { return JSON.parse(localStorage.getItem(k)||'[]'); } catch(e){ return []; } }
+let social = {
+    amigos: lsJSON('cg_amigos'),
+    pedidosEnviados: lsJSON('cg_pedidosEnviados'),
+    pedidosRecebidos: lsJSON('cg_pedidosRecebidos'),
+    bloqueados: lsJSON('cg_bloqueados')
+};
+function guardaSocial(r){
+    ['amigos','pedidosEnviados','pedidosRecebidos','bloqueados'].forEach(k=>{
+        if(r[k] !== undefined){ social[k] = r[k]||[]; localStorage.setItem('cg_'+k, JSON.stringify(social[k])); }
+    });
+    if(r.foto !== undefined) localStorage.setItem('cg_foto', r.foto||'');
+    if(r.criado !== undefined) localStorage.setItem('cg_criado', String(r.criado||0));
+}
+function fmtData(ts){
+    ts = Number(ts)||0;
+    if(!ts) return '';
+    return new Date(ts).toLocaleDateString('pt-BR', { day:'numeric', month:'long', year:'numeric' });
+}
+// render de foto: 'emoji:X' → emoji grande; dataURL → imagem redonda
+function fotoHTML(foto, classeEmoji, classeImg){
+    if(foto && foto.startsWith('data:image')) return '<img class="'+classeImg+'" src="'+foto+'" alt="foto">';
+    const emo = (foto && foto.startsWith('emoji:')) ? foto.slice(6) : '🍄';
+    return '<div class="'+classeEmoji+'"><span>'+emo+'</span></div>';
+}
+
+// ---- Meu perfil ----
+function mostraMeuPerfil(){
+    document.getElementById('minhaFoto').innerHTML = fotoHTML(localStorage.getItem('cg_foto')||'', 'fotoEmoji', 'fotoAvatar');
+    const d = fmtData(localStorage.getItem('cg_criado'));
+    document.getElementById('jogandoDesde').textContent = d ? '🕹️ Jogando desde '+d : '';
+}
+const EMOJIS_FOTO = ['🦫','🍄','⚽','🎮','🐉','😎','🦄','🤖','👻','🐱','🔥','⭐'];
+function abreTrocaFoto(){
+    const p = document.getElementById('painelFoto');
+    if(p.style.display==='block'){ p.style.display='none'; return; }
+    const g = document.getElementById('gradeEmoji');
+    g.innerHTML = '';
+    EMOJIS_FOTO.forEach(e=>{
+        const b = document.createElement('button');
+        b.textContent = e;
+        b.onclick = ()=>salvaFoto('emoji:'+e);
+        g.appendChild(b);
+    });
+    p.style.display = 'block';
+}
+async function salvaFoto(foto){
+    try {
+        await chamaAPI({ acao:'foto', nome:usuario(), senhaHash:localStorage.getItem('cg_senhaHash'), foto });
+        localStorage.setItem('cg_foto', foto);
+        document.getElementById('painelFoto').style.display = 'none';
+        mostraMeuPerfil();
+        aviso('📸 Foto nova no capricho!', true);
+    } catch(e){ aviso('😕 '+e.message); }
+}
+document.getElementById('arquivoFoto').addEventListener('change', function(){
+    const f = this.files && this.files[0];
+    this.value = '';
+    if(!f) return;
+    const img = new Image();
+    img.onload = ()=>{
+        const cv = document.createElement('canvas');
+        cv.width = 96; cv.height = 96;
+        const ctx = cv.getContext('2d');
+        // cover: recorta o centro
+        const lado = Math.min(img.width, img.height);
+        ctx.drawImage(img, (img.width-lado)/2, (img.height-lado)/2, lado, lado, 0, 0, 96, 96);
+        let q = 0.75, data = cv.toDataURL('image/jpeg', q);
+        while(data.length > 60000 && q > 0.2){ q -= 0.15; data = cv.toDataURL('image/jpeg', q); }
+        URL.revokeObjectURL(img.src);
+        if(data.length > 60000) return aviso('😕 Essa imagem ficou grande demais, tenta outra!');
+        salvaFoto(data);
+    };
+    img.onerror = ()=>aviso('😕 Não consegui ler essa imagem!');
+    img.src = URL.createObjectURL(f);
+});
+
+// ---- Listas sociais ----
+function linhaJogador(nome, foto, botoes){
+    const div = document.createElement('div');
+    div.className = 'linhaItem';
+    const mini = document.createElement('div');
+    mini.className = 'miniFoto';
+    mini.innerHTML = fotoHTML(foto, 'miniFoto', 'miniFoto');
+    mini.firstChild.classList.remove('miniFoto'); // filho ocupa 100%
+    mini.firstChild.style.width = '100%'; mini.firstChild.style.height = '100%';
+    if(mini.firstChild.tagName === 'IMG'){ mini.firstChild.style.borderRadius = '50%'; mini.firstChild.style.objectFit = 'cover'; }
+    else { mini.firstChild.style.display='flex'; mini.firstChild.style.alignItems='center'; mini.firstChild.style.justifyContent='center'; }
+    const sp = document.createElement('span');
+    sp.className = 'nomeItem';
+    sp.textContent = nome;
+    div.appendChild(mini); div.appendChild(sp);
+    botoes.forEach(([rotulo, titulo, fn])=>{
+        const b = document.createElement('button');
+        b.textContent = rotulo; b.title = titulo;
+        b.onclick = fn;
+        div.appendChild(b);
+    });
+    return div;
+}
+function enche(id, nomes, botoesDe, vazio){
+    const el = document.getElementById(id);
+    el.innerHTML = '';
+    if(!nomes || !nomes.length){
+        el.innerHTML = '<span style="color:#667; font-size:13px">'+vazio+'</span>';
+        return;
+    }
+    nomes.forEach(n=>{
+        const nome = (typeof n === 'string') ? n : n.nome;
+        const foto = (typeof n === 'string') ? '' : (n.foto||'');
+        el.appendChild(linhaJogador(nome, foto, botoesDe(nome)));
+    });
+}
 function mostraAmigos(){
     document.getElementById('cardAmigos').style.display = usuario() ? 'block' : 'none';
-    document.getElementById('listaAmigos').innerHTML =
-        meusAmigos.length ? meusAmigos.map(a=>'🍄 '+a).join('<br>') : '<span style="color:#667">Nenhum ainda — pesquisa aí em cima!</span>';
+    if(!usuario()) return;
+    enche('listaRecebidos', social.pedidosRecebidos, n=>[
+        ['✅','Aceitar', ()=>acaoSocial('aceitar', n, '🎉 '+n+' agora é seu amigo!')],
+        ['❌','Recusar', ()=>acaoSocial('recusar', n, 'Pedido recusado.')]
+    ], 'Nenhum pedido — por enquanto! 📭');
+    enche('listaEnviados', social.pedidosEnviados, ()=>[], 'Nenhum pedido enviado.');
+    enche('listaAmigos', social.amigos, n=>[
+        ['👤','Ver perfil', ()=>verPerfil(n)],
+        ['🚫','Bloquear', ()=>acaoSocial('bloquear', n, '🚫 '+n+' foi bloqueado.')]
+    ], 'Nenhum ainda — pesquisa aí em cima! 🔍');
+    enche('listaBloqueados', social.bloqueados, ()=>[], 'Ninguém bloqueado. 😇');
 }
+async function acaoSocial(acao, alvo, msgOk){
+    try {
+        const r = await chamaAPI({ acao, nome:usuario(), senhaHash:localStorage.getItem('cg_senhaHash'), alvo });
+        guardaSocial(r);
+        aviso(msgOk, true);
+        mostraAmigos();
+    } catch(e){ aviso('😕 '+e.message); }
+}
+
+// ---- Ver perfil ----
+async function verPerfil(alvo){
+    try {
+        const r = await chamaAPI({ acao:'perfil', nome:usuario(), senhaHash:localStorage.getItem('cg_senhaHash'), alvo });
+        document.getElementById('perfilFoto').innerHTML = fotoHTML(r.foto||'', 'fotoGrande', 'fotoGrande');
+        const filho = document.getElementById('perfilFoto').firstChild;
+        filho.style.width='100%'; filho.style.height='100%';
+        if(filho.tagName==='IMG'){ filho.style.borderRadius='50%'; filho.style.objectFit='cover'; }
+        else { filho.style.display='flex'; filho.style.alignItems='center'; filho.style.justifyContent='center'; }
+        document.getElementById('perfilNome').textContent = r.nome || alvo;
+        const d = fmtData(r.criado);
+        document.getElementById('perfilDesde').textContent = d ? '🕹️ Jogando desde '+d : '';
+        document.getElementById('overlayPerfil').style.display = 'flex';
+    } catch(e){ aviso('😕 '+e.message); }
+}
+function fechaPerfil(){ document.getElementById('overlayPerfil').style.display = 'none'; }
+
+// ---- Busca ----
 let buscaTimer = null;
 document.getElementById('buscaAmigo').addEventListener('input', function(){
     const q = this.value.trim();
     clearTimeout(buscaTimer);
-    if(q.length < 2){ document.getElementById('resultadosBusca').innerHTML=''; return; }
+    const box = document.getElementById('resultadosBusca');
+    if(q.length < 2){ box.innerHTML=''; return; }
     buscaTimer = setTimeout(async ()=>{
         try {
             const r = await chamaAPI({ acao:'buscar', nome:usuario(), senhaHash:localStorage.getItem('cg_senhaHash'), busca:q });
-            document.getElementById('resultadosBusca').innerHTML = r.resultados.length
-                ? r.resultados.map(n=>`<button style="margin:3px 0" onclick="addAmigo('${n.replace(/'/g,'')}')">➕ ${n}</button>`).join('')
-                : '<span style="color:#667; font-size:13px">Ninguém com esse nome ainda 😕</span>';
-        } catch(e){ document.getElementById('resultadosBusca').innerHTML = '<span style="color:#f66; font-size:13px">'+e.message+'</span>'; }
+            box.innerHTML = '';
+            if(!r.resultados || !r.resultados.length){
+                box.innerHTML = '<span style="color:#667; font-size:13px">Ninguém com esse nome ainda 😕</span>';
+                return;
+            }
+            r.resultados.forEach(p=>{
+                if(p.nome === usuario()) return; // eu mesmo, não!
+                box.appendChild(linhaJogador(p.nome, p.foto||'', [
+                    ['🤝','Solicitar amizade', ()=>acaoSocial('solicitar', p.nome, '🤝 Pedido enviado pra '+p.nome+'!')],
+                    ['🚫','Bloquear', ()=>acaoSocial('bloquear', p.nome, '🚫 '+p.nome+' foi bloqueado.')],
+                    ['👤','Ver perfil', ()=>verPerfil(p.nome)]
+                ]));
+            });
+        } catch(e){ box.innerHTML = '<span style="color:#f66; font-size:13px">😕 '+e.message+'</span>'; }
     }, 450);
 });
-async function addAmigo(n){
-    try {
-        const r = await chamaAPI({ acao:'amigo', nome:usuario(), senhaHash:localStorage.getItem('cg_senhaHash'), amigo:n });
-        meusAmigos = r.amigos;
-        localStorage.setItem('cg_amigos', JSON.stringify(meusAmigos));
-        aviso('👥 '+n+' agora é seu amigo!', true);
-        mostraAmigos();
-    } catch(e){ aviso('😕 '+e.message); }
-}
 mostraAmigos();
+
+// Refresh das listas sociais ao abrir logado — UMA vez só, e SEM aplicaProgresso!
+(function(){
+    const u = usuario(), h = localStorage.getItem('cg_senhaHash');
+    if(!u || !h || window._socialRefreshFeito) return;
+    window._socialRefreshFeito = true;
+    chamaAPI({ acao:'entrar', nome:u, senhaHash:h })
+        .then(r=>{ guardaSocial(r); mostraMeuPerfil(); mostraAmigos(); })
+        .catch(()=>{}); // offline? fica com o cache local
+})();
 </script>
 </body>
 </html>

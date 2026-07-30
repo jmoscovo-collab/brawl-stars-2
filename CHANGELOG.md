@@ -1,5 +1,12 @@
 # Changelog - Cogumelo Games (site)
 
+## v2.7.0 (2026-07-30) — AMIZADES v2 + PERFIL
+- Pedidos de amizade (enviar/aceitar/recusar), bloqueio (bloqueado nao pode pedir de volta)
+- Perfil: nome, jogando desde, FOTO (12 emojis sugeridos ou foto da galeria, 96x96)
+- Busca de jogadores com Solicitar/Bloquear/Ver perfil
+- Backend Lambda v3 (solicitar/aceitar/recusar/bloquear/perfil/foto)
+
+
 ## v2.6.0 (2026-07-27) — CONTAS NA NUVEM
 - Conta agora funciona em QUALQUER aparelho: registrar/entrar/salvar via API na AWS pessoal 049
   (Lambda cogumelo-contas + API Gateway y67msybrr8 + DynamoDB cogumelo-contas, sa-east-1)
