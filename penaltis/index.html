@@ -845,7 +845,7 @@ function mpRecebeChute(m){
     minhaVez = false; resetaBola();
     bola.destX = m.destX; bola.destY = m.destY;
     defendendo = true; defesaPulo = null; alvoRobo = null; // NADA de alvo vermelho: defesa às cegas!
-    mostraMsg('Defenda! CLIQUE onde o goleiro deve pular! 🧤','#00ccff',1400);
+    mostraMsg(morteSubita ? '💀 MORTE SÚBITA! Defenda às CEGAS! 🧤' : 'Defenda! CLIQUE onde o goleiro deve pular! 🧤','#00ccff',1200);
     atualizaHud();
     setTimeout(()=>{ if(mp.ativo && defendendo){ bola.voando=true; bola.t=0; som(200,0.15); } }, 1100);
 }
@@ -1101,7 +1101,7 @@ function vezDoRobo(){
     minhaVez=false; resetaBola();
     poderDefesa = consomePoder('defesa');
     golEncolhido = poderDefesa==='golpequeno';
-    mostraMsg('Defenda! CLIQUE onde o goleiro deve pular! 🧤','#00ccff',1400);
+    mostraMsg(morteSubita ? '💀 MORTE SÚBITA! Defenda às CEGAS! 🧤' : 'Defenda! CLIQUE onde o goleiro deve pular! 🧤','#00ccff',1200);
     const cantos=[GOL.x+80, W/2, GOL.x+GOL.w-80];
     if(Math.random()<dif.chuteCanto){
         bola.destX = Math.random()<0.5 ? GOL.x+45 : GOL.x+GOL.w-45;
@@ -1115,11 +1115,13 @@ function vezDoRobo(){
         bola.destX = Math.random()<0.5 ? GOL.x-60 : GOL.x+GOL.w+60;
         bola.foraDoGol = true;
     } else bola.foraDoGol = false;
-    alvoRobo = { x: bola.destX, y: bola.destY };
+    // MORTE SÚBITA = defesa às cegas (sem marcação vermelha)! Fora dela, mostra o alvo.
+    alvoRobo = morteSubita ? null : { x: bola.destX, y: bola.destY };
     defendendo=true; defesaPulo=null;
+    // sem delay: o chute sai na hora (só o tempinho da mensagem)
     setTimeout(()=>{
         bola.voando=true; bola.t=0; som(200,0.15);
-    }, dif.tempoAlvo + (poderDefesa==='lenta'?800:0));
+    }, 450 + (poderDefesa==='lenta'?500:0));
 }
 
 function resolveChuteRobo(){
