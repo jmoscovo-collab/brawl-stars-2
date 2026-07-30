@@ -95,7 +95,7 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
 
 <div id="overlayPerfil" onclick="if(event.target===this)fechaPerfil()">
     <div class="card">
-        <div class="fotoGrande" id="perfilFoto"></div>
+        <div id="perfilFoto" style="display:flex; justify-content:center;"></div>
         <div class="nomeUser" id="perfilNome"></div>
         <div style="color:#889; font-size:14px; margin-top:6px" id="perfilDesde"></div>
         <button class="cinza" onclick="fechaPerfil()">Fechar</button>
@@ -310,7 +310,9 @@ function fotoHTML(foto, classeEmoji, classeImg){
 
 // ---- Meu perfil ----
 function mostraMeuPerfil(){
-    document.getElementById('minhaFoto').innerHTML = fotoHTML(localStorage.getItem('cg_foto')||'', 'fotoEmoji', 'fotoAvatar');
+    const mf = document.getElementById('minhaFoto');
+    mf.innerHTML = fotoHTML(localStorage.getItem('cg_foto')||'', 'fotoEmoji', 'fotoAvatar');
+    if(mf.firstChild) mf.firstChild.style.borderColor = ehOperador(usuario()) ? '#ff2222' : '';
     const d = fmtData(localStorage.getItem('cg_criado'));
     document.getElementById('jogandoDesde').textContent = d ? '🕹️ Jogando desde '+d : '';
 }
@@ -366,10 +368,12 @@ function linhaJogador(nome, foto, botoes){
     const mini = document.createElement('div');
     mini.className = 'miniFoto';
     mini.innerHTML = fotoHTML(foto, 'miniFoto', 'miniFoto');
-    mini.firstChild.classList.remove('miniFoto'); // filho ocupa 100%
+    mini.firstChild.classList.remove('miniFoto'); // filho ocupa 100% (círculo ÚNICO: só o pai)
     mini.firstChild.style.width = '100%'; mini.firstChild.style.height = '100%';
+    mini.firstChild.style.border = 'none'; mini.firstChild.style.background = 'transparent';
     if(mini.firstChild.tagName === 'IMG'){ mini.firstChild.style.borderRadius = '50%'; mini.firstChild.style.objectFit = 'cover'; }
     else { mini.firstChild.style.display='flex'; mini.firstChild.style.alignItems='center'; mini.firstChild.style.justifyContent='center'; }
+    if(ehOperador(nome)){ mini.style.boxShadow = '0 0 0 3px #ff2222, 0 0 10px rgba(255,34,34,0.6)'; }
     const sp = document.createElement('span');
     sp.className = 'nomeItem';
     sp.textContent = nome;
@@ -426,7 +430,9 @@ async function acaoSocial(acao, alvo, msgOk){
 async function verPerfil(alvo){
     try {
         const r = await chamaAPI({ acao:'perfil', nome:usuario(), senhaHash:localStorage.getItem('cg_senhaHash'), alvo });
-        document.getElementById('perfilFoto').innerHTML = fotoHTML(r.foto||'', 'fotoGrande', 'fotoGrande');
+        const pf = document.getElementById('perfilFoto');
+        pf.innerHTML = fotoHTML(r.foto||'', 'fotoGrande', 'fotoGrande');
+        if(pf.firstChild) pf.firstChild.style.borderColor = ehOperador(r.nome||alvo) ? '#ff2222' : '';
         const filho = document.getElementById('perfilFoto').firstChild;
         filho.style.width='100%'; filho.style.height='100%';
         if(filho.tagName==='IMG'){ filho.style.borderRadius='50%'; filho.style.objectFit='cover'; }
