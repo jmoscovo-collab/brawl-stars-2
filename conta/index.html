@@ -331,13 +331,19 @@ function abreTrocaFoto(){
     p.style.display = 'block';
 }
 async function salvaFoto(foto){
+    // aparece NA HORA (igual foto da galeria) e salva na nuvem por trás
+    const fotoAntiga = localStorage.getItem('cg_foto') || '';
+    localStorage.setItem('cg_foto', foto);
+    document.getElementById('painelFoto').style.display = 'none';
+    mostraMeuPerfil();
+    aviso('📸 Foto nova no capricho!', true);
     try {
         await chamaAPI({ acao:'foto', nome:usuario(), senhaHash:localStorage.getItem('cg_senhaHash'), foto });
-        localStorage.setItem('cg_foto', foto);
-        document.getElementById('painelFoto').style.display = 'none';
+    } catch(e){
+        localStorage.setItem('cg_foto', fotoAntiga);
         mostraMeuPerfil();
-        aviso('📸 Foto nova no capricho!', true);
-    } catch(e){ aviso('😕 '+e.message); }
+        aviso('😕 Não deu pra salvar na nuvem: '+e.message);
+    }
 }
 document.getElementById('arquivoFoto').addEventListener('change', function(){
     const f = this.files && this.files[0];
