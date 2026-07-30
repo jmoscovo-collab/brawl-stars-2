@@ -58,13 +58,15 @@
   <div class="hudBox" id="hudTime">2:00</div>
   <div class="hudBox" id="hudTop"><b>🏆 TOP 5</b><div id="topList"></div></div>
   <div id="flutBox"></div>
+  <button class="btn azul" id="btnSair" style="position:absolute; bottom:14px; right:14px; pointer-events:auto; display:none; font-size:16px; padding:10px 18px; margin:0;">🚪 SAIR</button>
 </div>
 <div id="joy"><div id="joyKnob"></div></div>
 
 <div id="menu" class="overlay">
   <h1 class="titulo">🌪️ FURACÃO.IO</h1>
   <div class="sub">Você é um FURACÃO numa cidade 3D! Engula flores, carros, casas e até PRÉDIOS pra crescer!<br>Cuidado com os outros furacões... o maior engole o menor! 😱</div>
-  <button class="btn" id="btnJogar">🌪️ JOGAR</button>
+  <button class="btn verde" id="btnOnline">🌍 JOGAR ONLINE</button>
+  <button class="btn" id="btnJogar">🤖 JOGAR COM BOTS</button>
   <button class="btn azul" id="btnLoja">🛒 LOJA</button>
   <div class="info" id="infoMenu"></div>
   <div class="device">
@@ -569,21 +571,129 @@ function criaFuracao(nome, isBot, skin, ci){
     vx:0, vy:0, pts:0, r:16, ang:0, skin:skin, cor:ci, alvo:null, retarget:0, viva:true, resp:0,
     mesh:mesh, label:lb};
 }
-function novaPartida(){
+function novaPartida(modoOnline){
+  online=!!modoOnline;
   criaCidade();
   furas=[];
   var sk=skinById(skinEq);
-  player=criaFuracao('Você', false, sk, null);
+  player=criaFuracao(online?meuNome:'Você', false, sk, null);
   player.x=WORLD/2; player.y=WORLD/2;
   furas.push(player);
   var nomes=NOMES.slice(); nomes.sort(function(){return Math.random()-0.5;});
-  for(var i=0;i<5;i++){
+  var nb=online?2:5; // online: só 2 bots pra sala não ficar vazia
+  for(var i=0;i<nb;i++){
     var bt=criaFuracao(nomes[i], true, null, BOTCORES[i%BOTCORES.length]);
     bt.pts=player.pts; bt.r=raioPorPts(bt.pts); // bot NASCE do mesmo tamanho do jogador
     furas.push(bt);
   }
   tempo=120; jogando=true; ultT=performance.now();
+  document.getElementById('btnSair').style.display = online?'block':'none';
 }
+
+// ============ ONLINE (relay WebSocket) ============
+var WS_URL='wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=furacao';
+var online=false, ws=null, peers={}, enviaTimer=null, meuNome='Furacão';
+function nomeOnline(){
+  var u=null;
+  try{ u=localStorage.getItem('cg_usuario'); }catch(e){}
+  if(u){
+    try{
+      var o=JSON.parse(u);
+      if(typeof o==='string'&&o) return o;
+      if(o&&typeof o==='object') return o.nome||o.usuario||o.user||('Furacão'+Math.floor(100+Math.random()*900));
+    }catch(e){ return u; }
+  }
+  return 'Furacão'+Math.floor(100+Math.random()*900);
+}
+function conectaOnline(){
+  try{ ws=new WebSocket(WS_URL); }catch(e){ perdeuConexao(); return; }
+  ws.onopen=function(){
+    novaPartida(true); mostra(null);
+    enviaTimer=setInterval(enviaEstado, 143); // ~7x/segundo
+  };
+  ws.onmessage=function(ev){
+    var m; try{ m=JSON.parse(ev.data); }catch(e){ return; }
+    if(!online||!m||!m.quem) return;
+    if(m.t==='estado'){
+      var p=peers[m.quem];
+      if(!p){
+        var psk=skinById(m.skin);
+        var pm=makeTornado(psk); worldGroup.add(pm);
+        var plb=makeLabel(String(m.nome||'???').slice(0,14), '#7dff4d'); worldGroup.add(plb);
+        p={nome:m.nome||'???', bot:true, peer:true, quem:m.quem,
+          x:m.x||0, y:m.y||0, tx:m.x||0, ty:m.y||0, r:m.r||16, tr:m.r||16, pts:m.pts||0,
+          vx:0, vy:0, ang:0, skin:psk, viva:true, resp:0, mesh:pm, label:plb,
+          last:performance.now(), comEm:0};
+        peers[m.quem]=p; furas.push(p);
+      }
+      p.tx=m.x||p.tx; p.ty=m.y||p.ty; p.tr=m.r||p.tr; p.pts=m.pts||0;
+      p.nome=m.nome||p.nome; p.last=performance.now();
+    } else if(m.t==='comido'){
+      // servidor não manda pro alvo o próprio id: se o alvo não é nenhum peer conhecido, sou eu!
+      if(!peers[m.alvo]) fuiComido(m.quem);
+    }
+  };
+  ws.onclose=function(){ perdeuConexao(); };
+  ws.onerror=function(){ try{ ws.close(); }catch(e){} };
+}
+function enviaEstado(){
+  if(!ws||ws.readyState!==1||!jogando||!player) return;
+  try{
+    ws.send(JSON.stringify({acao:'estado', t:'estado', nome:meuNome,
+      x:Math.round(player.x), y:Math.round(player.y), r:Math.round(player.r*10)/10,
+      skin:skinEq, pts:player.pts}));
+  }catch(e){}
+}
+function fuiComido(quemId){
+  var nome=peers[quemId]?peers[quemId].nome:'um furacão';
+  somEngoleBot();
+  // explode em detritos!
+  var ud=player.mesh.userData;
+  for(var d=0;d<ud.deb.length;d++){ ud.deb[d].userData.rr=30+Math.random()*40; ud.deb[d].userData.sp=8+Math.random()*6; }
+  flutua(player.x, player.y, '💥 Você foi engolido por '+nome+'!', '#ff5a5a');
+  player.pts=Math.max(0, Math.floor(player.pts*0.3));
+  player.r=raioPorPts(player.pts);
+  player.x=200+Math.random()*(WORLD-400); player.y=200+Math.random()*(WORLD-400);
+  player.vx=0; player.vy=0;
+}
+function removePeer(k){
+  var p=peers[k]; if(!p) return;
+  worldGroup.remove(p.mesh); worldGroup.remove(p.label);
+  var ix=furas.indexOf(p); if(ix>=0) furas.splice(ix,1);
+  delete peers[k];
+}
+function atualizaOnline(){
+  var now=performance.now();
+  for(var k in peers){
+    var p=peers[k];
+    if(now-p.last>6000){ removePeer(k); continue; } // sumiu há >6s
+    // COMER: meu r bem maior e peer dentro do meu raio → engulo!
+    if(player.r>p.r*1.35 && Math.hypot(p.x-player.x, p.y-player.y)<player.r && now-p.comEm>2500){
+      p.comEm=now;
+      if(ws&&ws.readyState===1){
+        try{ ws.send(JSON.stringify({acao:'evento', t:'comido', alvo:k, pontos:p.pts})); }catch(e){}
+      }
+      var ganho=Math.max(10, Math.floor(p.pts*0.5)+15);
+      player.pts+=ganho; player.r=raioPorPts(player.pts);
+      somEngoleBot(); flutua(p.x, p.y, 'ENGOLIU '+p.nome+'! +'+ganho, '#ff7ad0');
+    }
+  }
+}
+function fechaOnline(){
+  online=false;
+  if(enviaTimer){ clearInterval(enviaTimer); enviaTimer=null; }
+  if(ws){ ws.onclose=null; ws.onmessage=null; try{ ws.close(); }catch(e){} ws=null; }
+  for(var k in peers) removePeer(k);
+}
+function perdeuConexao(){
+  fechaOnline(); jogando=false;
+  if(windGain) windGain.gain.value=0;
+  document.getElementById('btnSair').style.display='none';
+  atualizaMenu();
+  document.getElementById('infoMenu').innerHTML='⚠️ Conexão perdida! Tente de novo.<br>💰 Moedas: '+moedas+' | 🏆 Recorde: '+recorde;
+  mostra('menu');
+}
+addEventListener('beforeunload', function(){ if(ws){ try{ ws.close(); }catch(e){} } });
 
 // ============ INPUT ============
 var mouseX=innerWidth/2, mouseY=innerHeight/2, joyDX=0, joyDY=0;
@@ -649,8 +759,11 @@ function alvoMouse(){
 // ============ LÓGICA (mesmas regras do 2D) ============
 function podeComer(comedor, r){ return r < comedor.r*0.75; }
 function atualiza(dt){
-  tempo-=dt;
-  if(tempo<=0){ tempo=0; fimDeJogo(); return; }
+  if(online){ atualizaOnline(); } // partida online é contínua (sem timer)
+  else {
+    tempo-=dt;
+    if(tempo<=0){ tempo=0; fimDeJogo(); return; }
+  }
   var i,j,f,o;
   // carros andando
   for(j=0;j<objs.length;j++){
@@ -670,6 +783,13 @@ function atualiza(dt){
   // furacões
   for(i=0;i<furas.length;i++){
     f=furas[i];
+    if(f.peer){ // furacão remoto: interpola suave até a última posição recebida
+      f.x+=(f.tx-f.x)*Math.min(1,dt*8);
+      f.y+=(f.ty-f.y)*Math.min(1,dt*8);
+      f.r+=(f.tr-f.r)*Math.min(1,dt*5);
+      f.ang+=dt*6;
+      continue;
+    }
     if(!f.viva){
       f.resp-=dt;
       if(f.resp<=0){ f.viva=true;
@@ -727,7 +847,7 @@ function atualiza(dt){
   }
   // comer objetos (sucção em espiral!)
   for(i=0;i<furas.length;i++){
-    f=furas[i]; if(!f.viva) continue;
+    f=furas[i]; if(!f.viva||f.peer) continue;
     for(j=0;j<objs.length;j++){
       o=objs[j];
       if(!o.viva) continue;
@@ -765,10 +885,10 @@ function atualiza(dt){
   }
   // furacão come furacão
   for(i=0;i<furas.length;i++){
-    f=furas[i]; if(!f.viva) continue;
+    f=furas[i]; if(!f.viva||f.peer) continue;
     for(j=0;j<furas.length;j++){
       var g2=furas[j];
-      if(g2===f||!g2.viva) continue;
+      if(g2===f||!g2.viva||g2.peer) continue;
       if(f.r>g2.r*1.25 && Math.hypot(g2.x-f.x,g2.y-f.y)<f.r){
         var ganho=Math.max(10,Math.floor(g2.pts*0.5)+15);
         f.pts+=ganho; f.r=raioPorPts(f.pts);
@@ -834,7 +954,7 @@ function atualizaVisual(dt){
       ud.cones[c3].rotation.z=Math.cos(t/310+i+c3*1.1)*0.04*(c3+1);
     }
     // arco-íris
-    if(!f.bot && f.skin.c1==='rainbow'){
+    if(f.skin && f.skin.c1==='rainbow'){
       var h=(t/12)%360;
       ud.cones[0].material.color.setHSL(h/360,0.9,0.65);
       ud.cones[1].material.color.setHSL(((h+120)%360)/360,0.9,0.5);
@@ -884,8 +1004,11 @@ function atualizaVisual(dt){
 var elScore=document.getElementById('hudScore'), elTime=document.getElementById('hudTime'), elTop=document.getElementById('hudTop');
 function atualizaHUD(){
   elScore.innerHTML='⭐ '+player.pts+' &nbsp;|&nbsp; 🌀 Tam. '+nivel(player.r);
-  var m=Math.floor(tempo/60), s=Math.floor(tempo%60);
-  elTime.textContent=m+':'+(s<10?'0':'')+s;
+  if(online){ elTime.textContent='🌍 ONLINE'; }
+  else {
+    var m=Math.floor(tempo/60), s=Math.floor(tempo%60);
+    elTime.textContent=m+':'+(s<10?'0':'')+s;
+  }
   var rank=furas.slice().sort(function(a,b){return b.pts-a.pts;}).slice(0,5);
   var html='';
   for(var i=0;i<rank.length;i++){
@@ -976,6 +1099,23 @@ document.getElementById('btnJogar').onclick=function(){
   initSom(); if(AC&&AC.state==='suspended')AC.resume();
   if(!device){ device = ('ontouchstart' in window && innerWidth<900) ? 'mob':'pc'; ls('device',device); }
   novaPartida(); mostra(null);
+};
+document.getElementById('btnOnline').onclick=function(){
+  initSom(); if(AC&&AC.state==='suspended')AC.resume();
+  if(!device){ device = ('ontouchstart' in window && innerWidth<900) ? 'mob':'pc'; ls('device',device); }
+  meuNome=nomeOnline();
+  fechaOnline();
+  document.getElementById('infoMenu').innerHTML='🌍 Conectando...';
+  conectaOnline();
+};
+document.getElementById('btnSair').onclick=function(){
+  var ganhou=Math.max(5, Math.floor(player.pts/10));
+  moedas+=ganhou; ls('moedas',moedas);
+  if(player.pts>recorde){ recorde=player.pts; ls('recorde',recorde); }
+  fechaOnline(); jogando=false;
+  if(windGain) windGain.gain.value=0;
+  document.getElementById('btnSair').style.display='none';
+  atualizaMenu(); mostra('menu');
 };
 document.getElementById('btnLoja').onclick=function(){ initSom(); montaLoja(); mostra('loja'); };
 document.getElementById('btnVoltar').onclick=function(){ atualizaMenu(); mostra('menu'); };
