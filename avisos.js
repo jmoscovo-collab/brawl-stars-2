@@ -78,10 +78,23 @@
         var recusados = JSON.parse(localStorage.getItem('cg_convites_recusados')||'[]');
         if(convitesMostrados[id] || aceitos.indexOf(id)>=0 || recusados.indexOf(id)>=0) return;
         convitesMostrados[id] = true;
-        var jogo = cv.jogo || 'penaltis';
+        var jogo = cv.jogo || '';
         var rotas = { penaltis:{url:'/penaltis/', txt:'te convidou para uma partida de Pênaltis!', ico:'⚽'},
                       zumbi:{url:'/zombie/',   txt:'te convidou para uma partida de Zumbi!', ico:'🧟'} };
-        var r = rotas[jogo] || rotas.penaltis;
+        var r = rotas[jogo];
+        if(!r){ // convite antigo sem etiqueta: pergunta pra qual jogo ir
+          var cA = card('<div class="cg-tit">🎮 <b>' + String(cv.de).replace(/[<>]/g,'') + '</b> te convidou!</div>' +
+                        '<div style="font-size:12px;color:#889">convite antigo — escolha o jogo</div>' +
+                        '<button class="sim">⚽ Pênaltis</button><button class="sim" style="background:linear-gradient(135deg,#66dd44,#22aa22)">🧟 Zumbi</button>' +
+                        '<button class="no">❌</button>');
+          var bs = cA.querySelectorAll('button');
+          bs[0].onclick = function(){ cA.remove(); location.href='/penaltis/?sala='+encodeURIComponent(cv.sala)+'&de='+encodeURIComponent(cv.de); };
+          bs[1].onclick = function(){ cA.remove(); location.href='/zombie/?sala='+encodeURIComponent(cv.sala)+'&de='+encodeURIComponent(cv.de); };
+          bs[2].onclick = function(){ cA.remove(); };
+          setTimeout(function(){ if(cA.parentNode) cA.remove(); }, 10000);
+          beep();
+          return;
+        }
         var c = card('<div class="cg-tit">' + r.ico + ' <b>' + String(cv.de).replace(/[<>]/g,'') + '</b> ' + r.txt + '</div>' +
                      '<button class="sim">✅ Aceitar</button><button class="no">❌ Recusar</button>');
         c.querySelector('.sim').onclick = function(){
