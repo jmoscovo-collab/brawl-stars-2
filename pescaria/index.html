@@ -808,6 +808,29 @@ if(!localStorage.getItem('pescaria_promo50k')){
             }
         }).catch(()=>{});
 }
+// 🎁 PROMOÇÃO 2: as 3 PRÓXIMAS pessoas ganham 1 peixe ULTRA + 1 EXCLUSIVO! (contador global)
+if(!localStorage.getItem('pescaria_promopeixes')){
+    localStorage.setItem('pescaria_promopeixes','tentou');
+    fetch('https://api.counterapi.dev/v1/cogumelogames-br/promopeixes/up')
+        .then(r=>r.json())
+        .then(d=>{
+            if(d.count && d.count <= 3){
+                const u = PEIXES.ultra[Math.floor(Math.random()*PEIXES.ultra.length)];
+                const e = PEIXES.exclusivo[Math.floor(Math.random()*PEIXES.exclusivo.length)];
+                const [uMin,uMax] = RARIDADES.ultra.valor;
+                const [eMin,eMax] = RARIDADES.exclusivo.valor;
+                const pu = { nome:u[0], emoji:u[1], rar:'ultra', valor: uMin+Math.floor(Math.random()*(uMax-uMin+1)) };
+                const pe = { nome:e[0], emoji:e[1], rar:'exclusivo', valor: eMin+Math.floor(Math.random()*(eMax-eMin+1)) };
+                inventario.push(pu, pe);
+                indiceCapturados.add(pu.nome); indiceCapturados.add(pe.nome);
+                salva(); atualizaHud();
+                setTimeout(()=>{
+                    mostraMsg(`🎁 Você foi a ${d.count}ª pessoa! Ganhou ${pu.nome} ${pu.emoji} (ULTRA) + ${pe.nome} ${pe.emoji} (EXCLUSIVO)!!!`,'#00ffee',6000);
+                    soltaConfete(250);
+                }, 700);
+            }
+        }).catch(()=>{});
+}
 atualizaHud();
 desenha();
 </script>
