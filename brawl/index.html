@@ -111,6 +111,7 @@
         .btn-claim { margin-left: auto; padding: 8px 16px; background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000; border: none; border-radius: 20px; font-weight: bold; font-size: 12px; cursor: pointer; }
         .panel-title { color: #fff; font-size: 22px; font-weight: bold; margin-bottom: 16px; text-align: center; }
         .close-panel { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #fff; font-size: 28px; cursor: pointer; z-index: 10; }
+        #online-placar { position: absolute; top: 70px; left: 10px; background: rgba(0,0,0,0.55); color: #fff; font: 12px monospace; padding: 8px 12px; border-radius: 6px; z-index: 11; pointer-events: none; display: none; line-height: 1.6; }
         #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: #00ff88; font: bold 15px monospace; padding: 12px 24px; border-radius: 30px; border: 1px solid #00ff88; z-index: 100000; display: none; }
     </style>
 
@@ -194,6 +195,7 @@
             <div id="hud-score"></div>
         </div>
         <div id="zone-warning"></div>
+        <div id="online-placar"></div>
         <div id="hidden-tag">🌿 ESCONDIDO! Ninguém te vê</div>
         <div id="overlay"><h1 id="overlay-title"></h1><p id="overlay-text1"></p><p id="overlay-text2"></p><p class="sub" id="overlay-sub"></p></div>
         <div id="minimap"><canvas id="minimap-canvas" width="140" height="105"></canvas></div>
@@ -393,6 +395,7 @@ const gameModes = [
     { id:'matamata', icon:'⚔️', name:'Mata-Mata',     desc:'90 segundos, todo mundo renasce. Quem derrubar mais, vence!' },
     { id:'cristais', icon:'💎', name:'Pega-Cristais', desc:'Colete 10 cristais antes dos robôs. Se cair, perde os seus!' },
     { id:'duelo',    icon:'🤺', name:'Duelo 1v1',     desc:'Você contra UM robô gigante e fortão. Sem ajuda!' },
+    { id:'online',   icon:'🌍', name:'ONLINE',        desc:'Jogue contra pessoas DE VERDADE pela internet! Arena contínua com respawn.' },
 ];
 let gameMode = 'royale';
 function renderModes(){
@@ -836,6 +839,10 @@ function getWorldMouse() {
 }
 
 function fireBullets(fromX, fromZ, angle, attack, damage, owner, color) {
+    // avisa os outros jogadores do meu tiro (eles renderizam o projétil localmente)
+    if (owner === 'player' && gameMode === 'online') {
+        netSend({ acao: 'evento', t: 'tiro', id: MEU_ID, x: +fromX.toFixed(2), z: +fromZ.toFixed(2), ang: +angle.toFixed(3) });
+    }
     const spd = 0.6;
     const makeB = (a, s, sz, life, pierce, bomb) => {
         const geo = new THREE.SphereGeometry(sz, 8, 8);
@@ -888,6 +895,7 @@ function spawnEnemies() {
     enemies = [];
     let count = 9;
     if (gameMode === 'duelo') count = 1;
+    else if (gameMode === 'online') count = 2;
     else if (gameMode === 'matamata' || gameMode === 'cristais') count = 7;
     totalFighters = count + 1;
 
@@ -1026,6 +1034,149 @@ function updateZone() {
     }
 }
 
+// === MULTIPLAYER ONLINE (relay WebSocket) ===
+const NET_URL = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=arena';
+const MEU_ID = Math.random().toString(36).slice(2, 9);
+let ws = null, netTimer = null, peers = {};
+let meuNome = 'Robô';
+
+function makeNameSprite(nome) {
+    const cv = document.createElement('canvas');
+    cv.width = 256; cv.height = 64;
+    const ctx = cv.getContext('2d');
+    ctx.font = 'bold 36px monospace';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = '#000';
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeText(nome, 128, 42);
+    ctx.fillText(nome, 128, 42);
+    const tex = new THREE.CanvasTexture(cv);
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+    spr.scale.set(6, 1.5, 1);
+    spr.position.y = 4.3;
+    return spr;
+}
+
+function makePeerMesh(p) {
+    const b = brawlers[p.lutador] || brawlers[0];
+    const mesh = createRobot(b, 1.2);
+    makeGhostable(mesh);
+    mesh.add(makeNameSprite(p.nome));
+    mesh.position.set(p.x, 0, p.z);
+    scene.add(mesh);
+    return mesh;
+}
+
+function netConnect() {
+    netDisconnect();
+    try { ws = new WebSocket(NET_URL); } catch (e) { ws = null; showToast('📡 Não deu pra conectar!'); return; }
+    ws.onopen = () => {
+        showToast('🌍 Conectado! Procurando jogadores...');
+        netTimer = setInterval(netSendEstado, 140); // ~7x/s
+    };
+    ws.onmessage = ev => {
+        let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+        handleNet(m);
+    };
+    ws.onclose = () => {
+        ws = null;
+        if (gameRunning && gameMode === 'online') {
+            showToast('📡 A conexão caiu! Voltando pro menu...');
+            backToMenu();
+        }
+    };
+    ws.onerror = () => {};
+}
+
+function netDisconnect() {
+    if (netTimer) { clearInterval(netTimer); netTimer = null; }
+    if (ws) { ws.onclose = null; try { ws.close(); } catch (e) {} ws = null; }
+    Object.values(peers).forEach(p => scene.remove(p.mesh));
+    peers = {};
+}
+
+function netSend(obj) {
+    if (ws && ws.readyState === 1) { try { ws.send(JSON.stringify(obj)); } catch (e) {} }
+}
+
+function netSendEstado() {
+    if (!gameRunning || gameMode !== 'online') return;
+    netSend({
+        acao: 'estado', t: 'estado', id: MEU_ID, nome: meuNome,
+        x: +player.x.toFixed(2), z: +player.z.toFixed(2),
+        ang: playerObj ? +playerObj.rotation.y.toFixed(2) : 0,
+        lutador: selectedBrawler, hp: player.dead ? 0 : Math.max(0, Math.round(player.hp)), pts: score
+    });
+}
+
+function handleNet(m) {
+    if (!gameRunning || gameMode !== 'online' || !m || !m.quem) return;
+    const q = m.quem;
+    if (m.t === 'estado') {
+        let p = peers[q];
+        const li = (typeof m.lutador === 'number' && brawlers[m.lutador]) ? m.lutador : 0;
+        if (!p) {
+            p = peers[q] = { x: m.x || 0, z: m.z || 0, tx: m.x || 0, tz: m.z || 0, ang: m.ang || 0, tang: m.ang || 0, lutador: li, nome: m.nome || 'Robô', hp: m.hp, pts: m.pts || 0, id: m.id, last: Date.now() };
+            p.mesh = makePeerMesh(p);
+            showToast('🎮 ' + p.nome + ' entrou na arena!');
+        }
+        if (li !== p.lutador || (m.nome && m.nome !== p.nome)) {
+            scene.remove(p.mesh);
+            p.lutador = li; p.nome = m.nome || p.nome;
+            p.mesh = makePeerMesh(p);
+        }
+        p.tx = m.x || 0; p.tz = m.z || 0; p.tang = m.ang || 0;
+        p.hp = m.hp; p.pts = m.pts || 0; p.id = m.id || p.id;
+        p.last = Date.now();
+    } else if (m.t === 'tiro') {
+        const p = peers[q];
+        const b = brawlers[p ? p.lutador : 0];
+        fireBullets(m.x || 0, m.z || 0, m.ang || 0, b.attack, b.dmg, 'peer_' + q, b.color);
+        if (p) p.last = Date.now();
+    } else if (m.t === 'morri') {
+        // alguém morreu por um tiro MEU → ganho o abate
+        if (m.para === MEU_ID) {
+            player.kills++;
+            score += 10;
+            sfxKill();
+            showToast('💥 Você derrubou ' + ((peers[q] && peers[q].nome) || 'um robô') + '!');
+        }
+    }
+}
+
+function updatePeers() {
+    const now = Date.now();
+    for (const q of Object.keys(peers)) {
+        const p = peers[q];
+        if (now - p.last > 6000) { scene.remove(p.mesh); delete peers[q]; continue; }
+        // interpolação suave
+        p.x += (p.tx - p.x) * 0.2;
+        p.z += (p.tz - p.z) * 0.2;
+        let da = p.tang - p.ang;
+        while (da > Math.PI) da -= Math.PI * 2;
+        while (da < -Math.PI) da += Math.PI * 2;
+        p.ang += da * 0.2;
+        p.mesh.position.set(p.x, 0, p.z);
+        p.mesh.rotation.y = p.ang;
+        const mb = brawlers[p.lutador] || brawlers[0];
+        const r = Math.max(0, Math.min(1, (p.hp || 0) / mb.hp));
+        p.mesh.userData.hpBar.scale.x = r;
+        p.mesh.userData.hpBar.material.color.setHex(r > 0.5 ? 0x00ff00 : r > 0.25 ? 0xffff00 : 0xff0000);
+        p.mesh.visible = (p.hp || 0) > 0;
+    }
+}
+
+function updatePlacarOnline() {
+    const rows = [{ nome: '⭐ ' + meuNome, pts: score }]
+        .concat(Object.values(peers).map(p => ({ nome: p.nome, pts: p.pts || 0 })))
+        .concat(enemies.map(e => ({ nome: '🤖 ' + e.name, pts: e.kills * 10 })))
+        .sort((a, b) => b.pts - a.pts)
+        .slice(0, 8);
+    document.getElementById('online-placar').innerHTML =
+        '<b>🏆 PLACAR</b><br>' + rows.map((r, i) => `${i + 1}º ${r.nome} — ${r.pts}`).join('<br>');
+}
+
 function startGame() {
     const b = brawlers[selectedBrawler];
     player.hp = b.hp; player.maxHp = b.hp;
@@ -1059,6 +1210,14 @@ function startGame() {
     setupZone();
     if (gameMode === 'cristais') { for (let i = 0; i < 5; i++) spawnCrystal(); }
     gameRunning = true;
+    if (gameMode === 'online') {
+        meuNome = localStorage.getItem('cg_usuario') || ('Robô' + Math.floor(100 + Math.random() * 900));
+        document.getElementById('online-placar').style.display = 'block';
+        netConnect();
+    } else {
+        document.getElementById('online-placar').style.display = 'none';
+        netDisconnect();
+    }
     document.getElementById('overlay').classList.remove('show');
     document.getElementById('hidden-tag').style.display = 'none';
     resizeGame();
@@ -1070,6 +1229,8 @@ function trophiesEarned() {
 
 function backToMenu() {
     gameRunning = false;
+    netDisconnect();
+    document.getElementById('online-placar').style.display = 'none';
     document.getElementById('game-container').style.display = 'none';
     document.getElementById('menu').style.display = 'flex';
     document.getElementById('zone-warning').style.display = 'none';
@@ -1115,7 +1276,7 @@ function spawnParticle3D(x, z, color) {
     gParticles.push({ mesh, vx: (Math.random()-0.5)*0.3, vy: Math.random()*0.2, vz: (Math.random()-0.5)*0.3, life: 20 });
 }
 
-const modeHasRespawn = () => gameMode === 'matamata' || gameMode === 'cristais';
+const modeHasRespawn = () => gameMode === 'matamata' || gameMode === 'cristais' || gameMode === 'online';
 
 function killPlayer() {
     if (player.dead) return;
@@ -1123,7 +1284,7 @@ function killPlayer() {
     for(let k=0;k<10;k++) spawnParticle3D(player.x, player.z, brawlers[selectedBrawler].color);
     if (modeHasRespawn()) {
         player.dead = true;
-        player.respawnTimer = 120;
+        player.respawnTimer = gameMode === 'online' ? 180 : 120;
         playerObj.visible = false;
         if (gameMode === 'cristais' && player.crystals > 0) {
             for (let i = 0; i < player.crystals; i++) spawnCrystal(player.x, player.z);
@@ -1321,6 +1482,12 @@ function update() {
     updateZone();
     if (gameOver || victory) return;
 
+    // jogadores online (interpola, remove sem sinal, placar)
+    if (gameMode === 'online') {
+        updatePeers();
+        updatePlacarOnline();
+    }
+
     // Enemies — AI: cada um por si
     for (let ei = 0; ei < enemies.length; ei++) {
         const e = enemies[ei];
@@ -1438,6 +1605,21 @@ function update() {
                     break;
                 }
             }
+        } else if (b.owner.startsWith('peer_')) {
+            // Tiro de jogador remoto — DANO confiado no alvo: só EU aplico dano em mim
+            if (!player.dead && Math.abs(bx-player.x)<1 && Math.abs(bz-player.z)<1) {
+                player.hp -= b.damage;
+                sfxDamage();
+                for(let k=0;k<3;k++) spawnParticle3D(player.x, player.z, brawlers[selectedBrawler].color);
+                scene.remove(b.mesh); gBullets.splice(i,1);
+                if (player.hp <= 0) {
+                    const pq = b.owner.slice(5);
+                    const shooter = peers[pq];
+                    if (shooter && shooter.id) netSend({ acao: 'evento', t: 'morri', id: MEU_ID, para: shooter.id });
+                    killPlayer();
+                }
+                continue;
+            }
         } else {
             // Enemy bullet — can hit player or other enemies
             const ownerIdx = parseInt(b.owner.split('_')[1]);
@@ -1496,6 +1678,8 @@ function update() {
     } else if (gameMode === 'cristais') {
         const best = enemies.reduce((m,e)=>Math.max(m,e.crystals),0);
         document.getElementById('hud-alive').textContent = `💎 ${player.crystals}/${CRYSTAL_GOAL} (robô melhor: ${best})`;
+    } else if (gameMode === 'online') {
+        document.getElementById('hud-alive').textContent = `🌍 Jogadores: ${Object.keys(peers).length + 1 + enemies.length} | Abates: ${player.kills}`;
     } else if (gameMode === 'duelo') {
         const foe = enemies[0];
         document.getElementById('hud-alive').textContent = foe && foe.alive ? `🤺 ${foe.name}: ${Math.max(0,Math.round(foe.hp))} HP` : '🤺 Duelo';
@@ -1572,6 +1756,11 @@ function drawMinimap() {
         mc.beginPath();
         mc.arc(cx, cy, zoneRadius * scale, 0, Math.PI * 2);
         mc.stroke();
+    }
+    // jogadores online
+    if (gameMode === 'online') {
+        mc.fillStyle = '#ff44ff';
+        for (const q in peers) { const p = peers[q]; if ((p.hp||0) > 0) mc.fillRect(cx + p.x * scale - 2, cy + p.z * scale - 2, 4, 4); }
     }
     // player
     mc.fillStyle = '#00ff88';

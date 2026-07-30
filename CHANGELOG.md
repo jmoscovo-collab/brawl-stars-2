@@ -1,5 +1,12 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.0.0 (2026-07-30) — MULTIPLAYER!
+- Servidor de salas WebSocket na nuvem (API GW zxbmtlkq6b + Lambda cogumelo-ws + DDB, sa-east-1)
+- Furacao.io: botao JOGAR ONLINE — jogadores reais na mesma cidade, da pra engolir uns aos outros
+- Arena Cogumelo: modo ONLINE — mata-mata continuo entre jogadores reais com placar de abates
+- Furacao: cidade 3800 (350+ objetos), bots justos, funil realista
+
+
 ## v2.9.0 (2026-07-30)
 - JOGOS NOVOS: Furacao.io (engole a cidade, bots, 2min, 10 skins) e Fuga do Dino (runner 3D com T-Rex perseguidor, 8 skins)
 - Voador: fix loop de desenho morto apos game over
