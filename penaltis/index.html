@@ -838,14 +838,11 @@ function mpProximoTurno(){
     minhaVez = mp.vezDeChutar; defendendo=false; defesaPulo=null; alvoRobo=null;
     chute = Math.min(mp.chutesEu, mp.chutesEle) + 1;
     atualizaHud();
-    if(mp.vezDeChutar) mostraMsg('Sua vez! Mire e chute! ⚽','#fff',1200);
-    else mostraMsg(`Vez de ${mp.opNome} chutar... prepare a defesa! 🧤`,'#00ccff',1400);
 }
 function mpRecebeChute(m){
     minhaVez = false; resetaBola();
     bola.destX = m.destX; bola.destY = m.destY;
     defendendo = true; defesaPulo = null; alvoRobo = null; // NADA de alvo vermelho: defesa às cegas!
-    mostraMsg(morteSubita ? '💀 MORTE SÚBITA! Defenda às CEGAS! 🧤' : 'Defenda! CLIQUE onde o goleiro deve pular! 🧤','#00ccff',1200);
     atualizaHud();
     setTimeout(()=>{ if(mp.ativo && defendendo){ bola.voando=true; bola.t=0; som(200,0.15); } }, 1100);
 }
@@ -857,9 +854,9 @@ function mpChegouChuteDele(){
     const dentro = dX>GOL.x+10 && dX<GOL.x+GOL.w-10 && dY>GOL.y+5 && dY<GOL.y+GOL.h-5;
     const pegou = dentro && Math.abs(dX-goleiro.x)<80 && Math.abs(dY-(goleiro.y+goleiro.ladoY))<100;
     mpEnvia({t:'resultado', gol: dentro && !pegou, fora: !dentro});
-    if(!dentro){ mostraMsg('PRA FORA! 😱','#00ff88'); som(600,0.2); }
-    else if(pegou){ bola.segura=true; mostraMsg('DEFENDEU! 🧤🔥','#00ff88'); som(600,0.2); soltaConfete(); }
-    else { placarCpu++; mostraMsg(`Gol de ${mp.opNome}... ⚽`,'#ff5555'); som(140,0.4,'sawtooth'); }
+    if(!dentro){ som(600,0.2); }
+    else if(pegou){ bola.segura=true; som(600,0.2); soltaConfete(); }
+    else { placarCpu++; som(140,0.4,'sawtooth'); }
     mp.chutesEle++;
     atualizaHud();
     setTimeout(mpFimDaVez, 1500);
@@ -871,11 +868,10 @@ function mpChegouMeuChute(){
 }
 function mpAplicaResultado(r){
     mp.aguardandoResultado = false;
-    if(r.fora){ mostraMsg('PRA FORA! 😱','#ffaa00'); som(150,0.4,'sawtooth'); }
-    else if(!r.gol){ bola.segura=true; mostraMsg(`${mp.opNome} PEGOU! 🧤`,'#ff5555'); som(120,0.4,'sawtooth'); }
+    if(r.fora){ som(150,0.4,'sawtooth'); }
+    else if(!r.gol){ bola.segura=true; som(120,0.4,'sawtooth'); }
     else {
         placarVoce++;
-        mostraMsg('GOOOOL! ⚽🎉','#00ff88');
         som(500,0.1); setTimeout(()=>som(700,0.15),100); setTimeout(()=>som(900,0.25),220);
         soltaConfete();
     }
@@ -1082,12 +1078,11 @@ function resolveChuteVoce(){
     if(poderChute==='gigante' && Math.random()<0.75) pegou = false;
     const duplo = poderChute==='duplo';
     goleiro.visivel = true; goleiro.congelado = false;
-    if(!dentro){ mostraMsg('PRA FORA! 😱','#ffaa00'); som(150,0.4,'sawtooth'); }
-    else if(pegou){ bola.segura=true; mostraMsg('O GOLEIRO PEGOU! 🧤','#ff5555'); som(120,0.4,'sawtooth'); }
+    if(!dentro){ som(150,0.4,'sawtooth'); }
+    else if(pegou){ bola.segura=true; som(120,0.4,'sawtooth'); }
     else {
         placarVoce += duplo?2:1;
         moedasPartida += b.moedas;
-        mostraMsg(duplo?'GOL DUPLO!! ⭐⭐':'GOOOOL! ⚽🎉','#00ff88');
         som(500,0.1); setTimeout(()=>som(700,0.15),100); setTimeout(()=>som(900,0.25),220);
         soltaConfete();
     }
@@ -1101,7 +1096,6 @@ function vezDoRobo(){
     minhaVez=false; resetaBola();
     poderDefesa = consomePoder('defesa');
     golEncolhido = poderDefesa==='golpequeno';
-    mostraMsg(morteSubita ? '💀 MORTE SÚBITA! Defenda às CEGAS! 🧤' : 'Defenda! CLIQUE onde o goleiro deve pular! 🧤','#00ccff',1200);
     const cantos=[GOL.x+80, W/2, GOL.x+GOL.w-80];
     if(Math.random()<dif.chuteCanto){
         bola.destX = Math.random()<0.5 ? GOL.x+45 : GOL.x+GOL.w-45;
@@ -1128,10 +1122,10 @@ function resolveChuteRobo(){
     defendendo=false; alvoRobo=null; defesaPulo=null;
     const alcance = poderDefesa==='luvas' ? 2.2 : 1;
     let pegou = Math.abs(bola.destX-goleiro.x)<80*alcance && Math.abs(bola.destY-(goleiro.y+goleiro.ladoY))<100*alcance;
-    if(bola.foraDoGol){ mostraMsg('PRA FORA! O gol encolheu! 🥅😂','#00ff88'); som(600,0.2); }
-    else if(pegou){ bola.segura=true; mostraMsg('DEFENDEU! 🧤🔥','#00ff88'); som(600,0.2); soltaConfete(); }
-    else if(poderDefesa==='escudo'){ mostraMsg('🛡️ ESCUDO! Não valeu!','#00ccff'); som(500,0.2); }
-    else { placarCpu++; mostraMsg(`Gol do adversário... ${advAtual()[1]} ${advAtual()[0]}`,'#ff5555'); som(140,0.4,'sawtooth'); }
+    if(bola.foraDoGol){ som(600,0.2); }
+    else if(pegou){ bola.segura=true; som(600,0.2); soltaConfete(); }
+    else if(poderDefesa==='escudo'){ som(500,0.2); }
+    else { placarCpu++; som(140,0.4,'sawtooth'); }
     poderDefesa=''; golEncolhido=false;
     atualizaHud();
     setTimeout(proximaRodada, 1500);
@@ -1148,7 +1142,6 @@ function proximaRodada(){
             morteSubita=true; mostraMsg('💀 MORTE SÚBITA!','#ffaa00'); atualizaHud();
         }
     } else if(placarVoce!==placarCpu) return fim(placarVoce>placarCpu);
-    setTimeout(()=>mostraMsg('Sua vez! Mire e chute! ⚽','#fff',1000), 300);
 }
 
 function fim(venceu){
