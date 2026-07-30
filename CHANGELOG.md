@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v2.8.0 (2026-07-30)
+- JOGO NOVO: Cogumelo Voador — flappy com asas animadas, moedas nos vaos, 12 skins voadoras
+- Conta: amizades v2 completa (pedidos/bloqueio/desbloqueio/remover), perfil com foto, operadores em vermelho
+
+
 ## v2.7.0 (2026-07-30) — AMIZADES v2 + PERFIL
 - Pedidos de amizade (enviar/aceitar/recusar), bloqueio (bloqueado nao pode pedir de volta)
 - Perfil: nome, jogando desde, FOTO (12 emojis sugeridos ou foto da galeria, 96x96)
