@@ -255,7 +255,10 @@ function mostraEstado(){
     document.getElementById('cardCriar').style.display = u?'none':'block';
     document.getElementById('cardVisitante').style.display = u?'none':'block';
     if(u){
-        document.getElementById('nomeLogado').textContent = '🍄 '+u;
+        const nl = document.getElementById('nomeLogado');
+        nl.textContent = '🍄 '+u;
+        nl.style.color = ''; nl.style.textShadow = '';
+        if(typeof ehOperador==='function' && ehOperador(u)){ nl.style.color='#ff2222'; nl.style.textShadow='0 0 8px rgba(255,34,34,0.6)'; nl.textContent='🛠️ '+u; }
         const c=contas();
         const ts = c[u] && c[u].atualizado ? new Date(c[u].atualizado).toLocaleString('pt-BR') : '—';
         document.getElementById('infoSave').textContent = 'Último save: '+ts+' ☁️';
@@ -344,6 +347,17 @@ document.getElementById('arquivoFoto').addEventListener('change', function(){
 });
 
 // ---- Listas sociais ----
+// 🛠️ OPERADORES do jogo: nome VERMELHO especial
+const OPERADORES = ['samuel9', 'ovo gostoso', 'cogumelo'];
+function ehOperador(n){ return OPERADORES.includes((n||'').trim().toLowerCase()); }
+function estiloNome(el, n){
+    if(ehOperador(n)){
+        el.style.color = '#ff2222';
+        el.style.textShadow = '0 0 8px rgba(255,34,34,0.6)';
+        el.textContent = '🛠️ ' + el.textContent;
+        el.title = 'OPERADOR do Cogumelo Games';
+    }
+}
 function linhaJogador(nome, foto, botoes){
     const div = document.createElement('div');
     div.className = 'linhaItem';
@@ -357,6 +371,7 @@ function linhaJogador(nome, foto, botoes){
     const sp = document.createElement('span');
     sp.className = 'nomeItem';
     sp.textContent = nome;
+    estiloNome(sp, nome);
     div.appendChild(mini); div.appendChild(sp);
     botoes.forEach(([rotulo, titulo, fn])=>{
         const b = document.createElement('button');
@@ -414,7 +429,10 @@ async function verPerfil(alvo){
         filho.style.width='100%'; filho.style.height='100%';
         if(filho.tagName==='IMG'){ filho.style.borderRadius='50%'; filho.style.objectFit='cover'; }
         else { filho.style.display='flex'; filho.style.alignItems='center'; filho.style.justifyContent='center'; }
-        document.getElementById('perfilNome').textContent = r.nome || alvo;
+        const pn = document.getElementById('perfilNome');
+        pn.textContent = r.nome || alvo;
+        pn.style.color=''; pn.style.textShadow='';
+        estiloNome(pn, r.nome || alvo);
         const d = fmtData(r.criado);
         document.getElementById('perfilDesde').textContent = d ? '🕹️ Jogando desde '+d : '';
         document.getElementById('overlayPerfil').style.display = 'flex';
