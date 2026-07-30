@@ -1,5 +1,12 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.2.0 (2026-07-30)
+- Zumbi Survival: modo JOGAR COM AMIGOS (coop online) — salas, convites so entre amigos,
+  zumbis autoritativos no host, suprimentos em dobro, moedas valendo com +25% de bonus de equipe
+- Convites agora sabem de qual jogo sao (penaltis/zumbi) e o cartao leva pro jogo certo
+- Penaltis: sala indisponivel, convites com contagem de 30s, cartao some em 10s se ignorado
+
+
 ## v3.1.0 (2026-07-30)
 - Penaltis: modo AMISTOSO online 1x1 — criar sala, convidar SO amigos, defensor nao ve a mira,
   sem premio e sem poderes, bola classica pros dois

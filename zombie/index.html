@@ -215,6 +215,42 @@
             background: rgba(255,60,60,0.3); border-color: rgba(255,80,80,0.7);
         }
         #tb-attack:active { background: rgba(255,60,60,0.6); border-color: #ff5555; }
+        /* ===== COOP: jogar com amigos ===== */
+        #btn-coop {
+            margin-top: 14px !important;
+            background: linear-gradient(135deg, #2288ff, #0055cc) !important;
+            font-size: 20px !important; padding: 13px 40px !important;
+        }
+        #coop-screen {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.93); z-index: 350;
+            display: none; flex-direction: column; align-items: center; justify-content: flex-start;
+            padding: 30px 15px; overflow-y: auto;
+            font-family: Arial, sans-serif; color: #fff;
+        }
+        #coop-screen h2 {
+            font-family: 'Impact', sans-serif; color: #66bbff; font-size: 34px;
+            letter-spacing: 2px; margin-bottom: 14px;
+        }
+        #coop-screen .coop-abas { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+        #coop-screen button {
+            padding: 10px 22px; border: none; border-radius: 20px; cursor: pointer;
+            font-size: 15px; font-weight: bold; color: #fff;
+            background: linear-gradient(135deg, #445566, #223344);
+        }
+        #coop-screen button.azul { background: linear-gradient(135deg, #2288ff, #0055cc); }
+        #coop-screen button.verde { background: linear-gradient(135deg, #33aa55, #227744); }
+        #coop-screen button.sair { background: linear-gradient(135deg, #aa3333, #772222); margin-top: 22px; }
+        #coop-area { margin-top: 20px; text-align: center; max-width: 620px; font-size: 16px; line-height: 1.7; }
+        #coop-area .cod { color: #00ff88; font-family: 'Impact', sans-serif; font-size: 40px; letter-spacing: 6px; }
+        #coop-area .amigo { margin: 7px 0; font-size: 17px; }
+        #coop-hud {
+            position: fixed; top: 110px; right: 30px; z-index: 100; display: none;
+            font-family: Arial, sans-serif; font-size: 13px; color: #fff; text-align: right;
+            text-shadow: 1px 1px 3px #000; pointer-events: none;
+        }
+        body.coop-on #coop-hud { display: block; }
+        #coop-hud .titulo { color: #66bbff; font-weight: bold; margin-bottom: 3px; }
+        #coop-hud .morto { color: #ff5555; }
     </style>
 
 <style id="device-screen-style">
@@ -298,11 +334,24 @@
             <div id="shop-list"></div>
         </div>
         <button onclick="startGame()">▶ JOGAR</button>
+        <button id="btn-coop" onclick="coopAbrir()">🤝 JOGAR COM AMIGOS</button>
         <div id="controls-info">
             WASD — mover &nbsp;|&nbsp; Mouse — olhar<br>
             Clique — atacar &nbsp;|&nbsp; Shift — correr
         </div>
     </div>
+
+    <div id="coop-screen">
+        <h2>🤝 JOGAR COM AMIGOS</h2>
+        <div class="coop-abas">
+            <button class="azul" onclick="coopCriarSala()">➕ CRIAR SALA</button>
+            <button class="verde" onclick="coopVerConvites()">📬 MEUS CONVITES</button>
+        </div>
+        <div id="coop-area"></div>
+        <button class="sair" onclick="coopFechar()">⬅ VOLTAR</button>
+    </div>
+
+    <div id="coop-hud"></div>
 
     <div id="hud">
         <div>
@@ -364,6 +413,18 @@
         { name: '💀 Machado das Almas', damage: 120, range: 5, speed: 0.4, price: 800 }
     ];
     let currentWeapon = 0;
+
+    // ===== 🤝 COOP: estado do modo jogar com amigos =====
+    let mp = {
+        ativo: false,      // conectado numa sala
+        emJogo: false,     // partida coop rolando
+        souHost: false,    // host = quem criou a sala (manda os zumbis)
+        ws: null, sala: '', meuNome: '',
+        peers: {},         // nome -> { mesh, alvoX, alvoZ, ang, hp, kills, onda, ts }
+        netZ: {},          // id  -> zumbi do host (só no convidado)
+        pollConvites: null, ping: null, vigia: null, checaSala: null,
+        lastMsg: 0, lastEstado: 0, lastZumbis: 0, lastHost: 0
+    };
 
     // ===== Mapas =====
     const MAPS = {
@@ -823,7 +884,8 @@
     }
 
     function spawnCollectibles() {
-        spawnKits(8);
+        // no coop começa com o dobro de kit médico e comida
+        spawnKits(mp.emJogo ? 16 : 8);
 
         // Score gems (blue diamonds)
         for (let i = 0; i < 12; i++) {
@@ -841,7 +903,7 @@
             collectibles.push(gem);
         }
 
-        spawnFood(6);
+        spawnFood(mp.emJogo ? 12 : 6);
     }
 
     // Kit médicos (cruz vermelha) — usado no começo e a cada onda!
@@ -1226,7 +1288,8 @@
         scene.add(camera);
     }
 
-    function spawnZombie() {
+    // Constrói o corpo do zumbi (usado pelos zumbis locais E pelos do amigo no coop)
+    function buildZombieMesh(mutante) {
         const zombie = new THREE.Group();
         const skinColor = [0x55aa55, 0x4a9944, 0x66aa44, 0x5b9b55][Math.floor(Math.random()*4)];
         const skinMat = new THREE.MeshBasicMaterial({ color: skinColor });
@@ -1319,24 +1382,12 @@
         footR.position.set(0.15, 0.05, 0.05);
         zombie.add(footR);
 
-        // Spawn position
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 20 + Math.random() * 20;
-        zombie.position.set(
-            player.x + Math.cos(angle) * dist,
-            0,
-            player.z + Math.sin(angle) * dist
-        );
-
         // ZUMBI MUTANTE GIGANTE — aparece depois da onda 30!
-        const mutante = wave > 30 && Math.random() < 0.22;
         if (mutante) {
             zombie.scale.set(2.4, 2.4, 2.4);
             skinMat.color.setHex(0x9922cc);          // pele roxa de mutante
             eyeMat.color.setHex(0xffee00);           // olhos amarelos brilhantes
         }
-        const speed = (0.02 + Math.random() * 0.015 + wave * 0.003) * (mutante ? 0.75 : 1);
-        const maxHealth = (50 + wave * 12) * (mutante ? 6 : 1);
 
         // Barra de vida em cima do zumbi
         const hpBarGroup = new THREE.Group();
@@ -1354,22 +1405,62 @@
         hpBarGroup.position.y = 2.6;
         zombie.add(hpBarGroup);
 
-        const data = { mesh: zombie, health: maxHealth, maxHealth, speed, lastAttack: 0, hpBarGroup, hpFg, mutante };
+        return { zombie, hpBarGroup, hpFg };
+    }
+
+    let zombieSeq = 1;
+    function spawnZombie() {
+        const mutante = wave > 30 && Math.random() < 0.22;
+        const b = buildZombieMesh(mutante);
+        const zombie = b.zombie;
+
+        // Spawn position
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 20 + Math.random() * 20;
+        zombie.position.set(
+            player.x + Math.cos(angle) * dist,
+            0,
+            player.z + Math.sin(angle) * dist
+        );
+
+        const speed = (0.02 + Math.random() * 0.015 + wave * 0.003) * (mutante ? 0.75 : 1);
+        const maxHealth = (50 + wave * 12) * (mutante ? 6 : 1);
+
+        const data = { id: zombieSeq++, mesh: zombie, health: maxHealth, maxHealth, speed, lastAttack: 0,
+                       hpBarGroup: b.hpBarGroup, hpFg: b.hpFg, mutante };
 
         scene.add(zombie);
         zombies.push(data);
         zombiesAlive++;
     }
 
+    // Atualiza a barrinha de vida de um zumbi (local ou do amigo)
+    function setZumbiHpBar(hpFg, ratio) {
+        const r = Math.max(0, Math.min(1, ratio));
+        hpFg.scale.x = r;
+        hpFg.position.x = -0.43 * (1 - r);
+        hpFg.material.color.setHex(r > 0.5 ? 0x00dd44 : (r > 0.25 ? 0xffcc00 : 0xff3333));
+    }
+
     function spawnWave() {
+        // no coop os suprimentos vêm em DOBRO — tem que dar pra todo mundo!
+        const mult = (mp.emJogo ? 2 : 1);
+        // convidado não cria zumbi nenhum: quem manda os zumbis é o host da sala
+        if (mp.emJogo && !mp.souHost) {
+            spawnKits((3 + Math.floor(wave/3)) * mult);
+            spawnFood((4 + Math.floor(wave/2)) * mult);
+            announceWave();
+            updateWeapon();
+            return;
+        }
         const count = wave * 5;
         for (let i = 0; i < count; i++) {
             setTimeout(() => spawnZombie(), i * 500);
         }
         document.getElementById('wave-sub').textContent = `Zumbis restantes: ${count}`;
         // reforços! mais kit médico e comida a cada onda
-        spawnKits(3 + Math.floor(wave/3));
-        spawnFood(4 + Math.floor(wave/2));
+        spawnKits((3 + Math.floor(wave/3)) * mult);
+        spawnFood((4 + Math.floor(wave/2)) * mult);
         announceWave();
         updateWeapon();
     }
@@ -1428,17 +1519,51 @@
                         killZombie(z);
                     } else {
                         // Atualiza barra de vida do zumbi
-                        const ratio = Math.max(0, z.health / z.maxHealth);
-                        z.hpFg.scale.x = ratio;
-                        z.hpFg.position.x = -0.43 * (1 - ratio);
-                        z.hpFg.material.color.setHex(ratio > 0.5 ? 0x00dd44 : (ratio > 0.25 ? 0xffcc00 : 0xff3333));
+                        setZumbiHpBar(z.hpFg, z.health / z.maxHealth);
                     }
                 }
             }
         });
+
+        // COOP (convidado): bate nos zumbis que vieram do host e avisa o dano
+        if (mp.emJogo && !mp.souHost) {
+            Object.keys(mp.netZ).forEach(id => {
+                const nz = mp.netZ[id];
+                if (nz.hp <= 0) return;
+                const dx = nz.mesh.position.x - player.x;
+                const dz = nz.mesh.position.z - player.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                if (dist >= weapon.range) return;
+                const toZombie = new THREE.Vector3(dx, 0, dz).normalize();
+                if (forward.dot(toZombie) <= 0.5) return;
+                nz.hp -= weapon.damage;                       // palpite local (o host manda a real)
+                setZumbiHpBar(nz.hpFg, nz.hp / (nz.maxHp || 1));
+                nz.mesh.position.x += toZombie.x * 0.5;
+                nz.mesh.position.z += toZombie.z * 0.5;
+                nz.alvoX = nz.mesh.position.x; nz.alvoZ = nz.mesh.position.z;
+                mpEnvia({ t: 'dano', id: parseInt(id, 10), dano: weapon.damage, de: mp.meuNome });
+            });
+        }
     }
 
-    function killZombie(z) {
+    function killZombie(z, autor) {
+        const meu = !autor || autor === mp.meuNome;
+        if (mp.emJogo && mp.souHost) mpEnvia({ t: 'morte', id: z.id, de: autor || mp.meuNome });
+        if (!meu) {
+            // o amigo matou: só sai do mapa, os kills são dele
+            z.hpBarGroup.visible = false;
+            z.mesh.rotation.x = Math.PI / 2;
+            z.mesh.position.y = 0.3;
+            setTimeout(() => { scene.remove(z.mesh); }, 2000);
+            zombiesAlive--;
+            document.getElementById('wave-sub').textContent = `Zumbis restantes: ${zombiesAlive}`;
+            if (zombiesAlive <= 0) ondaVencida();
+            return;
+        }
+        killZombieMeu(z);
+    }
+
+    function killZombieMeu(z) {
         // Death animation - fall over
         z.hpBarGroup.visible = false;
         z.mesh.rotation.x = Math.PI / 2;
@@ -1454,24 +1579,30 @@
         document.getElementById('score-count').textContent = score;
         document.getElementById('wave-sub').textContent = `Zumbis restantes: ${zombiesAlive}`;
 
-        if (zombiesAlive <= 0) {
-            // Recompensa da onda — cresce a cada onda
-            const reward = 10 + wave * 10;
-            coins += reward;
-            coinsEarnedRun += reward;
-            saveProgress();
-            updateCoinsHud();
-            const el = document.getElementById('wave-announce');
-            el.textContent = `ONDA ${wave} VENCIDA! +${reward} 🪙`;
-            el.classList.add('show');
-            setTimeout(() => el.classList.remove('show'), 2500);
+        if (zombiesAlive <= 0) ondaVencida();
+    }
 
-            setTimeout(() => {
-                wave++;
-                spawnFood(3 + wave);
-                spawnWave();
-            }, 3000);
-        }
+    // Onda limpa: paga as moedas (com bônus de equipe no coop) e chama a próxima
+    function ondaVencida() {
+        // Recompensa da onda — cresce a cada onda. No coop, +25% de bônus de equipe!
+        let reward = 10 + wave * 10;
+        if (mp.emJogo) reward = Math.round(reward * 1.25);
+        coins += reward;
+        coinsEarnedRun += reward;
+        saveProgress();
+        updateCoinsHud();
+        const el = document.getElementById('wave-announce');
+        el.textContent = `ONDA ${wave} VENCIDA! +${reward} 🪙` + (mp.emJogo ? ' (bônus de equipe!)' : '');
+        el.classList.add('show');
+        setTimeout(() => el.classList.remove('show'), 2500);
+
+        if (mp.emJogo && mp.souHost) mpEnvia({ t: 'ondavenceu', wave });
+
+        setTimeout(() => {
+            wave++;
+            spawnFood((3 + wave) * (mp.emJogo ? 2 : 1));
+            spawnWave();
+        }, 3000);
     }
 
     function takeDamage(amount) {
@@ -1505,6 +1636,13 @@
 
     function gameOver() {
         gameRunning = false;
+        // no coop: avisa a equipe que eu morri e sai da sala
+        if (mp.emJogo) {
+            mpEnvia({ t: 'saiu', nome: mp.meuNome, host: mp.souHost ? 1 : 0 });
+            mp.emJogo = false;
+            mpFechaWs();
+            document.body.classList.remove('coop-on');
+        }
         saveProgress();
         document.exitPointerLock();
         document.getElementById('game-over').style.display = 'flex';
@@ -1724,6 +1862,7 @@
         updateZombies(dt);
         updateCollectibles();
         updateHunger(dt);
+        coopTick(dt);
 
         // Weapon bob
         if (keys['KeyW'] || keys['KeyS'] || keys['KeyA'] || keys['KeyD']) {
@@ -1756,6 +1895,10 @@
         coinsEarnedRun = 0;
         starveTick = 0;
         attackCooldown = 0;
+        zombieSeq = 1;
+        // a cena é recriada do zero: os bonecos do coop têm que ser refeitos também
+        mp.netZ = {};
+        Object.keys(mp.peers).forEach(n => { mp.peers[n].mesh = null; });
         player.health = 100;
         player.hunger = 100;
         player.x = 0;
@@ -1773,6 +1916,9 @@
 
     function startGame() {
         document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('coop-screen').style.display = 'none';
+        // jogo solo: garante que nenhuma sala fica aberta
+        if (!mp.emJogo) { mpFechaWs(); document.body.classList.remove('coop-on'); }
         // Se já jogou antes, joga fora o mundo velho e cria de novo (pode ter trocado de mapa)
         if (renderer) {
             renderer.domElement.remove();
@@ -1796,6 +1942,451 @@
         renderLobby();
         document.getElementById('start-screen').style.display = 'flex';
     }
+
+    // ==================== 🤝 JOGAR COM AMIGOS (COOP ONLINE) ====================
+    const MP_API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+    const MP_WS  = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=zumbi';
+
+    function mpLogado(){ return !!localStorage.getItem('cg_usuario'); }
+
+    async function mpApi(payload){
+        const r = await fetch(MP_API, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(Object.assign({
+                nome: localStorage.getItem('cg_usuario'),
+                senhaHash: localStorage.getItem('cg_senhaHash')
+            }, payload))
+        });
+        return r.json();
+    }
+
+    function coopCodigoSala(){
+        const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = '';
+        for (let i = 0; i < 6; i++) s += L[Math.floor(Math.random() * L.length)];
+        return s;
+    }
+
+    function coopAbrir(){
+        const tela = document.getElementById('coop-screen');
+        tela.style.display = 'flex';
+        const area = document.getElementById('coop-area');
+        if (!mpLogado()) {
+            area.innerHTML = '<p style="font-size:20px;">🔒 Faça login na sua conta pra jogar com amigos!</p>';
+            return;
+        }
+        area.innerHTML = '<p>Crie uma sala e convide seus amigos, ou veja quem já te chamou! 🧟</p>';
+    }
+
+    function coopFechar(){
+        document.getElementById('coop-screen').style.display = 'none';
+        if (mp.pollConvites) { clearInterval(mp.pollConvites); mp.pollConvites = null; }
+        if (!mp.emJogo) mpFechaWs();
+    }
+
+    async function coopCriarSala(){
+        if (!mpLogado()) return;
+        if (mp.pollConvites) { clearInterval(mp.pollConvites); mp.pollConvites = null; }
+        const sala = coopCodigoSala();
+        mpConecta(sala, true);
+        const area = document.getElementById('coop-area');
+        area.innerHTML = '<p>Código da sala:</p><p class="cod">' + sala + '</p>' +
+            '<p style="color:#00ccff;">⏳ esperando os amigos entrarem... (a partida começa quando o primeiro chegar)</p>' +
+            '<div id="coop-amigos"><p>carregando seus amigos...</p></div>';
+        try {
+            const d = await mpApi({ acao: 'entrar' });
+            const amigos = d.amigos || [];
+            const el = document.getElementById('coop-amigos'); if (!el) return;
+            el.innerHTML = amigos.length
+                ? '<h3 style="margin-top:14px;color:#aaa;">Convide um amigo:</h3>' + amigos.map(a =>
+                    '<p class="amigo">🧟 <b>' + a + '</b> <button class="verde" onclick="coopConvidar(\'' + a + '\',\'' + sala + '\',this)">📨 Convidar</button></p>').join('')
+                : '<p>Você ainda não tem amigos adicionados 😅</p>';
+        } catch (e) {
+            const el = document.getElementById('coop-amigos');
+            if (el) el.innerHTML = '<p>Não deu pra carregar os amigos 😢</p>';
+        }
+    }
+
+    async function coopConvidar(alvo, sala, btn){
+        btn.disabled = true; btn.textContent = '...';
+        try {
+            const d = await mpApi({ acao: 'convidar', alvo, sala });
+            btn.textContent = d.ok ? '✅ Convidado!' : '😢 não deu';
+            if (!d.ok) btn.disabled = false;
+        } catch (e) { btn.textContent = '😢 erro'; btn.disabled = false; }
+    }
+
+    function coopVerConvites(){
+        if (!mpLogado()) return;
+        mpFechaWs();
+        const area = document.getElementById('coop-area');
+        area.innerHTML = '<h3 style="color:#aaa;">📬 Meus convites</h3><div id="coop-convites"><p>procurando convites...</p></div>';
+        const busca = async () => {
+            try {
+                const d = await mpApi({ acao: 'convites' });
+                const el = document.getElementById('coop-convites'); if (!el) return;
+                const agora = Date.now();
+                const cs = (d.convites || []).filter(c => agora - (c.ts || 0) < 30000);
+                el.innerHTML = cs.length ? cs.map(c => {
+                    const resta = Math.max(0, Math.ceil((30000 - (agora - (c.ts || 0))) / 1000));
+                    return '<p class="amigo">🧟 <b>' + c.de + '</b> te chamou! <span style="color:#ffaa00;">(' + resta + 's)</span> ' +
+                           '<button class="azul" onclick="coopEntrarSala(\'' + c.sala + '\')">ENTRAR</button></p>';
+                }).join('') : '<p>Nenhum convite ainda... peça pro seu amigo criar uma sala! 😄</p>';
+            } catch (e) {}
+        };
+        busca();
+        if (mp.pollConvites) clearInterval(mp.pollConvites);
+        mp.pollConvites = setInterval(busca, 1000);
+    }
+
+    function coopEntrarSala(sala){
+        if (mp.pollConvites) { clearInterval(mp.pollConvites); mp.pollConvites = null; }
+        const area = document.getElementById('coop-area');
+        if (area) area.innerHTML = '<p style="font-size:20px;color:#00ccff;">⏳ Entrando na sala ' + sala + '...</p>';
+        mpConecta(sala, false);
+    }
+
+    function mpEnvia(o){
+        if (mp.ws && mp.ws.readyState === 1)
+            mp.ws.send(JSON.stringify(Object.assign({ acao: 'mp', sala: mp.sala }, o)));
+    }
+
+    function mpFechaWs(){
+        if (mp.ping) { clearInterval(mp.ping); mp.ping = null; }
+        if (mp.vigia) { clearInterval(mp.vigia); mp.vigia = null; }
+        if (mp.checaSala) { clearTimeout(mp.checaSala); mp.checaSala = null; }
+        if (mp.ws) { try { mp.ws.onclose = null; mp.ws.close(); } catch (e) {} mp.ws = null; }
+        mp.ativo = false;
+    }
+
+    function mpConecta(sala, souHost){
+        mpFechaWs();
+        mp.sala = sala; mp.souHost = souHost;
+        mp.meuNome = localStorage.getItem('cg_usuario') || 'VOCÊ';
+        mp.peers = {}; mp.netZ = {}; mp.emJogo = false;
+        mp.ws = new WebSocket(MP_WS);
+        mp.ws.onopen = () => {
+            mp.ativo = true;
+            mp.lastMsg = Date.now();
+            mpEnvia({ t: 'oi', nome: mp.meuNome });
+            // convidado: se ninguém responder em 8s, a sala não existe mais
+            if (!souHost) {
+                mp.checaSala = setTimeout(() => {
+                    if (!mp.emJogo) mpDesliga('🚪 SALA INDISPONÍVEL!');
+                }, 8000);
+            }
+            mp.ping = setInterval(() => mpEnvia({ t: 'ping', nome: mp.meuNome }), 4000);
+            mp.vigia = setInterval(() => {
+                if (!mp.emJogo) return;
+                const agora = Date.now();
+                // convidado sem notícias do host = host caiu/saiu
+                if (!mp.souHost && agora - mp.lastHost > 8000) {
+                    mpDesliga('🚪 SALA INDISPONÍVEL! O dono da sala saiu.');
+                    return;
+                }
+                // some com quem ficou mais de 6s sem dar sinal
+                Object.keys(mp.peers).forEach(n => {
+                    if (agora - mp.peers[n].ts > 6000) coopRemovePeer(n);
+                });
+                coopAtualizaHud();
+            }, 1000);
+        };
+        mp.ws.onmessage = mpRecebe;
+        mp.ws.onclose = () => { if (mp.emJogo) mpDesliga('🚪 SALA INDISPONÍVEL!'); };
+        mp.ws.onerror = () => {};
+    }
+
+    function mpRecebe(ev){
+        let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+        if (!m || m.sala !== mp.sala) return;   // sala diferente: ignora TUDO
+        mp.lastMsg = Date.now();
+        if (m.t === 'ping') { coopTocaPeer(m.nome); return; }
+
+        if (m.t === 'oi') {
+            if (mp.checaSala) { clearTimeout(mp.checaSala); mp.checaSala = null; }
+            coopTocaPeer(m.nome);
+            if (mp.souHost) {
+                mpEnvia({ t: 'oi', nome: mp.meuNome });
+                mpEnvia({ t: 'comeca', mapa: selectedMap, onda: wave });
+                if (!mp.emJogo) coopComeca(selectedMap, 1);
+            }
+            return;
+        }
+
+        if (m.t === 'comeca') {
+            if (mp.souHost) return;
+            mp.lastHost = Date.now();
+            if (!mp.emJogo) coopComeca(m.mapa, m.onda || 1);
+            return;
+        }
+
+        if (!mp.emJogo) return;
+
+        if (m.t === 'estado')   { coopRecebeEstado(m); return; }
+        if (m.t === 'zumbis')   { if (!mp.souHost) { mp.lastHost = Date.now(); coopRecebeZumbis(m.lista || []); } return; }
+        if (m.t === 'ondavenceu'){ if (!mp.souHost) { mp.lastHost = Date.now(); if (m.wave === wave) ondaVencida(); } return; }
+        if (m.t === 'dano')     { if (mp.souHost) coopAplicaDano(m); return; }
+        if (m.t === 'morte')    { if (!mp.souHost) coopMorteZumbi(m); return; }
+        if (m.t === 'saiu')     {
+            coopRemovePeer(m.nome);
+            if (!mp.souHost && m.host) mpDesliga('🚪 SALA INDISPONÍVEL! O dono da sala saiu.');
+            return;
+        }
+    }
+
+    function coopComeca(mapa, onda){
+        if (mapa && MAPS[mapa]) selectedMap = mapa;
+        mp.emJogo = true;
+        mp.lastHost = Date.now();
+        document.body.classList.add('coop-on');
+        document.getElementById('coop-screen').style.display = 'none';
+        if (mp.pollConvites) { clearInterval(mp.pollConvites); mp.pollConvites = null; }
+        startGame();
+        if (onda > 1) { wave = onda; announceWave(); }
+        const el = document.getElementById('wave-announce');
+        el.textContent = '🤝 COOP ATIVADO!';
+        el.classList.add('show');
+        setTimeout(() => el.classList.remove('show'), 1800);
+        coopAtualizaHud();
+    }
+
+    function mpDesliga(aviso){
+        const estava = mp.emJogo;
+        mp.emJogo = false;
+        if (mp.pollConvites) { clearInterval(mp.pollConvites); mp.pollConvites = null; }
+        mpFechaWs();
+        Object.keys(mp.peers).forEach(coopRemovePeer);
+        Object.keys(mp.netZ).forEach(id => { scene.remove(mp.netZ[id].mesh); delete mp.netZ[id]; });
+        document.body.classList.remove('coop-on');
+        if (estava) {
+            gameRunning = false;
+            try { document.exitPointerLock(); } catch (e) {}
+            saveProgress();
+            document.getElementById('game-over').style.display = 'none';
+            renderLobby();
+            document.getElementById('start-screen').style.display = 'flex';
+        }
+        if (aviso) {
+            const el = document.getElementById('wave-announce');
+            el.style.fontSize = '46px';
+            el.textContent = aviso;
+            el.classList.add('show');
+            setTimeout(() => { el.classList.remove('show'); el.style.fontSize = ''; }, 2600);
+        }
+    }
+
+    // ===== Outros sobreviventes (peers) =====
+    function coopTocaPeer(nome){
+        if (!nome || nome === mp.meuNome) return;
+        if (!mp.peers[nome]) mp.peers[nome] = { mesh: null, alvoX: 0, alvoZ: 0, ang: 0, hp: 100, kills: 0, onda: 1, ts: Date.now() };
+        else mp.peers[nome].ts = Date.now();
+    }
+
+    function coopRemovePeer(nome){
+        const p = mp.peers[nome];
+        if (!p) return;
+        if (p.mesh) scene.remove(p.mesh);
+        delete mp.peers[nome];
+        coopAtualizaHud();
+    }
+
+    // Plaquinha com o nome flutuando em cima do amigo
+    function coopPlacaNome(nome){
+        const cv = document.createElement('canvas');
+        cv.width = 256; cv.height = 64;
+        const ctx = cv.getContext('2d');
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(0, 0, 256, 64);
+        ctx.font = 'bold 34px Arial';
+        ctx.fillStyle = '#66ddff';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(String(nome).slice(0, 12), 128, 32);
+        const tex = new THREE.CanvasTexture(cv);
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
+        sp.scale.set(2, 0.5, 1);
+        sp.position.y = 3.0;
+        return sp;
+    }
+
+    // Sobrevivente amigo: mesmo bonecão do zumbi, mas com cor de gente + nome + barra de vida
+    function coopCriaPeerMesh(nome){
+        const b = buildZombieMesh(false);
+        const g = b.zombie;
+        g.traverse(o => {
+            if (o.material && o.material.color) {
+                const c = o.material.color.getHex();
+                o.material = o.material.clone();
+                if (c === 0xff0000) o.material.color.setHex(0x2255ff);        // olhos azuis (é gente!)
+                else if (c === 0x665544) o.material.color.setHex(0x2277cc);   // camiseta azul
+                else if (c === 0x444466) o.material.color.setHex(0x223344);   // calça
+                else o.material.color.offsetHSL(0.08, -0.35, 0.18);           // pele humana
+            }
+        });
+        b.hpBarGroup.position.y = 2.6;
+        g.add(coopPlacaNome(nome));
+        scene.add(g);
+        return { mesh: g, hpFg: b.hpFg, hpBar: b.hpBarGroup };
+    }
+
+    function coopRecebeEstado(m){
+        if (!m.nome || m.nome === mp.meuNome) return;
+        coopTocaPeer(m.nome);
+        const p = mp.peers[m.nome];
+        if (!p.mesh) {
+            const c = coopCriaPeerMesh(m.nome);
+            p.mesh = c.mesh; p.hpFg = c.hpFg; p.hpBar = c.hpBar;
+            p.mesh.position.set(m.x, 0, m.z);
+        }
+        p.alvoX = m.x; p.alvoZ = m.z; p.ang = m.ang || 0;
+        p.hp = m.hp; p.kills = m.kills || 0; p.onda = m.onda || 1;
+        p.ts = Date.now();
+        setZumbiHpBar(p.hpFg, (m.hp || 0) / 100);
+        p.hpBar.visible = m.hp > 0;
+    }
+
+    function coopEnviaEstado(){
+        mpEnvia({ t: 'estado', nome: mp.meuNome, x: +player.x.toFixed(2), z: +player.z.toFixed(2),
+                  ang: +playerAngle.toFixed(2), hp: Math.max(0, Math.round(player.health)),
+                  kills: kills, onda: wave });
+    }
+
+    // ===== Zumbis do host (convidado só renderiza) =====
+    function coopEnviaZumbis(){
+        const lista = [];
+        for (const z of zombies) {
+            if (z.health <= 0) continue;
+            lista.push({ id: z.id, x: +z.mesh.position.x.toFixed(2), z: +z.mesh.position.z.toFixed(2),
+                         hp: Math.round(z.health), mh: Math.round(z.maxHealth), m: z.mutante ? 1 : 0 });
+        }
+        mpEnvia({ t: 'zumbis', lista });
+    }
+
+    function coopRecebeZumbis(lista){
+        const vistos = {};
+        lista.forEach(it => {
+            vistos[it.id] = true;
+            let nz = mp.netZ[it.id];
+            if (!nz) {
+                const b = buildZombieMesh(!!it.m);
+                b.zombie.position.set(it.x, 0, it.z);
+                scene.add(b.zombie);
+                nz = mp.netZ[it.id] = { mesh: b.zombie, hpFg: b.hpFg, hpBar: b.hpBarGroup,
+                                        hp: it.hp, maxHp: it.mh || 1, alvoX: it.x, alvoZ: it.z, lastAttack: 0 };
+            }
+            nz.alvoX = it.x; nz.alvoZ = it.z;
+            nz.maxHp = it.mh || nz.maxHp;
+            nz.hp = it.hp;
+            setZumbiHpBar(nz.hpFg, nz.hp / nz.maxHp);
+        });
+        // sumiu da lista do host = morreu/foi embora
+        Object.keys(mp.netZ).forEach(id => {
+            if (!vistos[id]) { scene.remove(mp.netZ[id].mesh); delete mp.netZ[id]; }
+        });
+        document.getElementById('wave-sub').textContent = 'Zumbis restantes: ' + lista.length;
+    }
+
+    function coopAplicaDano(m){
+        const z = zombies.find(zz => zz.id === m.id);
+        if (!z || z.health <= 0) return;
+        z.health -= (m.dano || 0);
+        if (z.health <= 0) killZombie(z, m.de);
+        else setZumbiHpBar(z.hpFg, z.health / z.maxHealth);
+    }
+
+    function coopMorteZumbi(m){
+        const nz = mp.netZ[m.id];
+        if (nz) {
+            nz.hpBar.visible = false;
+            nz.mesh.rotation.x = Math.PI / 2;
+            nz.mesh.position.y = 0.3;
+            const mesh = nz.mesh;
+            setTimeout(() => scene.remove(mesh), 1500);
+            delete mp.netZ[m.id];
+        }
+        if (m.de === mp.meuNome) {
+            kills++;
+            score += 10 * wave;
+            document.getElementById('kills-count').textContent = kills;
+            document.getElementById('score-count').textContent = score;
+        }
+    }
+
+    // Convidado: move e faz os zumbis do host atacarem por perto (bem suavinho)
+    function coopAtualizaNetZumbis(dt){
+        const now = clock.getElapsedTime();
+        Object.keys(mp.netZ).forEach(id => {
+            const nz = mp.netZ[id];
+            const p = nz.mesh.position;
+            p.x += (nz.alvoX - p.x) * Math.min(1, dt * 8);
+            p.z += (nz.alvoZ - p.z) * Math.min(1, dt * 8);
+            const dx = player.x - p.x, dz = player.z - p.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist > 0.01) nz.mesh.rotation.y = Math.atan2(dx, dz);
+            if (dist < 2.2 && now - nz.lastAttack > 1) {
+                nz.lastAttack = now;
+                takeDamage(8 + wave * 2);
+            }
+        });
+    }
+
+    function coopAtualizaPeers(dt){
+        Object.keys(mp.peers).forEach(n => {
+            const p = mp.peers[n];
+            if (!p.mesh) return;
+            p.mesh.position.x += (p.alvoX - p.mesh.position.x) * Math.min(1, dt * 8);
+            p.mesh.position.z += (p.alvoZ - p.mesh.position.z) * Math.min(1, dt * 8);
+            p.mesh.rotation.y = p.ang + Math.PI;
+        });
+    }
+
+    function coopAtualizaHud(){
+        const el = document.getElementById('coop-hud');
+        if (!el) return;
+        if (!mp.emJogo) { el.innerHTML = ''; return; }
+        let html = '<div class="titulo">🤝 EQUIPE</div>';
+        html += '<div>' + (player.health > 0 ? '🟢' : '💀') + ' ' + mp.meuNome + ' — ' + kills + ' kills</div>';
+        Object.keys(mp.peers).forEach(n => {
+            const p = mp.peers[n];
+            const vivo = (p.hp || 0) > 0;
+            html += '<div class="' + (vivo ? '' : 'morto') + '">' + (vivo ? '🟢' : '💀') + ' ' + n + ' — ' + (p.kills || 0) + ' kills</div>';
+        });
+        el.innerHTML = html;
+    }
+
+    let coopTEstado = 0, coopTZumbis = 0, coopTHud = 0;
+    function coopTick(dt){
+        if (!mp.emJogo) return;
+        coopAtualizaPeers(dt);
+        if (!mp.souHost) coopAtualizaNetZumbis(dt);
+
+        coopTEstado += dt;
+        if (coopTEstado >= 0.14) { coopTEstado = 0; coopEnviaEstado(); }   // ~7x por segundo
+
+        if (mp.souHost) {
+            coopTZumbis += dt;
+            if (coopTZumbis >= 0.2) { coopTZumbis = 0; coopEnviaZumbis(); } // ~5x por segundo
+        }
+
+        coopTHud += dt;
+        if (coopTHud >= 0.5) { coopTHud = 0; coopAtualizaHud(); }
+    }
+
+    // Veio de um convite aceito na central de avisos? Entra direto na sala!
+    (function(){
+        const q = new URLSearchParams(location.search);
+        const salaConvite = q.get('sala');
+        if (salaConvite && localStorage.getItem('cg_usuario')) {
+            setTimeout(() => {
+                try {
+                    coopAbrir();
+                    coopEntrarSala(salaConvite.replace(/[^A-Za-z0-9]/g, '').slice(0, 10));
+                } catch (e) {}
+            }, 300);
+        }
+    })();
+
+    window.addEventListener('beforeunload', () => {
+        if (mp.emJogo) mpEnvia({ t: 'saiu', nome: mp.meuNome, host: mp.souHost ? 1 : 0 });
+    });
 
     window.addEventListener('resize', () => {
         if (!camera || !renderer) return;
