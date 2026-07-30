@@ -420,6 +420,9 @@
         emJogo: false,     // partida coop rolando
         souHost: false,    // host = quem criou a sala (manda os zumbis)
         ws: null, sala: '', meuNome: '',
+        naSala: false,     // está na sala de espera (antes da partida começar)
+        jogadores: [],     // nomes na sala (host é o dono da lista)
+        hostNome: '',      // nome de quem criou a sala
         peers: {},         // nome -> { mesh, alvoX, alvoZ, ang, hp, kills, onda, ts }
         netZ: {},          // id  -> zumbi do host (só no convidado)
         pollConvites: null, ping: null, vigia: null, checaSala: null,
@@ -1918,7 +1921,7 @@
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('coop-screen').style.display = 'none';
         // jogo solo: garante que nenhuma sala fica aberta
-        if (!mp.emJogo) { mpFechaWs(); document.body.classList.remove('coop-on'); }
+        if (!mp.emJogo) { mp.naSala = false; mp.jogadores = []; mpFechaWs(); document.body.classList.remove('coop-on'); }
         // Se já jogou antes, joga fora o mundo velho e cria de novo (pode ter trocado de mapa)
         if (renderer) {
             renderer.domElement.remove();
@@ -1980,7 +1983,12 @@
     function coopFechar(){
         document.getElementById('coop-screen').style.display = 'none';
         if (mp.pollConvites) { clearInterval(mp.pollConvites); mp.pollConvites = null; }
-        if (!mp.emJogo) mpFechaWs();
+        if (!mp.emJogo) {
+            if (mp.naSala) mpEnvia({ t: 'saiu', nome: mp.meuNome, host: mp.souHost ? 1 : 0 });
+            mp.naSala = false;
+            mp.jogadores = [];
+            mpFechaWs();
+        }
     }
 
     async function coopCriarSala(){
@@ -1988,10 +1996,14 @@
         if (mp.pollConvites) { clearInterval(mp.pollConvites); mp.pollConvites = null; }
         const sala = coopCodigoSala();
         mpConecta(sala, true);
+        mp.hostNome = mp.meuNome;
+        mp.jogadores = [mp.meuNome];
         const area = document.getElementById('coop-area');
         area.innerHTML = '<p>Código da sala:</p><p class="cod">' + sala + '</p>' +
-            '<p style="color:#00ccff;">⏳ esperando os amigos entrarem... (a partida começa quando o primeiro chegar)</p>' +
+            '<div id="coop-lista"></div>' +
+            '<p><button class="azul" id="coop-btn-comecar" onclick="coopComecarPartida()">▶️ COMEÇAR PARTIDA</button></p>' +
             '<div id="coop-amigos"><p>carregando seus amigos...</p></div>';
+        coopRenderLista();
         try {
             const d = await mpApi({ acao: 'entrar' });
             const amigos = d.amigos || [];
@@ -2007,6 +2019,11 @@
     }
 
     async function coopConvidar(alvo, sala, btn){
+        if (mp.jogadores.length >= MP_MAX) {
+            btn.textContent = '🚪 sala cheia!';
+            coopAviso('A sala já está cheia! (máximo ' + MP_MAX + ' jogadores)');
+            return;
+        }
         btn.disabled = true; btn.textContent = '...';
         try {
             const d = await mpApi({ acao: 'convidar', alvo, sala });
@@ -2041,8 +2058,62 @@
     function coopEntrarSala(sala){
         if (mp.pollConvites) { clearInterval(mp.pollConvites); mp.pollConvites = null; }
         const area = document.getElementById('coop-area');
-        if (area) area.innerHTML = '<p style="font-size:20px;color:#00ccff;">⏳ Entrando na sala ' + sala + '...</p>';
+        if (area) area.innerHTML = '<p>Sala <b>' + coopEsc(sala) + '</b></p>' +
+            '<div id="coop-lista"><p style="color:#00ccff;">⏳ Entrando na sala...</p></div>';
         mpConecta(sala, false);
+    }
+
+    // ===== 🏠 Sala de espera =====
+    const MP_MAX = 4;   // máximo de jogadores por sala
+
+    function coopEsc(s){
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+            ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+    }
+
+    function coopAviso(txt){
+        const el = document.getElementById('coop-aviso-sala');
+        if (el) { el.textContent = txt; return; }
+        const area = document.getElementById('coop-area');
+        if (area) {
+            const d = document.createElement('p');
+            d.id = 'coop-aviso-sala';
+            d.style.color = '#ffaa00';
+            d.textContent = txt;
+            area.appendChild(d);
+        }
+    }
+
+    // Desenha a lista de quem já está na sala (host 👑 + convidados ✅)
+    function coopRenderLista(){
+        const el = document.getElementById('coop-lista');
+        if (!el) return;
+        const js = mp.jogadores || [];
+        let h = '<p style="color:#66bbff;font-weight:bold;font-size:19px;margin-top:10px;">👥 ' +
+                js.length + '/' + MP_MAX + '</p>';
+        h += js.map(n =>
+            '<p class="amigo">' + (n === mp.hostNome ? '👑' : '✅') + ' <b>' + coopEsc(n) + '</b>' +
+            (n === mp.meuNome ? ' <span style="color:#888;">(você)</span>' : '') + '</p>').join('');
+        if (!mp.souHost) {
+            h += '<p style="color:#00ccff;margin-top:8px;">⏳ Esperando ' +
+                 coopEsc(mp.hostNome || 'o dono da sala') + ' começar...</p>';
+        }
+        el.innerHTML = h;
+        const btn = document.getElementById('coop-btn-comecar');
+        if (btn) btn.style.display = mp.souHost ? '' : 'none';
+    }
+
+    // Host manda todo mundo começar ao mesmo tempo
+    function coopComecarPartida(){
+        if (!mp.souHost || mp.emJogo) return;
+        mpEnvia({ t: 'comeca', mapa: selectedMap, onda: 1 });
+        coopComeca(selectedMap, 1);
+    }
+
+    // Host: reemite a lista pra todo mundo da sala
+    function coopEmiteSalaInfo(){
+        if (!mp.souHost) return;
+        mpEnvia({ t: 'salaInfo', jogadores: mp.jogadores, host: mp.hostNome, cheia: false });
     }
 
     function mpEnvia(o){
@@ -2063,6 +2134,9 @@
         mp.sala = sala; mp.souHost = souHost;
         mp.meuNome = localStorage.getItem('cg_usuario') || 'VOCÊ';
         mp.peers = {}; mp.netZ = {}; mp.emJogo = false;
+        mp.naSala = true;
+        mp.hostNome = souHost ? mp.meuNome : '';
+        mp.jogadores = souHost ? [mp.meuNome] : [];
         mp.ws = new WebSocket(MP_WS);
         mp.ws.onopen = () => {
             mp.ativo = true;
@@ -2074,10 +2148,23 @@
                     if (!mp.emJogo) mpDesliga('🚪 SALA INDISPONÍVEL!');
                 }, 8000);
             }
-            mp.ping = setInterval(() => mpEnvia({ t: 'ping', nome: mp.meuNome }), 4000);
+            mp.ping = setInterval(() => {
+                mpEnvia({ t: 'ping', nome: mp.meuNome });
+                // convidado ainda sem resposta do host: tenta de novo o "oi"
+                if (!mp.souHost && !mp.emJogo && !mp.jogadores.length) mpEnvia({ t: 'oi', nome: mp.meuNome });
+            }, 4000);
             mp.vigia = setInterval(() => {
-                if (!mp.emJogo) return;
                 const agora = Date.now();
+                // sala de espera: host tira quem sumiu (sem sinal há mais de 9s)
+                if (!mp.emJogo) {
+                    if (mp.souHost && mp.naSala) {
+                        const antes = mp.jogadores.length;
+                        mp.jogadores = mp.jogadores.filter(n =>
+                            n === mp.meuNome || (mp.peers[n] && agora - mp.peers[n].ts < 9000));
+                        if (mp.jogadores.length !== antes) { coopRenderLista(); coopEmiteSalaInfo(); }
+                    }
+                    return;
+                }
                 // convidado sem notícias do host = host caiu/saiu
                 if (!mp.souHost && agora - mp.lastHost > 8000) {
                     mpDesliga('🚪 SALA INDISPONÍVEL! O dono da sala saiu.');
@@ -2091,7 +2178,7 @@
             }, 1000);
         };
         mp.ws.onmessage = mpRecebe;
-        mp.ws.onclose = () => { if (mp.emJogo) mpDesliga('🚪 SALA INDISPONÍVEL!'); };
+        mp.ws.onclose = () => { if (mp.emJogo || mp.naSala) mpDesliga('🚪 SALA INDISPONÍVEL!'); };
         mp.ws.onerror = () => {};
     }
 
@@ -2102,13 +2189,37 @@
         if (m.t === 'ping') { coopTocaPeer(m.nome); return; }
 
         if (m.t === 'oi') {
-            if (mp.checaSala) { clearTimeout(mp.checaSala); mp.checaSala = null; }
+            if (!m.nome || m.nome === mp.meuNome) return;
             coopTocaPeer(m.nome);
             if (mp.souHost) {
-                mpEnvia({ t: 'oi', nome: mp.meuNome });
-                mpEnvia({ t: 'comeca', mapa: selectedMap, onda: wave });
-                if (!mp.emJogo) coopComeca(selectedMap, 1);
+                // partida já rolando: não aceita mais ninguém (o novato cai no timeout)
+                if (mp.emJogo && mp.jogadores.indexOf(m.nome) === -1) return;
+                if (mp.jogadores.indexOf(m.nome) === -1) {
+                    // sala lotada: recusa o novato
+                    if (mp.jogadores.length >= MP_MAX) {
+                        mpEnvia({ t: 'salaInfo', cheia: true, para: m.nome, host: mp.hostNome });
+                        coopRemovePeer(m.nome);
+                        return;
+                    }
+                    mp.jogadores.push(m.nome);
+                }
+                coopRenderLista();
+                coopEmiteSalaInfo();
             }
+            return;
+        }
+
+        if (m.t === 'salaInfo') {
+            if (mp.souHost) return;   // ignora eco da própria sala
+            if (m.cheia) {
+                if (!m.para || m.para === mp.meuNome) mpDesliga('🚪 SALA CHEIA!');
+                return;
+            }
+            if (mp.checaSala) { clearTimeout(mp.checaSala); mp.checaSala = null; }
+            mp.hostNome = m.host || mp.hostNome;
+            mp.jogadores = Array.isArray(m.jogadores) ? m.jogadores : mp.jogadores;
+            mp.lastHost = Date.now();
+            coopRenderLista();
             return;
         }
 
@@ -2119,6 +2230,18 @@
             return;
         }
 
+        if (m.t === 'saiu') {
+            coopRemovePeer(m.nome);
+            if (mp.souHost) {
+                const antes = mp.jogadores.length;
+                mp.jogadores = mp.jogadores.filter(n => n !== m.nome);
+                if (mp.jogadores.length !== antes) { coopRenderLista(); coopEmiteSalaInfo(); }
+            } else if (m.host) {
+                mpDesliga('🚪 SALA INDISPONÍVEL! O dono da sala saiu.');
+            }
+            return;
+        }
+
         if (!mp.emJogo) return;
 
         if (m.t === 'estado')   { coopRecebeEstado(m); return; }
@@ -2126,16 +2249,12 @@
         if (m.t === 'ondavenceu'){ if (!mp.souHost) { mp.lastHost = Date.now(); if (m.wave === wave) ondaVencida(); } return; }
         if (m.t === 'dano')     { if (mp.souHost) coopAplicaDano(m); return; }
         if (m.t === 'morte')    { if (!mp.souHost) coopMorteZumbi(m); return; }
-        if (m.t === 'saiu')     {
-            coopRemovePeer(m.nome);
-            if (!mp.souHost && m.host) mpDesliga('🚪 SALA INDISPONÍVEL! O dono da sala saiu.');
-            return;
-        }
     }
 
     function coopComeca(mapa, onda){
         if (mapa && MAPS[mapa]) selectedMap = mapa;
         mp.emJogo = true;
+        mp.naSala = false;
         mp.lastHost = Date.now();
         document.body.classList.add('coop-on');
         document.getElementById('coop-screen').style.display = 'none';
@@ -2151,7 +2270,10 @@
 
     function mpDesliga(aviso){
         const estava = mp.emJogo;
+        const estavaNaSala = mp.naSala;
         mp.emJogo = false;
+        mp.naSala = false;
+        mp.jogadores = [];
         if (mp.pollConvites) { clearInterval(mp.pollConvites); mp.pollConvites = null; }
         mpFechaWs();
         Object.keys(mp.peers).forEach(coopRemovePeer);
@@ -2162,6 +2284,11 @@
             try { document.exitPointerLock(); } catch (e) {}
             saveProgress();
             document.getElementById('game-over').style.display = 'none';
+            renderLobby();
+            document.getElementById('start-screen').style.display = 'flex';
+        } else if (estavaNaSala) {
+            // ainda na sala de espera (ex.: sala cheia): volta pro lobby
+            document.getElementById('coop-screen').style.display = 'none';
             renderLobby();
             document.getElementById('start-screen').style.display = 'flex';
         }
@@ -2385,7 +2512,7 @@
     })();
 
     window.addEventListener('beforeunload', () => {
-        if (mp.emJogo) mpEnvia({ t: 'saiu', nome: mp.meuNome, host: mp.souHost ? 1 : 0 });
+        if (mp.emJogo || mp.naSala) mpEnvia({ t: 'saiu', nome: mp.meuNome, host: mp.souHost ? 1 : 0 });
     });
 
     window.addEventListener('resize', () => {
