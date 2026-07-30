@@ -74,15 +74,24 @@
       if(!r || !r.convites) return;
       r.convites.forEach(function(cv){
         var id = cv.de + '|' + cv.sala;
-        if(convitesMostrados[id]) return;
+        var aceitos = JSON.parse(localStorage.getItem('cg_convites_aceitos')||'[]');
+        var recusados = JSON.parse(localStorage.getItem('cg_convites_recusados')||'[]');
+        if(convitesMostrados[id] || aceitos.indexOf(id)>=0 || recusados.indexOf(id)>=0) return;
         convitesMostrados[id] = true;
         var c = card('<div class="cg-tit">⚽ ' + String(cv.de).replace(/[<>]/g,'') + ' te chamou!</div>' +
                      '<div>Partida amistosa de Pênaltis</div>' +
                      '<button class="sim">✅ Aceitar</button><button class="no">❌ Recusar</button>');
         c.querySelector('.sim').onclick = function(){
+          c.remove();                                   // some na hora
+          var ac = JSON.parse(localStorage.getItem('cg_convites_aceitos')||'[]');
+          ac.push(id); localStorage.setItem('cg_convites_aceitos', JSON.stringify(ac.slice(-30)));
           location.href = '/penaltis/?sala=' + encodeURIComponent(cv.sala) + '&de=' + encodeURIComponent(cv.de);
         };
-        c.querySelector('.no').onclick = function(){ c.remove(); };
+        c.querySelector('.no').onclick = function(){
+          c.remove();
+          var re = JSON.parse(localStorage.getItem('cg_convites_recusados')||'[]');
+          re.push(id); localStorage.setItem('cg_convites_recusados', JSON.stringify(re.slice(-30)));
+        };
         beep();
       });
     }).catch(function(){});
