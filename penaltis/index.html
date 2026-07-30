@@ -775,13 +775,23 @@ function mpConecta(sala, souHost){
     mp.ws.onopen = ()=>{
         mp.lastMsg = Date.now();
         mpEnvia({t:'oi', nome:mp.meuNome, bola:bolaEq});
+        // convidado: se ninguém responder, a sala sumiu!
+        if(!souHost){
+            if(mp.checaSala) clearTimeout(mp.checaSala);
+            mp.checaSala = setTimeout(()=>{
+                if(!mp.comecou && !mp.opNome) mpDesliga('🚪 SALA INDISPONÍVEL!');
+            }, 8000);
+        }
         mp.ping = setInterval(()=>mpEnvia({t:'ping'}), 4000);
         mp.vigia = setInterval(()=>{
-            if(mp.ativo && Date.now()-mp.lastMsg > 10000) mpDesliga('😢 Seu amigo desconectou...');
+            if(mp.ativo && Date.now()-mp.lastMsg > 10000) mpDesliga('🚪 SALA INDISPONÍVEL! Seu amigo saiu.');
         }, 2000);
     };
     mp.ws.onmessage = mpRecebe;
-    mp.ws.onclose = ()=>{ if(mp.ativo) mpDesliga('😢 A conexão caiu...'); };
+    mp.ws.onclose = ()=>{
+        if(mp.checaSala){ clearTimeout(mp.checaSala); mp.checaSala=null; }
+        if(mp.ativo) mpDesliga('🚪 SALA INDISPONÍVEL!');
+    };
 }
 function mpEnvia(o){
     if(mp.ws && mp.ws.readyState===1)
@@ -793,6 +803,7 @@ function mpRecebe(ev){
     mp.lastMsg = Date.now();
     if(m.t==='ping') return;
     if(m.t==='oi'){
+        if(mp.checaSala){ clearTimeout(mp.checaSala); mp.checaSala=null; }
         if(mp.comecou) return;
         mp.opNome = m.nome || 'AMIGO';
         mp.opBolaDef = BOLAS.find(b=>b.id===m.bola) || BOLAS[0];
