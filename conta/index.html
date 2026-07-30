@@ -404,8 +404,27 @@ function enche(id, nomes, botoesDe, vazio){
     nomes.forEach(n=>{
         const nome = (typeof n === 'string') ? n : n.nome;
         const foto = (typeof n === 'string') ? '' : (n.foto||'');
-        el.appendChild(linhaJogador(nome, foto, botoesDe(nome)));
+        el.appendChild(linhaJogador(nome, foto || fotosCache[nome] || '', botoesDe(nome)));
     });
+}
+// cache de fotos dos outros jogadores (pra listas mostrarem avatar sem clicar no perfil)
+var fotosCache = JSON.parse(localStorage.getItem('cg_fotosCache')||'{}');
+var buscandoFotos = false;
+function buscaFotosFaltando(){
+    if(buscandoFotos || !usuario()) return;
+    var todos = [].concat(social.amigos||[], social.pedidosEnviados||[], social.pedidosRecebidos||[], social.bloqueados||[]);
+    var faltam = todos.filter(function(n){ return n && !(n in fotosCache); });
+    if(!faltam.length) return;
+    buscandoFotos = true;
+    chamaAPI({acao:'fotos', nome:usuario(), senhaHash:localStorage.getItem('cg_senhaHash'), nomes:faltam.slice(0,100)})
+        .then(function(r){
+            buscandoFotos = false;
+            if(!r || !r.fotos) return;
+            Object.keys(r.fotos).forEach(function(k){ fotosCache[k] = r.fotos[k]; });
+            try { localStorage.setItem('cg_fotosCache', JSON.stringify(fotosCache)); } catch(e){}
+            mostraAmigos();
+        })
+        .catch(function(){ buscandoFotos = false; });
 }
 function mostraAmigos(){
     document.getElementById('cardAmigos').style.display = usuario() ? 'block' : 'none';
@@ -420,6 +439,7 @@ function mostraAmigos(){
         ['💔','Remover amizade', ()=>acaoSocial('desfazer', n, '💔 Você e '+n+' não são mais amigos.')],
         ['🚫','Bloquear', ()=>acaoSocial('bloquear', n, '🚫 '+n+' foi bloqueado.')]
     ], 'Nenhum ainda — pesquisa aí em cima! 🔍');
+    buscaFotosFaltando();
     enche('listaBloqueados', social.bloqueados, n=>[
         ['🔓','Desbloquear', ()=>acaoSocial('desbloquear', n, '🔓 '+n+' foi desbloqueado.')]
     ], 'Ninguém bloqueado. 😇');
