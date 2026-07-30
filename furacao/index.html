@@ -522,6 +522,10 @@ function dirTeclado(){
   var m=Math.hypot(dx,dy); return {dx:dx/m, dy:dy/m};
 }
 addEventListener('mousemove', function(e){ mouseX=e.clientX; mouseY=e.clientY; });
+var mouseSegurando=false;
+addEventListener('mousedown', function(e){ if(e.target.tagName!=='BUTTON') mouseSegurando=true; });
+addEventListener('mouseup', function(){ mouseSegurando=false; });
+addEventListener('blur', function(){ mouseSegurando=false; tec={}; });
 var joy=document.getElementById('joy'), knob=document.getElementById('joyKnob'), joyId=null;
 function joyPos(t){
   var r=joy.getBoundingClientRect(), cx=r.left+65, cy=r.top+65;
@@ -599,7 +603,7 @@ function atualiza(dt){
       else {
         var dt2=dirTeclado();
         if(dt2){ dx=dt2.dx; dy=dt2.dy; }        // teclado (WASD/setas) manda
-        else {
+        else if(mouseSegurando){                 // mouse só arrasta SEGURANDO o botão!
           var alvo=alvoMouse();
           if(alvo){
             var mx=alvo.x-f.x, my=alvo.z-f.y, md=Math.hypot(mx,my);
