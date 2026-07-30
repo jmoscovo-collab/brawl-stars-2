@@ -141,6 +141,7 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
         <button class="aba" id="modoTimes" onclick="trocaModo('times')">🛡️ Times</button>
         <button class="aba" id="modoCopa" onclick="abreTorneio('copa')">🏆 Copa 2026</button>
         <button class="aba" id="modoChampions" onclick="abreTorneio('champions')">⭐ Champions</button>
+        <button class="aba" id="modoAmistoso" onclick="abreAmistoso()">🌍 AMISTOSO</button>
     </div>
     <div class="sub" id="subTexto">Vença todos pra ganhar moedas 🪙 — compre bolas e poderes na loja!</div>
     <div id="niveis"></div>
@@ -151,6 +152,7 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
         <div class="loja-grid" id="lojaPoderes"></div>
     </div>
     <div id="torneioBox" style="display:none;max-width:760px;width:100%;padding-bottom:30px;"></div>
+    <div id="amistosoBox" style="display:none;max-width:760px;width:100%;padding-bottom:30px;"></div>
 </div>
 
 <div id="fimBox">
@@ -165,6 +167,7 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
 </div>
 
 <script src="/stats.js"></script>
+<script src="/avisos.js"></script>
 <script>
 if (window.initStats) initStats('penaltis');
 
@@ -358,6 +361,8 @@ function salva(){
 // modo TESTE secreto: ?testar=<id da bola> empresta a bola só nessa visita (não salva!)
 const bolaTeste = new URLSearchParams(location.search).get('testar');
 function bolaAtual(){
+    // AMISTOSO online: todo mundo joga com a bola CLÁSSICA (justo pros dois!)
+    if(typeof mp !== 'undefined' && mp && mp.ativo) return BOLAS[0];
     if(bolaTeste){ const bt = BOLAS.find(b=>b.id===bolaTeste); if(bt) return bt; }
     return BOLAS.find(b=>b.id===bolaEq) || BOLAS[0];
 }
@@ -401,9 +406,13 @@ let torneios = {
 let partidaTorneio = null; // partida em andamento: {tipo, fase, advNome, advFlag}
 function salvaTorneio(tipo){ localStorage.setItem('penaltis_'+tipo, JSON.stringify(torneios[tipo])); }
 // adversário atual (torneio) ou time do nível (modos normais)
-function advAtual(){ return partidaTorneio ? [partidaTorneio.advNome, partidaTorneio.advFlag] : timesDoModo()[nivelAtual-1]; }
+function advAtual(){
+    if(typeof mp!=='undefined' && mp.ativo) return [mp.opNome||'AMIGO','🤝'];
+    return partidaTorneio ? [partidaTorneio.advNome, partidaTorneio.advFlag] : timesDoModo()[nivelAtual-1];
+}
 
 function abreTorneio(tipo){
+    fechaTelaAmistoso();
     document.getElementById('niveis').style.display='none';
     document.getElementById('loja').style.display='none';
     document.getElementById('abaNiveis').classList.remove('ativa');
@@ -561,6 +570,7 @@ function fimTorneio(venceu){
 
 // ============ MENU / LOJA ============
 function mostraAba(qual){
+    fechaTelaAmistoso();
     document.getElementById('torneioBox').style.display='none';
     document.getElementById('modoCopa').classList.remove('ativa');
     document.getElementById('modoChampions').classList.remove('ativa');
@@ -636,12 +646,292 @@ function compraPoder(id){
 }
 function equipaPoder(id){ poderEq=id; salva(); montaLoja(); som(700,0.1); }
 function abreMenu(){
+    if(typeof mp!=='undefined' && (mp.ativo || mp.ws)) mpDesliga();
     document.getElementById('fimBox').style.display='none';
     const t = partidaTorneio ? partidaTorneio.tipo : null;
     partidaTorneio = null;
     montaMenu(); mostraAba('niveis');
     document.getElementById('overlay').style.display='flex';
     if(t) abreTorneio(t); // volta pra tela do torneio de onde veio
+}
+
+// ============ 🌍 AMISTOSO MULTIJOGADOR (1x1 com amigo de verdade!) ============
+const MP_API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+const MP_WS  = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=penaltis';
+let mp = { ativo:false, comecou:false, ws:null, sala:'', souHost:false, meuNome:'', opNome:'', opBolaDef:null,
+    vezDeChutar:false, chutesEu:0, chutesEle:0, resultadoPendente:null, aguardandoResultado:false,
+    lastMsg:0, pollConvites:null, ping:null, vigia:null };
+
+function mpLogado(){ return !!localStorage.getItem('cg_usuario'); }
+async function mpApi(payload){
+    const r = await fetch(MP_API, { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(Object.assign({
+            nome: localStorage.getItem('cg_usuario'),
+            senhaHash: localStorage.getItem('cg_senhaHash')
+        }, payload)) });
+    return r.json();
+}
+function fechaTelaAmistoso(){
+    const box = document.getElementById('amistosoBox');
+    if(box) box.style.display='none';
+    document.getElementById('modoAmistoso').classList.remove('ativa');
+    if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+    if(!mp.ativo && !mp.comecou) mpFechaWs(); // sala aberta que ninguém entrou: fecha
+}
+function abreAmistoso(){
+    document.getElementById('niveis').style.display='none';
+    document.getElementById('loja').style.display='none';
+    document.getElementById('torneioBox').style.display='none';
+    ['abaNiveis','abaLoja','modoSelecoes','modoTimes','modoCopa','modoChampions'].forEach(id=>document.getElementById(id).classList.remove('ativa'));
+    document.getElementById('modoAmistoso').classList.add('ativa');
+    document.getElementById('saldo').textContent = `🪙 ${moedas} moedas`;
+    document.getElementById('subTexto').textContent = 'AMISTOSO: pênaltis 1x1 contra um amigo de verdade — pela honra! 🤝 (sem moedas, sem poderes)';
+    const box = document.getElementById('amistosoBox');
+    box.style.display='block';
+    if(!mpLogado()){
+        box.innerHTML = `<p style="font-size:20px;margin:24px 0;">🔒 Faça login na sua conta pra jogar com amigos!</p>`;
+        return;
+    }
+    box.innerHTML = `<div class="abas" style="justify-content:center;">
+            <button class="aba" onclick="mpCriarSala()">➕ CRIAR SALA</button>
+            <button class="aba" onclick="mpVerConvites()">📬 MEUS CONVITES</button>
+        </div>
+        <div id="mpArea"></div>`;
+}
+function mpCodigoSala(){
+    const L='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s='';
+    for(let i=0;i<6;i++) s+=L[Math.floor(Math.random()*L.length)];
+    return s;
+}
+async function mpCriarSala(){
+    if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+    const sala = mpCodigoSala();
+    mpConecta(sala, true);
+    const area = document.getElementById('mpArea');
+    area.innerHTML = `<h2 class="secao">Sala <span style="color:#00ff88">${sala}</span></h2>
+        <p style="color:#00ccff;font-size:18px;">⏳ esperando amigo entrar...</p>
+        <div id="mpAmigos"><p>carregando seus amigos...</p></div>`;
+    try{
+        const d = await mpApi({acao:'entrar'});
+        const amigos = d.amigos || [];
+        const el = document.getElementById('mpAmigos'); if(!el) return;
+        el.innerHTML = amigos.length
+            ? `<h2 class="secao" style="font-size:17px;">Convide um amigo:</h2>` + amigos.map(a=>
+                `<p style="margin:6px 0;font-size:17px;">⚽ <b>${a}</b>
+                 <button class="aba" style="font-size:14px;padding:6px 14px;" onclick="mpConvidar('${a}','${sala}',this)">📨 Convidar</button></p>`).join('')
+            : `<p>Você ainda não tem amigos adicionados 😅</p>`;
+    }catch(e){
+        const el = document.getElementById('mpAmigos');
+        if(el) el.innerHTML = '<p>Não deu pra carregar os amigos 😢</p>';
+    }
+}
+async function mpConvidar(alvo, sala, btn){
+    btn.disabled = true; btn.textContent = '...';
+    try{
+        const d = await mpApi({acao:'convidar', alvo, sala});
+        if(d.ok){ btn.textContent = '✅ Convidado!'; }
+        else {
+            btn.textContent = '😢 não deu';
+            mostraMsg(d.erro || d.message || 'Não deu pra convidar 😢', '#ffaa00', 2500);
+        }
+    }catch(e){ btn.textContent = '😢 erro'; btn.disabled = false; }
+}
+function mpVerConvites(){
+    mpFechaWs(); // se tinha sala criada, fecha
+    const area = document.getElementById('mpArea');
+    area.innerHTML = `<h2 class="secao">📬 Meus convites</h2><div id="mpConvites"><p>procurando convites...</p></div>`;
+    const busca = async ()=>{
+        try{
+            const d = await mpApi({acao:'convites'});
+            const el = document.getElementById('mpConvites'); if(!el) return;
+            const cs = d.convites || [];
+            el.innerHTML = cs.length ? cs.map(c=>
+                `<p style="margin:8px 0;font-size:18px;">⚽ <b>${c.de}</b> te convidou!
+                 <button class="aba ativa" style="font-size:15px;padding:6px 16px;" onclick="mpEntrarSala('${c.sala}')">ENTRAR</button></p>`).join('')
+                : '<p>Nenhum convite ainda... peça pro seu amigo criar uma sala! 😄</p>';
+        }catch(e){}
+    };
+    busca();
+    if(mp.pollConvites) clearInterval(mp.pollConvites);
+    mp.pollConvites = setInterval(busca, 5000);
+}
+function mpEntrarSala(sala){
+    if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+    const area = document.getElementById('mpArea');
+    if(area) area.innerHTML = `<p style="font-size:18px;color:#00ccff;">⏳ Entrando na sala ${sala}...</p>`;
+    mpConecta(sala, false);
+}
+function mpConecta(sala, souHost){
+    mpFechaWs();
+    mp.sala = sala; mp.souHost = souHost;
+    mp.meuNome = localStorage.getItem('cg_usuario') || 'VOCÊ';
+    mp.opNome = ''; mp.opBolaDef = null; mp.comecou = false; mp.ativo = false;
+    mp.ws = new WebSocket(MP_WS);
+    mp.ws.onopen = ()=>{
+        mp.lastMsg = Date.now();
+        mpEnvia({t:'oi', nome:mp.meuNome, bola:bolaEq});
+        mp.ping = setInterval(()=>mpEnvia({t:'ping'}), 4000);
+        mp.vigia = setInterval(()=>{
+            if(mp.ativo && Date.now()-mp.lastMsg > 10000) mpDesliga('😢 Seu amigo desconectou...');
+        }, 2000);
+    };
+    mp.ws.onmessage = mpRecebe;
+    mp.ws.onclose = ()=>{ if(mp.ativo) mpDesliga('😢 A conexão caiu...'); };
+}
+function mpEnvia(o){
+    if(mp.ws && mp.ws.readyState===1)
+        mp.ws.send(JSON.stringify(Object.assign({acao:'mp', sala:mp.sala}, o)));
+}
+function mpRecebe(ev){
+    let m; try{ m = JSON.parse(ev.data); }catch(e){ return; }
+    if(!m || m.sala !== mp.sala) return; // sala diferente: ignora TUDO
+    mp.lastMsg = Date.now();
+    if(m.t==='ping') return;
+    if(m.t==='oi'){
+        if(mp.comecou) return;
+        mp.opNome = m.nome || 'AMIGO';
+        mp.opBolaDef = BOLAS.find(b=>b.id===m.bola) || BOLAS[0];
+        if(mp.souHost){
+            mpEnvia({t:'oi', nome:mp.meuNome, bola:bolaEq});
+            const chuteiro = Math.random()<0.5 ? mp.meuNome : mp.opNome;
+            mpEnvia({t:'comeca', chuteiro});
+            mpComeca(chuteiro);
+        }
+        return;
+    }
+    if(m.t==='comeca'){ if(!mp.comecou && !mp.souHost) mpComeca(m.chuteiro); return; }
+    if(!mp.ativo) return;
+    if(m.t==='chute'){ mpRecebeChute(m); return; }
+    if(m.t==='defesa'){
+        // sou o chutador: o goleiro do amigo pula pro lugar que ele escolheu
+        goleiro.destX = m.x; goleiro.ladoY = m.ladoY; goleiro.pulando = true; goleiro.t = 0;
+        return;
+    }
+    if(m.t==='resultado'){
+        if(mp.aguardandoResultado) mpAplicaResultado(m);
+        else mp.resultadoPendente = m;
+        return;
+    }
+}
+function mpComeca(chuteiro){
+    mp.comecou = true; mp.ativo = true;
+    if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+    partidaTorneio = null;
+    mp.vezDeChutar = (chuteiro === mp.meuNome);
+    mp.chutesEu = 0; mp.chutesEle = 0; mp.resultadoPendente = null; mp.aguardandoResultado = false;
+    dif = dificuldade(50); // só pra velocidade da bola (igual pros dois)
+    placarVoce=0; placarCpu=0; chute=1; minhaVez=mp.vezDeChutar; morteSubita=false; jogando=true;
+    poderUsado=true; poderAtivo=''; poderChute=''; poderDefesa=''; moedasPartida=0; golEncolhido=false;
+    defendendo=false; defesaPulo=null; alvoRobo=null;
+    resetaBola();
+    document.getElementById('placarVoce').parentNode.firstChild.textContent = mp.meuNome.toUpperCase()+' ';
+    fechaTelaAmistoso();
+    atualizaHud();
+    document.getElementById('overlay').style.display='none';
+    document.getElementById('fimBox').style.display='none';
+    mostraMsg(`🤝 AMISTOSO: ${mp.meuNome} × ${mp.opNome}!`,'#fff',1800);
+    setTimeout(mpProximoTurno, 1900);
+}
+function mpProximoTurno(){
+    if(!mp.ativo) return;
+    resetaBola();
+    minhaVez = mp.vezDeChutar; defendendo=false; defesaPulo=null; alvoRobo=null;
+    chute = Math.min(mp.chutesEu, mp.chutesEle) + 1;
+    atualizaHud();
+    if(mp.vezDeChutar) mostraMsg('Sua vez! Mire e chute! ⚽','#fff',1200);
+    else mostraMsg(`Vez de ${mp.opNome} chutar... prepare a defesa! 🧤`,'#00ccff',1400);
+}
+function mpRecebeChute(m){
+    minhaVez = false; resetaBola();
+    bola.destX = m.destX; bola.destY = m.destY;
+    defendendo = true; defesaPulo = null; alvoRobo = null; // NADA de alvo vermelho: defesa às cegas!
+    mostraMsg('Defenda! CLIQUE onde o goleiro deve pular! 🧤','#00ccff',1400);
+    atualizaHud();
+    setTimeout(()=>{ if(mp.ativo && defendendo){ bola.voando=true; bola.t=0; som(200,0.15); } }, 1100);
+}
+// defensor: a bola chegou — EU resolvo o lance (tenho chute + defesa) e aviso o amigo
+function mpChegouChuteDele(){
+    if(defesaPulo){ goleiro.destX = defesaPulo.x; } else { goleiro.destX = goleiro.x; }
+    defendendo = false; defesaPulo = null;
+    const dX = bola.destX, dY = bola.destY;
+    const dentro = dX>GOL.x+10 && dX<GOL.x+GOL.w-10 && dY>GOL.y+5 && dY<GOL.y+GOL.h-5;
+    const pegou = dentro && Math.abs(dX-goleiro.x)<80 && Math.abs(dY-(goleiro.y+goleiro.ladoY))<100;
+    mpEnvia({t:'resultado', gol: dentro && !pegou, fora: !dentro});
+    if(!dentro){ mostraMsg('PRA FORA! 😱','#00ff88'); som(600,0.2); }
+    else if(pegou){ bola.segura=true; mostraMsg('DEFENDEU! 🧤🔥','#00ff88'); som(600,0.2); soltaConfete(); }
+    else { placarCpu++; mostraMsg(`Gol de ${mp.opNome}... ⚽`,'#ff5555'); som(140,0.4,'sawtooth'); }
+    mp.chutesEle++;
+    atualizaHud();
+    setTimeout(mpFimDaVez, 1500);
+}
+// chutador: minha bola chegou — espero (ou aplico) o resultado que o defensor calculou
+function mpChegouMeuChute(){
+    if(mp.resultadoPendente){ const r = mp.resultadoPendente; mp.resultadoPendente = null; mpAplicaResultado(r); }
+    else mp.aguardandoResultado = true;
+}
+function mpAplicaResultado(r){
+    mp.aguardandoResultado = false;
+    if(r.fora){ mostraMsg('PRA FORA! 😱','#ffaa00'); som(150,0.4,'sawtooth'); }
+    else if(!r.gol){ bola.segura=true; mostraMsg(`${mp.opNome} PEGOU! 🧤`,'#ff5555'); som(120,0.4,'sawtooth'); }
+    else {
+        placarVoce++;
+        mostraMsg('GOOOOL! ⚽🎉','#00ff88');
+        som(500,0.1); setTimeout(()=>som(700,0.15),100); setTimeout(()=>som(900,0.25),220);
+        soltaConfete();
+    }
+    mp.chutesEu++;
+    atualizaHud();
+    setTimeout(mpFimDaVez, 1500);
+}
+function mpFimDaVez(){
+    if(!mp.ativo) return;
+    mp.vezDeChutar = !mp.vezDeChutar;
+    if(mp.chutesEu === mp.chutesEle){ // rodada completa: os dois já chutaram
+        const c = mp.chutesEu;
+        if(!morteSubita){
+            const restam = 5 - c;
+            if(placarVoce > placarCpu + restam) return mpFim(true);
+            if(placarCpu > placarVoce + restam) return mpFim(false);
+            if(c >= 5){
+                if(placarVoce !== placarCpu) return mpFim(placarVoce > placarCpu);
+                morteSubita = true; mostraMsg('💀 MORTE SÚBITA!','#ffaa00'); atualizaHud();
+            }
+        } else if(placarVoce !== placarCpu) return mpFim(placarVoce > placarCpu);
+    }
+    setTimeout(mpProximoTurno, 400);
+}
+function mpFim(venceu){
+    jogando = false; mp.ativo = false;
+    document.getElementById('fimTitulo').textContent = venceu
+        ? `🏆 Você venceu o amistoso contra ${mp.opNome}!` : `😢 ${mp.opNome} venceu o amistoso...`;
+    document.getElementById('fimPlacar').textContent = `${mp.meuNome.toUpperCase()} ${placarVoce} × ${placarCpu} ${mp.opNome.toUpperCase()}`;
+    document.getElementById('fimMoedas').textContent = 'Amistoso é pela honra! 🤝 (sem moedas)';
+    if(venceu){ soltaConfete(); soltaConfete(); som(500,0.15); setTimeout(()=>som(700,0.15),150); setTimeout(()=>som(900,0.4),300); }
+    else som(140,0.5,'sawtooth');
+    document.getElementById('btnProximo').style.display='none';
+    document.getElementById('btnDeNovo').style.display='none';
+    document.getElementById('fimBox').style.display='flex';
+    mpFechaWs();
+    document.getElementById('placarVoce').parentNode.firstChild.textContent = 'VOCÊ ';
+}
+function mpFechaWs(){
+    if(mp.ping){ clearInterval(mp.ping); mp.ping=null; }
+    if(mp.vigia){ clearInterval(mp.vigia); mp.vigia=null; }
+    if(mp.ws){ try{ mp.ws.onclose=null; mp.ws.close(); }catch(e){} mp.ws=null; }
+}
+function mpDesliga(aviso){
+    const estavaJogando = mp.ativo;
+    mp.ativo = false; mp.comecou = false;
+    if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+    mpFechaWs();
+    document.getElementById('placarVoce').parentNode.firstChild.textContent = 'VOCÊ ';
+    if(estavaJogando){
+        jogando = false;
+        if(aviso) mostraMsg(aviso, '#ffaa00', 2500);
+        document.getElementById('fimBox').style.display='none';
+        montaMenu(); mostraAba('niveis');
+        document.getElementById('overlay').style.display='flex';
+    }
 }
 
 // ============ JOGO ============
@@ -684,10 +974,11 @@ function atualizaHud(){
         ? `${TORNEIO_TITULO[partidaTorneio.tipo]} — ${FASE_NOME[partidaTorneio.fase]}`
         : `Nível ${nivelAtual} ${flag}`;
     document.getElementById('nomeCpu').textContent = nome.toUpperCase();
-    // botão do poder
+    // botão do poder (no amistoso não tem poder — justo!)
     const btn = document.getElementById('btnPoder');
     const pd = poderAtualDef();
-    if(jogando && pd && !poderUsado){
+    if(mp.ativo){ btn.style.display='none'; }
+    else if(jogando && pd && !poderUsado){
         btn.style.display='inline-block';
         btn.textContent = `${pd.icone} ${pd.nome}`;
     } else if(jogando && pd && poderAtivo){
@@ -742,9 +1033,21 @@ function chutar(){
             ladoY: mira.y < GOL.y+GOL.h/2 ? -50 : 0
         };
         som(300,0.1);
+        if(mp.ativo) mpEnvia({t:'defesa', x:defesaPulo.x, ladoY:defesaPulo.ladoY});
         return;
     }
     if(!jogando || bola.voando || !minhaVez || defendendo) return;
+    if(mp.ativo){ // amistoso: chute justo, sem poder e sem bônus de bola
+        const mx = Math.max(GOL.x-40, Math.min(GOL.x+GOL.w+40, mira.x));
+        const my = Math.max(GOL.y-30, Math.min(GOL.y+GOL.h+40, mira.y));
+        bola.destX = mx + (Math.random()-0.5)*50;
+        bola.destY = my + (Math.random()-0.5)*40;
+        bola.voando=true; bola.t=0; bola.escala=1;
+        goleiro.visivel=true; goleiro.congelado=false;
+        som(200,0.15);
+        mpEnvia({t:'chute', destX:bola.destX, destY:bola.destY});
+        return;
+    }
     const b = bolaAtual();
     poderChute = consomePoder('ataque');
     const mx = Math.max(GOL.x-40, Math.min(GOL.x+GOL.w+40, mira.x));
@@ -1031,7 +1334,8 @@ function desenha(){
         bola.escala = base*(1-0.55*t);
         if(t>=1){
             bola.voando=false;
-            if(minhaVez) resolveChuteVoce(); else resolveChuteRobo();
+            if(mp.ativo){ if(minhaVez) mpChegouMeuChute(); else mpChegouChuteDele(); }
+            else if(minhaVez) resolveChuteVoce(); else resolveChuteRobo();
         }
     }
     // goleiro segurando a bola depois da defesa — na frente do corpo, na altura das mãos
@@ -1039,8 +1343,8 @@ function desenha(){
         const gySeg = goleiro.y + (goleiro.pulando?goleiro.ladoY*Math.min(goleiro.t,1):0);
         bola.x = goleiro.x; bola.y = gySeg + 8; bola.escala = 0.65;
     }
-    // desenha a bola com a skin equipada
-    const sk = bolaAtual();
+    // desenha a bola com a skin equipada (no amistoso, chute do amigo usa a skin DELE)
+    const sk = bolaAtual();  // amistoso = bola clássica pros dois
     ctx.save(); ctx.translate(bola.x,bola.y); ctx.scale(bola.escala,bola.escala);
     if(sk.id!=='classica'){
         ctx.shadowColor = sk.cor; ctx.shadowBlur = 20;

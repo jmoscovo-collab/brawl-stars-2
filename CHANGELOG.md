@@ -1,5 +1,13 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.1.0 (2026-07-30)
+- Penaltis: modo AMISTOSO online 1x1 — criar sala, convidar SO amigos, defensor nao ve a mira,
+  sem premio e sem poderes, bola classica pros dois
+- Central de avisos (/avisos.js em TODAS as paginas): recados dos operadores + convites de amigos
+  aparecem no cantinho em qualquer jogo, com aceitar/recusar
+- Backend: acoes convidar/convites (exige amizade) e publicar/avisos (so operadores)
+
+
 ## v3.0.0 (2026-07-30) — MULTIPLAYER!
 - Servidor de salas WebSocket na nuvem (API GW zxbmtlkq6b + Lambda cogumelo-ws + DDB, sa-east-1)
 - Furacao.io: botao JOGAR ONLINE — jogadores reais na mesma cidade, da pra engolir uns aos outros

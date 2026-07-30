@@ -5,7 +5,7 @@
 <title>RUA SUJA 3D — FPS retrô estilo Build Engine</title>
 <style>
   html,body{margin:0;padding:0;overflow:hidden;background:#000;height:100%;cursor:crosshair;}
-  #game3d{position:fixed;inset:0;width:100vw;height:100vh;image-rendering:pixelated;image-rendering:crisp-edges;}
+  #game3d{position:fixed;inset:0;width:100vw;height:100vh;}
   #hud{position:fixed;inset:0;width:100vw;height:100vh;image-rendering:pixelated;pointer-events:none;}
   #flash{position:fixed;inset:0;background:#f00;opacity:0;pointer-events:none;transition:opacity .12s;}
   #pickupflash{position:fixed;inset:0;background:#ff0;opacity:0;pointer-events:none;transition:opacity .15s;}
@@ -178,12 +178,15 @@ function startMusic(){
 }
 
 // ---------- texturas procedurais (canvas) ----------
+const texturasMundo=[];
 function canvasTex(w,h,draw,repX=1,repY=1){
   const c=document.createElement('canvas'); c.width=w; c.height=h;
   draw(c.getContext('2d'),w,h);
   const tx=new THREE.CanvasTexture(c);
-  tx.magFilter=THREE.NearestFilter; tx.minFilter=THREE.NearestFilter;
+  // filtro suave (linear) + mipmaps = paredes/chão lisos, sem quadriculado
+  tx.magFilter=THREE.LinearFilter; tx.minFilter=THREE.LinearMipmapLinearFilter;
   tx.wrapS=tx.wrapT=THREE.RepeatWrapping; tx.repeat.set(repX,repY);
+  texturasMundo.push(tx); // anisotropia aplicada depois que o renderer existe
   return tx;
 }
 function brick(base,mortar){
@@ -372,13 +375,17 @@ let levelObjects=[];
 function track(obj){ levelObjects.push(obj); return obj; }
 // adiciona à cena E registra pra limpeza
 function addLevel(obj){ scene.add(obj); levelObjects.push(obj); return obj; }
-const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('game3d'),antialias:false});
+const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('game3d'),antialias:true});
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.15;
-const PIXEL_SCALE=1.5; // resolução maior = mais nítido
+// aplica filtro anisotrópico nas texturas do mundo (paredes nítidas em ângulo)
+{ const maxAniso=renderer.capabilities.getMaxAnisotropy();
+  texturasMundo.forEach(tx=>{ tx.anisotropy=Math.min(8,maxAniso); tx.needsUpdate=true; }); }
+const PIXEL_SCALE=1.0; // resolução cheia = liso, sem serrilhado
 function resize(){
   renderer.setSize(innerWidth/PIXEL_SCALE,innerHeight/PIXEL_SCALE,false);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
   camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
   hud.width=innerWidth; hud.height=innerHeight;
 }
@@ -1419,5 +1426,6 @@ buildLevel(LEVELS[0]);
 resize();
 requestAnimationFrame(loop);
 </script>
+<script src="/avisos.js"></script>
 </body>
 </html>
