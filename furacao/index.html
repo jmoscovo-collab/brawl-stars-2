@@ -463,6 +463,19 @@ function novaPartida(){
 
 // ============ INPUT ============
 var mouseX=innerWidth/2, mouseY=innerHeight/2, joyDX=0, joyDY=0;
+// teclado: WASD/setas também movem no PC!
+var tec={};
+addEventListener('keydown', function(e){ tec[e.code]=true; });
+addEventListener('keyup', function(e){ tec[e.code]=false; });
+function dirTeclado(){
+  var dx=0, dy=0;
+  if(tec['KeyA']||tec['ArrowLeft'])  dx-=1;
+  if(tec['KeyD']||tec['ArrowRight']) dx+=1;
+  if(tec['KeyW']||tec['ArrowUp'])    dy-=1;
+  if(tec['KeyS']||tec['ArrowDown'])  dy+=1;
+  if(dx===0&&dy===0) return null;
+  var m=Math.hypot(dx,dy); return {dx:dx/m, dy:dy/m};
+}
 addEventListener('mousemove', function(e){ mouseX=e.clientX; mouseY=e.clientY; });
 var joy=document.getElementById('joy'), knob=document.getElementById('joyKnob'), joyId=null;
 function joyPos(t){
@@ -532,10 +545,14 @@ function atualiza(dt){
     if(!f.bot){
       if(device==='mob'){ dx=joyDX; dy=joyDY; }
       else {
-        var alvo=alvoMouse();
-        if(alvo){
-          var mx=alvo.x-f.x, my=alvo.z-f.y, md=Math.hypot(mx,my);
-          if(md>f.r*0.5){ var lim=Math.min(1,md/120); dx=mx/md*lim; dy=my/md*lim; }
+        var dt2=dirTeclado();
+        if(dt2){ dx=dt2.dx; dy=dt2.dy; }        // teclado (WASD/setas) manda
+        else {
+          var alvo=alvoMouse();
+          if(alvo){
+            var mx=alvo.x-f.x, my=alvo.z-f.y, md=Math.hypot(mx,my);
+            if(md>f.r*0.5){ var lim=Math.min(1,md/120); dx=mx/md*lim; dy=my/md*lim; }
+          }
         }
       }
     } else {
