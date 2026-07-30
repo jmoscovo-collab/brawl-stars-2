@@ -452,9 +452,13 @@ mostraAmigos();
     const u = usuario(), h = localStorage.getItem('cg_senhaHash');
     if(!u || !h || window._socialRefreshFeito) return;
     window._socialRefreshFeito = true;
-    chamaAPI({ acao:'entrar', nome:u, senhaHash:h })
-        .then(r=>{ guardaSocial(r); mostraMeuPerfil(); mostraAmigos(); })
-        .catch(()=>{}); // offline? fica com o cache local
+    function atualizaSocial(){
+        chamaAPI({ acao:'entrar', nome:u, senhaHash:h })
+            .then(r=>{ guardaSocial(r); mostraMeuPerfil(); mostraAmigos(); })
+            .catch(()=>{}); // offline? fica com o cache local
+    }
+    atualizaSocial();
+    setInterval(atualizaSocial, 30000); // pedidos novos aparecem sozinhos!
 })();
 </script>
 </body>
