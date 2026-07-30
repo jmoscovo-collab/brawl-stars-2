@@ -79,11 +79,10 @@
         if(convitesMostrados[id] || aceitos.indexOf(id)>=0 || recusados.indexOf(id)>=0) return;
         convitesMostrados[id] = true;
         var jogo = cv.jogo || 'penaltis';
-        var rotas = { penaltis:{url:'/penaltis/', txt:'⚽ Partida amistosa de Pênaltis'},
-                      zumbi:{url:'/zombie/',   txt:'🧟 Sobreviver juntos no Zumbi Survival'} };
+        var rotas = { penaltis:{url:'/penaltis/', txt:'te convidou para uma partida de Pênaltis!', ico:'⚽'},
+                      zumbi:{url:'/zombie/',   txt:'te convidou para uma partida de Zumbi!', ico:'🧟'} };
         var r = rotas[jogo] || rotas.penaltis;
-        var c = card('<div class="cg-tit">🎮 ' + String(cv.de).replace(/[<>]/g,'') + ' te chamou!</div>' +
-                     '<div>' + r.txt + '</div>' +
+        var c = card('<div class="cg-tit">' + r.ico + ' <b>' + String(cv.de).replace(/[<>]/g,'') + '</b> ' + r.txt + '</div>' +
                      '<button class="sim">✅ Aceitar</button><button class="no">❌ Recusar</button>');
         c.querySelector('.sim').onclick = function(){
           c.remove();                                   // some na hora
