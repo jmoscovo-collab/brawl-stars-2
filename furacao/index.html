@@ -481,9 +481,14 @@ var joy=document.getElementById('joy'), knob=document.getElementById('joyKnob'),
 function joyPos(t){
   var r=joy.getBoundingClientRect(), cx=r.left+65, cy=r.top+65;
   var dx=t.clientX-cx, dy=t.clientY-cy, d=Math.hypot(dx,dy)||1, m=Math.min(d,50);
-  joyDX=dx/d*(m/50); joyDY=dy/d*(m/50);
+  if(d < 12){ joyDX=0; joyDY=0; }                    // zona morta: encostou de leve = parado
+  else {
+    var k = Math.pow(m/50, 1.8) * 0.85;               // curva dura: precisa puxar bem pra ir rápido
+    joyDX=dx/d*k; joyDY=dy/d*k;
+  }
   knob.style.left=(40+dx/d*m)+'px'; knob.style.top=(40+dy/d*m)+'px';
 }
+function joySolta(){ joyId=null; joyDX=0; joyDY=0; knob.style.left='40px'; knob.style.top='40px'; }
 addEventListener('touchstart', function(e){
   for(var i=0;i<e.changedTouches.length;i++){
     var t=e.changedTouches[i];
@@ -498,9 +503,11 @@ addEventListener('touchmove', function(e){
 }, {passive:true});
 addEventListener('touchend', function(e){
   for(var i=0;i<e.changedTouches.length;i++){
-    if(e.changedTouches[i].identifier===joyId){ joyId=null; joyDX=0; joyDY=0; knob.style.left='40px'; knob.style.top='40px'; }
+    if(e.changedTouches[i].identifier===joyId) joySolta();
   }
+  if(e.touches.length===0) joySolta();   // segurança: nenhum dedo = parado
 }, {passive:true});
+addEventListener('touchcancel', function(){ joySolta(); }, {passive:true});
 
 // mouse → ponto no chão (raycast plano y=0)
 var raycaster=new THREE.Raycaster(), planoChao=new THREE.Plane(new THREE.Vector3(0,1,0),0);
