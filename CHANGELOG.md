@@ -1,5 +1,11 @@
 # Changelog - Cogumelo Games (site)
 
+## v2.9.0 (2026-07-30)
+- JOGOS NOVOS: Furacao.io (engole a cidade, bots, 2min, 10 skins) e Fuga do Dino (runner 3D com T-Rex perseguidor, 8 skins)
+- Voador: fix loop de desenho morto apos game over
+- Pescaria: promo 3 primeiros = ultra + exclusivo
+
+
 ## v2.8.0 (2026-07-30)
 - JOGO NOVO: Cogumelo Voador — flappy com asas animadas, moedas nos vaos, 12 skins voadoras
 - Conta: amizades v2 completa (pedidos/bloqueio/desbloqueio/remover), perfil com foto, operadores em vermelho

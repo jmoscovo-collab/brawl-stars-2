@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fuga do Dino 🦖 - Cogumelo Games</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#1a2a1a; font-family:'Comic Sans MS','Chalkboard SE',cursive,sans-serif; }
+  #game-canvas { display:block; width:100%; height:100%; }
+  .overlay {
+    position:fixed; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; z-index:10;
+    background:linear-gradient(180deg, rgba(20,40,15,.92), rgba(40,25,10,.95));
+    color:#fff; text-align:center; padding:20px;
+  }
+  .hidden { display:none !important; }
+  h1.titulo {
+    font-size:clamp(38px, 9vw, 76px); color:#ffd54a;
+    text-shadow: 4px 4px 0 #7a3b00, -2px -2px 0 #2e7d32;
+    animation: balanca 2s ease-in-out infinite; margin-bottom:6px;
+  }
+  @keyframes balanca { 0%,100%{transform:rotate(-2deg) scale(1);} 50%{transform:rotate(2deg) scale(1.04);} }
+  .subtitulo { font-size:clamp(15px,3.5vw,22px); color:#aef29b; margin-bottom:24px; text-shadow:2px 2px 0 #000; }
+  .btn {
+    font-family:inherit; font-size:clamp(18px,4.5vw,28px); font-weight:bold;
+    padding:14px 42px; margin:8px; border:none; border-radius:50px; cursor:pointer;
+    color:#fff; background:linear-gradient(180deg,#5ec24a,#2e7d32);
+    box-shadow:0 6px 0 #1b4d1e, 0 10px 16px rgba(0,0,0,.4);
+    transition:transform .08s;
+  }
+  .btn:active { transform:translateY(4px); box-shadow:0 2px 0 #1b4d1e; }
+  .btn.loja { background:linear-gradient(180deg,#ffb84a,#e07b00); box-shadow:0 6px 0 #8a4b00,0 10px 16px rgba(0,0,0,.4); }
+  .btn.pequeno { font-size:clamp(14px,3vw,18px); padding:8px 22px; }
+  .recorde-menu { font-size:clamp(16px,4vw,24px); color:#ffd54a; margin-top:18px; text-shadow:2px 2px 0 #000; }
+  .moedas-menu { font-size:clamp(15px,3.5vw,20px); color:#ffe9a8; margin-top:6px; }
+  .modo-box { margin-top:22px; font-size:15px; color:#cde8c0; }
+  .modo-btn {
+    font-family:inherit; font-size:22px; padding:8px 18px; margin:4px; border-radius:16px;
+    border:3px solid #555; background:#243b1e; color:#fff; cursor:pointer;
+  }
+  .modo-btn.ativo { border-color:#ffd54a; background:#3d5c2e; box-shadow:0 0 12px #ffd54a88; }
+  /* HUD */
+  #hud { position:fixed; top:0; left:0; right:0; z-index:5; padding:10px 14px; display:none; pointer-events:none; }
+  .hud-linha { display:flex; justify-content:space-between; align-items:flex-start; }
+  .hud-item {
+    background:rgba(0,0,0,.45); border-radius:14px; padding:6px 14px;
+    color:#fff; font-size:clamp(15px,3.8vw,22px); font-weight:bold; text-shadow:2px 2px 0 #000;
+  }
+  #barra-perigo-wrap { margin:10px auto 0; width:min(340px,72vw); }
+  #barra-label { text-align:center; font-size:13px; color:#fff; text-shadow:1px 1px 0 #000; margin-bottom:3px; }
+  #barra-fundo { height:18px; background:rgba(0,0,0,.5); border-radius:10px; border:2px solid #fff5; overflow:hidden; }
+  #barra-fill { height:100%; width:50%; border-radius:8px; background:linear-gradient(90deg,#4caf50,#ffd54a,#ff5722,#b71c1c); transition:width .15s; }
+  /* controles mobile */
+  #controles-mobile { position:fixed; bottom:0; left:0; right:0; z-index:6; display:none; justify-content:space-between; padding:12px; pointer-events:none; }
+  .ctl-grupo { display:flex; gap:12px; pointer-events:auto; }
+  .ctl-btn {
+    width:70px; height:70px; border-radius:50%; border:3px solid #fff8;
+    background:rgba(0,0,0,.4); color:#fff; font-size:30px; touch-action:manipulation; user-select:none;
+  }
+  .ctl-btn:active { background:rgba(255,213,74,.55); }
+  /* loja */
+  #tela-loja { overflow-y:auto; justify-content:flex-start; padding-top:30px; }
+  .skins-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px; width:min(680px,94vw); margin:18px 0; }
+  .skin-card {
+    background:rgba(255,255,255,.08); border:3px solid #555; border-radius:16px;
+    padding:12px 8px; cursor:pointer; transition:transform .1s;
+  }
+  .skin-card:hover { transform:scale(1.04); }
+  .skin-card.equipada { border-color:#ffd54a; box-shadow:0 0 14px #ffd54a88; }
+  .skin-emoji { font-size:44px; }
+  .skin-nome { font-size:15px; color:#fff; margin:6px 0 2px; font-weight:bold; }
+  .skin-preco { font-size:14px; color:#ffe9a8; }
+  .skin-status { font-size:13px; color:#8bd77a; }
+  /* game over */
+  #boca-dino {
+    position:fixed; inset:0; z-index:9; pointer-events:none; display:none;
+  }
+  .mandibula { position:absolute; left:0; right:0; height:52%; background:#5a8f3c; transition:transform .8s cubic-bezier(.6,0,.9,1); }
+  .mandibula.cima { top:-55%; border-bottom:14px solid #3e6b28; }
+  .mandibula.baixo { bottom:-55%; border-top:14px solid #3e6b28; }
+  .dentes { position:absolute; left:0; right:0; display:flex; justify-content:space-around; }
+  .mandibula.cima .dentes { bottom:-34px; }
+  .mandibula.baixo .dentes { top:-34px; }
+  .dente { width:0; height:0; border-left:22px solid transparent; border-right:22px solid transparent; }
+  .mandibula.cima .dente { border-top:38px solid #fffbe6; }
+  .mandibula.baixo .dente { border-bottom:38px solid #fffbe6; }
+  #boca-dino.fechando .mandibula.cima { transform:translateY(105%); }
+  #boca-dino.fechando .mandibula.baixo { transform:translateY(-105%); }
+  .go-stats { font-size:clamp(17px,4.2vw,26px); margin:6px 0; text-shadow:2px 2px 0 #000; }
+  .novo-recorde { color:#ffd54a; font-size:clamp(20px,5vw,32px); animation:balanca 1s infinite; }
+  #aviso { position:fixed; top:16%; left:50%; transform:translateX(-50%); z-index:7; color:#ff8a65;
+    font-size:clamp(18px,5vw,30px); font-weight:bold; text-shadow:2px 2px 0 #000; display:none; pointer-events:none; }
+</style>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+
+<div id="hud">
+  <div class="hud-linha">
+    <div class="hud-item">🏃 <span id="hud-dist">0</span> m</div>
+    <div class="hud-item">🪙 <span id="hud-moedas">0</span></div>
+  </div>
+  <div id="barra-perigo-wrap">
+    <div id="barra-label">🦖 PERIGO DO DINO!</div>
+    <div id="barra-fundo"><div id="barra-fill"></div></div>
+  </div>
+</div>
+
+<div id="aviso"></div>
+
+<div id="controles-mobile">
+  <div class="ctl-grupo">
+    <button class="ctl-btn" id="btn-esq">◀</button>
+    <button class="ctl-btn" id="btn-dir">▶</button>
+  </div>
+  <div class="ctl-grupo">
+    <button class="ctl-btn" id="btn-slide">▼</button>
+    <button class="ctl-btn" id="btn-pulo">⤒</button>
+  </div>
+</div>
+
+<div id="boca-dino">
+  <div class="mandibula cima"><div class="dentes"></div></div>
+  <div class="mandibula baixo"><div class="dentes"></div></div>
+</div>
+
+<div id="tela-menu" class="overlay">
+  <h1 class="titulo">🦖 FUGA DO DINO</h1>
+  <div class="subtitulo">Corre, corre! Tem um T-Rex GIGANTE atrás de você!!</div>
+  <button class="btn" id="btn-jogar">▶ JOGAR</button>
+  <button class="btn loja" id="btn-loja">🛒 LOJA</button>
+  <div class="recorde-menu">🏆 Recorde: <span id="menu-recorde">0</span> m</div>
+  <div class="moedas-menu">🪙 Suas moedas: <span id="menu-moedas">0</span></div>
+  <div class="modo-box">
+    Como você está jogando?<br>
+    <button class="modo-btn" id="modo-pc">💻</button>
+    <button class="modo-btn" id="modo-cel">📱</button>
+  </div>
+</div>
+
+<div id="tela-loja" class="overlay hidden">
+  <h1 class="titulo" style="font-size:clamp(28px,7vw,52px)">🛒 LOJINHA</h1>
+  <div class="moedas-menu" style="font-size:22px">🪙 <span id="loja-moedas">0</span> moedas</div>
+  <div class="skins-grid" id="skins-grid"></div>
+  <button class="btn pequeno" id="btn-voltar-loja">◀ VOLTAR</button>
+</div>
+
+<div id="tela-gameover" class="overlay hidden">
+  <h1 class="titulo" style="font-size:clamp(30px,8vw,60px)">😱 NHAC!</h1>
+  <div class="subtitulo">O Dino te alcançou!</div>
+  <div class="go-stats">🏃 Distância: <span id="go-dist">0</span> m</div>
+  <div class="go-stats">🪙 Moedas: <span id="go-moedas">0</span></div>
+  <div class="go-stats">🏆 Recorde: <span id="go-recorde">0</span> m</div>
+  <div class="novo-recorde hidden" id="go-novo">🎉 NOVO RECORDE! 🎉</div>
+  <button class="btn" id="btn-denovo">🔁 DE NOVO!</button>
+  <button class="btn pequeno" id="btn-menu-go">🏠 MENU</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="/stats.js"></script>
+<script>
+if (window.initStats) initStats('dino');
+
+// ============ SAVE (localStorage prefixo dino_) ============
+function lsGet(k, def) {
+  try { var v = localStorage.getItem('dino_' + k); return v === null ? def : JSON.parse(v); }
+  catch (e) { return def; }
+}
+function lsSet(k, v) { try { localStorage.setItem('dino_' + k, JSON.stringify(v)); } catch (e) {} }
+
+var save = {
+  moedas: lsGet('moedas', 0),
+  recorde: lsGet('recorde', 0),
+  skins: lsGet('skins', ['capi']),
+  equipada: lsGet('equipada', 'capi'),
+  modo: lsGet('modo', null)
+};
+
+// ============ SKINS ============
+var SKINS = [
+  { id:'capi',    nome:'Capivara',        emoji:'🦫', preco:0,   corpo:0x8d6e4a, chapeu:null },
+  { id:'verde',   nome:'Capi Selva',      emoji:'🌿', preco:30,  corpo:0x4caf50, chapeu:null },
+  { id:'azul',    nome:'Capi Rio',        emoji:'💧', preco:30,  corpo:0x42a5f5, chapeu:null },
+  { id:'rosa',    nome:'Capi Chiclete',   emoji:'🍬', preco:50,  corpo:0xf06292, chapeu:null },
+  { id:'expl',    nome:'Exploradora',     emoji:'🧭', preco:80,  corpo:0x8d6e4a, chapeu:0xd2a24c },
+  { id:'chef',    nome:'Capi Chef',       emoji:'👨‍🍳', preco:100, corpo:0xeeeeee, chapeu:0xffffff },
+  { id:'pirata',  nome:'Capi Pirata',     emoji:'🏴‍☠️', preco:150, corpo:0x5d4037, chapeu:0x222222 },
+  { id:'ouro',    nome:'Capi de OURO',    emoji:'👑', preco:250, corpo:0xffd54a, chapeu:0xffab00 }
+];
+function skinAtual() {
+  for (var i = 0; i < SKINS.length; i++) if (SKINS[i].id === save.equipada) return SKINS[i];
+  return SKINS[0];
+}
+
+// ============ AUDIO (WebAudio) ============
+var actx = null;
+function audio() {
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  if (actx && actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function beep(freq, dur, tipo, vol, slideTo) {
+  var c = audio(); if (!c) return;
+  var o = c.createOscillator(), g = c.createGain();
+  o.type = tipo || 'square';
+  o.frequency.setValueAtTime(freq, c.currentTime);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, c.currentTime + dur);
+  g.gain.setValueAtTime(vol || 0.12, c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + dur);
+  o.connect(g); g.connect(c.destination);
+  o.start(); o.stop(c.currentTime + dur);
+}
+function somMoeda() { beep(900, 0.1, 'square', 0.08, 1400); }
+function somPulo() { beep(300, 0.15, 'square', 0.08, 600); }
+function somTropeco() { beep(200, 0.3, 'sawtooth', 0.15, 80); }
+function somCompra() { beep(600, 0.1, 'square', 0.1, 900); setTimeout(function(){ beep(900, 0.15, 'square', 0.1, 1300); }, 100); }
+function somRugido() {
+  var c = audio(); if (!c) return;
+  // rugido grave com ruído
+  var dur = 0.9;
+  var o = c.createOscillator(), g = c.createGain();
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(90, c.currentTime);
+  o.frequency.exponentialRampToValueAtTime(45, c.currentTime + dur);
+  g.gain.setValueAtTime(0.25, c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + dur);
+  var lfo = c.createOscillator(), lg = c.createGain();
+  lfo.frequency.value = 22; lg.gain.value = 30;
+  lfo.connect(lg); lg.connect(o.frequency);
+  o.connect(g); g.connect(c.destination);
+  o.start(); lfo.start();
+  o.stop(c.currentTime + dur); lfo.stop(c.currentTime + dur);
+}
+
+// ============ THREE SETUP ============
+var LANES = [-2.6, 0, 2.6];
+var canvas = document.getElementById('game-canvas');
+var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87c8f0);
+scene.fog = new THREE.Fog(0x87c8f0, 40, 110);
+
+var camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 200);
+
+var sol = new THREE.DirectionalLight(0xfff2cc, 1.0);
+sol.position.set(5, 12, 6);
+scene.add(sol);
+scene.add(new THREE.AmbientLight(0x99aabb, 0.7));
+
+window.addEventListener('resize', function () {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+function mat(cor) { return new THREE.MeshLambertMaterial({ color: cor }); }
+function caixa(w, h, d, cor) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(cor)); }
+function cone(r, h, cor, seg) { return new THREE.Mesh(new THREE.ConeGeometry(r, h, seg || 6), mat(cor)); }
+
+// ============ CENARIO ============
+// chão: 2 segmentos que reciclam
+var chaoSegs = [];
+(function () {
+  for (var i = 0; i < 2; i++) {
+    var g = new THREE.Group();
+    var pista = caixa(9, 0.5, 100, 0xb98d52); pista.position.y = -0.25; g.add(pista);
+    // paredes do canyon
+    var pe = caixa(6, 10, 100, 0x9c6b3c); pe.position.set(-7.5, 4, 0); g.add(pe);
+    var pd = caixa(6, 10, 100, 0x8a5c30); pd.position.set(7.5, 4, 0); g.add(pd);
+    // vegetação decorativa
+    for (var j = 0; j < 10; j++) {
+      var lado = (j % 2 === 0) ? -5.2 : 5.2;
+      var arv = new THREE.Group();
+      var tronco = caixa(0.4, 1.4, 0.4, 0x6d4c2f); tronco.position.y = 0.7; arv.add(tronco);
+      var copa = cone(1.1, 2.2, (j % 3 === 0) ? 0x2e7d32 : 0x43a047, 6); copa.position.y = 2.4; arv.add(copa);
+      arv.position.set(lado + (Math.sin(j * 7) * 0.8), 0, -50 + j * 10 + Math.sin(j * 13) * 3);
+      g.add(arv);
+    }
+    g.position.z = -i * 100;
+    scene.add(g);
+    chaoSegs.push(g);
+  }
+})();
+
+// ============ JOGADOR (capivara/explorador low-poly) ============
+var player = new THREE.Group();
+var pCorpo, pCabeca, pChapeu, pPerna1, pPerna2, pOrelha1, pOrelha2;
+function montaPlayer() {
+  while (player.children.length) player.remove(player.children[0]);
+  var s = skinAtual();
+  pCorpo = caixa(0.9, 0.8, 1.3, s.corpo); pCorpo.position.y = 0.75; player.add(pCorpo);
+  pCabeca = caixa(0.65, 0.6, 0.7, s.corpo); pCabeca.position.set(0, 1.35, -0.55); player.add(pCabeca);
+  var focinho = caixa(0.4, 0.3, 0.25, 0x6e5236); focinho.position.set(0, 1.25, -0.98); player.add(focinho);
+  var olho1 = caixa(0.1, 0.12, 0.05, 0x111111); olho1.position.set(-0.2, 1.5, -0.9); player.add(olho1);
+  var olho2 = olho1.clone(); olho2.position.x = 0.2; player.add(olho2);
+  pOrelha1 = caixa(0.15, 0.18, 0.12, s.corpo); pOrelha1.position.set(-0.24, 1.7, -0.45); player.add(pOrelha1);
+  pOrelha2 = pOrelha1.clone(); pOrelha2.position.x = 0.24; player.add(pOrelha2);
+  pPerna1 = caixa(0.26, 0.5, 0.3, s.corpo); pPerna1.position.set(-0.28, 0.25, 0.3); player.add(pPerna1);
+  pPerna2 = pPerna1.clone(); pPerna2.position.x = 0.28; player.add(pPerna2);
+  var perna3 = caixa(0.26, 0.5, 0.3, s.corpo); perna3.position.set(-0.28, 0.25, -0.35); player.add(perna3);
+  var perna4 = perna3.clone(); perna4.position.x = 0.28; player.add(perna4);
+  pChapeu = null;
+  if (s.chapeu !== null) {
+    pChapeu = new THREE.Group();
+    var aba = caixa(0.85, 0.08, 0.9, s.chapeu); pChapeu.add(aba);
+    var topo = caixa(0.5, 0.3, 0.55, s.chapeu); topo.position.y = 0.18; pChapeu.add(topo);
+    pChapeu.position.set(0, 1.72, -0.55);
+    player.add(pChapeu);
+  }
+}
+montaPlayer();
+scene.add(player);
+
+// ============ T-REX GIGANTE ============
+var dino = new THREE.Group();
+var dinoPernaE, dinoPernaD, dinoCabeca, dinoBocaBaixo;
+(function () {
+  var verde = 0x5a8f3c, escuro = 0x3e6b28;
+  var corpo = caixa(2.6, 3.2, 4.6, verde); corpo.position.y = 4.4; corpo.rotation.x = -0.15; dino.add(corpo);
+  var barriga = caixa(2.0, 2.2, 3.4, 0x9fbf6a); barriga.position.set(0, 3.9, -0.4); dino.add(barriga);
+  // cabeça GRANDE
+  dinoCabeca = new THREE.Group();
+  var cranio = caixa(2.2, 2.0, 3.0, verde); dinoCabeca.add(cranio);
+  var focinho = caixa(1.7, 1.2, 1.8, verde); focinho.position.set(0, -0.2, -2.2); dinoCabeca.add(focinho);
+  dinoBocaBaixo = caixa(1.6, 0.55, 1.9, escuro); dinoBocaBaixo.position.set(0, -1.0, -2.1); dinoCabeca.add(dinoBocaBaixo);
+  // dentes
+  for (var i = 0; i < 4; i++) {
+    var d1 = cone(0.14, 0.4, 0xfffbe6, 4);
+    d1.rotation.x = Math.PI;
+    d1.position.set(-0.6 + i * 0.4, -0.85, -2.9);
+    dinoCabeca.add(d1);
+  }
+  var olhoE = caixa(0.3, 0.3, 0.3, 0xffcc00); olhoE.position.set(-0.9, 0.5, -1.0); dinoCabeca.add(olhoE);
+  var olhoD = olhoE.clone(); olhoD.position.x = 0.9; dinoCabeca.add(olhoD);
+  var pupE = caixa(0.14, 0.14, 0.1, 0x111111); pupE.position.set(-0.9, 0.5, -1.18); dinoCabeca.add(pupE);
+  var pupD = pupE.clone(); pupD.position.x = 0.9; dinoCabeca.add(pupD);
+  dinoCabeca.position.set(0, 6.6, -3.2);
+  dino.add(dinoCabeca);
+  // pernas animadas
+  dinoPernaE = caixa(0.9, 3.0, 1.2, verde); dinoPernaE.position.set(-1.0, 1.5, 0.8); dino.add(dinoPernaE);
+  dinoPernaD = dinoPernaE.clone(); dinoPernaD.position.x = 1.0; dino.add(dinoPernaD);
+  var peE = caixa(1.0, 0.5, 1.8, escuro); peE.position.set(-1.0, 0.25, 0.4); dino.add(peE);
+  var peD = peE.clone(); peD.position.x = 1.0; dino.add(peD);
+  // bracinhos ridículos
+  var brE = caixa(0.4, 1.1, 0.4, verde); brE.position.set(-1.4, 4.6, -1.6); brE.rotation.x = 0.6; dino.add(brE);
+  var brD = brE.clone(); brD.position.x = 1.4; dino.add(brD);
+  // cauda
+  var c1 = caixa(1.6, 1.6, 2.6, verde); c1.position.set(0, 4.2, 3.4); dino.add(c1);
+  var c2 = caixa(1.0, 1.0, 2.4, verde); c2.position.set(0, 4.0, 5.6); dino.add(c2);
+  // espinhos nas costas
+  for (var k = 0; k < 4; k++) {
+    var esp = cone(0.35, 0.7, escuro, 4);
+    esp.position.set(0, 6.1 - k * 0.3, -0.8 + k * 1.5);
+    dino.add(esp);
+  }
+  scene.add(dino);
+})();
+
+// ============ POOL DE OBSTACULOS / MOEDAS ============
+var obstaculos = []; // {mesh, tipo, lane, z, ativo, largo}
+var moedas = [];     // {mesh, lane, z, ativo}
+var moedaGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.12, 10);
+var moedaMat = new THREE.MeshLambertMaterial({ color: 0xffd54a, emissive: 0x8a6d00 });
+
+function criaObstaculo(tipo) {
+  var g = new THREE.Group();
+  if (tipo === 'tronco') {
+    var t = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 2.3, 8), mat(0x7a5230));
+    t.rotation.z = Math.PI / 2; t.position.y = 0.45; g.add(t);
+  } else if (tipo === 'galho') {
+    var poste1 = caixa(0.25, 2.6, 0.25, 0x6d4c2f); poste1.position.set(-1.2, 1.3, 0); g.add(poste1);
+    var poste2 = poste1.clone(); poste2.position.x = 1.2; g.add(poste2);
+    var galho = caixa(2.7, 0.35, 0.4, 0x5d4023); galho.position.y = 1.55; g.add(galho);
+    var folha = cone(0.5, 0.8, 0x43a047, 5); folha.position.set(0.8, 2.1, 0); g.add(folha);
+  } else if (tipo === 'pedra') {
+    var p = new THREE.Mesh(new THREE.DodecahedronGeometry(1.0, 0), mat(0x8d8d8d));
+    p.position.y = 0.9; p.scale.y = 1.4; g.add(p);
+  } else if (tipo === 'rio') {
+    // rio na largura toda + ponte numa lane (adicionada fora)
+    var agua = caixa(9, 0.3, 3.6, 0x2196f3); agua.position.y = -0.1; g.add(agua);
+    var espuma = caixa(9, 0.05, 0.5, 0xbbdefb); espuma.position.set(0, 0.08, -1.4); g.add(espuma);
+  }
+  scene.add(g);
+  return g;
+}
+
+var ponteMeshes = [];
+function criaPonte() {
+  var g = new THREE.Group();
+  var tab = caixa(2.3, 0.25, 4.0, 0xa9814f); tab.position.y = 0.12; g.add(tab);
+  var c1 = caixa(0.15, 0.6, 4.0, 0x6d4c2f); c1.position.set(-1.05, 0.45, 0); g.add(c1);
+  var c2 = c1.clone(); c2.position.x = 1.05; g.add(c2);
+  scene.add(g);
+  return g;
+}
+
+// ============ ESTADO DO JOGO ============
+var G = {
+  rodando: false,
+  vel: 14,
+  dist: 0,
+  moedasRun: 0,
+  lane: 1,
+  laneX: 0,
+  y: 0, vy: 0,
+  pulando: false,
+  deslizando: false, slideT: 0,
+  dinoDist: 26,        // metros atrás do jogador
+  invencivel: 0,
+  proxSpawn: -30,
+  shake: 0,
+  tempo: 0,
+  tRugido: 0,
+  fim: false
+};
+
+var hud = document.getElementById('hud');
+var hudDist = document.getElementById('hud-dist');
+var hudMoedas = document.getElementById('hud-moedas');
+var barraFill = document.getElementById('barra-fill');
+var avisoEl = document.getElementById('aviso');
+
+function mostraAviso(txt) {
+  avisoEl.textContent = txt;
+  avisoEl.style.display = 'block';
+  clearTimeout(mostraAviso._t);
+  mostraAviso._t = setTimeout(function () { avisoEl.style.display = 'none'; }, 1200);
+}
+
+function limpaMundo() {
+  var i;
+  for (i = 0; i < obstaculos.length; i++) scene.remove(obstaculos[i].mesh);
+  for (i = 0; i < moedas.length; i++) scene.remove(moedas[i].mesh);
+  for (i = 0; i < ponteMeshes.length; i++) scene.remove(ponteMeshes[i]);
+  obstaculos = []; moedas = []; ponteMeshes = [];
+}
+
+function novaPartida() {
+  limpaMundo();
+  G.rodando = true; G.fim = false;
+  G.vel = 14; G.dist = 0; G.moedasRun = 0;
+  G.lane = 1; G.laneX = 0; G.y = 0; G.vy = 0;
+  G.pulando = false; G.deslizando = false; G.slideT = 0;
+  G.dinoDist = 26; G.invencivel = 0; G.shake = 0; G.tRugido = 0;
+  G.proxSpawn = -35;
+  player.position.set(0, 0, 0);
+  chaoSegs[0].position.z = 0; chaoSegs[1].position.z = -100;
+  document.getElementById('boca-dino').classList.remove('fechando');
+  document.getElementById('boca-dino').style.display = 'none';
+  hud.style.display = 'block';
+  atualizaControlesMobile();
+}
+
+// ============ SPAWN ============
+function spawnRodada(z) {
+  var r = Math.random();
+  if (r < 0.16) {
+    // RIO com ponte em uma lane
+    var rio = criaObstaculo('rio');
+    rio.position.set(0, 0, z);
+    var laneP = Math.floor(Math.random() * 3);
+    var ponte = criaPonte();
+    ponte.position.set(LANES[laneP], 0, z);
+    ponteMeshes.push(ponte);
+    obstaculos.push({ mesh: rio, tipo: 'rio', lane: laneP, z: z, ativo: true });
+    return;
+  }
+  // 1 a 2 obstáculos em lanes diferentes
+  var tipos = ['tronco', 'galho', 'pedra'];
+  var lanesLivres = [0, 1, 2];
+  var n = (Math.random() < 0.45 && G.dist > 200) ? 2 : 1;
+  for (var i = 0; i < n; i++) {
+    var li = lanesLivres.splice(Math.floor(Math.random() * lanesLivres.length), 1)[0];
+    var tipo = tipos[Math.floor(Math.random() * tipos.length)];
+    var m = criaObstaculo(tipo);
+    m.position.set(LANES[li], 0, z);
+    obstaculos.push({ mesh: m, tipo: tipo, lane: li, z: z, ativo: true });
+  }
+  // fileira de moedas numa lane livre
+  if (Math.random() < 0.7 && lanesLivres.length) {
+    var lm = lanesLivres[Math.floor(Math.random() * lanesLivres.length)];
+    for (var j = 0; j < 5; j++) {
+      var mo = new THREE.Mesh(moedaGeo, moedaMat);
+      mo.rotation.x = Math.PI / 2;
+      mo.position.set(LANES[lm], 1.0, z - 6 - j * 2);
+      scene.add(mo);
+      moedas.push({ mesh: mo, lane: lm, z: mo.position.z, ativo: true });
+    }
+  }
+}
+
+// ============ INPUT ============
+function irLane(dir) {
+  if (!G.rodando || G.fim) return;
+  var nova = G.lane + dir;
+  if (nova < 0 || nova > 2) return;
+  G.lane = nova;
+}
+function pular() {
+  if (!G.rodando || G.fim) return;
+  if (!G.pulando && G.y <= 0.01) {
+    G.pulando = true; G.vy = 11.5; G.deslizando = false; G.slideT = 0;
+    somPulo();
+  }
+}
+function deslizar() {
+  if (!G.rodando || G.fim) return;
+  if (G.pulando) { G.vy = -16; } // desce rápido
+  G.deslizando = true; G.slideT = 0.7;
+}
+
+document.addEventListener('keydown', function (e) {
+  var k = e.key.toLowerCase();
+  if (k === 'arrowleft' || k === 'a') irLane(-1);
+  else if (k === 'arrowright' || k === 'd') irLane(1);
+  else if (k === 'arrowup' || k === 'w' || k === ' ') { e.preventDefault(); pular(); }
+  else if (k === 'arrowdown' || k === 's') deslizar();
+});
+
+// mobile: botões + swipe
+function bindBtn(id, fn) {
+  var el = document.getElementById(id);
+  el.addEventListener('touchstart', function (e) { e.preventDefault(); fn(); }, { passive: false });
+  el.addEventListener('mousedown', function (e) { e.preventDefault(); fn(); });
+}
+bindBtn('btn-esq', function () { irLane(-1); });
+bindBtn('btn-dir', function () { irLane(1); });
+bindBtn('btn-pulo', pular);
+bindBtn('btn-slide', deslizar);
+
+var swipe = { x: 0, y: 0, t: 0 };
+canvas.addEventListener('touchstart', function (e) {
+  if (e.touches.length) { swipe.x = e.touches[0].clientX; swipe.y = e.touches[0].clientY; swipe.t = Date.now(); }
+}, { passive: true });
+canvas.addEventListener('touchend', function (e) {
+  if (!e.changedTouches.length || Date.now() - swipe.t > 600) return;
+  var dx = e.changedTouches[0].clientX - swipe.x;
+  var dy = e.changedTouches[0].clientY - swipe.y;
+  if (Math.abs(dx) < 30 && Math.abs(dy) < 30) return;
+  if (Math.abs(dx) > Math.abs(dy)) irLane(dx > 0 ? 1 : -1);
+  else if (dy < 0) pular(); else deslizar();
+}, { passive: true });
+
+// ============ COLISAO / TROPEÇO ============
+function tropeca(forte) {
+  if (G.invencivel > 0) return;
+  G.invencivel = 1.5;
+  G.dinoDist -= forte ? 12 : 9;
+  G.vel = Math.max(12, G.vel * 0.75);
+  G.shake = 0.6;
+  somTropeco();
+  somRugido();
+  mostraAviso('AIII! O Dino chegou perto! 😱');
+}
+
+function checaColisoes(dt) {
+  var pz = player.position.z;
+  var i, o;
+  for (i = 0; i < obstaculos.length; i++) {
+    o = obstaculos[i];
+    if (!o.ativo) continue;
+    if (o.tipo === 'rio') {
+      // zona do rio: 3.6 de profundidade
+      if (pz < o.z + 2.0 && pz > o.z - 2.0 && G.y < 0.4) {
+        if (G.lane !== o.lane) { o.ativo = false; tropeca(true); mostraAviso('SPLASH! 💦 Fica na ponte!'); }
+      }
+      continue;
+    }
+    if (Math.abs(pz - o.z) < 1.1 && G.lane === o.lane) {
+      var bateu = false;
+      if (o.tipo === 'tronco') bateu = G.y < 0.9;                 // pula
+      else if (o.tipo === 'galho') bateu = !G.deslizando && G.y < 1.6; // desliza
+      else if (o.tipo === 'pedra') bateu = G.y < 1.6;             // desvia (pulo alto também salva? não: pedra alta)
+      if (bateu) { o.ativo = false; tropeca(false); }
+    }
+  }
+  for (i = 0; i < moedas.length; i++) {
+    var m = moedas[i];
+    if (!m.ativo) continue;
+    if (Math.abs(pz - m.z) < 1.0 && G.lane === m.lane && G.y < 2.2) {
+      m.ativo = false; m.mesh.visible = false;
+      G.moedasRun++; somMoeda();
+    }
+  }
+}
+
+// ============ GAME OVER ============
+function gameOver() {
+  G.fim = true; G.rodando = false;
+  somRugido();
+  var boca = document.getElementById('boca-dino');
+  boca.style.display = 'block';
+  // força reflow pra transição pegar
+  void boca.offsetWidth;
+  boca.classList.add('fechando');
+  setTimeout(function () {
+    var distM = Math.floor(G.dist);
+    save.moedas += G.moedasRun;
+    var novoRec = distM > save.recorde;
+    if (novoRec) save.recorde = distM;
+    lsSet('moedas', save.moedas);
+    lsSet('recorde', save.recorde);
+    document.getElementById('go-dist').textContent = distM;
+    document.getElementById('go-moedas').textContent = G.moedasRun;
+    document.getElementById('go-recorde').textContent = save.recorde;
+    document.getElementById('go-novo').classList.toggle('hidden', !novoRec);
+    hud.style.display = 'none';
+    document.getElementById('controles-mobile').style.display = 'none';
+    document.getElementById('tela-gameover').classList.remove('hidden');
+  }, 1000);
+}
+
+// ============ LOOP ============
+var clock = new THREE.Clock();
+function loop() {
+  requestAnimationFrame(loop);
+  var dt = Math.min(clock.getDelta(), 0.05);
+  G.tempo += dt;
+
+  if (G.rodando && !G.fim) {
+    // velocidade cresce
+    G.vel += dt * 0.22;
+    var dz = G.vel * dt;
+    player.position.z -= dz;
+    G.dist += dz;
+
+    // lane suave
+    G.laneX += (LANES[G.lane] - G.laneX) * Math.min(1, dt * 12);
+    player.position.x = G.laneX;
+
+    // pulo / gravidade
+    if (G.pulando || G.y > 0) {
+      G.vy -= 32 * dt;
+      G.y += G.vy * dt;
+      if (G.y <= 0) { G.y = 0; G.vy = 0; G.pulando = false; }
+    }
+    player.position.y = G.y;
+
+    // deslize
+    if (G.deslizando) {
+      G.slideT -= dt;
+      if (G.slideT <= 0) G.deslizando = false;
+    }
+    player.scale.y = G.deslizando ? 0.45 : 1;
+    player.rotation.x = G.deslizando ? -0.5 : 0;
+
+    // corridinha (pernas do jogador balançam)
+    var b = Math.sin(G.tempo * 18);
+    if (pPerna1) { pPerna1.rotation.x = b * 0.8; pPerna2.rotation.x = -b * 0.8; }
+    if (G.invencivel > 0) {
+      G.invencivel -= dt;
+      player.visible = (Math.floor(G.tempo * 12) % 2 === 0);
+    } else player.visible = true;
+
+    // spawn
+    while (G.proxSpawn > player.position.z - 90) {
+      spawnRodada(G.proxSpawn);
+      G.proxSpawn -= 16 + Math.random() * 8;
+    }
+
+    // recicla chão
+    for (var ci = 0; ci < 2; ci++) {
+      if (chaoSegs[ci].position.z - player.position.z > 60) chaoSegs[ci].position.z -= 200;
+    }
+
+    // limpa objetos que ficaram pra trás
+    var vivos = [];
+    for (var oi = 0; oi < obstaculos.length; oi++) {
+      if (obstaculos[oi].z > player.position.z + 25) scene.remove(obstaculos[oi].mesh);
+      else vivos.push(obstaculos[oi]);
+    }
+    obstaculos = vivos;
+    var pv = [];
+    for (var pi = 0; pi < ponteMeshes.length; pi++) {
+      if (ponteMeshes[pi].position.z > player.position.z + 25) scene.remove(ponteMeshes[pi]);
+      else pv.push(ponteMeshes[pi]);
+    }
+    ponteMeshes = pv;
+    var mv = [];
+    for (var mi = 0; mi < moedas.length; mi++) {
+      if (moedas[mi].z > player.position.z + 25) scene.remove(moedas[mi].mesh);
+      else { moedas[mi].mesh.rotation.z += dt * 4; mv.push(moedas[mi]); }
+    }
+    moedas = mv;
+
+    checaColisoes(dt);
+
+    // DINO: recupera distância correndo limpo
+    G.dinoDist += dt * 0.55;
+    if (G.dinoDist > 34) G.dinoDist = 34;
+    // rugido de aviso quando muito perto
+    if (G.dinoDist < 10) {
+      G.tRugido -= dt;
+      if (G.tRugido <= 0) { somRugido(); G.tRugido = 2.5; G.shake = Math.max(G.shake, 0.3); }
+    }
+    if (G.dinoDist <= 3.5) gameOver();
+
+    // HUD
+    hudDist.textContent = Math.floor(G.dist);
+    hudMoedas.textContent = G.moedasRun;
+    var perigo = 1 - (G.dinoDist - 3.5) / (34 - 3.5);
+    barraFill.style.width = Math.max(2, Math.min(100, perigo * 100)) + '%';
+  }
+
+  // DINO segue atrás do jogador
+  dino.position.z = player.position.z + G.dinoDist;
+  dino.position.x += (G.laneX * 0.5 - dino.position.x) * Math.min(1, dt * 3);
+  var passo = Math.sin(G.tempo * 10);
+  if (dinoPernaE) {
+    dinoPernaE.rotation.x = passo * 0.5;
+    dinoPernaD.rotation.x = -passo * 0.5;
+    dino.position.y = Math.abs(Math.sin(G.tempo * 10)) * 0.35;
+    dinoCabeca.rotation.x = Math.sin(G.tempo * 5) * 0.1 - 0.1;
+    dinoBocaBaixo.position.y = -1.0 - Math.max(0, Math.sin(G.tempo * 3)) * 0.35;
+  }
+
+  // camera atrás do jogador, dino visível
+  var camY = 4.2, camZ = player.position.z + 8.5;
+  camera.position.set(G.laneX * 0.4, camY, camZ);
+  if (G.shake > 0) {
+    G.shake -= dt;
+    camera.position.x += (Math.random() - 0.5) * G.shake * 0.8;
+    camera.position.y += (Math.random() - 0.5) * G.shake * 0.8;
+  }
+  camera.lookAt(G.laneX * 0.4, 1.5, player.position.z - 6);
+
+  renderer.render(scene, camera);
+}
+loop();
+
+// ============ TELAS / MENU ============
+var telaMenu = document.getElementById('tela-menu');
+var telaLoja = document.getElementById('tela-loja');
+var telaGO = document.getElementById('tela-gameover');
+
+function atualizaMenu() {
+  document.getElementById('menu-recorde').textContent = save.recorde;
+  document.getElementById('menu-moedas').textContent = save.moedas;
+  document.getElementById('modo-pc').classList.toggle('ativo', save.modo === 'pc');
+  document.getElementById('modo-cel').classList.toggle('ativo', save.modo === 'celular');
+}
+function atualizaControlesMobile() {
+  var mostrar = G.rodando && save.modo === 'celular';
+  document.getElementById('controles-mobile').style.display = mostrar ? 'flex' : 'none';
+}
+function setModo(m) { save.modo = m; lsSet('modo', m); atualizaMenu(); }
+document.getElementById('modo-pc').addEventListener('click', function () { setModo('pc'); });
+document.getElementById('modo-cel').addEventListener('click', function () { setModo('celular'); });
+
+// detecta modo default
+if (!save.modo) {
+  save.modo = ('ontouchstart' in window && window.innerWidth < 900) ? 'celular' : 'pc';
+  lsSet('modo', save.modo);
+}
+
+document.getElementById('btn-jogar').addEventListener('click', function () {
+  audio();
+  telaMenu.classList.add('hidden');
+  novaPartida();
+});
+document.getElementById('btn-denovo').addEventListener('click', function () {
+  telaGO.classList.add('hidden');
+  novaPartida();
+});
+document.getElementById('btn-menu-go').addEventListener('click', function () {
+  telaGO.classList.add('hidden');
+  atualizaMenu();
+  telaMenu.classList.remove('hidden');
+});
+
+// ============ LOJA ============
+function desenhaLoja() {
+  document.getElementById('loja-moedas').textContent = save.moedas;
+  var grid = document.getElementById('skins-grid');
+  grid.innerHTML = '';
+  SKINS.forEach(function (s) {
+    var tem = save.skins.indexOf(s.id) !== -1;
+    var eq = save.equipada === s.id;
+    var card = document.createElement('div');
+    card.className = 'skin-card' + (eq ? ' equipada' : '');
+    var status;
+    if (eq) status = '<div class="skin-status">✅ EQUIPADA</div>';
+    else if (tem) status = '<div class="skin-status">Toque pra equipar</div>';
+    else status = '<div class="skin-preco">🪙 ' + s.preco + '</div>';
+    card.innerHTML = '<div class="skin-emoji">' + s.emoji + '</div>' +
+      '<div class="skin-nome">' + s.nome + '</div>' + status;
+    card.addEventListener('click', function () {
+      if (tem) {
+        save.equipada = s.id; lsSet('equipada', save.equipada);
+        montaPlayer(); somCompra();
+      } else if (save.moedas >= s.preco) {
+        save.moedas -= s.preco;
+        save.skins.push(s.id);
+        save.equipada = s.id;
+        lsSet('moedas', save.moedas); lsSet('skins', save.skins); lsSet('equipada', save.equipada);
+        montaPlayer(); somCompra();
+      } else {
+        beep(150, 0.25, 'sawtooth', 0.1);
+        mostraAviso('Faltam ' + (s.preco - save.moedas) + ' moedas! 🪙');
+      }
+      desenhaLoja();
+    });
+    grid.appendChild(card);
+  });
+}
+document.getElementById('btn-loja').addEventListener('click', function () {
+  audio();
+  telaMenu.classList.add('hidden');
+  desenhaLoja();
+  telaLoja.classList.remove('hidden');
+});
+document.getElementById('btn-voltar-loja').addEventListener('click', function () {
+  telaLoja.classList.add('hidden');
+  atualizaMenu();
+  telaMenu.classList.remove('hidden');
+});
+
+atualizaMenu();
+</script>
+</body>
+</html>
