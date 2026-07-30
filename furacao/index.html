@@ -323,31 +323,76 @@ var FABS_T2=[makeCasa,makeOnibus];
 
 // ============ FURACÃO 3D ============
 function corHex(s){ return new THREE.Color(s); }
+// textura de espiral do funil (listras diagonais suaves = redemoinho de verdade!)
+var _texEspiralCache = {};
+function texEspiral(cor){
+  if(_texEspiralCache[cor]) return _texEspiralCache[cor];
+  var c=document.createElement('canvas'); c.width=128; c.height=128;
+  var g2=c.getContext('2d');
+  g2.fillStyle=cor; g2.fillRect(0,0,128,128);
+  g2.strokeStyle='rgba(255,255,255,0.28)'; g2.lineWidth=9; g2.lineCap='round';
+  for(var i=-2;i<7;i++){
+    g2.beginPath(); g2.moveTo(i*32-32, 140); g2.quadraticCurveTo(i*32+8, 64, i*32+48, -12); g2.stroke();
+  }
+  g2.strokeStyle='rgba(0,0,0,0.14)'; g2.lineWidth=5;
+  for(var k=-2;k<7;k++){
+    g2.beginPath(); g2.moveTo(k*32-16, 140); g2.quadraticCurveTo(k*32+22, 64, k*32+62, -12); g2.stroke();
+  }
+  var t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(2,1);
+  _texEspiralCache[cor]=t;
+  return t;
+}
 function makeTornado(skin, corBot){
   // construído pra r=16; escala = r/16
   var g=new THREE.Group();
   var c1 = corBot?corBot[0]:(skin.c1==='rainbow'?'#ff5aa0':skin.c1);
   var c2 = corBot?corBot[1]:(skin.c2==='rainbow'?'#5a8aff':skin.c2);
   var cones=[];
-  var defs=[[16,40,0.42,c1,3.2],[12,32,0.5,c2,-2.2],[8,24,0.55,c1,4.5]];
-  for(var i=0;i<3;i++){
+  // 4 camadas com cintura: funil mais gordo em cima, bico fininho embaixo
+  var defs=[[17,44,0.34,c1,3.2],[13,36,0.42,c2,-2.4],[9,28,0.5,c1,4.5],[5,18,0.6,c2,-5.5]];
+  for(var i=0;i<4;i++){
     var d=defs[i];
-    var geo=new THREE.ConeGeometry(d[0],d[1],10,1,true);
-    var m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:corHex(d[3]),transparent:true,opacity:d[2],side:THREE.DoubleSide,depthWrite:false}));
+    var geo=new THREE.ConeGeometry(d[0],d[1],14,1,true);
+    var m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({
+      color:corHex(d[3]), map:texEspiral(d[3]),
+      transparent:true, opacity:d[2], side:THREE.DoubleSide, depthWrite:false}));
     m.rotation.x=Math.PI; // funil: bico embaixo
     m.position.y=d[1]/2+1;
     m.userData.spin=d[4];
     g.add(m); cones.push(m);
   }
-  // detritos orbitando
+  // NUVEM no topo do funil (rosquinha de esferas fofas)
+  var nuvem=new THREE.Group();
+  for(var n=0;n<7;n++){
+    var na=n/7*6.28;
+    var nb=esf(5.5+Math.random()*2, corBot?corBot[1]:c2);
+    nb.material=new THREE.MeshLambertMaterial({color:corHex(c2),transparent:true,opacity:0.55});
+    nb.castShadow=false;
+    nb.position.set(Math.cos(na)*12, 44, Math.sin(na)*12);
+    nuvem.add(nb);
+  }
+  g.add(nuvem);
+  // ANEL DE POEIRA girando na base
+  var poeira=new THREE.Mesh(
+    new THREE.TorusGeometry(13, 3.2, 6, 18),
+    new THREE.MeshLambertMaterial({color:corHex(c1),transparent:true,opacity:0.28,depthWrite:false}));
+  poeira.rotation.x=Math.PI/2; poeira.position.y=2.5;
+  g.add(poeira);
+  // detritos orbitando (variados: caixinhas, folhas achatadas e bolinhas)
   var deb=[];
   var pc = corBot?'#ffffff':(skin.part||'#ffffff');
-  for(var j=0;j<8;j++){
-    var db=box(2.2,2.2,2.2,pc);
+  for(var j=0;j<12;j++){
+    var db;
+    var tipo=j%3;
+    if(tipo===0) db=box(2.4,2.4,2.4,pc);
+    else if(tipo===1) db=box(3.4,0.6,2.2,pc);           // folha/tabuinha
+    else db=esf(1.4,pc);
     db.castShadow=false;
-    db.userData={a:Math.random()*6.28, h:6+Math.random()*30, rr:14+Math.random()*8, sp:3+Math.random()*3};
+    db.userData={a:Math.random()*6.28, h:5+Math.random()*34, rr:12+Math.random()*11, sp:2.5+Math.random()*3.5, tumble:Math.random()*4};
     g.add(db); deb.push(db);
   }
+  g.userData.nuvem=nuvem; g.userData.poeira=poeira;
   // olhinhos
   var olhos=new THREE.Group();
   var o1=esf(2.2,'#0a2540'), o2=esf(2.2,'#0a2540');
@@ -682,6 +727,8 @@ function atualizaVisual(dt){
     f.mesh.scale.setScalar(esc);
     var ud=f.mesh.userData;
     for(var c=0;c<ud.cones.length;c++) ud.cones[c].rotation.y += ud.cones[c].userData.spin*dt;
+    if(ud.nuvem) ud.nuvem.rotation.y += dt*0.9;
+    if(ud.poeira){ ud.poeira.rotation.z += dt*2.4; ud.poeira.scale.setScalar(1+Math.sin(performance.now()/300)*0.06); }
     // wobble fofo
     f.mesh.rotation.z=Math.sin(t/300+i)*0.05;
     f.mesh.rotation.x=Math.cos(t/340+i)*0.05;
