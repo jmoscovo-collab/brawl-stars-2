@@ -92,6 +92,8 @@
           var re = JSON.parse(localStorage.getItem('cg_convites_recusados')||'[]');
           re.push(id); localStorage.setItem('cg_convites_recusados', JSON.stringify(re.slice(-30)));
         };
+        // ignorou? o cartão some sozinho em 10 segundos
+        setTimeout(function(){ if(c.parentNode) c.remove(); }, 10000);
         beep();
       });
     }).catch(function(){});

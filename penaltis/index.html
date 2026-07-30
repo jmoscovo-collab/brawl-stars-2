@@ -744,16 +744,21 @@ function mpVerConvites(){
         try{
             const d = await mpApi({acao:'convites'});
             const el = document.getElementById('mpConvites'); if(!el) return;
-            const cs = d.convites || [];
-            el.innerHTML = cs.length ? cs.map(c=>
-                `<p style="margin:8px 0;font-size:18px;">⚽ <b>${c.de}</b> te convidou!
-                 <button class="aba ativa" style="font-size:15px;padding:6px 16px;" onclick="mpEntrarSala('${c.sala}')">ENTRAR</button></p>`).join('')
+            // convite vale 30 segundos aqui na lista!
+            const agora = Date.now();
+            const cs = (d.convites || []).filter(c => agora - (c.ts||0) < 30000);
+            el.innerHTML = cs.length ? cs.map(c=>{
+                const resta = Math.max(0, Math.ceil((30000 - (agora - (c.ts||0)))/1000));
+                return `<p style="margin:8px 0;font-size:18px;">⚽ <b>${c.de}</b> te convidou!
+                 <button class="aba ativa" style="font-size:15px;padding:6px 16px;" onclick="mpEntrarSala('${c.sala}')">ENTRAR</button>
+                 <span style="color:#ffaa00;font-size:14px;">⏱️ ${resta}s</span></p>`;
+            }).join('')
                 : '<p>Nenhum convite ainda... peça pro seu amigo criar uma sala! 😄</p>';
         }catch(e){}
     };
     busca();
     if(mp.pollConvites) clearInterval(mp.pollConvites);
-    mp.pollConvites = setInterval(busca, 5000);
+    mp.pollConvites = setInterval(busca, 1000);
 }
 function mpEntrarSala(sala){
     if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
