@@ -61,10 +61,13 @@
     box-shadow:0 4px 0 #0004; display:flex; align-items:center; justify-content:center; font-size:34px; color:#2a7fff;
     border:3px solid #2a7fff88; }
   .pad:active { background:#fff; transform:scale(.94); }
-  #padUp    { left:24px; bottom:150px; }
-  #padDown  { left:24px; bottom:60px; }
-  #padLeft  { right:118px; bottom:80px; }
-  #padRight { right:24px; bottom:80px; }
+  #padUp    { right:26px; bottom:150px; }
+  #padDown  { right:26px; bottom:58px; }
+  #joyBase { position:absolute; pointer-events:auto; left:28px; bottom:40px; width:150px; height:150px;
+    border-radius:50%; background:rgba(255,255,255,0.14); border:3px solid rgba(42,127,255,0.55);
+    display:flex; align-items:center; justify-content:center; touch-action:none; }
+  #joyKnob { width:62px; height:62px; border-radius:50%; background:rgba(42,127,255,0.85);
+    border:3px solid #fff; box-shadow:0 0 14px rgba(42,127,255,0.6); }
 
   #msg { position:fixed; top:38%; left:50%; transform:translate(-50%,-50%); z-index:7; font-size:min(11vw,54px);
     font-weight:bold; color:#fff; text-shadow:3px 3px 0 #c00, 0 0 18px #0007; pointer-events:none; opacity:0;
@@ -101,10 +104,9 @@
 
 <!-- Touch controls -->
 <div id="touchCtrl" class="hidden">
-  <div class="pad" id="padUp">▲</div>
-  <div class="pad" id="padDown">▼</div>
-  <div class="pad" id="padLeft">◀</div>
-  <div class="pad" id="padRight">▶</div>
+  <div id="joyBase"><div id="joyKnob"></div></div>
+  <div class="pad" id="padUp">🔼</div>
+  <div class="pad" id="padDown">🔽</div>
 </div>
 
 <div id="msg"></div>
@@ -771,7 +773,25 @@ function bindPad(id, key){
   el.addEventListener('mouseup',off);
   el.addEventListener('mouseleave',off);
 }
-bindPad('padUp','up'); bindPad('padDown','down'); bindPad('padLeft','left'); bindPad('padRight','right');
+bindPad('padUp','up'); bindPad('padDown','down');
+// joystick de bolinha (igual furacao.io): esquerda/direita = volante
+(function(){
+  var base=document.getElementById('joyBase'), knob=document.getElementById('joyKnob'), jid=null;
+  function mexe(e){
+    var t=e.touches?e.touches[0]:e;
+    var r=base.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+    var dx=t.clientX-cx, dy=t.clientY-cy, d=Math.hypot(dx,dy)||1, m=Math.min(d,55);
+    knob.style.transform='translate('+(dx/d*m)+'px,'+(dy/d*m)+'px)';
+    keys.left = dx < -14;   // zona morta pra não virar sozinho
+    keys.right = dx > 14;
+  }
+  function solta(){ jid=null; knob.style.transform='translate(0,0)'; keys.left=false; keys.right=false; }
+  base.addEventListener('touchstart',function(e){ e.preventDefault(); jid=e.changedTouches[0].identifier; mexe(e); },{passive:false});
+  base.addEventListener('touchmove',function(e){ e.preventDefault(); mexe(e); },{passive:false});
+  base.addEventListener('touchend',function(e){ e.preventDefault(); solta(); },{passive:false});
+  base.addEventListener('touchcancel',solta);
+  base.addEventListener('mousedown',function(e){ e.preventDefault(); jid=1; mexe(e); var mv=function(ev){ if(jid)mexe(ev); }, up=function(){ solta(); removeEventListener('mousemove',mv); removeEventListener('mouseup',up); }; addEventListener('mousemove',mv); addEventListener('mouseup',up); });
+})();
 
 // ============ botões ============
 document.getElementById('btnPlay').onclick=()=>{ initAudio(); showScreen('levelScreen'); };
