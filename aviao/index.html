@@ -39,6 +39,12 @@
                 background:rgba(255,255,255,.12); display:none; }
   #stick-knob { position:absolute; width:60px; height:60px; border-radius:50%; background:rgba(255,255,255,.55);
                 border:3px solid #fff; box-shadow:0 3px 10px rgba(0,0,0,.35); }
+  #dpad { position:absolute; left:18px; bottom:24px; display:flex; flex-direction:column; align-items:center; gap:6px; }
+  #dpad .row { display:flex; gap:44px; }
+  #dpad button, #boost { font-family:inherit; }
+  #dpad button { width:70px; height:70px; border-radius:16px; border:3px solid #ffffffaa; font-size:30px; font-weight:bold;
+                 background:rgba(255,255,255,.22); color:#0a3a5a; box-shadow:0 4px 12px rgba(0,0,0,.35); touch-action:none; }
+  #dpad button:active { background:rgba(255,255,255,.5); }
   #countdown { position:fixed; inset:0; z-index:25; display:none; align-items:center; justify-content:center;
                font-size:130px; font-weight:bold; color:#fff; text-shadow:0 6px 24px #0009; pointer-events:none; }
 </style>
@@ -53,8 +59,11 @@
 </div>
 
 <div id="ctrl">
-  <div id="stick-zona"></div>
-  <div id="stick-base"><div id="stick-knob"></div></div>
+  <div id="dpad">
+    <button id="b-cima">▲</button>
+    <div class="row"><button id="b-esq">◀</button><button id="b-dir">▶</button></div>
+    <button id="b-baixo">▼</button>
+  </div>
   <div id="boost">⚡ TURBO</div>
 </div>
 <div id="escudo" style="position:fixed;top:60px;left:0;right:0;text-align:center;z-index:11;display:none;font-size:22px;font-weight:bold;color:#7ef0ff;text-shadow:0 2px 8px #0009;pointer-events:none"></div>
@@ -218,7 +227,16 @@
   function planoAtual() { return planoPorId(selecionado); }
 
   var aviao;
-  function montaMeuAviao() { if (aviao) scene.remove(aviao); var pl = planoAtual(); aviao = fazAviao(pl.cor, pl.corAsa); scene.add(aviao); }
+  function montaMeuAviao() {
+    if (aviao) scene.remove(aviao);
+    var pl = planoAtual(); aviao = fazAviao(pl.cor, pl.corAsa);
+    // fogo do turbo (sai da traseira, z+)
+    var tf = new THREE.Group();
+    var ch = cone(1.7, 6, 0xff7a1e, 10); ch.rotation.x = Math.PI / 2; ch.position.z = 10.5; tf.add(ch);
+    var ch2 = cone(1.0, 3.6, 0xffe23a, 10); ch2.rotation.x = Math.PI / 2; ch2.position.z = 9.2; tf.add(ch2);
+    tf.visible = false; aviao.add(tf); aviao.userData.turbo = tf;
+    scene.add(aviao);
+  }
   montaMeuAviao();
 
   // ================= ARGOLAS (portões da corrida) =================
@@ -436,6 +454,7 @@
   window.addEventListener('mousemove', function (e) { if (G.estado === 'correndo' || G.estado === 'largada') { usandoMouse = true; alvoTelaX = e.clientX / window.innerWidth; alvoTelaY = e.clientY / window.innerHeight; } });
   window.addEventListener('keydown', function (e) {
     var k = e.key.toLowerCase();
+    if (e.code === 'Space') { e.preventDefault(); G.boost = 1; return; }
     if (k === 'a' || e.code === 'ArrowLeft') { teclas.esq = true; }
     else if (k === 'd' || e.code === 'ArrowRight') { teclas.dir = true; }
     else if (k === 'w' || e.code === 'ArrowUp') { teclas.cima = true; }
@@ -518,8 +537,21 @@
   }
   document.getElementById('btn-loja').addEventListener('click', abreLoja);
   document.getElementById('btn-loja-voltar').addEventListener('click', fechaLoja);
-  document.getElementById('btn-jogar').addEventListener('click', function () { document.getElementById('crash-msg').textContent = ''; novoJogo(); });
-  document.getElementById('btn-again').addEventListener('click', function () { document.getElementById('crash-msg').textContent = ''; novoJogo(); });
+  function bindHold(id, on) {
+    var el = document.getElementById(id); if (!el) return;
+    el.addEventListener('touchstart', function (e) { e.preventDefault(); on(true); }, { passive: false });
+    el.addEventListener('touchend', function (e) { e.preventDefault(); on(false); }, { passive: false });
+    el.addEventListener('mousedown', function (e) { e.preventDefault(); on(true); });
+    el.addEventListener('mouseup', function () { on(false); });
+    el.addEventListener('mouseleave', function () { on(false); });
+  }
+  bindHold('b-cima', function (v) { teclas.cima = v; });
+  bindHold('b-baixo', function (v) { teclas.baixo = v; });
+  bindHold('b-esq', function (v) { teclas.esq = v; });
+  bindHold('b-dir', function (v) { teclas.dir = v; });
+
+  document.getElementById('btn-jogar').addEventListener('click', function () { this.blur(); document.getElementById('crash-msg').textContent = ''; novoJogo(); });
+  document.getElementById('btn-again').addEventListener('click', function () { this.blur(); document.getElementById('crash-msg').textContent = ''; novoJogo(); });
   document.getElementById('btn-home').addEventListener('click', function () { location.href = '/'; });
 
   // ================= LOOP =================
@@ -558,6 +590,11 @@
         G.vel += (alvoVel - G.vel) * Math.min(1, dt * 2);
         G.velBase += dt * 1.1;
         G.z -= G.vel * dt;
+      }
+      if (aviao.userData.turbo) {
+        var fogoOn = (G.boost && correndo);
+        aviao.userData.turbo.visible = fogoOn;
+        if (fogoOn) { var fl = 0.7 + Math.random() * 0.9; aviao.userData.turbo.scale.set(0.9 + Math.random() * 0.3, 0.9 + Math.random() * 0.3, fl); }
       }
       aviao.position.set(G.x, G.y, G.z);
       aviao.rotation.z = -G.roll; aviao.rotation.x = G.pitch; aviao.rotation.y = G.roll * 0.5;
