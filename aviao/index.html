@@ -129,6 +129,36 @@
   var nuvens = [];
   for (var c = 0; c < 30; c++) { var nv = fazNuvem(); nv.position.set((Math.random() - 0.5) * 1000, 20 + Math.random() * 130, -Math.random() * 1800 - 80); scene.add(nv); nuvens.push(nv); }
 
+  // ---- MAR DE NUVENS embaixo (realista, cobre o mundo lá em baixo) ----
+  function fazNuvemBaixa() {
+    var g = new THREE.Group(); var n = 4 + Math.floor(Math.random() * 5);
+    for (var i = 0; i < n; i++) { var b = esf(12 + Math.random() * 16, 0xffffff); b.scale.set(1.3, 0.5, 1.3); b.position.set((Math.random() - 0.5) * 60, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 46); b.material.transparent = true; b.material.opacity = 0.85; g.add(b); }
+    return g;
+  }
+  var nuvensBaixas = [];
+  for (var cb = 0; cb < 60; cb++) { var nb = fazNuvemBaixa(); nb.position.set((Math.random() - 0.5) * 1400, -18 + Math.random() * 10, -Math.random() * 2400); scene.add(nb); nuvensBaixas.push(nb); }
+
+  // ---- CIDADE lá embaixo (prédios pra cair em cima) ----
+  function fazCidade(z) {
+    var g = new THREE.Group(); var n = 6 + Math.floor(Math.random() * 6);
+    for (var i = 0; i < n; i++) {
+      var h = 34 + Math.random() * 74; var w = 10 + Math.random() * 12;
+      var col = [0x8d99a6, 0x6b7580, 0x9aa0a6, 0xb0a58f, 0x7a8590][i % 5];
+      var b = box(w, h, w, col); b.position.set((Math.random() - 0.5) * 420, -40 + h / 2, (Math.random() - 0.5) * 90); g.add(b);
+      var jan = new THREE.Mesh(new THREE.BoxGeometry(w + 0.2, h * 0.72, w + 0.2), mat(0xffe07a, { transparent: true, opacity: 0.14, emissive: 0x4a3a00 }));
+      jan.position.copy(b.position); g.add(jan);
+    }
+    g.position.z = z; return g;
+  }
+
+  // ---- FOGO/fumaça quando o avião cai ----
+  function fazFogo() {
+    var g = new THREE.Group(); var cores = [0xffe23a, 0xff8a1e, 0xff3a1e];
+    for (var i = 0; i < 8; i++) { var f = esf(1.1 + Math.random() * 1.2, cores[i % 3]); f.material.transparent = true; f.material.opacity = 0.92; f.position.set((Math.random() - 0.5) * 5, 1 + Math.random() * 2.5, 3 + Math.random() * 5); g.add(f); }
+    for (var sm = 0; sm < 4; sm++) { var s2 = esf(1.6 + Math.random() * 1.2, 0x4a4a4a); s2.material.transparent = true; s2.material.opacity = 0.5; s2.position.set((Math.random() - 0.5) * 4, 2, 7 + sm * 2.2); g.add(s2); }
+    return g;
+  }
+
   // montanhas decorativas (perigo também)
   var montanhas = [];
   function fazMontanha() {
@@ -215,8 +245,10 @@
     vel: 92, velBase: 92, x: 0, y: 42, z: 0, alvoX: 0, alvoY: 42,
     roll: 0, pitch: 0, boost: 0, tempo: 0,
     morto: false, chegou: false, minhaColoc: 1,
-    proxArgola: -120, proxMont: -180, larguei: 0
+    proxArgola: -120, proxMont: -180, proxCidade: -140, larguei: 0,
+    caiT: 0, caiVy: 0, caiMotivo: '', mult: 1
   };
+  var cidades = [];
 
   // ---- outros aviões (bots + jogadores reais) ----
   var racers = []; // {tipo, mesh, x,y,z, vel, nome, cor, fin, morto, lastSeen, lane}
@@ -284,6 +316,8 @@
     argolas.length = 0;
     for (i = 0; i < montanhas.length; i++) scene.remove(montanhas[i].mesh);
     montanhas.length = 0;
+    for (i = 0; i < cidades.length; i++) scene.remove(cidades[i].mesh);
+    cidades.length = 0;
     for (i = 0; i < racers.length; i++) if (racers[i].mesh) scene.remove(racers[i].mesh);
     racers.length = 0;
     for (var k in mp.peers) { if (mp.peers[k].mesh) { scene.remove(mp.peers[k].mesh); mp.peers[k].mesh = null; } }
@@ -296,22 +330,24 @@
     G.estado = 'largada'; G.morto = false; G.chegou = false;
     G.vel = G.velBase = 92 * G.mult; G.x = 0; G.y = 42; G.z = 0; G.alvoX = 0; G.alvoY = 42;
     G.roll = 0; G.pitch = 0; G.boost = 0; G.tempo = 0; G.minhaColoc = 1;
-    G.proxArgola = -140; G.proxMont = -220; G.larguei = 0;
+    G.proxArgola = -140; G.proxMont = -220; G.proxCidade = -160; G.larguei = 0;
     aviao.position.set(0, 42, 0);
     chegada.position.set(0, 0, -DIST); chegada.visible = true;
 
     // quantos pilotos reais estão na corrida?
     var peers = peersVivos();
     var nBots = Math.max(0, 4 - peers.length); // completa até 5 no total (eu + peers + bots)
-    var usados = [1, 2, 3, 4]; // índices de cor livres (0 é o meu)
-    // cria bots
+    var spots = [-170, 170, -100, 100, -135]; // largam BEM longe uns dos outros (o jogador fica no 0)
+    var usados = [1, 2, 3, 4];
     for (var b = 0; b < nBots; b++) {
       var ci = usados.length ? usados.shift() : (1 + b % 4);
       var col = CORES[ci % CORES.length];
-      var lane = (b - (nBots - 1) / 2) * 34 + (Math.random() - 0.5) * 8;
-      var mesh = fazAviao(col.c, col.a); mesh.position.set(lane, 42, -8 - Math.random() * 6); scene.add(mesh);
-      var vbot = (88 + Math.random() * 10) * (0.82 + 0.18 * (G.mult || 1));
-      racers.push({ tipo: 'bot', mesh: mesh, x: lane, y: 42, z: -8, vel: vbot, nome: 'Bot ' + col.nome, cor: col.c, fin: false, morto: false, lane: lane, fase: Math.random() * 6, hab: 0.6 + Math.random() * 0.4 });
+      var lane = spots[b % spots.length];
+      var z0 = -6 - b * 10;                     // escalonados também no comprimento
+      var mesh = fazAviao(col.c, col.a); mesh.position.set(lane, 42, z0); scene.add(mesh);
+      var hab = 0.6 + Math.random() * 0.4;
+      // bots começam no MESMO nível do seu avião (acompanham sua velocidade)
+      racers.push({ tipo: 'bot', mesh: mesh, x: lane, y: 42, z: z0, vel: 92 * G.mult, nome: 'Bot ' + col.nome, cor: col.c, fin: false, morto: false, lane: lane, fase: Math.random() * 6, hab: hab });
     }
     // cria aviões dos peers
     for (var pi = 0; pi < peers.length; pi++) {
@@ -369,6 +405,17 @@
     document.getElementById('tela-inicio').classList.remove('hidden');
   }
   function racersTotal() { return 1 + racers.length + peersVivos().length; }
+
+  // ================= QUEDA (bateu -> cai pegando fogo) =================
+  function iniciaQueda(motivo) {
+    if (G.estado === 'caindo' || G.estado === 'fim') return;
+    G.estado = 'caindo'; G.caiT = 0; G.caiVy = -3; G.caiMotivo = motivo;
+    if (!aviao.userData.fogo) { var fg = fazFogo(); aviao.add(fg); aviao.userData.fogo = fg; }
+    document.getElementById('ctrl').style.display = 'none';
+    hud.style.display = 'none';
+    somQueda();
+    mpEnvia({ t: 'st', id: meuId, nome: meuNome, x: G.x, y: G.y, z: G.z, co: false, mo: true, fi: false });
+  }
 
   // ================= SOM =================
   var actx = null;
@@ -519,6 +566,7 @@
       // ---- spawns ----
       while (G.proxArgola > G.z - 720 && G.proxArgola > -DIST) { var g = fazArgola(); var px = (Math.random() - 0.5) * 130, py = 25 + Math.random() * 90; g.position.set(px, py, G.proxArgola); scene.add(g); argolas.push({ mesh: g, x: px, y: py, z: G.proxArgola, pego: false }); G.proxArgola -= 150 + Math.random() * 80; }
       while (G.proxMont > G.z - 720 && G.proxMont > -DIST) { var mm = fazMontanha(); mm.position.set((Math.random() - 0.5) * 240, -40, G.proxMont); scene.add(mm); montanhas.push({ mesh: mm, x: mm.position.x, z: G.proxMont, raio: 32 }); G.proxMont -= 160 + Math.random() * 120; }
+      while (G.proxCidade > G.z - 760) { var cd = fazCidade(G.proxCidade); scene.add(cd); cidades.push({ mesh: cd, z: G.proxCidade }); G.proxCidade -= 220 + Math.random() * 180; }
 
       // ---- bots ----
       var i, o, dx, dy;
@@ -530,7 +578,7 @@
           var alvoLaneX = o.lane + Math.sin(o.fase * 0.7) * 14;
           o.x += (alvoLaneX - o.x) * Math.min(1, dt * 1.5);
           o.y += ((42 + Math.sin(o.fase * 0.5) * 22) - o.y) * Math.min(1, dt * 1.2);
-          o.vel += (((90 + o.hab * 26) * (0.82 + 0.18 * (G.mult || 1))) - o.vel) * Math.min(1, dt * 0.5);
+          o.vel += ((G.velBase * (0.97 + o.hab * 0.06)) - o.vel) * Math.min(1, dt * 0.6); // ~mesmo nível do jogador
           o.z -= o.vel * dt;
           if (o.z <= -DIST) { o.fin = true; o.z = -DIST; }
         }
@@ -553,14 +601,14 @@
         for (i = 0; i < todos.length; i++) {
           o = todos[i]; if (o.morto || o.fin) continue;
           if (Math.abs(o.z - G.z) < 8 && Math.hypot(G.x - o.x, G.y - o.y) < 9) {
-            G.morto = true; fimDeJogo(false, 'Bateu no avião ' + (o.nome || 'adversário') + '! ✈️💥'); break;
+            G.morto = true; iniciaQueda('Bateu no avião ' + (o.nome || 'adversário') + '!'); break;
           }
         }
       }
 
       // ---- montanhas ----
       if (correndo && !G.morto && !G.chegou) {
-        for (i = 0; i < montanhas.length; i++) { o = montanhas[i]; if (Math.abs(o.z - G.z) < 22 && Math.hypot(G.x - o.x, o.z - G.z) < o.raio && G.y < 62) { G.morto = true; fimDeJogo(false, 'Bateu na montanha! ⛰️'); break; } }
+        for (i = 0; i < montanhas.length; i++) { o = montanhas[i]; if (Math.abs(o.z - G.z) < 22 && Math.hypot(G.x - o.x, o.z - G.z) < o.raio && G.y < 62) { G.morto = true; iniciaQueda('Bateu na montanha! ⛰️'); break; } }
       }
 
       // ---- argolas (só efeito: turbinho + som) ----
@@ -588,6 +636,8 @@
 
       // ---- nuvens recicla ----
       for (i = 0; i < nuvens.length; i++) { if (nuvens[i].position.z > G.z + 130) { nuvens[i].position.z = G.z - 900 - Math.random() * 800; nuvens[i].position.x = G.x + (Math.random() - 0.5) * 1000; nuvens[i].position.y = 20 + Math.random() * 130; } }
+      for (i = 0; i < nuvensBaixas.length; i++) { if (nuvensBaixas[i].position.z > G.z + 160) { nuvensBaixas[i].position.z = G.z - 1200 - Math.random() * 1200; nuvensBaixas[i].position.x = G.x + (Math.random() - 0.5) * 1400; } }
+      for (i = cidades.length - 1; i >= 0; i--) { if (cidades[i].z > G.z + 120) { scene.remove(cidades[i].mesh); cidades.splice(i, 1); } }
 
       // ---- envia meu estado ----
       if (correndo && now() - mp.ultimoEnvio > 100) { mp.ultimoEnvio = now(); mpEnvia({ t: 'st', id: meuId, nome: meuNome, x: G.x, y: G.y, z: G.z, co: true, mo: G.morto, fi: G.chegou }); }
@@ -597,6 +647,21 @@
       hudTotal.textContent = racersTotal();
       hudProg.textContent = Math.min(100, Math.round((-G.z / DIST) * 100));
       hudVel.textContent = Math.round(G.vel * 2.4);
+    } else if (G.estado === 'caindo') {
+      // avião cai girando e pegando fogo em direção à cidade
+      G.caiT += dt;
+      G.caiVy -= 62 * dt;
+      G.y += G.caiVy * dt;
+      G.z -= Math.max(0, G.vel * 0.35) * dt;
+      aviao.rotation.x += (1.5 - aviao.rotation.x) * Math.min(1, dt * 2.2);
+      aviao.rotation.z += dt * 5.5;
+      aviao.position.set(G.x, G.y, G.z);
+      if (aviao.userData.fogo) { var fchs = aviao.userData.fogo.children; for (var qf = 0; qf < fchs.length; qf++) { var scc = 0.6 + Math.abs(Math.sin(G.caiT * 22 + qf)) * 1.0; fchs[qf].scale.setScalar(scc); } }
+      camera.position.x += (G.x - camera.position.x) * Math.min(1, dt * 3);
+      camera.position.y += ((G.y + 20) - camera.position.y) * Math.min(1, dt * 3);
+      camera.position.z = G.z + 52;
+      camera.lookAt(G.x, G.y, G.z - 18);
+      if (G.y <= -34 || G.caiT > 3.2) { beep(160, 0.5, 'sawtooth', 0.14, 40); voltaMenu(G.caiMotivo || 'Você bateu e caiu!'); }
     } else {
       // menu: avião flutuando
       aviao.position.set(0, 42 + Math.sin(clock.getElapsedTime() * 1.5) * 2, 0);
