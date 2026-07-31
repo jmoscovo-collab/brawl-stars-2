@@ -246,7 +246,7 @@
     roll: 0, pitch: 0, boost: 0, tempo: 0,
     morto: false, chegou: false, minhaColoc: 1,
     proxArgola: -120, proxMont: -180, proxCidade: -140, larguei: 0,
-    caiT: 0, caiVy: 0, caiMotivo: '', mult: 1
+    caiT: 0, caiVy: 0, caiMotivo: '', mult: 1, imortal: 0
   };
   var cidades = [];
 
@@ -370,7 +370,7 @@
     var iv = setInterval(function () {
       cont--;
       if (cont > 0) { cdEl.textContent = String(cont); beep(500, 0.2, 'square', 0.08); }
-      else if (cont === 0) { cdEl.textContent = 'JÁ! 🏁'; beep(900, 0.4, 'square', 0.1); G.estado = 'correndo'; G.larguei = G.tempo; }
+      else if (cont === 0) { cdEl.textContent = 'JÁ! 🏁'; beep(900, 0.4, 'square', 0.1); G.estado = 'correndo'; G.larguei = G.tempo; G.imortal = 3; }
       else { clearInterval(iv); cdEl.style.display = 'none'; }
     }, 900);
   }
@@ -598,7 +598,7 @@
       }
 
       // ---- colisões com outros aviões (bot ou peer) ----
-      if (correndo && !G.morto && !G.chegou) {
+      if (correndo && !G.morto && !G.chegou && G.imortal <= 0) {
         var todos = racers.concat(peers);
         for (i = 0; i < todos.length; i++) {
           o = todos[i]; if (o.morto || o.fin) continue;
@@ -609,7 +609,7 @@
       }
 
       // ---- montanhas ----
-      if (correndo && !G.morto && !G.chegou) {
+      if (correndo && !G.morto && !G.chegou && G.imortal <= 0) {
         for (i = 0; i < montanhas.length; i++) { o = montanhas[i]; if (Math.abs(o.z - G.z) < 22 && Math.hypot(G.x - o.x, o.z - G.z) < o.raio && G.y < 62) { G.morto = true; iniciaQueda('Bateu na montanha! ⛰️'); break; } }
       }
 
@@ -640,6 +640,9 @@
       for (i = 0; i < nuvens.length; i++) { if (nuvens[i].position.z > G.z + 130) { nuvens[i].position.z = G.z - 900 - Math.random() * 800; nuvens[i].position.x = G.x + (Math.random() - 0.5) * 1000; nuvens[i].position.y = 20 + Math.random() * 130; } }
       for (i = 0; i < nuvensBaixas.length; i++) { if (nuvensBaixas[i].position.z > G.z + 160) { nuvensBaixas[i].position.z = G.z - 1200 - Math.random() * 1200; nuvensBaixas[i].position.x = G.x + (Math.random() - 0.5) * 1400; } }
       for (i = cidades.length - 1; i >= 0; i--) { if (cidades[i].z > G.z + 120) { scene.remove(cidades[i].mesh); cidades.splice(i, 1); } }
+
+      // ---- imortalidade da largada (3s) ----
+      if (G.imortal > 0) { G.imortal -= dt; aviao.visible = (Math.floor(G.tempo * 10) % 2 === 0); } else { aviao.visible = true; }
 
       // ---- envia meu estado ----
       if (correndo && now() - mp.ultimoEnvio > 100) { mp.ultimoEnvio = now(); mpEnvia({ t: 'st', id: meuId, nome: meuNome, x: G.x, y: G.y, z: G.z, co: true, mo: G.morto, fi: G.chegou }); }
