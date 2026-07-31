@@ -226,15 +226,35 @@
   if (frota.indexOf(selecionado) < 0) selecionado = 'paulistinha';
   function planoAtual() { return planoPorId(selecionado); }
 
+  function fazLabel(txt, cor) {
+    var cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
+    var x = cv.getContext('2d');
+    x.font = 'bold 34px Arial'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.lineWidth = 7; x.strokeStyle = 'rgba(0,0,0,0.75)'; x.strokeText(txt, 128, 34);
+    x.fillStyle = cor || '#ffffff'; x.fillText(txt, 128, 34);
+    var tex = new THREE.CanvasTexture(cv);
+    var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false }));
+    sp.scale.set(30, 7.5, 1); sp.position.y = 9;
+    return sp;
+  }
+
   var aviao;
+  function flameCone(r, h, cor, op) {
+    var m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 14),
+      new THREE.MeshBasicMaterial({ color: cor, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false }));
+    m.rotation.x = Math.PI / 2; return m;
+  }
   function montaMeuAviao() {
     if (aviao) scene.remove(aviao);
     var pl = planoAtual(); aviao = fazAviao(pl.cor, pl.corAsa);
-    // fogo do turbo (sai da traseira, z+)
+    // FOGO DO TURBO realista: camadas com brilho (aditivo) — vermelho->laranja->amarelo->núcleo branco
     var tf = new THREE.Group();
-    var ch = cone(1.7, 6, 0xff7a1e, 10); ch.rotation.x = Math.PI / 2; ch.position.z = 10.5; tf.add(ch);
-    var ch2 = cone(1.0, 3.6, 0xffe23a, 10); ch2.rotation.x = Math.PI / 2; ch2.position.z = 9.2; tf.add(ch2);
+    var f1 = flameCone(1.7, 8.5, 0xff2a10, 0.45); f1.position.z = 12; tf.add(f1);
+    var f2 = flameCone(1.2, 6.2, 0xff7a1e, 0.6); f2.position.z = 10.8; tf.add(f2);
+    var f3 = flameCone(0.75, 4.2, 0xffd23a, 0.8); f3.position.z = 9.8; tf.add(f3);
+    var f4 = flameCone(0.38, 2.4, 0xffffff, 0.95); f4.position.z = 9.1; tf.add(f4);
     tf.visible = false; aviao.add(tf); aviao.userData.turbo = tf;
+    aviao.add(fazLabel('Você', '#7CFF7C'));
     scene.add(aviao);
   }
   montaMeuAviao();
@@ -356,24 +376,26 @@
     // quantos pilotos reais estão na corrida?
     var peers = peersVivos();
     var nBots = Math.max(0, 4 - peers.length); // completa até 5 no total (eu + peers + bots)
-    var spots = [-190, 190, -120, 120, -150]; // cada um numa faixa BEM separada (o jogador fica no 0)
-    var alts = [70, 20, 90, 12, 55];          // e em alturas diferentes
-    var usados = [1, 2, 3, 4];
+    // TODOS largam lado a lado, em FILEIRA, espaçados pra não bater (jogador no meio, x=0)
+    var slots = [-48, 48, -96, 96, -144, 144];
+    var usados = [1, 2, 3, 4]; var si = 0;
     for (var b = 0; b < nBots; b++) {
       var ci = usados.length ? usados.shift() : (1 + b % 4);
       var col = CORES[ci % CORES.length];
-      var lane = spots[b % spots.length];
-      var alt = alts[b % alts.length];
-      var z0 = -30 - b * 45;                    // MUITO escalonados no comprimento (não nascem juntos)
-      var mesh = fazAviao(col.c, col.a); mesh.position.set(lane, alt, z0); scene.add(mesh);
+      var lane = slots[si++ % slots.length];
+      var mesh = fazAviao(col.c, col.a); mesh.position.set(lane, 42, 0); scene.add(mesh);
+      mesh.add(fazLabel('Bot ' + col.nome, '#ffd23a'));
       var hab = 0.6 + Math.random() * 0.4;
-      // bots começam no MESMO nível do seu avião (acompanham sua velocidade)
-      racers.push({ tipo: 'bot', mesh: mesh, x: lane, y: alt, z: z0, vel: 92 * G.mult, nome: 'Bot ' + col.nome, cor: col.c, fin: false, morto: false, lane: lane, alt: alt, fase: Math.random() * 6, hab: hab });
+      // bots no MESMO nível do seu avião (acompanham sua velocidade)
+      racers.push({ tipo: 'bot', mesh: mesh, x: lane, y: 42, z: 0, vel: 92 * G.mult, nome: 'Bot ' + col.nome, cor: col.c, fin: false, morto: false, lane: lane, alt: 42, fase: Math.random() * 6, hab: hab });
     }
-    // cria aviões dos peers
+    // aviões dos peers (também na fileira)
     for (var pi = 0; pi < peers.length; pi++) {
       var pcol = CORES[(1 + pi) % CORES.length];
-      var pm = fazAviao(pcol.c, pcol.a); scene.add(pm);
+      var pm = fazAviao(pcol.c, pcol.a);
+      var pslot = slots[si++ % slots.length];
+      pm.position.set(pslot, 42, 0); scene.add(pm);
+      pm.add(fazLabel(peers[pi].nome || 'Piloto', '#7ef0ff'));
       peers[pi].mesh = pm; peers[pi].cor = pcol.c;
     }
 
@@ -583,8 +605,8 @@
       }
       if (aviao.userData.turbo) {
         var fogoOn = (G.boost && correndo);
-        aviao.userData.turbo.visible = fogoOn;
-        if (fogoOn) { var fl = 0.7 + Math.random() * 0.9; aviao.userData.turbo.scale.set(0.9 + Math.random() * 0.3, 0.9 + Math.random() * 0.3, fl); }
+        var tfg = aviao.userData.turbo; tfg.visible = fogoOn;
+        if (fogoOn) { var fch = tfg.children; for (var fk = 0; fk < fch.length; fk++) { var fz = 0.75 + Math.random() * 0.7; fch[fk].scale.set(0.8 + Math.random() * 0.35, 0.8 + Math.random() * 0.35, fz); fch[fk].position.x = (Math.random() - 0.5) * 0.5; } }
       }
       aviao.position.set(G.x, G.y, G.z);
       aviao.rotation.z = -G.roll; aviao.rotation.x = G.pitch; aviao.rotation.y = G.roll * 0.5;
@@ -622,7 +644,7 @@
       var peers = peersVivos();
       for (i = 0; i < peers.length; i++) {
         o = peers[i];
-        if (!o.mesh) { var pcol = CORES[(1 + i) % CORES.length]; o.mesh = fazAviao(pcol.c, pcol.a); scene.add(o.mesh); }
+        if (!o.mesh) { var pcol = CORES[(1 + i) % CORES.length]; o.mesh = fazAviao(pcol.c, pcol.a); o.mesh.add(fazLabel(o.nome || 'Piloto', '#7ef0ff')); scene.add(o.mesh); }
         o.mesh.position.set(o.x, o.y, o.z);
         o.mesh.visible = !o.morto;
       }
