@@ -59,6 +59,18 @@
   input.codigo { font-size:26px; letter-spacing:6px; text-align:center; padding:10px; border-radius:12px; border:none; width:200px; text-transform:uppercase; font-family:inherit; }
   #msg { position:fixed; top:20%; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.85); padding:16px 26px; border-radius:18px; font-size:22px; font-weight:bold; z-index:200; display:none; text-align:center; max-width:90%; }
   .pill { display:inline-block; background:rgba(255,255,255,.15); border-radius:20px; padding:4px 12px; font-size:15px; margin:2px; }
+  .materiaGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .materiaBtn {
+    border:none; border-radius:18px; padding:18px 10px; font-size:18px; font-weight:bold;
+    color:#fff; cursor:pointer; font-family:inherit; box-shadow:0 4px 0 rgba(0,0,0,.4);
+    display:flex; flex-direction:column; align-items:center; gap:6px; transition:transform .08s;
+  }
+  .materiaBtn:active { transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.4); }
+  .materiaBtn .em { font-size:34px; }
+  .materiaSelo {
+    display:inline-block; border-radius:20px; padding:5px 14px; font-size:16px; font-weight:bold;
+    color:#fff; margin:4px 0; box-shadow:0 2px 0 rgba(0,0,0,.35);
+  }
 </style>
 
 <div id="topo">
@@ -72,12 +84,22 @@
   <p class="sub">Responda mais rápido que o bot e vença! 🧠⚡</p>
   <div class="card">
     <h2>Escolha o nível 👇</h2>
-    <button class="btn verde nivelBtn" onclick="iniciaSolo('facil')">😀 FÁCIL</button>
-    <button class="btn azul nivelBtn" onclick="iniciaSolo('medio')">🤔 MÉDIO</button>
-    <button class="btn laranja nivelBtn" onclick="iniciaSolo('dificil')">🤯 DIFÍCIL</button>
+    <button class="btn verde nivelBtn" onclick="escolheNivel('facil')">😀 FÁCIL</button>
+    <button class="btn azul nivelBtn" onclick="escolheNivel('medio')">🤔 MÉDIO</button>
+    <button class="btn laranja nivelBtn" onclick="escolheNivel('dificil')">🤯 DIFÍCIL</button>
   </div>
   <button class="btn" style="font-size:22px;padding:18px 30px;" onclick="abreOnline()">🌍 ONLINE (contra amigos)</button>
   <p class="sub">🏆 Vitórias: <b id="recordeTxt">0</b></p>
+</div>
+
+<!-- ESCOLHA DE MATÉRIA (solo) -->
+<div id="telaMateria" class="tela">
+  <h1>📚 Escolha a matéria</h1>
+  <p class="sub" id="materiaNivelTxt"></p>
+  <div class="card">
+    <div id="materiaBtns" class="materiaGrid"></div>
+  </div>
+  <button class="btn azul" onclick="voltaMenu()">🏠 Menu</button>
 </div>
 
 <!-- JOGO -->
@@ -120,132 +142,215 @@
    QUIZ COGUMELO — banco de perguntas
    Cada item: {q, opcoes:[4], correta:idx, nivel}
    ========================================================= */
+const MATERIAS = {
+  geografia:  { label:'Geografia',  icon:'🌍', cor:'#2979ff' },
+  matematica: { label:'Matemática', icon:'➗', cor:'#00c853' },
+  ciencias:   { label:'Ciências',   icon:'🔬', cor:'#ab47bc' },
+  ingles:     { label:'Inglês',     icon:'🇬🇧', cor:'#ff3d00' },
+  historia:   { label:'História',   icon:'📜', cor:'#ff9100' },
+};
+function matLabel(m){ const x=MATERIAS[m]; return x ? (x.icon+' '+x.label) : ''; }
+function seloMateriaHtml(m){
+  const x=MATERIAS[m]; if(!x) return '';
+  return `<span class="materiaSelo" style="background:${x.cor}">${x.icon} ${x.label}</span>`;
+}
+
 const PERGUNTAS = [
-  // ---------- FÁCEIS (~40) ----------
-  {q:"Qual a cor do céu num dia limpo de sol?", opcoes:["Azul","Verde","Roxo","Marrom"], correta:0, nivel:"facil"},
-  {q:"Quantas patas tem um cachorro?", opcoes:["Duas","Quatro","Seis","Oito"], correta:1, nivel:"facil"},
-  {q:"Qual animal faz 'miau'?", opcoes:["Cachorro","Vaca","Gato","Pato"], correta:2, nivel:"facil"},
-  {q:"Quanto é 2 + 2?", opcoes:["3","4","5","6"], correta:1, nivel:"facil"},
-  {q:"Qual fruta é amarela e os macacos adoram?", opcoes:["Maçã","Uva","Banana","Melancia"], correta:2, nivel:"facil"},
-  {q:"Que cor fica a grama saudável?", opcoes:["Vermelha","Verde","Azul","Preta"], correta:1, nivel:"facil"},
-  {q:"Qual animal é o 'rei da selva'?", opcoes:["Elefante","Leão","Girafa","Coelho"], correta:1, nivel:"facil"},
-  {q:"Quantos dias tem uma semana?", opcoes:["5","6","7","10"], correta:2, nivel:"facil"},
-  {q:"Onde os peixes vivem?", opcoes:["Na árvore","Na água","No céu","No deserto"], correta:1, nivel:"facil"},
-  {q:"Qual desses é uma cor?", opcoes:["Cadeira","Vermelho","Sapato","Janela"], correta:1, nivel:"facil"},
-  {q:"O que usamos para enxergar?", opcoes:["Os olhos","As mãos","Os pés","O nariz"], correta:0, nivel:"facil"},
-  {q:"Quanto é 5 + 5?", opcoes:["9","10","11","15"], correta:1, nivel:"facil"},
-  {q:"Qual animal dá leite pra gente?", opcoes:["Vaca","Cobra","Peixe","Aranha"], correta:0, nivel:"facil"},
-  {q:"Qual bicho voa e faz mel?", opcoes:["Formiga","Abelha","Minhoca","Caramujo"], correta:1, nivel:"facil"},
-  {q:"De que cor é o Sol que desenhamos?", opcoes:["Amarelo","Azul","Verde","Cinza"], correta:0, nivel:"facil"},
-  {q:"Quantos dedos tem numa mão?", opcoes:["3","4","5","6"], correta:2, nivel:"facil"},
-  {q:"O gelo é feito de quê?", opcoes:["Areia","Água","Leite","Suco"], correta:1, nivel:"facil"},
-  {q:"Qual animal é conhecido por ser bem lento?", opcoes:["Guepardo","Tartaruga","Cavalo","Coelho"], correta:1, nivel:"facil"},
-  {q:"Quanto é 3 + 1?", opcoes:["2","4","5","7"], correta:1, nivel:"facil"},
-  {q:"Qual desses é um animal de estimação comum?", opcoes:["Leão","Tubarão","Gato","Baleia"], correta:2, nivel:"facil"},
-  {q:"O que cai do céu quando chove?", opcoes:["Pedra","Água","Fogo","Areia"], correta:1, nivel:"facil"},
-  {q:"Que som a vaca faz?", opcoes:["Au au","Muuu","Miau","Quá quá"], correta:1, nivel:"facil"},
-  {q:"Qual é a primeira letra do alfabeto?", opcoes:["A","B","C","Z"], correta:0, nivel:"facil"},
-  {q:"Quantas rodas tem uma bicicleta?", opcoes:["1","2","3","4"], correta:1, nivel:"facil"},
-  {q:"Qual fruta é vermelha e pequena, começa com 'M'?", opcoes:["Banana","Morango","Abacate","Kiwi"], correta:1, nivel:"facil"},
-  {q:"O que a gente veste nos pés?", opcoes:["Luva","Chapéu","Sapato","Óculos"], correta:2, nivel:"facil"},
-  {q:"Qual animal tem uma tromba grande?", opcoes:["Elefante","Gato","Pato","Peixe"], correta:0, nivel:"facil"},
-  {q:"Quanto é 10 - 1?", opcoes:["8","9","10","11"], correta:1, nivel:"facil"},
-  {q:"De que cor é a neve?", opcoes:["Preta","Branca","Verde","Rosa"], correta:1, nivel:"facil"},
-  {q:"Qual bicho pula e faz 'coax'?", opcoes:["Sapo","Cachorro","Vaca","Galinha"], correta:0, nivel:"facil"},
-  {q:"O que usamos pra escrever no caderno?", opcoes:["Garfo","Lápis","Colher","Martelo"], correta:1, nivel:"facil"},
-  {q:"Quantos olhos tem uma pessoa?", opcoes:["1","2","3","4"], correta:1, nivel:"facil"},
-  {q:"Qual desses voa?", opcoes:["Cachorro","Passarinho","Peixe","Gato"], correta:1, nivel:"facil"},
-  {q:"Quanto é 1 + 1?", opcoes:["1","2","3","4"], correta:1, nivel:"facil"},
-  {q:"Qual bebida vem da laranja?", opcoes:["Suco de laranja","Café","Leite","Água"], correta:0, nivel:"facil"},
-  {q:"O que a galinha bota?", opcoes:["Ovos","Leite","Mel","Lã"], correta:0, nivel:"facil"},
-  {q:"Qual estação é bem quente?", opcoes:["Inverno","Verão","Outono","Nenhuma"], correta:1, nivel:"facil"},
-  {q:"Qual animal late?", opcoes:["Gato","Cachorro","Peixe","Coelho"], correta:1, nivel:"facil"},
-  {q:"Quantos dias tem o fim de semana (sábado e domingo)?", opcoes:["1","2","3","4"], correta:1, nivel:"facil"},
-  {q:"Qual é a cor de uma banana madura?", opcoes:["Azul","Amarela","Roxa","Preta"], correta:1, nivel:"facil"},
+  /* ===================== GEOGRAFIA ===================== */
+  // fácil
+  {q:"Qual é a capital do Brasil?", opcoes:["São Paulo","Rio de Janeiro","Brasília","Salvador"], correta:2, nivel:"facil", materia:"geografia"},
+  {q:"Em que país nós moramos?", opcoes:["Argentina","Brasil","Portugal","Chile"], correta:1, nivel:"facil", materia:"geografia"},
+  {q:"Qual desses é um oceano?", opcoes:["Amazonas","Atlântico","Tietê","Everest"], correta:1, nivel:"facil", materia:"geografia"},
+  {q:"Em qual continente fica o Brasil?", opcoes:["Europa","Ásia","América do Sul","África"], correta:2, nivel:"facil", materia:"geografia"},
+  {q:"Qual é maior?", opcoes:["Uma cidade","Um país","São iguais","Uma rua"], correta:1, nivel:"facil", materia:"geografia"},
+  {q:"Qual desses é um estado do Brasil?", opcoes:["Paris","Bahia","Lisboa","Roma"], correta:1, nivel:"facil", materia:"geografia"},
+  {q:"O rio mais famoso do Brasil é o rio...?", opcoes:["Amazonas","Nilo","Tâmisa","Sena"], correta:0, nivel:"facil", materia:"geografia"},
+  {q:"Qual é a capital do estado de São Paulo?", opcoes:["Campinas","São Paulo","Santos","Guarulhos"], correta:1, nivel:"facil", materia:"geografia"},
+  {q:"Onde tem muita areia e é bem quente e seco?", opcoes:["Deserto","Floresta","Geleira","Oceano"], correta:0, nivel:"facil", materia:"geografia"},
+  {q:"O que é maior: um país ou um planeta?", opcoes:["O país","O planeta","São iguais","A cidade"], correta:1, nivel:"facil", materia:"geografia"},
+  {q:"Qual desses é a capital do Rio Grande do Sul?", opcoes:["Porto Alegre","Curitiba","Recife","Belém"], correta:0, nivel:"facil", materia:"geografia"},
+  {q:"Água salgada é encontrada em qual lugar?", opcoes:["No mar","Na piscina","No copo","Na torneira"], correta:0, nivel:"facil", materia:"geografia"},
+  // médio
+  {q:"Qual é a capital da Argentina?", opcoes:["Santiago","Buenos Aires","Lima","Montevidéu"], correta:1, nivel:"medio", materia:"geografia"},
+  {q:"Quantos continentes existem no mundo?", opcoes:["5","6","7","8"], correta:2, nivel:"medio", materia:"geografia"},
+  {q:"Qual é o maior oceano do mundo?", opcoes:["Atlântico","Índico","Pacífico","Ártico"], correta:2, nivel:"medio", materia:"geografia"},
+  {q:"Em que país fica a Torre Eiffel?", opcoes:["Itália","Espanha","França","Alemanha"], correta:2, nivel:"medio", materia:"geografia"},
+  {q:"Qual é o maior rio do Brasil?", opcoes:["Rio Tietê","Rio Amazonas","Rio São Francisco","Rio Paraná"], correta:1, nivel:"medio", materia:"geografia"},
+  {q:"Qual é a capital de Minas Gerais?", opcoes:["Belo Horizonte","Ouro Preto","Contagem","Uberlândia"], correta:0, nivel:"medio", materia:"geografia"},
+  {q:"Qual país é vizinho do Brasil?", opcoes:["Argentina","México","Espanha","Egito"], correta:0, nivel:"medio", materia:"geografia"},
+  {q:"Em qual país fica a cidade de Tóquio?", opcoes:["China","Coreia","Japão","Tailândia"], correta:2, nivel:"medio", materia:"geografia"},
+  {q:"Qual é a maior floresta do Brasil?", opcoes:["Mata Atlântica","Floresta Amazônica","Cerrado","Caatinga"], correta:1, nivel:"medio", materia:"geografia"},
+  {q:"Em qual continente fica o Egito?", opcoes:["Ásia","Europa","África","Oceania"], correta:2, nivel:"medio", materia:"geografia"},
+  {q:"Qual desses estados fica na região Nordeste?", opcoes:["Bahia","Paraná","Amazonas","Santa Catarina"], correta:0, nivel:"medio", materia:"geografia"},
+  {q:"Qual é a capital do estado do Ceará?", opcoes:["Natal","Fortaleza","Recife","Salvador"], correta:1, nivel:"medio", materia:"geografia"},
+  // difícil
+  {q:"Qual é a capital do Japão?", opcoes:["Pequim","Seul","Tóquio","Bangkok"], correta:2, nivel:"dificil", materia:"geografia"},
+  {q:"Qual é o maior deserto quente do mundo?", opcoes:["Deserto do Saara","Deserto de Gobi","Deserto do Atacama","Kalahari"], correta:0, nivel:"dificil", materia:"geografia"},
+  {q:"Qual é a capital da Austrália?", opcoes:["Sydney","Melbourne","Canberra","Perth"], correta:2, nivel:"dificil", materia:"geografia"},
+  {q:"Qual é o maior país do mundo em território?", opcoes:["China","Estados Unidos","Rússia","Canadá"], correta:2, nivel:"dificil", materia:"geografia"},
+  {q:"Qual é a capital do Egito?", opcoes:["Cairo","Casablanca","Argel","Túnis"], correta:0, nivel:"dificil", materia:"geografia"},
+  {q:"Qual país tem o formato de uma bota na Europa?", opcoes:["Espanha","Itália","Grécia","Portugal"], correta:1, nivel:"dificil", materia:"geografia"},
+  {q:"Qual é a capital dos Estados Unidos?", opcoes:["Nova York","Los Angeles","Washington, D.C.","Chicago"], correta:2, nivel:"dificil", materia:"geografia"},
+  {q:"Qual é a montanha mais alta do mundo?", opcoes:["Monte Everest","K2","Aconcágua","Kilimanjaro"], correta:0, nivel:"dificil", materia:"geografia"},
+  {q:"Qual é a capital da Alemanha?", opcoes:["Munique","Berlim","Frankfurt","Hamburgo"], correta:1, nivel:"dificil", materia:"geografia"},
+  {q:"Qual é a capital da Itália?", opcoes:["Milão","Roma","Veneza","Nápoles"], correta:1, nivel:"dificil", materia:"geografia"},
+  {q:"Qual é a capital da Rússia?", opcoes:["São Petersburgo","Moscou","Kiev","Varsóvia"], correta:1, nivel:"dificil", materia:"geografia"},
+  {q:"Qual é o maior país da América do Sul?", opcoes:["Argentina","Brasil","Peru","Colômbia"], correta:1, nivel:"dificil", materia:"geografia"},
+  {q:"Qual é o continente mais frio do planeta?", opcoes:["Europa","Ásia","Antártida","América do Norte"], correta:2, nivel:"dificil", materia:"geografia"},
 
-  // ---------- MÉDIAS (~40) ----------
-  {q:"Qual é a capital do Brasil?", opcoes:["São Paulo","Rio de Janeiro","Brasília","Salvador"], correta:2, nivel:"medio"},
-  {q:"Quantos continentes existem no mundo?", opcoes:["5","6","7","8"], correta:2, nivel:"medio"},
-  {q:"Qual é o maior planeta do Sistema Solar?", opcoes:["Terra","Júpiter","Marte","Saturno"], correta:1, nivel:"medio"},
-  {q:"Quanto é 7 x 6?", opcoes:["36","42","48","40"], correta:1, nivel:"medio"},
-  {q:"Qual animal é o maior do mundo?", opcoes:["Elefante","Baleia-azul","Girafa","Tubarão"], correta:1, nivel:"medio"},
-  {q:"Em que país fica a Torre Eiffel?", opcoes:["Itália","Espanha","França","Alemanha"], correta:2, nivel:"medio"},
-  {q:"Qual é o planeta em que vivemos?", opcoes:["Marte","Terra","Vênus","Lua"], correta:1, nivel:"medio"},
-  {q:"Quantos lados tem um triângulo?", opcoes:["3","4","5","6"], correta:0, nivel:"medio"},
-  {q:"Qual é o maior rio do Brasil?", opcoes:["Rio Tietê","Rio Amazonas","Rio São Francisco","Rio Paraná"], correta:1, nivel:"medio"},
-  {q:"Quanto é 9 x 9?", opcoes:["72","81","91","99"], correta:1, nivel:"medio"},
-  {q:"Qual animal é conhecido por trocar de cor?", opcoes:["Camaleão","Zebra","Panda","Urso"], correta:0, nivel:"medio"},
-  {q:"Quantos minutos tem uma hora?", opcoes:["30","50","60","100"], correta:2, nivel:"medio"},
-  {q:"Qual é a estrela mais próxima da Terra?", opcoes:["A Lua","O Sol","Júpiter","Sirius"], correta:1, nivel:"medio"},
-  {q:"Que gás as plantas soltam e a gente respira?", opcoes:["Gás carbônico","Oxigênio","Hélio","Fumaça"], correta:1, nivel:"medio"},
-  {q:"Qual é o maior oceano do mundo?", opcoes:["Atlântico","Índico","Pacífico","Ártico"], correta:2, nivel:"medio"},
-  {q:"Quantos jogadores tem um time de futebol em campo?", opcoes:["9","10","11","12"], correta:2, nivel:"medio"},
-  {q:"Qual é a cor que se forma misturando azul e amarelo?", opcoes:["Verde","Laranja","Roxo","Marrom"], correta:0, nivel:"medio"},
-  {q:"Quanto é 100 - 45?", opcoes:["45","55","65","50"], correta:1, nivel:"medio"},
-  {q:"Qual animal é um mamífero que voa?", opcoes:["Águia","Morcego","Pinguim","Avestruz"], correta:1, nivel:"medio"},
-  {q:"Em qual país fica a cidade de Tóquio?", opcoes:["China","Coreia","Japão","Tailândia"], correta:2, nivel:"medio"},
-  {q:"Qual é o metal usado nas medalhas de 1º lugar?", opcoes:["Prata","Ouro","Bronze","Ferro"], correta:1, nivel:"medio"},
-  {q:"Quantos meses tem um ano?", opcoes:["10","11","12","13"], correta:2, nivel:"medio"},
-  {q:"Qual dinossauro era um grande predador de dentes enormes?", opcoes:["Tiranossauro Rex","Triceratops","Braquiossauro","Estegossauro"], correta:0, nivel:"medio"},
-  {q:"Qual é a forma da Terra?", opcoes:["Quadrada","Redonda (esfera)","Triângulo","Plana"], correta:1, nivel:"medio"},
-  {q:"Quanto é 12 x 3?", opcoes:["24","36","30","33"], correta:1, nivel:"medio"},
-  {q:"Qual é o esporte jogado com uma raquete e uma bolinha na mesa?", opcoes:["Tênis de mesa","Vôlei","Basquete","Golfe"], correta:0, nivel:"medio"},
-  {q:"Qual é o maior animal terrestre?", opcoes:["Elefante africano","Rinoceronte","Hipopótamo","Girafa"], correta:0, nivel:"medio"},
-  {q:"Qual planeta é conhecido como 'planeta vermelho'?", opcoes:["Vênus","Marte","Mercúrio","Netuno"], correta:1, nivel:"medio"},
-  {q:"Quantas cores tem o arco-íris?", opcoes:["5","6","7","8"], correta:2, nivel:"medio"},
-  {q:"Qual é a capital da Argentina?", opcoes:["Santiago","Buenos Aires","Lima","Montevidéu"], correta:1, nivel:"medio"},
-  {q:"Quanto é metade de 50?", opcoes:["20","25","30","15"], correta:1, nivel:"medio"},
-  {q:"Qual é o órgão que bombeia o sangue no corpo?", opcoes:["Pulmão","Coração","Estômago","Cérebro"], correta:1, nivel:"medio"},
-  {q:"Qual é o animal símbolo da China, preto e branco?", opcoes:["Urso polar","Panda","Coala","Zebra"], correta:1, nivel:"medio"},
-  {q:"Quanto é 8 x 7?", opcoes:["54","56","58","63"], correta:1, nivel:"medio"},
-  {q:"Quantos planetas tem o Sistema Solar?", opcoes:["7","8","9","10"], correta:1, nivel:"medio"},
-  {q:"Qual é a maior floresta do Brasil?", opcoes:["Mata Atlântica","Floresta Amazônica","Cerrado","Caatinga"], correta:1, nivel:"medio"},
-  {q:"Qual instrumento tem teclas pretas e brancas?", opcoes:["Violão","Piano","Bateria","Flauta"], correta:1, nivel:"medio"},
-  {q:"Quanto é 6 x 6?", opcoes:["30","36","42","46"], correta:1, nivel:"medio"},
-  {q:"Qual é o time de futebol com mais Copas do Mundo (país)?", opcoes:["Alemanha","Brasil","Argentina","Itália"], correta:1, nivel:"medio"},
-  {q:"Qual é a água que a gente NÃO pode beber?", opcoes:["Água do mar (salgada)","Água mineral","Água filtrada","Água da torneira fervida"], correta:0, nivel:"medio"},
+  /* ===================== MATEMÁTICA ===================== */
+  // fácil
+  {q:"Quanto é 2 + 2?", opcoes:["3","4","5","6"], correta:1, nivel:"facil", materia:"matematica"},
+  {q:"Quanto é 5 + 5?", opcoes:["9","10","11","15"], correta:1, nivel:"facil", materia:"matematica"},
+  {q:"Quanto é 3 + 4?", opcoes:["6","7","8","9"], correta:1, nivel:"facil", materia:"matematica"},
+  {q:"Quanto é 10 - 3?", opcoes:["6","7","8","9"], correta:1, nivel:"facil", materia:"matematica"},
+  {q:"Quanto é 2 x 3?", opcoes:["5","6","7","8"], correta:1, nivel:"facil", materia:"matematica"},
+  {q:"Quantos lados tem um triângulo?", opcoes:["3","4","5","6"], correta:0, nivel:"facil", materia:"matematica"},
+  {q:"Quantos lados tem um quadrado?", opcoes:["3","4","5","6"], correta:1, nivel:"facil", materia:"matematica"},
+  {q:"Qual número vem depois do 9?", opcoes:["8","10","11","7"], correta:1, nivel:"facil", materia:"matematica"},
+  {q:"Quanto é 6 + 3?", opcoes:["8","9","10","11"], correta:1, nivel:"facil", materia:"matematica"},
+  {q:"Complete a sequência: 2, 4, 6, ...?", opcoes:["7","8","9","10"], correta:1, nivel:"facil", materia:"matematica"},
+  {q:"Quanto é 4 x 2?", opcoes:["6","8","10","12"], correta:1, nivel:"facil", materia:"matematica"},
+  {q:"Qual é a metade de 10?", opcoes:["4","5","6","2"], correta:1, nivel:"facil", materia:"matematica"},
+  // médio
+  {q:"Quanto é 7 x 6?", opcoes:["36","42","48","40"], correta:1, nivel:"medio", materia:"matematica"},
+  {q:"Quanto é 9 x 9?", opcoes:["72","81","91","99"], correta:1, nivel:"medio", materia:"matematica"},
+  {q:"Quanto é 8 x 7?", opcoes:["54","56","58","63"], correta:1, nivel:"medio", materia:"matematica"},
+  {q:"Quanto é 6 x 6?", opcoes:["30","36","42","46"], correta:1, nivel:"medio", materia:"matematica"},
+  {q:"Quanto é 12 x 3?", opcoes:["24","36","30","33"], correta:1, nivel:"medio", materia:"matematica"},
+  {q:"Quanto é 100 - 45?", opcoes:["45","55","65","50"], correta:1, nivel:"medio", materia:"matematica"},
+  {q:"Qual é a metade de 50?", opcoes:["20","25","30","15"], correta:1, nivel:"medio", materia:"matematica"},
+  {q:"Complete a sequência: 5, 10, 15, ...?", opcoes:["18","20","25","30"], correta:1, nivel:"medio", materia:"matematica"},
+  {q:"Quantos lados tem um hexágono?", opcoes:["5","6","7","8"], correta:1, nivel:"medio", materia:"matematica"},
+  {q:"Quanto é 25 x 4?", opcoes:["90","100","110","95"], correta:1, nivel:"medio", materia:"matematica"},
+  {q:"Quanto é 8 x 8?", opcoes:["56","64","72","48"], correta:1, nivel:"medio", materia:"matematica"},
+  {q:"Qual é o dobro de 15?", opcoes:["25","30","35","20"], correta:1, nivel:"medio", materia:"matematica"},
+  // difícil (contas maiores)
+  {q:"Quanto é 14 x 12?", opcoes:["144","168","156","174"], correta:1, nivel:"dificil", materia:"matematica"},
+  {q:"Quanto é 256 dividido por 8?", opcoes:["32","28","36","30"], correta:0, nivel:"dificil", materia:"matematica"},
+  {q:"Quanto é 15 x 15?", opcoes:["205","225","215","235"], correta:1, nivel:"dificil", materia:"matematica"},
+  {q:"Quanto é 1000 - 375?", opcoes:["625","635","615","725"], correta:0, nivel:"dificil", materia:"matematica"},
+  {q:"Quanto é 7 x 8 x 2?", opcoes:["102","112","122","96"], correta:1, nivel:"dificil", materia:"matematica"},
+  {q:"Quanto é 9 x 12?", opcoes:["108","98","118","96"], correta:0, nivel:"dificil", materia:"matematica"},
+  {q:"Quanto é 13 x 13?", opcoes:["159","169","179","149"], correta:1, nivel:"dificil", materia:"matematica"},
+  {q:"Quanto é 144 dividido por 12?", opcoes:["11","12","13","14"], correta:1, nivel:"dificil", materia:"matematica"},
+  {q:"Quanto é 18 x 5?", opcoes:["80","90","100","85"], correta:1, nivel:"dificil", materia:"matematica"},
+  {q:"Quanto é 11 x 11?", opcoes:["111","121","131","101"], correta:1, nivel:"dificil", materia:"matematica"},
+  {q:"Quanto é 500 dividido por 25?", opcoes:["15","20","25","10"], correta:1, nivel:"dificil", materia:"matematica"},
+  {q:"Quantos zeros tem um milhão?", opcoes:["5","6","7","9"], correta:1, nivel:"dificil", materia:"matematica"},
 
-  // ---------- DIFÍCEIS (~40) ----------
-  {q:"Qual é a capital do Japão?", opcoes:["Pequim","Seul","Tóquio","Bangkok"], correta:2, nivel:"dificil"},
-  {q:"Quanto é 14 x 12?", opcoes:["144","168","156","174"], correta:1, nivel:"dificil"},
-  {q:"Qual é o maior deserto quente do mundo?", opcoes:["Deserto do Saara","Deserto de Gobi","Deserto do Atacama","Kalahari"], correta:0, nivel:"dificil"},
-  {q:"Qual planeta tem os anéis mais famosos?", opcoes:["Júpiter","Saturno","Urano","Netuno"], correta:1, nivel:"dificil"},
-  {q:"Qual é a capital da Austrália?", opcoes:["Sydney","Melbourne","Canberra","Perth"], correta:2, nivel:"dificil"},
-  {q:"Quanto é 256 dividido por 8?", opcoes:["32","28","36","30"], correta:0, nivel:"dificil"},
-  {q:"Quem pintou a Mona Lisa?", opcoes:["Van Gogh","Leonardo da Vinci","Picasso","Michelangelo"], correta:1, nivel:"dificil"},
-  {q:"Qual é o maior país do mundo em território?", opcoes:["China","Estados Unidos","Rússia","Canadá"], correta:2, nivel:"dificil"},
-  {q:"Quanto é 15 x 15?", opcoes:["205","225","215","235"], correta:1, nivel:"dificil"},
-  {q:"Qual gás as pessoas precisam respirar para viver?", opcoes:["Hidrogênio","Oxigênio","Nitrogênio","Hélio"], correta:1, nivel:"dificil"},
-  {q:"Qual é o menor planeta do Sistema Solar?", opcoes:["Marte","Vênus","Mercúrio","Terra"], correta:2, nivel:"dificil"},
-  {q:"Qual é a capital do Egito?", opcoes:["Cairo","Casablanca","Argel","Túnis"], correta:0, nivel:"dificil"},
-  {q:"Quanto é 1000 - 375?", opcoes:["625","635","615","725"], correta:0, nivel:"dificil"},
-  {q:"Qual é o osso mais longo do corpo humano?", opcoes:["Fêmur","Úmero","Tíbia","Costela"], correta:0, nivel:"dificil"},
-  {q:"Em que continente fica o Egito?", opcoes:["Ásia","Europa","África","Oceania"], correta:2, nivel:"dificil"},
-  {q:"Quanto é 7 x 8 x 2?", opcoes:["102","112","122","96"], correta:1, nivel:"dificil"},
-  {q:"Qual é o maior planeta rochoso do Sistema Solar?", opcoes:["Marte","Terra","Vênus","Mercúrio"], correta:1, nivel:"dificil"},
-  {q:"Qual país tem o formato de uma bota na Europa?", opcoes:["Espanha","Itália","Grécia","Portugal"], correta:1, nivel:"dificil"},
-  {q:"Quanto é 9 x 12?", opcoes:["108","98","118","96"], correta:0, nivel:"dificil"},
-  {q:"Qual é o animal mais rápido do mundo em terra?", opcoes:["Leão","Guepardo","Cavalo","Avestruz"], correta:1, nivel:"dificil"},
-  {q:"Qual é a capital dos Estados Unidos?", opcoes:["Nova York","Los Angeles","Washington, D.C.","Chicago"], correta:2, nivel:"dificil"},
-  {q:"Quantos zeros tem um milhão?", opcoes:["5","6","7","9"], correta:1, nivel:"dificil"},
-  {q:"Qual é o metal líquido em temperatura ambiente?", opcoes:["Ferro","Mercúrio","Ouro","Cobre"], correta:1, nivel:"dificil"},
-  {q:"Quanto é 13 x 13?", opcoes:["159","169","179","149"], correta:1, nivel:"dificil"},
-  {q:"Qual é a montanha mais alta do mundo?", opcoes:["Monte Everest","K2","Aconcágua","Kilimanjaro"], correta:0, nivel:"dificil"},
-  {q:"Qual é a capital da Alemanha?", opcoes:["Munique","Berlim","Frankfurt","Hamburgo"], correta:1, nivel:"dificil"},
-  {q:"Quanto é 144 dividido por 12?", opcoes:["11","12","13","14"], correta:1, nivel:"dificil"},
-  {q:"Qual é o maior mamífero terrestre da América do Sul?", opcoes:["Anta","Capivara","Onça","Tamanduá"], correta:0, nivel:"dificil"},
-  {q:"Qual é a capital da Itália?", opcoes:["Milão","Roma","Veneza","Nápoles"], correta:1, nivel:"dificil"},
-  {q:"Quanto é 25 x 4?", opcoes:["90","100","110","95"], correta:1, nivel:"dificil"},
-  {q:"Qual é o planeta mais quente do Sistema Solar?", opcoes:["Mercúrio","Vênus","Marte","Júpiter"], correta:1, nivel:"dificil"},
-  {q:"Em qual país nasceu o futebolista Messi?", opcoes:["Brasil","Portugal","Argentina","Espanha"], correta:2, nivel:"dificil"},
-  {q:"Quanto é 18 x 5?", opcoes:["80","90","100","85"], correta:1, nivel:"dificil"},
-  {q:"Qual é a capital da Rússia?", opcoes:["São Petersburgo","Moscou","Kiev","Varsóvia"], correta:1, nivel:"dificil"},
-  {q:"Qual parte da planta faz a fotossíntese?", opcoes:["A raiz","A folha","O caule","A flor"], correta:1, nivel:"dificil"},
-  {q:"Quanto é 11 x 11?", opcoes:["111","121","131","101"], correta:1, nivel:"dificil"},
-  {q:"Qual é o maior país da América do Sul?", opcoes:["Argentina","Brasil","Peru","Colômbia"], correta:1, nivel:"dificil"},
-  {q:"Qual é a velocidade da luz aproximada?", opcoes:["300 mil km/s","30 km/s","3 mil km/s","3 milhões km/s"], correta:0, nivel:"dificil"},
-  {q:"Quanto é 500 dividido por 25?", opcoes:["15","20","25","10"], correta:1, nivel:"dificil"},
-  {q:"Qual é o continente mais frio do planeta?", opcoes:["Europa","Ásia","Antártida","América do Norte"], correta:2, nivel:"dificil"},
+  /* ===================== CIÊNCIAS ===================== */
+  // fácil
+  {q:"Qual animal dá leite pra gente?", opcoes:["Vaca","Cobra","Peixe","Aranha"], correta:0, nivel:"facil", materia:"ciencias"},
+  {q:"O que usamos para enxergar?", opcoes:["Os olhos","As mãos","Os pés","O nariz"], correta:0, nivel:"facil", materia:"ciencias"},
+  {q:"O gelo é feito de quê?", opcoes:["Areia","Água","Leite","Suco"], correta:1, nivel:"facil", materia:"ciencias"},
+  {q:"Qual bicho voa e faz mel?", opcoes:["Formiga","Abelha","Minhoca","Caramujo"], correta:1, nivel:"facil", materia:"ciencias"},
+  {q:"Quantas patas tem um cachorro?", opcoes:["Duas","Quatro","Seis","Oito"], correta:1, nivel:"facil", materia:"ciencias"},
+  {q:"Onde os peixes vivem?", opcoes:["Na árvore","Na água","No céu","No deserto"], correta:1, nivel:"facil", materia:"ciencias"},
+  {q:"Qual parte do corpo usamos para ouvir?", opcoes:["A orelha","O joelho","O cotovelo","O dedo"], correta:0, nivel:"facil", materia:"ciencias"},
+  {q:"Do que as plantas precisam para crescer?", opcoes:["Água e sol","Refrigerante","Escuro total","Areia seca"], correta:0, nivel:"facil", materia:"ciencias"},
+  {q:"Qual estrela ilumina o nosso dia?", opcoes:["A Lua","O Sol","Marte","Saturno"], correta:1, nivel:"facil", materia:"ciencias"},
+  {q:"Qual bicho pula e faz 'coax'?", opcoes:["Sapo","Cachorro","Vaca","Galinha"], correta:0, nivel:"facil", materia:"ciencias"},
+  {q:"Quantos olhos tem uma pessoa?", opcoes:["1","2","3","4"], correta:1, nivel:"facil", materia:"ciencias"},
+  {q:"O que a galinha bota?", opcoes:["Ovos","Leite","Mel","Lã"], correta:0, nivel:"facil", materia:"ciencias"},
+  // médio
+  {q:"Qual é o maior planeta do Sistema Solar?", opcoes:["Terra","Júpiter","Marte","Saturno"], correta:1, nivel:"medio", materia:"ciencias"},
+  {q:"Qual é o órgão que bombeia o sangue no corpo?", opcoes:["Pulmão","Coração","Estômago","Cérebro"], correta:1, nivel:"medio", materia:"ciencias"},
+  {q:"Que gás a gente respira para viver?", opcoes:["Gás carbônico","Oxigênio","Hélio","Fumaça"], correta:1, nivel:"medio", materia:"ciencias"},
+  {q:"Qual é o planeta em que vivemos?", opcoes:["Marte","Terra","Vênus","Lua"], correta:1, nivel:"medio", materia:"ciencias"},
+  {q:"Quantos planetas tem o Sistema Solar?", opcoes:["7","8","9","10"], correta:1, nivel:"medio", materia:"ciencias"},
+  {q:"Qual é o maior animal do mundo?", opcoes:["Elefante","Baleia-azul","Girafa","Tubarão"], correta:1, nivel:"medio", materia:"ciencias"},
+  {q:"Qual planeta é conhecido como 'planeta vermelho'?", opcoes:["Vênus","Marte","Mercúrio","Netuno"], correta:1, nivel:"medio", materia:"ciencias"},
+  {q:"Quais são os 3 estados da água?", opcoes:["Sólido, líquido e gasoso","Só líquido","Quente e frio","Doce e salgado"], correta:0, nivel:"medio", materia:"ciencias"},
+  {q:"Qual animal é um mamífero que voa?", opcoes:["Águia","Morcego","Pinguim","Avestruz"], correta:1, nivel:"medio", materia:"ciencias"},
+  {q:"Que parte da planta faz a fotossíntese?", opcoes:["A raiz","A folha","O caule","A flor"], correta:1, nivel:"medio", materia:"ciencias"},
+  {q:"Qual é o animal que troca de cor para se esconder?", opcoes:["Camaleão","Zebra","Panda","Urso"], correta:0, nivel:"medio", materia:"ciencias"},
+  {q:"Quantos ossos formam a coluna do nosso corpo (mais ou menos)?", opcoes:["Muitos ossinhos empilhados","Um só osso","Nenhum osso","Dois ossos"], correta:0, nivel:"medio", materia:"ciencias"},
+  // difícil
+  {q:"Qual planeta tem os anéis mais famosos?", opcoes:["Júpiter","Saturno","Urano","Netuno"], correta:1, nivel:"dificil", materia:"ciencias"},
+  {q:"Qual é o menor planeta do Sistema Solar?", opcoes:["Marte","Vênus","Mercúrio","Terra"], correta:2, nivel:"dificil", materia:"ciencias"},
+  {q:"Qual é o osso mais longo do corpo humano?", opcoes:["Fêmur","Úmero","Tíbia","Costela"], correta:0, nivel:"dificil", materia:"ciencias"},
+  {q:"Qual é o maior planeta rochoso do Sistema Solar?", opcoes:["Marte","Terra","Vênus","Mercúrio"], correta:1, nivel:"dificil", materia:"ciencias"},
+  {q:"Qual é o animal mais rápido do mundo em terra?", opcoes:["Leão","Guepardo","Cavalo","Avestruz"], correta:1, nivel:"dificil", materia:"ciencias"},
+  {q:"Qual é o metal que fica líquido em temperatura ambiente?", opcoes:["Ferro","Mercúrio","Ouro","Cobre"], correta:1, nivel:"dificil", materia:"ciencias"},
+  {q:"Qual é o maior mamífero terrestre da América do Sul?", opcoes:["Anta","Capivara","Onça","Tamanduá"], correta:0, nivel:"dificil", materia:"ciencias"},
+  {q:"Qual é o planeta mais quente do Sistema Solar?", opcoes:["Mercúrio","Vênus","Marte","Júpiter"], correta:1, nivel:"dificil", materia:"ciencias"},
+  {q:"Qual gás as pessoas precisam respirar para viver?", opcoes:["Hidrogênio","Oxigênio","Nitrogênio","Hélio"], correta:1, nivel:"dificil", materia:"ciencias"},
+  {q:"Qual é a velocidade da luz aproximada?", opcoes:["300 mil km/s","30 km/s","3 mil km/s","3 milhões km/s"], correta:0, nivel:"dificil", materia:"ciencias"},
+
+  /* ===================== INGLÊS ===================== */
+  // fácil
+  {q:"Como se diz 'gato' em inglês?", opcoes:["Dog","Cat","Fish","Bird"], correta:1, nivel:"facil", materia:"ingles"},
+  {q:"Como se diz 'cachorro' em inglês?", opcoes:["Cat","Dog","Cow","Horse"], correta:1, nivel:"facil", materia:"ingles"},
+  {q:"Como se diz 'azul' em inglês?", opcoes:["Red","Green","Blue","Black"], correta:2, nivel:"facil", materia:"ingles"},
+  {q:"Como se diz 'vermelho' em inglês?", opcoes:["Red","Blue","Yellow","White"], correta:0, nivel:"facil", materia:"ingles"},
+  {q:"O que significa 'hello'?", opcoes:["Tchau","Olá","Obrigado","Sim"], correta:1, nivel:"facil", materia:"ingles"},
+  {q:"Como se diz o número 'um' em inglês?", opcoes:["One","Two","Three","Four"], correta:0, nivel:"facil", materia:"ingles"},
+  {q:"Como se diz o número 'dois' em inglês?", opcoes:["One","Two","Three","Ten"], correta:1, nivel:"facil", materia:"ingles"},
+  {q:"O que significa 'yes'?", opcoes:["Não","Sim","Talvez","Oi"], correta:1, nivel:"facil", materia:"ingles"},
+  {q:"Como se diz 'casa' em inglês?", opcoes:["House","Car","Tree","Book"], correta:0, nivel:"facil", materia:"ingles"},
+  {q:"Como se diz 'sol' em inglês?", opcoes:["Moon","Sun","Star","Sky"], correta:1, nivel:"facil", materia:"ingles"},
+  {q:"O que significa 'no' em inglês?", opcoes:["Sim","Não","Oi","Tchau"], correta:1, nivel:"facil", materia:"ingles"},
+  {q:"Como se diz 'bola' em inglês?", opcoes:["Ball","Cat","Milk","Door"], correta:0, nivel:"facil", materia:"ingles"},
+  // médio
+  {q:"Como se diz 'verde' em inglês?", opcoes:["Green","Blue","Gray","Brown"], correta:0, nivel:"medio", materia:"ingles"},
+  {q:"O que significa 'thank you'?", opcoes:["Por favor","Obrigado","Desculpa","Bom dia"], correta:1, nivel:"medio", materia:"ingles"},
+  {q:"Como se diz 'amarelo' em inglês?", opcoes:["Yellow","Orange","Purple","Pink"], correta:0, nivel:"medio", materia:"ingles"},
+  {q:"Como se diz o número 'três' em inglês?", opcoes:["Tree","Three","Free","Thirty"], correta:1, nivel:"medio", materia:"ingles"},
+  {q:"O que significa 'good morning'?", opcoes:["Boa noite","Bom dia","Boa tarde","Até logo"], correta:1, nivel:"medio", materia:"ingles"},
+  {q:"Como se diz 'água' em inglês?", opcoes:["Milk","Water","Juice","Fire"], correta:1, nivel:"medio", materia:"ingles"},
+  {q:"Como se diz 'livro' em inglês?", opcoes:["Book","Pen","Door","Table"], correta:0, nivel:"medio", materia:"ingles"},
+  {q:"Como se diz 'cavalo' em inglês?", opcoes:["Horse","House","Mouse","Cow"], correta:0, nivel:"medio", materia:"ingles"},
+  {q:"O que significa 'goodbye'?", opcoes:["Olá","Tchau","Obrigado","Sim"], correta:1, nivel:"medio", materia:"ingles"},
+  {q:"Como se diz o número 'dez' em inglês?", opcoes:["Ten","Nine","Twenty","Eight"], correta:0, nivel:"medio", materia:"ingles"},
+  {q:"Como se diz 'preto' em inglês?", opcoes:["White","Black","Brown","Blue"], correta:1, nivel:"medio", materia:"ingles"},
+  {q:"O que significa 'water'?", opcoes:["Fogo","Água","Terra","Vento"], correta:1, nivel:"medio", materia:"ingles"},
+  // difícil
+  {q:"O que significa 'good night'?", opcoes:["Bom dia","Boa noite","Boa tarde","Bom apetite"], correta:1, nivel:"dificil", materia:"ingles"},
+  {q:"Como se diz o número 'cem' (100) em inglês?", opcoes:["Ten","Hundred","Thousand","Twenty"], correta:1, nivel:"dificil", materia:"ingles"},
+  {q:"Como se diz 'segunda-feira' em inglês?", opcoes:["Sunday","Monday","Friday","Saturday"], correta:1, nivel:"dificil", materia:"ingles"},
+  {q:"O que significa 'butterfly'?", opcoes:["Borboleta","Manteiga","Abelha","Passarinho"], correta:0, nivel:"dificil", materia:"ingles"},
+  {q:"Como se diz 'professor' em inglês?", opcoes:["Doctor","Teacher","Student","Driver"], correta:1, nivel:"dificil", materia:"ingles"},
+  {q:"O que significa 'rainbow'?", opcoes:["Chuva","Arco-íris","Nuvem","Trovão"], correta:1, nivel:"dificil", materia:"ingles"},
+  {q:"Como se diz 'sexta-feira' em inglês?", opcoes:["Friday","Monday","Sunday","Tuesday"], correta:0, nivel:"dificil", materia:"ingles"},
+  {q:"O que significa 'elephant'?", opcoes:["Elefante","Gato","Cavalo","Leão"], correta:0, nivel:"dificil", materia:"ingles"},
+
+  /* ===================== HISTÓRIA ===================== */
+  // fácil
+  {q:"Quem chegou de navio ao Brasil em 1500?", opcoes:["Pedro Álvares Cabral","Dom Pedro I","Tiradentes","Santos Dumont"], correta:0, nivel:"facil", materia:"historia"},
+  {q:"Em que ano os portugueses chegaram ao Brasil?", opcoes:["1500","1822","1889","2000"], correta:0, nivel:"facil", materia:"historia"},
+  {q:"Quem inventou o avião e era brasileiro?", opcoes:["Santos Dumont","Cabral","Dom Pedro","Pelé"], correta:0, nivel:"facil", materia:"historia"},
+  {q:"Qual povo já vivia no Brasil antes dos portugueses?", opcoes:["Os indígenas","Os franceses","Os ingleses","Os chineses"], correta:0, nivel:"facil", materia:"historia"},
+  {q:"Qual feriado comemora a Independência do Brasil?", opcoes:["7 de Setembro","Natal","Páscoa","1º de Maio"], correta:0, nivel:"facil", materia:"historia"},
+  {q:"De qual país o Brasil ficou independente?", opcoes:["Portugal","Espanha","França","Itália"], correta:0, nivel:"facil", materia:"historia"},
+  {q:"Qual barco os portugueses usavam para cruzar o mar?", opcoes:["Caravela","Avião","Trem","Carro"], correta:0, nivel:"facil", materia:"historia"},
+  {q:"Quem é conhecido como o 'rei do futebol' brasileiro?", opcoes:["Pelé","Cabral","Tiradentes","Dom Pedro"], correta:0, nivel:"facil", materia:"historia"},
+  {q:"Qual foi a primeira capital do Brasil?", opcoes:["Salvador","Brasília","São Paulo","Rio de Janeiro"], correta:0, nivel:"facil", materia:"historia"},
+  {q:"Os castelos antigos eram a morada de quem?", opcoes:["Reis e rainhas","Peixes","Astronautas","Robôs"], correta:0, nivel:"facil", materia:"historia"},
+  {q:"Qual árvore deu o nome ao nosso país?", opcoes:["Pau-brasil","Coqueiro","Ipê","Pinheiro"], correta:0, nivel:"facil", materia:"historia"},
+  {q:"Como as pessoas escreviam antes de existir caderno de papel?", opcoes:["Em pedras e paredes","No computador","No celular","Na televisão"], correta:0, nivel:"facil", materia:"historia"},
+  // médio
+  {q:"Em que ano foi proclamada a Independência do Brasil?", opcoes:["1500","1822","1889","1922"], correta:1, nivel:"medio", materia:"historia"},
+  {q:"Quem proclamou a Independência do Brasil?", opcoes:["Dom Pedro I","Cabral","Tiradentes","Getúlio Vargas"], correta:0, nivel:"medio", materia:"historia"},
+  {q:"Como se chamava a terra dos faraós e pirâmides?", opcoes:["Egito","Grécia","Roma","China"], correta:0, nivel:"medio", materia:"historia"},
+  {q:"Quem construiu as grandes pirâmides?", opcoes:["Os egípcios","Os romanos","Os gregos","Os maias"], correta:0, nivel:"medio", materia:"historia"},
+  {q:"Qual civilização antiga criou os Jogos Olímpicos?", opcoes:["Grécia","Egito","China","Brasil"], correta:0, nivel:"medio", materia:"historia"},
+  {q:"Em que ano o Brasil virou uma República?", opcoes:["1500","1822","1889","2000"], correta:2, nivel:"medio", materia:"historia"},
+  {q:"Quem foi o herói da Inconfidência Mineira?", opcoes:["Tiradentes","Pelé","Dom Pedro II","Cabral"], correta:0, nivel:"medio", materia:"historia"},
+  {q:"Os cavaleiros medievais usavam o quê para se proteger?", opcoes:["Armadura","Camiseta","Fantasia","Sunga"], correta:0, nivel:"medio", materia:"historia"},
+  {q:"Em que país nasceu o futebolista Messi?", opcoes:["Brasil","Portugal","Argentina","Espanha"], correta:2, nivel:"medio", materia:"historia"},
+  {q:"Qual meio de escrita os egípcios antigos usavam com desenhos?", opcoes:["Hieróglifos","Emojis","Placas","Fotos"], correta:0, nivel:"medio", materia:"historia"},
+  {q:"Como se chamavam os grandes guerreiros do Japão antigo?", opcoes:["Samurais","Piratas","Cowboys","Astronautas"], correta:0, nivel:"medio", materia:"historia"},
+  {q:"Qual desses foi um grande faraó do Egito?", opcoes:["Tutancâmon","Napoleão","Colombo","Einstein"], correta:0, nivel:"medio", materia:"historia"},
+  // difícil
+  {q:"Quem pintou a Mona Lisa?", opcoes:["Van Gogh","Leonardo da Vinci","Picasso","Michelangelo"], correta:1, nivel:"dificil", materia:"historia"},
+  {q:"Qual navegador chegou à América em 1492?", opcoes:["Cristóvão Colombo","Cabral","Fernão de Magalhães","Vasco da Gama"], correta:0, nivel:"dificil", materia:"historia"},
+  {q:"Qual foi o primeiro imperador do Brasil?", opcoes:["Dom Pedro I","Dom Pedro II","Tiradentes","Getúlio Vargas"], correta:0, nivel:"dificil", materia:"historia"},
+  {q:"Qual grande muralha antiga fica na China?", opcoes:["Muralha da China","Muro de Berlim","Muralha de Roma","Muralha do Egito"], correta:0, nivel:"dificil", materia:"historia"},
+  {q:"Quem foi um famoso general do Império Romano?", opcoes:["Júlio César","Napoleão","Colombo","Cabral"], correta:0, nivel:"dificil", materia:"historia"},
+  {q:"O Descobrimento do Brasil aconteceu em qual século?", opcoes:["Século 15","Século 16","Século 18","Século 20"], correta:1, nivel:"dificil", materia:"historia"},
+  {q:"Qual princesa assinou a Lei Áurea, que libertou os escravos?", opcoes:["Princesa Isabel","Rainha Elizabeth","Princesa Diana","Cleópatra"], correta:0, nivel:"dificil", materia:"historia"},
+  {q:"Em que ano a Lei Áurea foi assinada (fim da escravidão no Brasil)?", opcoes:["1822","1888","1500","1930"], correta:1, nivel:"dificil", materia:"historia"},
 ];
 
 /* =========================================================
@@ -257,10 +362,14 @@ function embaralhaOpcoes(p){
   for(let i=idx.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [idx[i],idx[j]]=[idx[j],idx[i]]; }
   const novas = idx.map(i=>p.opcoes[i]);
   const novaCorreta = idx.indexOf(p.correta);
-  return {q:p.q, opcoes:novas, correta:novaCorreta, nivel:p.nivel};
+  return {q:p.q, opcoes:novas, correta:novaCorreta, nivel:p.nivel, materia:p.materia};
 }
-function sorteiaPerguntas(nivel, n){
-  const pool = PERGUNTAS.filter(p=>p.nivel===nivel).slice();
+function sorteiaPerguntas(nivel, materia, n){
+  let pool = PERGUNTAS.filter(p=>p.nivel===nivel && (materia==='todas' || !materia || p.materia===materia)).slice();
+  // fallback: se o filtro por matéria vier vazio, cai pra todas do nível
+  if(pool.length===0) pool = PERGUNTAS.filter(p=>p.nivel===nivel).slice();
+  // fallback final: se ainda vazio (nível sem perguntas), usa tudo
+  if(pool.length===0) pool = PERGUNTAS.slice();
   for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
   const escolhidas = [];
   let i=0;
@@ -323,11 +432,39 @@ const CFG = {
 };
 let solo = null;
 
-function iniciaSolo(nivel){
+// passo 1: escolheu o nível → mostra as matérias
+function escolheNivel(nivel){
   localStorage.setItem('quiz_nivel', nivel);
+  document.getElementById('materiaNivelTxt').textContent = 'Nível '+niveLabel(nivel);
+  const box=document.getElementById('materiaBtns');
+  box.innerHTML='';
+  // 5 matérias + Todas/Misturado
+  const ordem=['geografia','matematica','ciencias','ingles','historia'];
+  ordem.forEach(m=>{
+    const info=MATERIAS[m];
+    const b=document.createElement('button');
+    b.className='materiaBtn';
+    b.style.background=info.cor;
+    b.innerHTML=`<span class="em">${info.icon}</span>${info.label}`;
+    b.onclick=()=>iniciaSolo(nivel, m);
+    box.appendChild(b);
+  });
+  const bt=document.createElement('button');
+  bt.className='materiaBtn';
+  bt.style.background='linear-gradient(135deg,#7b2ff7,#f107a3)';
+  bt.innerHTML=`<span class="em">🎲</span>Todas / Misturado`;
+  bt.onclick=()=>iniciaSolo(nivel, 'todas');
+  box.appendChild(bt);
+  mostraTela('telaMateria');
+}
+
+function iniciaSolo(nivel, materia){
+  materia = materia || 'todas';
+  localStorage.setItem('quiz_nivel', nivel);
+  localStorage.setItem('quiz_materia', materia);
   solo = {
-    nivel, cfg:CFG[nivel],
-    perguntas: sorteiaPerguntas(nivel, 40),
+    nivel, materia, cfg:CFG[nivel],
+    perguntas: sorteiaPerguntas(nivel, materia, 40),
     idx:0, ptsVoce:0, ptsBot:0,
     respondido:false, tRestante:0, crono:null, botTimer:null,
     moedasGanhas:0, inicioRodada:0,
@@ -347,7 +484,7 @@ function proximaSolo(){
   const p = solo.perguntas[solo.idx % solo.perguntas.length];
   solo.pergAtual=p; solo.respondido=false; solo.botRespondeu=false;
   document.getElementById('statusRodada').textContent='';
-  document.getElementById('numPergunta').textContent='Pergunta '+(solo.idx+1)+' • '+niveLabel(solo.nivel);
+  document.getElementById('numPergunta').innerHTML='Pergunta '+(solo.idx+1)+' • '+niveLabel(solo.nivel)+' '+seloMateriaHtml(p.materia);
   document.getElementById('perguntaTxt').textContent=p.q;
   renderOpcoes(p, respondeSolo);
   solo.inicioRodada=Date.now();
@@ -425,7 +562,8 @@ function fimSolo(){
 }
 function deNovo(){
   const n = localStorage.getItem('quiz_nivel')||'facil';
-  iniciaSolo(n);
+  const m = localStorage.getItem('quiz_materia')||'todas';
+  iniciaSolo(n, m);
 }
 function voltaMenu(){
   paraCrono();
@@ -655,7 +793,7 @@ function mpHostEnviaPergunta(){
   if(mp.ptsEu>=5 || mp.ptsEle>=5) return;
   const p=mp.perguntasHost[mp.idx % mp.perguntasHost.length];
   mp.respostas={}; mp.respondido=false;
-  const msg={t:'pergunta', idx:mp.idx, q:p.q, opcoes:p.opcoes, correta:p.correta, n:niveLabel(p.nivel)};
+  const msg={t:'pergunta', idx:mp.idx, q:p.q, opcoes:p.opcoes, correta:p.correta, n:niveLabel(p.nivel), mat:p.materia};
   mpEnvia(msg);
   mpMostraPergunta(msg); // host também mostra
 }
@@ -663,7 +801,7 @@ function mpHostEnviaPergunta(){
 function mpMostraPergunta(m){
   mp.respondido=false; mp.idxAtual=m.idx; mp.corretaAtual=m.correta;
   document.getElementById('statusRodada').textContent='';
-  document.getElementById('numPergunta').textContent='Pergunta '+(m.idx+1)+' • '+(m.n||'');
+  document.getElementById('numPergunta').innerHTML='Pergunta '+(m.idx+1)+' '+seloMateriaHtml(m.mat);
   document.getElementById('perguntaTxt').textContent=m.q;
   const p={opcoes:m.opcoes, correta:m.correta};
   mp.inicioRodada=Date.now();
