@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Estacionamento Maluco 🚗</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#1a1a2e; font-family:'Trebuchet MS','Segoe UI',sans-serif; }
+  #game { position:fixed; inset:0; }
+  canvas { display:block; }
+
+  .screen { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:linear-gradient(160deg,#4facfe 0%,#00c9a7 55%,#66d17a 100%); z-index:10; padding:16px; overflow-y:auto; }
+  .hidden { display:none !important; }
+
+  h1 { color:#fff; font-size:min(13vw,64px); text-shadow:3px 4px 0 #d1690b, 0 0 20px rgba(0,0,0,.25); letter-spacing:1px;
+    text-align:center; line-height:1.05; margin-bottom:4px; }
+  .sub { color:#fff5d6; font-size:min(4.5vw,20px); margin-bottom:20px; text-shadow:1px 1px 0 #0006; }
+
+  .btn { cursor:pointer; border:none; border-radius:16px; padding:16px 30px; font-size:min(5.5vw,24px); font-weight:bold;
+    font-family:inherit; color:#fff; background:linear-gradient(#ffb347,#ff8008); box-shadow:0 5px 0 #c25e00, 0 7px 12px #0004;
+    margin:8px; transition:transform .08s, box-shadow .08s; }
+  .btn:active { transform:translateY(4px); box-shadow:0 1px 0 #c25e00; }
+  .btn.green { background:linear-gradient(#7ee787,#2fb344); box-shadow:0 5px 0 #1e7a2c,0 7px 12px #0004; }
+  .btn.blue  { background:linear-gradient(#67c7ff,#2a7fff); box-shadow:0 5px 0 #185ec2,0 7px 12px #0004; }
+  .btn.small { padding:10px 18px; font-size:min(4.5vw,18px); }
+  .row { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; }
+
+  .coins { color:#fff; font-weight:bold; font-size:min(5vw,22px); background:#0003; padding:6px 16px; border-radius:20px;
+    margin:6px; text-shadow:1px 1px 0 #0005; }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); gap:10px; max-width:520px; width:100%;
+    margin:14px 0; }
+  .cell { aspect-ratio:1; border-radius:14px; border:none; cursor:pointer; font-family:inherit; font-weight:bold;
+    font-size:min(5vw,22px); color:#fff; display:flex; align-items:center; justify-content:center; flex-direction:column;
+    background:linear-gradient(#5ad1ff,#2a95d6); box-shadow:0 4px 0 #1c6ea0; }
+  .cell.locked { background:linear-gradient(#9aa,#778); box-shadow:0 4px 0 #556; }
+  .cell:active { transform:translateY(3px); box-shadow:0 1px 0 #1c6ea0; }
+  .cell .st { font-size:12px; opacity:.9; }
+
+  .shopcard { background:#fff; border-radius:18px; padding:14px; margin:8px; width:150px; text-align:center;
+    box-shadow:0 6px 14px #0003; }
+  .shopcard .car { font-size:46px; }
+  .shopcard .nm { font-weight:bold; color:#333; margin:4px 0; font-size:16px; }
+  .shopcard .pr { color:#e07a00; font-weight:bold; }
+
+  /* HUD */
+  #hud { position:fixed; top:0; left:0; right:0; z-index:5; display:flex; justify-content:space-between; align-items:flex-start;
+    padding:8px 12px; pointer-events:none; }
+  .hud-pill { background:#0006; color:#fff; font-weight:bold; padding:6px 12px; border-radius:14px; margin:3px;
+    font-size:min(4vw,17px); text-shadow:1px 1px 0 #0007; }
+  #hudLeft,#hudRight { display:flex; flex-direction:column; align-items:flex-start; }
+  #hudRight { align-items:flex-end; }
+  #hudCenter { display:flex; flex-direction:column; align-items:center; }
+  #homeBtn { pointer-events:auto; cursor:pointer; }
+
+  /* Controls */
+  #touchCtrl { position:fixed; inset:0; z-index:6; pointer-events:none; }
+  .pad { position:absolute; pointer-events:auto; width:78px; height:78px; border-radius:50%; background:#ffffffcc;
+    box-shadow:0 4px 0 #0004; display:flex; align-items:center; justify-content:center; font-size:34px; color:#2a7fff;
+    border:3px solid #2a7fff88; }
+  .pad:active { background:#fff; transform:scale(.94); }
+  #padUp    { left:24px; bottom:150px; }
+  #padDown  { left:24px; bottom:60px; }
+  #padLeft  { right:118px; bottom:80px; }
+  #padRight { right:24px; bottom:80px; }
+
+  #msg { position:fixed; top:38%; left:50%; transform:translate(-50%,-50%); z-index:7; font-size:min(11vw,54px);
+    font-weight:bold; color:#fff; text-shadow:3px 3px 0 #c00, 0 0 18px #0007; pointer-events:none; opacity:0;
+    transition:opacity .2s; text-align:center; }
+  #msg.show { opacity:1; }
+
+  #overlay { position:fixed; inset:0; z-index:8; background:#000a; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; color:#fff; text-align:center; padding:20px; }
+  #overlay h2 { font-size:min(10vw,48px); margin-bottom:10px; text-shadow:2px 2px 0 #0007; }
+  #overlay p { font-size:min(5vw,22px); margin-bottom:16px; }
+  .shake { animation:shk .3s; }
+  @keyframes shk { 0%,100%{transform:translate(0,0)} 20%{transform:translate(-8px,4px)} 40%{transform:translate(8px,-4px)}
+    60%{transform:translate(-6px,-4px)} 80%{transform:translate(6px,4px)} }
+</style>
+</head>
+<body>
+<div id="game"></div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="hudLeft">
+    <div class="hud-pill" id="hudLevel">Nível 1</div>
+    <div class="hud-pill" id="hudCrash">💥 0/3</div>
+  </div>
+  <div id="hudCenter">
+    <div class="hud-pill" id="hudGoal">🅿️ Ache a vaga!</div>
+  </div>
+  <div id="hudRight">
+    <div class="hud-pill" id="hudCoins">🪙 0</div>
+    <div class="hud-pill" id="hudTime">⏱️ 0s</div>
+    <div class="hud-pill btn small green" id="homeBtn" style="margin-top:4px">🏠 Início</div>
+  </div>
+</div>
+
+<!-- Touch controls -->
+<div id="touchCtrl" class="hidden">
+  <div class="pad" id="padUp">▲</div>
+  <div class="pad" id="padDown">▼</div>
+  <div class="pad" id="padLeft">◀</div>
+  <div class="pad" id="padRight">▶</div>
+</div>
+
+<div id="msg"></div>
+
+<!-- MENU -->
+<div id="menuScreen" class="screen">
+  <h1>🚗 Estacionamento<br>Maluco</h1>
+  <div class="sub">Estacione sem bater! 30 fases</div>
+  <div class="row"><div class="coins" id="menuCoins">🪙 0</div><div class="coins" id="menuRec">🏆 Recorde: 0</div></div>
+  <div class="row">
+    <button class="btn green" id="btnPlay">▶ JOGAR</button>
+    <button class="btn blue" id="btnShop">🏬 LOJA</button>
+  </div>
+  <div class="row"><button class="btn small" id="btnDevice">🔀 Controle: 💻</button></div>
+  <div class="sub" style="margin-top:14px;font-size:14px;opacity:.85">Feito com carinho pro Davi 💚</div>
+</div>
+
+<!-- LEVEL SELECT -->
+<div id="levelScreen" class="screen hidden">
+  <h1 style="font-size:min(9vw,44px)">Escolha a Fase</h1>
+  <div class="coins" id="lvlCoins">🪙 0</div>
+  <div class="grid" id="lvlGrid"></div>
+  <button class="btn small" id="btnBackMenu1">⬅ Voltar</button>
+</div>
+
+<!-- SHOP -->
+<div id="shopScreen" class="screen hidden">
+  <h1 style="font-size:min(9vw,44px)">🏬 Loja de Carros</h1>
+  <div class="coins" id="shopCoins">🪙 0</div>
+  <div class="row" id="shopGrid" style="max-width:680px"></div>
+  <button class="btn small" id="btnBackMenu2">⬅ Voltar</button>
+</div>
+
+<!-- WIN/LOSE overlay -->
+<div id="overlay" class="hidden">
+  <h2 id="ovTitle">Boa!</h2>
+  <p id="ovText"></p>
+  <div class="row" id="ovBtns"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="/stats.js"></script>
+<script>
+if (window.initStats) initStats('estaciona');
+</script>
+<script>
+"use strict";
+// ============ Persistência ============
+const P = 'estaciona_';
+const store = {
+  get(k, d){ const v = localStorage.getItem(P+k); return v===null?d:JSON.parse(v); },
+  set(k, v){ localStorage.setItem(P+k, JSON.stringify(v)); }
+};
+let coins   = store.get('coins', 0);
+let unlocked= store.get('unlocked', 1);            // maior nível liberado
+let stars   = store.get('stars', {});              // nível -> true (já venceu)
+let record  = store.get('record', 0);              // maior nível vencido
+let owned   = store.get('owned', ['fusca']);
+let equipped= store.get('equipped', 'fusca');
+let device  = store.get('device', 'desktop');      // 'desktop' | 'mobile'
+const TOTAL = 30;
+
+// ============ Carros da loja ============
+const CARS = {
+  fusca:   { nome:'Fusca',      emoji:'🐞', cor:0x2ec7e0, preco:0,   w:1.7, l:3.4, h:1.2 },
+  esport:  { nome:'Esportivo',  emoji:'🏎️', cor:0xff2e4d, preco:60,  w:1.8, l:3.9, h:1.0 },
+  picape:  { nome:'Picape',     emoji:'🛻', cor:0xf2a900, preco:120, w:1.9, l:4.4, h:1.4 },
+  van:     { nome:'Van',        emoji:'🚐', cor:0x9b6bff, preco:180, w:2.0, l:4.6, h:1.9 },
+  taxi:    { nome:'Táxi',       emoji:'🚕', cor:0xffd21e, preco:250, w:1.8, l:3.8, h:1.3 },
+  corrida: { nome:'de Corrida', emoji:'🏁', cor:0x00d26a, preco:350, w:1.8, l:4.0, h:0.9 },
+  monstro: { nome:'Monstro',    emoji:'🚙', cor:0x22c55e, preco:500, w:2.2, l:4.2, h:2.0 },
+  dourado: { nome:'Dourado',    emoji:'⭐', cor:0xffcc33, preco:800, w:1.9, l:4.1, h:1.2 },
+};
+
+// ============ Three.js base ============
+const gameDiv = document.getElementById('game');
+let renderer, scene, camera;
+let running = false;
+
+function initThree(){
+  renderer = new THREE.WebGLRenderer({ antialias:true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  gameDiv.appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87ceeb);
+  scene.fog = new THREE.Fog(0x87ceeb, 60, 140);
+
+  camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 300);
+  camera.position.set(0, 26, 22);
+  camera.lookAt(0,0,0);
+
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x556b2f, 0.9);
+  scene.add(hemi);
+  const dir = new THREE.DirectionalLight(0xfff3d0, 0.85);
+  dir.position.set(20, 40, 15);
+  scene.add(dir);
+
+  window.addEventListener('resize', onResize);
+  animate();
+}
+function onResize(){
+  if(!renderer) return;
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// ============ RNG por seed ============
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+// ============ Estado do nível ============
+let world = new THREE.Group();
+let carMesh=null, carState=null, spot=null, obstacles=[], spotMesh=null, arrow=null;
+let level=1, crashes=0, startTime=0, parkedTimer=0, levelPlaying=false, tookHit=false;
+const keys={};
+
+// -------- construir carrinho low-poly --------
+function buildCar(spec, isPlayer){
+  const g = new THREE.Group();
+  const bodyMat = new THREE.MeshLambertMaterial({ color: spec.cor });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(spec.w, spec.h*0.6, spec.l), bodyMat);
+  body.position.y = spec.h*0.4;
+  g.add(body);
+  const cabMat = new THREE.MeshLambertMaterial({ color:0x223 });
+  const cab = new THREE.Mesh(new THREE.BoxGeometry(spec.w*0.82, spec.h*0.5, spec.l*0.5), cabMat);
+  cab.position.set(0, spec.h*0.78, -spec.l*0.05);
+  g.add(cab);
+  // faróis (frente = -z)
+  const lightMat = new THREE.MeshLambertMaterial({ color: isPlayer?0xffff66:0x99aabb });
+  for(const sx of [-1,1]){
+    const lm = new THREE.Mesh(new THREE.BoxGeometry(0.28,0.22,0.12), lightMat);
+    lm.position.set(sx*spec.w*0.3, spec.h*0.4, -spec.l*0.5);
+    g.add(lm);
+  }
+  // rodas
+  const wheelMat = new THREE.MeshLambertMaterial({ color:0x111 });
+  const wg = new THREE.CylinderGeometry(spec.h*0.28, spec.h*0.28, 0.3, 10);
+  for(const sx of [-1,1]) for(const sz of [-1,1]){
+    const w = new THREE.Mesh(wg, wheelMat);
+    w.rotation.z = Math.PI/2;
+    w.position.set(sx*spec.w*0.5, spec.h*0.25, sz*spec.l*0.32);
+    g.add(w);
+  }
+  return g;
+}
+
+function makeGround(seed, W, L){
+  const g = new THREE.Group();
+  // asfalto
+  const asphalt = new THREE.Mesh(new THREE.PlaneGeometry(W, L),
+    new THREE.MeshLambertMaterial({ color:0x3a3a42 }));
+  asphalt.rotation.x = -Math.PI/2;
+  g.add(asphalt);
+  // grama em volta
+  const grass = new THREE.Mesh(new THREE.PlaneGeometry(W+40, L+40),
+    new THREE.MeshLambertMaterial({ color:0x5aa64a }));
+  grass.rotation.x = -Math.PI/2; grass.position.y = -0.05;
+  g.add(grass);
+  // faixas do estacionamento (linhas)
+  const lineMat = new THREE.MeshLambertMaterial({ color:0xf2f2e6 });
+  for(let x=-W/2+3; x<=W/2-3; x+=3){
+    const ln = new THREE.Mesh(new THREE.PlaneGeometry(0.15, L-4), lineMat);
+    ln.rotation.x=-Math.PI/2; ln.position.set(x,0.01,0);
+    g.add(ln);
+  }
+  return g;
+}
+
+function makeBuilding(x, z, seed){
+  const r = mulberry32(seed);
+  const h = 6 + r()*10;
+  const w = 5 + r()*4;
+  const col = new THREE.Color().setHSL(0.08+r()*0.12, 0.35, 0.55+r()*0.15);
+  const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, w),
+    new THREE.MeshLambertMaterial({ color:col }));
+  b.position.set(x, h/2, z);
+  return b;
+}
+function makeTree(x,z){
+  const g=new THREE.Group();
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.35,1.6,6),
+    new THREE.MeshLambertMaterial({color:0x7a4a1e}));
+  trunk.position.y=0.8; g.add(trunk);
+  const top=new THREE.Mesh(new THREE.SphereGeometry(1.3,8,6),
+    new THREE.MeshLambertMaterial({color:0x2f9e44}));
+  top.position.y=2.3; g.add(top);
+  g.position.set(x,0,z); return g;
+}
+function makeCone(x,z){
+  const c=new THREE.Mesh(new THREE.ConeGeometry(0.35,1,8),
+    new THREE.MeshLambertMaterial({color:0xff7300}));
+  c.position.set(x,0.5,z);
+  c.userData={type:'cone', hw:0.4, hl:0.4, x:x, z:z, rot:0};
+  return c;
+}
+function makeWall(x,z,w,l){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,1.4,l),
+    new THREE.MeshLambertMaterial({color:0xbfc4cc}));
+  m.position.set(x,0.7,z);
+  m.userData={type:'wall', hw:w/2, hl:l/2, x:x, z:z, rot:0};
+  return m;
+}
+function makePost(x,z){
+  const g=new THREE.Group();
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,5,6),
+    new THREE.MeshLambertMaterial({color:0x555}));
+  pole.position.y=2.5; g.add(pole);
+  const lamp=new THREE.Mesh(new THREE.SphereGeometry(0.35,6,6),
+    new THREE.MeshLambertMaterial({color:0xfff2a8}));
+  lamp.position.y=5; g.add(lamp);
+  g.position.set(x,0,z); return g;
+}
+
+// ============ Gerar nível procedural ============
+function buildLevel(n){
+  // limpar
+  scene.remove(world);
+  world = new THREE.Group();
+  scene.add(world);
+  obstacles = [];
+
+  const seed = 1000 + n*97;
+  const r = mulberry32(seed);
+  const spec = CARS[equipped];
+
+  // tamanho do pátio cresce um pouco
+  const W = 30, L = 34;
+  world.add(makeGround(seed, W, L));
+
+  // prédios / cenário em volta
+  for(let i=0;i<8;i++){
+    const side=i%4;
+    let bx,bz;
+    if(side===0){bx=-W/2-6-r()*4; bz=-L/2+i*4;}
+    else if(side===1){bx=W/2+6+r()*4; bz=-L/2+i*4;}
+    else if(side===2){bx=-W/2+i*4; bz=-L/2-8-r()*3;}
+    else {bx=-W/2+i*4; bz=L/2+8+r()*3;}
+    world.add(makeBuilding(bx,bz, seed+i*13));
+  }
+  world.add(makeTree(-W/2-3, L/2-2));
+  world.add(makeTree(W/2+3, -L/2+2));
+  world.add(makePost(-W/2+2, 0)); world.add(makePost(W/2-2, 0));
+
+  // muros de contorno (colidíveis)
+  const border=[
+    makeWall(0, -L/2, W, 0.6), makeWall(0, L/2, W, 0.6),
+    makeWall(-W/2, 0, 0.6, L), makeWall(W/2, 0, 0.6, L)
+  ];
+  border.forEach(m=>{ world.add(m); obstacles.push(m); });
+
+  // ---- vaga alvo ----
+  // dificuldade: folga da vaga diminui
+  const t = (n-1)/(TOTAL-1);
+  const parallel = n>=12 && (n%3===0);   // vaga em paralelo a partir da fase 12
+  let spotW, spotL, spotRot;
+  if(parallel){
+    spotL = spec.l + 2.6 - t*1.1;  // ao longo de X
+    spotW = spec.w + 1.2 - t*0.45;
+    spotRot = Math.PI/2;
+  }else{
+    spotW = spec.w + 1.4 - t*0.6;   // aperta
+    spotL = spec.l + 1.9 - t*0.7;
+    spotRot = 0;
+  }
+  // posição da vaga (perto de uma parede, variando)
+  const spotX = (r()*2-1)*(W/2-6);
+  const spotZ = -L/2 + 4 + r()*3;
+  spot = { x:spotX, z:spotZ, w:spotW, l:spotL, rot:spotRot };
+
+  // desenho da vaga (retângulo amarelo piscando)
+  const sg = new THREE.PlaneGeometry(spotW, spotL);
+  spotMesh = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ color:0xffee33, transparent:true, opacity:0.5 }));
+  spotMesh.rotation.x=-Math.PI/2; spotMesh.rotation.z = -spotRot;
+  spotMesh.position.set(spotX, 0.02, spotZ);
+  world.add(spotMesh);
+  // bordas da vaga
+  const edges=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(spotW,spotL)),
+    new THREE.LineBasicMaterial({color:0xffcc00}));
+  edges.rotation.x=-Math.PI/2; edges.rotation.z=-spotRot; edges.position.set(spotX,0.03,spotZ);
+  world.add(edges);
+
+  // ---- carros estacionados em volta (obstáculos) ----
+  const nCars = Math.min(3 + Math.floor(t*8), 12);
+  const occupied=[{x:spotX,z:spotZ,hw:spotW/2+1,hl:spotL/2+1}];
+  let placed=0, tries=0;
+  while(placed<nCars && tries<200){
+    tries++;
+    const px=(r()*2-1)*(W/2-3);
+    const pz=-L/2+4 + r()*(L-9);
+    // não em cima da vaga nem do start
+    if(Math.hypot(px-spotX,pz-spotZ) < 4) continue;
+    if(pz > L/2-6 && Math.abs(px)<4) continue; // deixa a entrada livre
+    let ok=true;
+    for(const o of occupied){ if(Math.abs(px-o.x)<o.hw+1.4 && Math.abs(pz-o.z)<o.hl+2.4){ok=false;break;} }
+    if(!ok) continue;
+    const cspec = Object.values(CARS)[Math.floor(r()*8)];
+    const pc=buildCar({...cspec, cor:new THREE.Color().setHSL(r(),0.6,0.5).getHex()}, false);
+    const prot = (r()<0.5?0:Math.PI);
+    pc.position.set(px,0,pz); pc.rotation.y=prot;
+    pc.userData={type:'car', hw:cspec.w/2, hl:cspec.l/2, x:px, z:pz, rot:prot};
+    world.add(pc); obstacles.push(pc);
+    occupied.push({x:px,z:pz,hw:cspec.w/2,hl:cspec.l/2});
+    placed++;
+  }
+
+  // cones e muros extras conforme dificuldade
+  const nCones = Math.floor(t*7);
+  for(let i=0;i<nCones;i++){
+    let cx,cz,ok=false,k=0;
+    while(!ok && k<40){ k++;
+      cx=(r()*2-1)*(W/2-2); cz=-L/2+4+r()*(L-8);
+      ok=Math.hypot(cx-spotX,cz-spotZ)>3.2 && !(cz>L/2-6 && Math.abs(cx)<3);
+      for(const o of occupied){ if(Math.abs(cx-o.x)<o.hw+0.8 && Math.abs(cz-o.z)<o.hl+0.8) ok=false; }
+    }
+    if(ok){ const c=makeCone(cx,cz); world.add(c); obstacles.push(c); occupied.push({x:cx,z:cz,hw:0.5,hl:0.5}); }
+  }
+  if(n>=8){
+    const wl=makeWall((r()*2-1)*(W/2-6), -L/2+8+r()*4, 2.5+r()*3, 0.6);
+    if(Math.hypot(wl.userData.x-spotX, wl.userData.z-spotZ)>4){ world.add(wl); obstacles.push(wl); }
+  }
+
+  // ---- carro do jogador (start na parte de baixo) ----
+  carMesh = buildCar(spec, true);
+  const startX = (r()*2-1)*(W/2-6);
+  const startZ = L/2 - 4;
+  carMesh.position.set(startX,0,startZ);
+  carMesh.rotation.y = Math.PI; // apontando pra dentro (-z)
+  world.add(carMesh);
+  carState = { x:startX, z:startZ, angle:Math.PI, speed:0, hw:spec.w/2, hl:spec.l/2 };
+
+  // seta indicadora acima do carro
+  arrow = new THREE.Mesh(new THREE.ConeGeometry(0.5,1.2,4),
+    new THREE.MeshBasicMaterial({color:0xff3355}));
+  world.add(arrow);
+}
+
+// ============ Colisão (AABB rotacionado -> aprox por raio + AABB) ============
+function carCorners(x,z,angle,hw,hl){
+  const c=Math.cos(angle), s=Math.sin(angle);
+  const pts=[];
+  for(const dx of [-hw,hw]) for(const dz of [-hl,hl]){
+    pts.push({ x:x + dx*c - dz*s, z:z + dx*s + dz*c });
+  }
+  return pts;
+}
+function pointInObstacle(p, o){
+  // transformar ponto pro espaço local do obstáculo
+  const c=Math.cos(-o.rot), s=Math.sin(-o.rot);
+  const dx=p.x-o.x, dz=p.z-o.z;
+  const lx=dx*c - dz*s, lz=dx*s + dz*c;
+  return Math.abs(lx)<=o.hw && Math.abs(lz)<=o.hl;
+}
+function checkCollision(){
+  const corners=carCorners(carState.x,carState.z,carState.angle,carState.hw,carState.hl);
+  for(const o of obstacles){
+    const od=o.userData;
+    if(Math.hypot(carState.x-od.x, carState.z-od.z) > (carState.hl+Math.max(od.hw,od.hl)+1)) continue;
+    for(const p of corners){ if(pointInObstacle(p,od)) return true; }
+    // também checar cantos do obstáculo dentro do carro
+    const ocs=carCorners(od.x,od.z,od.rot,od.hw,od.hl);
+    for(const p of ocs){ if(pointInObstacle(p,{x:carState.x,z:carState.z,rot:carState.angle,hw:carState.hw,hl:carState.hl})) return true; }
+  }
+  return false;
+}
+
+// ============ verificar estacionado ============
+function checkParked(){
+  // centro dentro da vaga + bem alinhado ao ângulo da vaga
+  const dx=carState.x-spot.x, dz=carState.z-spot.z;
+  const c=Math.cos(-spot.rot), s=Math.sin(-spot.rot);
+  const lx=dx*c-dz*s, lz=dx*s+dz*c;
+  const insideW = Math.abs(lx) < (spot.w/2 - carState.hw)*1.15 + 0.15;
+  const insideL = Math.abs(lz) < (spot.l/2 - carState.hl)*1.15 + 0.15;
+  // ângulo do carro alinhado com a vaga (0 ou 180)
+  let da = Math.abs(((carState.angle - spot.rot) % Math.PI));
+  if(da > Math.PI/2) da = Math.PI - da;
+  const aligned = da < 0.28; // ~16 graus
+  const slow = Math.abs(carState.speed) < 0.04;
+  return insideW && insideL && aligned && slow;
+}
+
+// ============ Física / loop ============
+let lastT = performance.now();
+function animate(){
+  requestAnimationFrame(animate);
+  const now=performance.now();
+  let dt=(now-lastT)/1000; lastT=now;
+  if(dt>0.05) dt=0.05;
+
+  if(levelPlaying && carState){
+    stepCar(dt);
+    // seta indicando a vaga
+    if(arrow){
+      arrow.position.set(carState.x, 2.6, carState.z);
+      const ang=Math.atan2(spot.x-carState.x, spot.z-carState.z);
+      arrow.rotation.set(Math.PI/2, ang, 0);
+      const near = Math.hypot(spot.x-carState.x, spot.z-carState.z) < 6;
+      arrow.visible = !near;
+    }
+    // vaga piscando
+    if(spotMesh){ spotMesh.material.opacity = 0.35 + 0.3*Math.abs(Math.sin(now*0.005)); }
+    // câmera segue suave
+    const cam = new THREE.Vector3(carState.x*0.4, 26, carState.z*0.4 + 22);
+    camera.position.lerp(cam, 0.06);
+    camera.lookAt(carState.x*0.5, 0, carState.z*0.5);
+
+    // HUD tempo
+    const el=Math.floor((now-startTime)/1000);
+    document.getElementById('hudTime').textContent='⏱️ '+el+'s';
+
+    // checar estacionado
+    if(checkParked()){
+      parkedTimer += dt;
+      document.getElementById('hudGoal').textContent='🅿️ Segura... '+(1.5-parkedTimer).toFixed(1)+'s';
+      spotMesh.material.color.setHex(0x33ff66);
+      if(parkedTimer>=1.5) winLevel();
+    }else{
+      parkedTimer=0;
+      spotMesh.material.color.setHex(0xffee33);
+      document.getElementById('hudGoal').textContent='🅿️ Ache a vaga!';
+    }
+  }
+  if(engineOsc){ // som motor conforme velocidade
+    const sp = carState? Math.abs(carState.speed):0;
+    engineOsc.frequency.value = 60 + sp*260;
+    engineGain.gain.value = levelPlaying ? Math.min(0.04+sp*0.12,0.12) : 0;
+  }
+  if(renderer) renderer.render(scene, camera);
+}
+
+function stepCar(dt){
+  const accel=9, maxSpeed=7, reverseMax=4, turnRate=2.4;
+  let throttle=0, steer=0;
+  if(keys.up) throttle=1;
+  if(keys.down) throttle=-1;
+  if(keys.left) steer=1;
+  if(keys.right) steer=-1;
+
+  // acelerar
+  if(throttle>0) carState.speed += accel*dt;
+  else if(throttle<0) carState.speed -= accel*dt;
+  else { // atrito
+    carState.speed -= Math.sign(carState.speed)*Math.min(Math.abs(carState.speed), 6*dt);
+  }
+  carState.speed = Math.max(-reverseMax, Math.min(maxSpeed, carState.speed));
+
+  // esterço — vira mais quando devagar (carrinho), mas precisa estar em movimento
+  const spd=carState.speed;
+  const moving=Math.abs(spd)>0.05;
+  if(moving){
+    const speedFactor = 1 - Math.min(Math.abs(spd)/maxSpeed,1)*0.45; // devagar vira mais
+    carState.angle += steer * turnRate * dt * speedFactor * Math.sign(spd);
+  }
+
+  // mover (frente = -z local)
+  const nx = carState.x - Math.sin(carState.angle)*spd*dt;
+  const nz = carState.z - Math.cos(carState.angle)*spd*dt;
+  const oldx=carState.x, oldz=carState.z;
+  carState.x=nx; carState.z=nz;
+
+  if(checkCollision()){
+    // reverter e bater
+    carState.x=oldx; carState.z=oldz;
+    carState.speed = -carState.speed*0.3;
+    onCrash();
+  }
+
+  carMesh.position.set(carState.x, 0, carState.z);
+  carMesh.rotation.y = carState.angle;
+}
+
+let crashCooldown=0;
+function onCrash(){
+  const now=performance.now();
+  if(now < crashCooldown) return;
+  crashCooldown = now+700;
+  crashes++;
+  tookHit=true;
+  document.getElementById('hudCrash').textContent='💥 '+crashes+'/3';
+  flashMsg('CUIDADO! 💥');
+  gameDiv.classList.add('shake');
+  setTimeout(()=>gameDiv.classList.remove('shake'),300);
+  sfxCrash();
+  if(crashes>=3){ loseLevel(); }
+}
+
+function flashMsg(txt){
+  const m=document.getElementById('msg');
+  m.textContent=txt; m.classList.add('show');
+  clearTimeout(m._t); m._t=setTimeout(()=>m.classList.remove('show'),800);
+}
+
+// ============ Áudio WebAudio ============
+let actx=null, engineOsc=null, engineGain=null;
+function initAudio(){
+  if(actx) return;
+  try{
+    actx=new (window.AudioContext||window.webkitAudioContext)();
+    engineOsc=actx.createOscillator();
+    engineOsc.type='sawtooth'; engineOsc.frequency.value=60;
+    engineGain=actx.createGain(); engineGain.gain.value=0;
+    engineOsc.connect(engineGain).connect(actx.destination);
+    engineOsc.start();
+  }catch(e){}
+}
+function tone(freq,dur,type,vol){
+  if(!actx) return;
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type=type||'square'; o.frequency.value=freq;
+  g.gain.value=vol||0.15;
+  o.connect(g).connect(actx.destination);
+  o.start();
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime+dur);
+  o.stop(actx.currentTime+dur);
+}
+function sfxCrash(){ if(!actx)return; tone(90,0.25,'sawtooth',0.25); tone(140,0.18,'square',0.15); }
+function sfxWin(){ if(!actx)return; [523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,0.22,'triangle',0.2),i*120)); }
+function sfxCoin(){ tone(880,0.08,'square',0.15); setTimeout(()=>tone(1320,0.1,'square',0.12),70); }
+
+// ============ Fluxo de telas ============
+const screens=['menuScreen','levelScreen','shopScreen'];
+function showScreen(id){
+  screens.forEach(s=>document.getElementById(s).classList.toggle('hidden', s!==id));
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('touchCtrl').classList.add('hidden');
+  document.getElementById('overlay').classList.add('hidden');
+  levelPlaying=false;
+  if(id==='menuScreen') refreshMenu();
+  if(id==='levelScreen') buildLevelGrid();
+  if(id==='shopScreen') buildShop();
+}
+
+function refreshMenu(){
+  document.getElementById('menuCoins').textContent='🪙 '+coins;
+  document.getElementById('menuRec').textContent='🏆 Recorde: '+record;
+  document.getElementById('btnDevice').textContent='🔀 Controle: '+(device==='mobile'?'📱':'💻');
+}
+
+function buildLevelGrid(){
+  document.getElementById('lvlCoins').textContent='🪙 '+coins;
+  const g=document.getElementById('lvlGrid'); g.innerHTML='';
+  for(let i=1;i<=TOTAL;i++){
+    const b=document.createElement('button');
+    const isLocked = i>unlocked;
+    b.className='cell'+(isLocked?' locked':'');
+    if(isLocked){ b.innerHTML='🔒<div class="st">'+i+'</div>'; }
+    else { b.innerHTML=i+'<div class="st">'+(stars[i]?'⭐':'▶')+'</div>'; b.onclick=()=>startLevel(i); }
+    g.appendChild(b);
+  }
+}
+
+function buildShop(){
+  document.getElementById('shopCoins').textContent='🪙 '+coins;
+  const g=document.getElementById('shopGrid'); g.innerHTML='';
+  for(const [id,car] of Object.entries(CARS)){
+    const c=document.createElement('div'); c.className='shopcard';
+    const has=owned.includes(id), eq=equipped===id;
+    let btn;
+    if(eq) btn='<div class="btn small green" style="pointer-events:none">✔ Usando</div>';
+    else if(has) btn='<button class="btn small blue">Equipar</button>';
+    else btn='<button class="btn small">🪙 '+car.preco+'</button>';
+    c.innerHTML='<div class="car">'+car.emoji+'</div><div class="nm">'+car.nome+'</div>'+
+      (has?'':'<div class="pr">🪙 '+car.preco+'</div>')+'<div>'+btn+'</div>';
+    const bt=c.querySelector('button');
+    if(bt){
+      bt.onclick=()=>{
+        if(has){ equipped=id; store.set('equipped',id); buildShop(); }
+        else if(coins>=car.preco){ coins-=car.preco; owned.push(id); equipped=id;
+          store.set('coins',coins); store.set('owned',owned); store.set('equipped',id);
+          sfxCoin(); buildShop(); }
+        else { flashMsg('Faltam moedas! 🪙'); }
+      };
+    }
+    g.appendChild(c);
+  }
+}
+
+// ============ jogar nível ============
+function startLevel(n){
+  level=n; crashes=0; parkedTimer=0; tookHit=false;
+  initAudio(); if(actx&&actx.state==='suspended') actx.resume();
+  screens.forEach(s=>document.getElementById(s).classList.add('hidden'));
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('touchCtrl').classList.toggle('hidden', device!=='mobile');
+  document.getElementById('hudLevel').textContent='Nível '+n;
+  document.getElementById('hudCrash').textContent='💥 0/3';
+  document.getElementById('hudCoins').textContent='🪙 '+coins;
+  buildLevel(n);
+  startTime=performance.now();
+  levelPlaying=true;
+}
+
+function winLevel(){
+  levelPlaying=false;
+  sfxWin();
+  const first = !stars[level];
+  let earned = 10 + level*2;
+  if(first) earned*=2;
+  if(!tookHit) earned+=15;
+  coins+=earned; store.set('coins',coins);
+  stars[level]=true; store.set('stars',stars);
+  if(level+1>unlocked && level<TOTAL){ unlocked=level+1; store.set('unlocked',unlocked); }
+  if(level>record){ record=level; store.set('record',record); }
+  showOverlay('🎉 Estacionou!',
+    'Ganhou 🪙 '+earned+(first?' (bônus 1ª vez!)':'')+(!tookHit?'  •  Sem bater! ✨':'  •  Batidas: '+crashes),
+    [
+      level<TOTAL ? {t:'▶ Próxima', cls:'green', fn:()=>startLevel(level+1)} : null,
+      {t:'🔁 Repetir', cls:'blue', fn:()=>startLevel(level)},
+      {t:'🏠 Início', cls:'', fn:()=>showScreen('menuScreen')}
+    ].filter(Boolean)
+  );
+}
+function loseLevel(){
+  levelPlaying=false;
+  showOverlay('💥 Bateu demais!',
+    'Você bateu 3 vezes. Tenta de novo com calma!',
+    [
+      {t:'🔁 De novo', cls:'green', fn:()=>startLevel(level)},
+      {t:'🏠 Início', cls:'', fn:()=>showScreen('menuScreen')}
+    ]);
+}
+function showOverlay(title,text,btns){
+  document.getElementById('ovTitle').textContent=title;
+  document.getElementById('ovText').textContent=text;
+  const bc=document.getElementById('ovBtns'); bc.innerHTML='';
+  btns.forEach(b=>{
+    const el=document.createElement('button');
+    el.className='btn '+(b.cls||''); el.textContent=b.t; el.onclick=b.fn;
+    bc.appendChild(el);
+  });
+  document.getElementById('overlay').classList.remove('hidden');
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('touchCtrl').classList.add('hidden');
+}
+
+// ============ Controles ============
+window.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  if(['arrowup','arrowdown','arrowleft','arrowright'].includes(k)) e.preventDefault();
+  if(k==='w'||k==='arrowup') keys.up=true;
+  if(k==='s'||k==='arrowdown') keys.down=true;
+  if(k==='a'||k==='arrowleft') keys.left=true;
+  if(k==='d'||k==='arrowright') keys.right=true;
+});
+window.addEventListener('keyup',e=>{
+  const k=e.key.toLowerCase();
+  if(k==='w'||k==='arrowup') keys.up=false;
+  if(k==='s'||k==='arrowdown') keys.down=false;
+  if(k==='a'||k==='arrowleft') keys.left=false;
+  if(k==='d'||k==='arrowright') keys.right=false;
+});
+function bindPad(id, key){
+  const el=document.getElementById(id);
+  const on=e=>{ e.preventDefault(); keys[key]=true; };
+  const off=e=>{ e.preventDefault(); keys[key]=false; };
+  el.addEventListener('touchstart',on,{passive:false});
+  el.addEventListener('touchend',off,{passive:false});
+  el.addEventListener('touchcancel',off,{passive:false});
+  el.addEventListener('mousedown',on);
+  el.addEventListener('mouseup',off);
+  el.addEventListener('mouseleave',off);
+}
+bindPad('padUp','up'); bindPad('padDown','down'); bindPad('padLeft','left'); bindPad('padRight','right');
+
+// ============ botões ============
+document.getElementById('btnPlay').onclick=()=>{ initAudio(); showScreen('levelScreen'); };
+document.getElementById('btnShop').onclick=()=>showScreen('shopScreen');
+document.getElementById('btnBackMenu1').onclick=()=>showScreen('menuScreen');
+document.getElementById('btnBackMenu2').onclick=()=>showScreen('menuScreen');
+document.getElementById('homeBtn').onclick=()=>showScreen('menuScreen');
+document.getElementById('btnDevice').onclick=()=>{
+  device = device==='mobile'?'desktop':'mobile';
+  store.set('device',device); refreshMenu();
+};
+// auto detectar 1ª vez
+if(!localStorage.getItem(P+'device') && ('ontouchstart' in window)) { device='mobile'; store.set('device','mobile'); }
+
+// ============ start ============
+initThree();
+showScreen('menuScreen');
+</script>
+</body>
+</html>
