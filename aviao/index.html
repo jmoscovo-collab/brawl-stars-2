@@ -380,9 +380,26 @@
 
   // ================= INPUT =================
   var alvoTelaX = 0.5, alvoTelaY = 0.5, usandoMouse = false;
+  var teclas = { esq: false, dir: false, cima: false, baixo: false }; // WASD / setas
   window.addEventListener('mousemove', function (e) { if (G.estado === 'correndo' || G.estado === 'largada') { usandoMouse = true; alvoTelaX = e.clientX / window.innerWidth; alvoTelaY = e.clientY / window.innerHeight; } });
-  window.addEventListener('keydown', function (e) { if (e.code === 'Space') { e.preventDefault(); G.boost = 1; } if (e.code === 'Enter' && G.estado === 'fim') novoJogo(); });
-  window.addEventListener('keyup', function (e) { if (e.code === 'Space') G.boost = 0; });
+  window.addEventListener('keydown', function (e) {
+    var k = e.key.toLowerCase();
+    if (k === 'a' || e.code === 'ArrowLeft') { teclas.esq = true; }
+    else if (k === 'd' || e.code === 'ArrowRight') { teclas.dir = true; }
+    else if (k === 'w' || e.code === 'ArrowUp') { teclas.cima = true; }
+    else if (k === 's' || e.code === 'ArrowDown') { teclas.baixo = true; }
+    else if (e.code === 'Space') { e.preventDefault(); G.boost = 1; }
+    else if (e.code === 'Enter' && G.estado === 'fim') novoJogo();
+    if (['a', 'd', 'w', 's', 'arrowleft', 'arrowright', 'arrowup', 'arrowdown'].indexOf(k) >= 0) e.preventDefault();
+  });
+  window.addEventListener('keyup', function (e) {
+    var k = e.key.toLowerCase();
+    if (k === 'a' || e.code === 'ArrowLeft') teclas.esq = false;
+    else if (k === 'd' || e.code === 'ArrowRight') teclas.dir = false;
+    else if (k === 'w' || e.code === 'ArrowUp') teclas.cima = false;
+    else if (k === 's' || e.code === 'ArrowDown') teclas.baixo = false;
+    else if (e.code === 'Space') G.boost = 0;
+  });
 
   var stickBase = document.getElementById('stick-base'), stickKnob = document.getElementById('stick-knob'), stickZona = document.getElementById('stick-zona');
   var stickId = null, stickCx = 0, stickCy = 0, stickDX = 0, stickDY = 0;
@@ -466,7 +483,13 @@
 
       // ---- controle ----
       if (correndo) {
-        if (stickId !== null) { G.alvoX += stickDX * 150 * dt; G.alvoY -= stickDY * 130 * dt; }
+        if (teclas.esq || teclas.dir || teclas.cima || teclas.baixo) {
+          usandoMouse = false; // WASD/setas assume o controle
+          if (teclas.esq) G.alvoX -= 170 * dt;
+          if (teclas.dir) G.alvoX += 170 * dt;
+          if (teclas.cima) G.alvoY += 150 * dt;
+          if (teclas.baixo) G.alvoY -= 150 * dt;
+        } else if (stickId !== null) { G.alvoX += stickDX * 150 * dt; G.alvoY -= stickDY * 130 * dt; }
         else if (usandoMouse) { G.alvoX = (alvoTelaX - 0.5) * 260; G.alvoY = 42 - (alvoTelaY - 0.5) * 190; }
         G.alvoX = Math.max(-150, Math.min(150, G.alvoX));
         G.alvoY = Math.max(-24, Math.min(150, G.alvoY));
