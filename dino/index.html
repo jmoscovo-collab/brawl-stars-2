@@ -243,8 +243,8 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 var scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87c8f0);
-scene.fog = new THREE.Fog(0x87c8f0, 40, 110);
+scene.background = new THREE.Color(0x2f5233);
+scene.fog = new THREE.Fog(0x2f5233, 22, 62);
 
 var camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 200);
 
@@ -269,17 +269,19 @@ var chaoSegs = [];
 (function () {
   for (var i = 0; i < 2; i++) {
     var g = new THREE.Group();
-    var pista = caixa(9, 0.5, 100, 0xb98d52); pista.position.y = -0.25; g.add(pista);
-    // paredes do canyon
-    var pe = caixa(6, 10, 100, 0x9c6b3c); pe.position.set(-7.5, 4, 0); g.add(pe);
-    var pd = caixa(6, 10, 100, 0x8a5c30); pd.position.set(7.5, 4, 0); g.add(pd);
-    // vegetação decorativa
-    for (var j = 0; j < 10; j++) {
-      var lado = (j % 2 === 0) ? -5.2 : 5.2;
+    var chao = caixa(60, 0.5, 100, 0x3e6b30); chao.position.y = -0.25; g.add(chao);
+    var trilha = caixa(9, 0.52, 100, 0x5a7d3a); trilha.position.y = -0.24; g.add(trilha);
+    // FLORESTA densa: muitas árvores dos dois lados, do chão ao infinito (a neblina esconde o fim)
+    for (var j = 0; j < 60; j++) {
+      var lado = (j % 2 === 0) ? -1 : 1;
+      var dist = 5.2 + Math.abs(Math.sin(j * 3.1)) * 22; // de 5 a ~27 de distância = várias camadas
+      var esc = 0.8 + Math.abs(Math.cos(j * 1.7)) * 1.4;
       var arv = new THREE.Group();
       var tronco = caixa(0.4, 1.4, 0.4, 0x6d4c2f); tronco.position.y = 0.7; arv.add(tronco);
       var copa = cone(1.1, 2.2, (j % 3 === 0) ? 0x2e7d32 : 0x43a047, 6); copa.position.y = 2.4; arv.add(copa);
-      arv.position.set(lado + (Math.sin(j * 7) * 0.8), 0, -50 + j * 10 + Math.sin(j * 13) * 3);
+      var copa2 = cone(0.85, 1.7, (j % 2 === 0) ? 0x388e3c : 0x2e7d32, 6); copa2.position.y = 3.4; arv.add(copa2);
+      arv.scale.setScalar(esc);
+      arv.position.set(lado * dist + Math.sin(j * 7) * 1.2, 0, -50 + (j % 30) * 3.4 + Math.sin(j * 13) * 2);
       g.add(arv);
     }
     g.position.z = -i * 100;
