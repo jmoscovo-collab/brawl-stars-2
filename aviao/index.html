@@ -93,7 +93,7 @@
   <p id="fim-sub"></p>
   <div class="rec" id="fim-rec"></div>
   <button class="btn" id="btn-again">🔁 CORRER DE NOVO</button>
-  <button class="btn voltar" id="btn-home">🏠 Menu</button>
+  <button class="btn voltar" id="btn-home">🏠 MENU DO JOGO</button>
 </div>
 
 <div id="tela-loja" class="tela hidden" style="justify-content:flex-start;padding-top:26px;overflow-y:auto">
@@ -421,25 +421,36 @@
     document.getElementById('ctrl').style.display = 'block';
     mpEnvia({ t: 'st', id: meuId, nome: meuNome, x: G.x, y: G.y, z: G.z, co: false, mo: false, fi: false });
 
-    // PARTIDA SINCRONIZADA: começa no próximo horário "redondo" (a cada 5s no relógio).
-    // Todos que entram na mesma janela largam JUNTOS. Mostra a contagem de 5s pra baixo.
     if (G.matchIv) clearInterval(G.matchIv);
     cdEl.style.display = 'flex';
-    var alvo = Math.ceil((Date.now() + 600) / 5000) * 5000; // alinhado a 5s, com folga pra ver a contagem
-    var ultimoBip = -1;
-    G.matchIv = setInterval(function () {
-      var ms = alvo - Date.now();
-      if (ms > 250) {
-        var seg = Math.min(5, Math.ceil(ms / 1000));
-        cdEl.innerHTML = '<div style="font-size:24px;opacity:.92;margin-bottom:-8px">A partida começa em</div>' + seg;
-        if (seg !== ultimoBip) { ultimoBip = seg; beep(520, 0.16, 'square', 0.07); }
-      } else {
-        cdEl.textContent = 'JÁ! 🏁'; beep(920, 0.4, 'square', 0.1);
-        G.estado = 'correndo'; G.larguei = G.tempo; G.imortal = 3;
-        clearInterval(G.matchIv); G.matchIv = null;
-        setTimeout(function () { if (G.estado === 'correndo') cdEl.style.display = 'none'; }, 550);
-      }
-    }, 100);
+    function largar() {
+      cdEl.textContent = 'JÁ! 🏁'; beep(920, 0.4, 'square', 0.1);
+      G.estado = 'correndo'; G.larguei = G.tempo; G.imortal = 3;
+      clearInterval(G.matchIv); G.matchIv = null;
+      setTimeout(function () { if (G.estado === 'correndo') cdEl.style.display = 'none'; }, 550);
+    }
+    if (G.soBots) {
+      // OFFLINE: contagem rápida 3..2..1
+      var cont = 3; cdEl.textContent = '3'; beep(520, 0.18, 'square', 0.07);
+      G.matchIv = setInterval(function () {
+        cont--;
+        if (cont > 0) { cdEl.textContent = String(cont); beep(520, 0.16, 'square', 0.07); }
+        else largar();
+      }, 900);
+    } else {
+      // ONLINE: partida sincronizada a cada 10s do relógio. Quem entra primeiro vê ~10s;
+      // quem entra depois vê o tempo que ainda falta (pra dar tempo das pessoas entrarem).
+      var alvo = Math.ceil((Date.now() + 800) / 10000) * 10000;
+      var ultimoBip = -1;
+      G.matchIv = setInterval(function () {
+        var ms = alvo - Date.now();
+        if (ms > 250) {
+          var seg = Math.min(10, Math.ceil(ms / 1000));
+          cdEl.innerHTML = '<div style="font-size:22px;opacity:.92;margin-bottom:-8px">A partida começa em</div>' + seg + '<div style="font-size:17px;opacity:.8">esperando pilotos...</div>';
+          if (seg !== ultimoBip) { ultimoBip = seg; beep(520, 0.13, 'square', 0.06); }
+        } else largar();
+      }, 100);
+    }
   }
 
   function fimDeJogo(chegou, motivo) {
@@ -607,7 +618,7 @@
   document.getElementById('btn-jogar').addEventListener('click', function () { this.blur(); G.soBots = false; document.getElementById('crash-msg').textContent = ''; novoJogo(); });
   document.getElementById('btn-bots').addEventListener('click', function () { this.blur(); G.soBots = true; document.getElementById('crash-msg').textContent = ''; novoJogo(); });
   document.getElementById('btn-again').addEventListener('click', function () { this.blur(); document.getElementById('crash-msg').textContent = ''; novoJogo(); });
-  document.getElementById('btn-home').addEventListener('click', function () { location.href = '/'; });
+  document.getElementById('btn-home').addEventListener('click', function () { document.getElementById('tela-fim').classList.add('hidden'); voltaMenu(''); });
 
   // ================= LOOP =================
   var clock = new THREE.Clock();
@@ -679,8 +690,8 @@
         if (correndo) {
           o.fase += dt;
           // segue sua lane com leve zigue-zague e tenta acompanhar o jogador
-          var alvoLaneX = o.lane + Math.sin(o.fase * 0.7) * 10;
-          o.x += (alvoLaneX - o.x) * Math.min(1, dt * 1.2);
+          var alvoLaneX = o.lane + Math.sin(o.fase * 0.9) * 24; // zigue-zague maior (bate mais)
+          o.x += (alvoLaneX - o.x) * Math.min(1, dt * 1.6);
           o.y += (((o.alt || 42) + Math.sin(o.fase * 0.5) * 12) - o.y) * Math.min(1, dt * 1.0);
           // bot usa turbo de vez em quando
           o.bcool -= dt;
@@ -691,6 +702,14 @@
           o.vel += ((G.velBase * (0.97 + o.hab * 0.06) + (bBoost ? 70 * G.mult : 0)) - o.vel) * Math.min(1, dt * 0.8);
           o.z -= o.vel * dt;
           if (o.z <= -DIST) { o.fin = true; o.z = -DIST; }
+          // BOTS batem nas montanhas e uns nos outros -> voltam pro inicio
+          o.crashCd = (o.crashCd || 0) - dt;
+          if (o.crashCd <= 0 && !o.fin) {
+            var bateu = false, mi2, mo2, bi2, ob;
+            for (mi2 = 0; mi2 < montanhas.length; mi2++) { mo2 = montanhas[mi2]; if (Math.abs(mo2.z - o.z) < 20 && Math.hypot(o.x - mo2.x, mo2.z - o.z) < mo2.raio && o.y < 62) { bateu = true; break; } }
+            if (!bateu) { for (bi2 = 0; bi2 < racers.length; bi2++) { ob = racers[bi2]; if (ob !== o && !ob.fin && (ob.crashCd || 0) <= 0 && Math.abs(ob.z - o.z) < 8 && Math.hypot(o.x - ob.x, o.y - ob.y) < 9) { bateu = true; ob.z = 0; ob.x = ob.lane; ob.y = 42; ob.vel = 60 * G.mult; ob.crashCd = 1.6; if (ob.turboMesh) ob.turboMesh.visible = false; break; } } }
+            if (bateu) { o.z = 0; o.x = o.lane; o.y = 42; o.vel = 60 * G.mult; o.crashCd = 1.6; if (o.turboMesh) o.turboMesh.visible = false; }
+          }
         }
         o.mesh.position.set(o.x, o.y, o.z);
         o.mesh.rotation.z = Math.sin(o.fase * 0.7) * -0.3;
