@@ -322,7 +322,7 @@ function recebe(ev){
             aplicaRodada(m); return;
         case 'traco':
             if(!eu && !G.souDrawer) desenhaSegmento(m.x0,m.y0,m.x1,m.y1,m.cor,m.grossura); return;
-        case 'ponto': case 'reta': case 'retangulo': case 'circulo': case 'balde':
+        case 'linha': case 'ponto': case 'reta': case 'retangulo': case 'circulo': case 'balde':
             if(!eu && !G.souDrawer) aplicaOp(m, false); return;
         case 'redraw':
             if(!eu && !G.souDrawer){ limpaCanvas(); (m.ops||[]).forEach(function(op){ aplicaOp(op,false); }); } return;
@@ -462,6 +462,7 @@ const tela = document.getElementById('tela');
 const ctx = tela.getContext('2d');
 let corAtual = '#000000', grossuraAtual = 5, desenhando=false, ultimo=null;
 let ferramenta = 'pincel';            // pincel | reta | retangulo | circulo | balde
+let bufferLinha = null, flushTimer = null;
 let snapshot = null, inicioForma = null;
 let historico = [];                    // pra desfazer (lista de operações)
 const CORES = ['#000000','#ffffff','#e11d48','#f97316','#facc15','#22c55e','#0ea5e9','#6366f1','#a855f7','#92400e','#ec4899','#94a3b8'];
@@ -495,7 +496,15 @@ function desfazer(){
 function aplicaOp(op, local){
     ctx.strokeStyle=op.cor; ctx.fillStyle=op.cor; ctx.lineWidth=op.gr; ctx.lineCap='round'; ctx.lineJoin='round';
     const W=tela.width, H=tela.height;
-    if(op.t==='ponto'){ ctx.fillStyle=op.cor; ctx.beginPath(); ctx.arc(op.x0*W,op.y0*H,op.gr/2,0,7); ctx.fill(); }
+    if(op.t==='linha' && op.pts && op.pts.length){
+        ctx.beginPath(); ctx.moveTo(op.pts[0][0]*W, op.pts[0][1]*H);
+        for(var pi=1; pi<op.pts.length; pi++) ctx.lineTo(op.pts[pi][0]*W, op.pts[pi][1]*H);
+        ctx.stroke();
+        // bolinhas nas pontas pra fechar cantos
+        ctx.fillStyle=op.cor; ctx.beginPath(); ctx.arc(op.pts[0][0]*W,op.pts[0][1]*H,op.gr/2,0,7); ctx.fill();
+        var lp=op.pts[op.pts.length-1]; ctx.beginPath(); ctx.arc(lp[0]*W,lp[1]*H,op.gr/2,0,7); ctx.fill();
+    }
+    else if(op.t==='ponto'){ ctx.fillStyle=op.cor; ctx.beginPath(); ctx.arc(op.x0*W,op.y0*H,op.gr/2,0,7); ctx.fill(); }
     else if(op.t==='traco'){ ctx.beginPath(); ctx.moveTo(op.x0*W,op.y0*H); ctx.lineTo(op.x1*W,op.y1*H); ctx.stroke(); }
     else if(op.t==='reta'){ ctx.beginPath(); ctx.moveTo(op.x0*W,op.y0*H); ctx.lineTo(op.x1*W,op.y1*H); ctx.stroke(); }
     else if(op.t==='retangulo'){ ctx.strokeRect(Math.min(op.x0,op.x1)*W, Math.min(op.y0,op.y1)*H, Math.abs(op.x1-op.x0)*W, Math.abs(op.y1-op.y0)*H); }
@@ -543,8 +552,12 @@ function moveDesenho(e){
     const p = posCanvas(e);
     if(ferramenta==='pincel' || ferramenta==='borracha'){
         desenhaSegmento(ultimo.x,ultimo.y,p.x,p.y,corEfetiva(),grossuraEfetiva());
-        const op={t:'traco',x0:ultimo.x,y0:ultimo.y,x1:p.x,y1:p.y,cor:corEfetiva(),gr:grossuraEfetiva()};
-        registra(op); mpEnvia({t:'traco', x0:op.x0,y0:op.y0,x1:op.x1,y1:op.y1,cor:op.cor,grossura:op.gr});
+        registra({t:'traco',x0:ultimo.x,y0:ultimo.y,x1:p.x,y1:p.y,cor:corEfetiva(),gr:grossuraEfetiva()});
+        // acumula os pontos e envia em LOTE (evita listras por mensagem perdida)
+        if(!bufferLinha) bufferLinha = { t:'linha', pts:[[ultimo.x,ultimo.y]], cor:corEfetiva(), gr:grossuraEfetiva() };
+        bufferLinha.pts.push([p.x,p.y]);
+        if(bufferLinha.pts.length >= 12) flushLinha();
+        else if(!flushTimer) flushTimer = setTimeout(flushLinha, 60);
         ultimo=p;
     } else {
         // prévia da forma: restaura o snapshot e desenha por cima
@@ -552,7 +565,14 @@ function moveDesenho(e){
         aplicaOp({t:ferramenta,x0:inicioForma.x,y0:inicioForma.y,x1:p.x,y1:p.y,cor:corAtual,gr:grossuraAtual});
     }
 }
+function flushLinha(){
+    if(flushTimer){ clearTimeout(flushTimer); flushTimer=null; }
+    if(bufferLinha && bufferLinha.pts.length>1){ mpEnvia(bufferLinha); }
+    bufferLinha = null;
+}
 function fimDesenho(e){
+    if(ferramenta==='pincel' || ferramenta==='borracha') flushLinha();
+
     if(desenhando && G.souDrawer && ferramenta!=='pincel' && ferramenta!=='borracha' && inicioForma){
         const p = (e && (e.changedTouches?e.changedTouches[0]:e)) ? posCanvas(e) : ultimo;
         const op={t:ferramenta,x0:inicioForma.x,y0:inicioForma.y,x1:p.x,y1:p.y,cor:corAtual,gr:grossuraAtual};
