@@ -2085,6 +2085,7 @@
     }
 
     // Desenha a lista de quem já está na sala (host 👑 + convidados ✅)
+    function ehOperador(n){ return ['samuel9','ovo gostoso','cogumelo'].indexOf(String(n||'').trim().toLowerCase())>=0; }
     function coopRenderLista(){
         const el = document.getElementById('coop-lista');
         if (!el) return;
@@ -2092,7 +2093,7 @@
         let h = '<p style="color:#66bbff;font-weight:bold;font-size:19px;margin-top:10px;">👥 ' +
                 js.length + '/' + MP_MAX + '</p>';
         h += js.map(n =>
-            '<p class="amigo">' + (n === mp.hostNome ? '👑' : '✅') + ' <b>' + coopEsc(n) + '</b>' +
+            '<p class="amigo">' + (n === mp.hostNome ? '👑' : '✅') + ' <b' + (ehOperador(n) ? ' style="color:#ff2222;"' : '') + '>' + coopEsc(n) + '</b>' +
             (n === mp.meuNome ? ' <span style="color:#888;">(você)</span>' : '') + '</p>').join('');
         if (!mp.souHost) {
             h += '<p style="color:#00ccff;margin-top:8px;">⏳ Esperando ' +
@@ -2324,9 +2325,11 @@
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(0, 0, 256, 64);
         ctx.font = 'bold 34px Arial';
-        ctx.fillStyle = '#66ddff';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        if (ehOperador(nome)) { ctx.fillStyle = '#ff2222'; ctx.shadowColor = '#ff2222'; ctx.shadowBlur = 10; }
+        else { ctx.fillStyle = '#66ddff'; }
         ctx.fillText(String(nome).slice(0, 12), 128, 32);
+        ctx.shadowBlur = 0;
         const tex = new THREE.CanvasTexture(cv);
         const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
         sp.scale.set(2, 0.5, 1);
@@ -2470,11 +2473,11 @@
         if (!el) return;
         if (!mp.emJogo) { el.innerHTML = ''; return; }
         let html = '<div class="titulo">🤝 EQUIPE</div>';
-        html += '<div>' + (player.health > 0 ? '🟢' : '💀') + ' ' + mp.meuNome + ' — ' + kills + ' kills</div>';
+        html += '<div>' + (player.health > 0 ? '🟢' : '💀') + ' <span' + (ehOperador(mp.meuNome) ? ' style="color:#ff2222;"' : '') + '>' + mp.meuNome + '</span> — ' + kills + ' kills</div>';
         Object.keys(mp.peers).forEach(n => {
             const p = mp.peers[n];
             const vivo = (p.hp || 0) > 0;
-            html += '<div class="' + (vivo ? '' : 'morto') + '">' + (vivo ? '🟢' : '💀') + ' ' + n + ' — ' + (p.kills || 0) + ' kills</div>';
+            html += '<div class="' + (vivo ? '' : 'morto') + '">' + (vivo ? '🟢' : '💀') + ' <span' + (ehOperador(n) ? ' style="color:#ff2222;"' : '') + '>' + n + '</span> — ' + (p.kills || 0) + ' kills</div>';
         });
         el.innerHTML = html;
     }

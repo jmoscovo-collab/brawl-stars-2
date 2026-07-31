@@ -406,6 +406,7 @@ let torneios = {
 let partidaTorneio = null; // partida em andamento: {tipo, fase, advNome, advFlag}
 function salvaTorneio(tipo){ localStorage.setItem('penaltis_'+tipo, JSON.stringify(torneios[tipo])); }
 // adversário atual (torneio) ou time do nível (modos normais)
+function ehOperador(n){ return ['samuel9','ovo gostoso','cogumelo'].indexOf(String(n||'').trim().toLowerCase())>=0; }
 function advAtual(){
     if(typeof mp!=='undefined' && mp.ativo) return [mp.opNome||'AMIGO','🤝'];
     return partidaTorneio ? [partidaTorneio.advNome, partidaTorneio.advFlag] : timesDoModo()[nivelAtual-1];
@@ -841,6 +842,7 @@ function mpComeca(chuteiro){
     defendendo=false; defesaPulo=null; alvoRobo=null;
     resetaBola();
     document.getElementById('placarVoce').parentNode.firstChild.textContent = mp.meuNome.toUpperCase()+' ';
+    document.getElementById('placarVoce').parentNode.style.color = ehOperador(mp.meuNome)?'#ff2222':'';
     fechaTelaAmistoso();
     atualizaHud();
     document.getElementById('overlay').style.display='none';
@@ -986,6 +988,7 @@ function atualizaHud(){
         ? `${TORNEIO_TITULO[partidaTorneio.tipo]} — ${FASE_NOME[partidaTorneio.fase]}`
         : `Nível ${nivelAtual} ${flag}`;
     document.getElementById('nomeCpu').textContent = nome.toUpperCase();
+    document.getElementById('nomeCpu').style.color = ehOperador(nome)?'#ff2222':'';
     // botão do poder (no amistoso não tem poder — justo!)
     const btn = document.getElementById('btnPoder');
     const pd = poderAtualDef();
@@ -1232,9 +1235,13 @@ function desenha(){
         ctx.beginPath(); ctx.roundRect(10,10,215,38,8); ctx.fill();
         ctx.fillStyle='#00ff88'; ctx.fillRect(10,10,5,38);
         ctx.font='bold 18px Arial'; ctx.textBaseline='middle';
-        ctx.fillStyle='#fff'; ctx.fillText('VOCÊ', 26, 30);
+        const meuOp = (typeof mp!=='undefined' && mp.ativo && ehOperador(mp.meuNome));
+        if(meuOp){ ctx.fillStyle='#ff2222'; ctx.shadowColor='#ff2222'; ctx.shadowBlur=8; } else { ctx.fillStyle='#fff'; ctx.shadowBlur=0; }
+        ctx.fillText('VOCÊ', 26, 30);
+        ctx.shadowBlur=0;
         ctx.fillStyle='#ffd700'; ctx.fillText(`${placarVoce} - ${placarCpu}`, 90, 30);
-        ctx.fillStyle='#fff'; ctx.fillText(`${sigla} ${flagT}`, 150, 30);
+        if(ehOperador(nomeT)){ ctx.fillStyle='#ff2222'; ctx.shadowColor='#ff2222'; ctx.shadowBlur=8; } else { ctx.fillStyle='#fff'; ctx.shadowBlur=0; }
+        ctx.fillText(`${sigla} ${flagT}`, 150, 30);
         ctx.restore();
     }
 

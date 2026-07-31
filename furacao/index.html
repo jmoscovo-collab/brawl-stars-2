@@ -460,12 +460,15 @@ function makeTornado(skin, corBot){
   g.userData={cones:cones, deb:deb, olhos:olhos, poeira:poeira, saia:saia};
   return g;
 }
+function ehOperador(n){ return ['samuel9','ovo gostoso','cogumelo'].indexOf(String(n||'').trim().toLowerCase())>=0; }
 function makeLabel(txt, cor){
   var c=document.createElement('canvas'); c.width=256; c.height=64;
   var g=c.getContext('2d');
   g.font='bold 34px "Comic Sans MS",sans-serif'; g.textAlign='center'; g.textBaseline='middle';
   g.lineWidth=7; g.strokeStyle='rgba(0,0,0,0.65)'; g.strokeText(txt,128,32);
+  if(ehOperador(txt)){ cor='#ff2222'; g.shadowColor='#ff2222'; g.shadowBlur=12; }
   g.fillStyle=cor; g.fillText(txt,128,32);
+  g.shadowBlur=0;
   var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c), depthTest:false}));
   sp.scale.set(90,22.5,1);
   return sp;
@@ -1013,7 +1016,7 @@ function atualizaHUD(){
   var html='';
   for(var i=0;i<rank.length;i++){
     var f=rank[i];
-    html+='<div style="'+(f===player?'color:#ffe17a;font-weight:bold':'')+'">'+(i+1)+'º '+f.nome+' — '+f.pts+'</div>';
+    html+='<div style="'+(ehOperador(f.nome)?'color:#ff2222;font-weight:bold':(f===player?'color:#ffe17a;font-weight:bold':''))+'">'+(i+1)+'º '+f.nome+' — '+f.pts+'</div>';
   }
   elTop.innerHTML='<b>🏆 TOP 5</b>'+html;
 }
@@ -1041,7 +1044,7 @@ function fimDeJogo(){
   var html='';
   for(var i=0;i<rank.length;i++){
     var f=rank[i], med=['🥇','🥈','🥉'][i]||'　';
-    html+='<div class="'+(f===player?'eu':'')+'">'+med+' '+(i+1)+'º '+f.nome+' — '+f.pts+' pts</div>';
+    html+='<div class="'+(f===player?'eu':'')+'"'+(ehOperador(f.nome)?' style="color:#ff2222;font-weight:bold"':'')+'>'+med+' '+(i+1)+'º '+f.nome+' — '+f.pts+' pts</div>';
   }
   document.getElementById('fimRank').innerHTML=html;
   document.getElementById('fimMoedas').innerHTML='💰 Você ganhou <b>'+ganhou+'</b> moedas! (total: '+moedas+')'+(player.pts>=recorde&&player.pts>0?'<br>🎉 NOVO RECORDE!':'');

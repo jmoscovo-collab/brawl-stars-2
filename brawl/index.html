@@ -1040,6 +1040,7 @@ const MEU_ID = Math.random().toString(36).slice(2, 9);
 let ws = null, netTimer = null, peers = {};
 let meuNome = 'Robô';
 
+function ehOperador(n){ return ['samuel9','ovo gostoso','cogumelo'].indexOf(String(n||'').trim().toLowerCase())>=0; }
 function makeNameSprite(nome) {
     const cv = document.createElement('canvas');
     cv.width = 256; cv.height = 64;
@@ -1048,9 +1049,11 @@ function makeNameSprite(nome) {
     ctx.textAlign = 'center';
     ctx.lineWidth = 6;
     ctx.strokeStyle = '#000';
-    ctx.fillStyle = '#ffffff';
+    if (ehOperador(nome)) { ctx.fillStyle = '#ff2222'; ctx.shadowColor = '#ff2222'; ctx.shadowBlur = 10; }
+    else { ctx.fillStyle = '#ffffff'; }
     ctx.strokeText(nome, 128, 42);
     ctx.fillText(nome, 128, 42);
+    ctx.shadowBlur = 0;
     const tex = new THREE.CanvasTexture(cv);
     const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
     spr.scale.set(6, 1.5, 1);
@@ -1168,13 +1171,15 @@ function updatePeers() {
 }
 
 function updatePlacarOnline() {
-    const rows = [{ nome: '⭐ ' + meuNome, pts: score }]
-        .concat(Object.values(peers).map(p => ({ nome: p.nome, pts: p.pts || 0 })))
-        .concat(enemies.map(e => ({ nome: '🤖 ' + e.name, pts: e.kills * 10 })))
+    const rows = [{ nome: '⭐ ' + meuNome, pts: score, raw: meuNome }]
+        .concat(Object.values(peers).map(p => ({ nome: p.nome, pts: p.pts || 0, raw: p.nome })))
+        .concat(enemies.map(e => ({ nome: '🤖 ' + e.name, pts: e.kills * 10, raw: e.name })))
         .sort((a, b) => b.pts - a.pts)
         .slice(0, 8);
     document.getElementById('online-placar').innerHTML =
-        '<b>🏆 PLACAR</b><br>' + rows.map((r, i) => `${i + 1}º ${r.nome} — ${r.pts}`).join('<br>');
+        '<b>🏆 PLACAR</b><br>' + rows.map((r, i) => ehOperador(r.raw)
+            ? `<span style="color:#ff2222;font-weight:bold">${i + 1}º ${r.nome} — ${r.pts}</span>`
+            : `${i + 1}º ${r.nome} — ${r.pts}`).join('<br>');
 }
 
 function startGame() {
