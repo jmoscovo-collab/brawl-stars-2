@@ -81,7 +81,8 @@
         var jogo = cv.jogo || '';
         var rotas = { penaltis:{url:'/penaltis/', txt:'te convidou para uma partida de Pênaltis!', ico:'⚽'},
                       zumbi:{url:'/zombie/',   txt:'te convidou para uma partida de Zumbi!', ico:'🧟'},
-                      quiz:{url:'/quiz/',     txt:'te convidou para uma partida de Perguntas e Respostas!', ico:'🧠'} };
+                      quiz:{url:'/quiz/',     txt:'te convidou para uma partida de Perguntas e Respostas!', ico:'🧠'},
+                      desenha:{url:'/desenha/', txt:'te convidou para desenhar e adivinhar!', ico:'🎨'} };
         var r = rotas[jogo];
         if(!r){ // convite antigo sem etiqueta: pergunta pra qual jogo ir
           var cA = card('<div class="cg-tit">🎮 <b>' + String(cv.de).replace(/[<>]/g,'') + '</b> te convidou!</div>' +

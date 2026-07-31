@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Desenha e Adivinha — jogue estilo Gartic com seus amigos! Cogumelo Games.">
+<title>🎨 Desenha e Adivinha — Cogumelo Games</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    background:linear-gradient(160deg,#1a0a3a,#0a1030 60%,#0a0a2a);
+    font-family:Arial, sans-serif; color:#fff;
+    min-height:100vh; overflow-x:hidden;
+}
+#topo {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 12px; background:rgba(0,0,0,0.35); position:sticky; top:0; z-index:30;
+}
+#topo a.home {
+    text-decoration:none; color:#fff; font-weight:bold; font-size:16px;
+    background:rgba(255,255,255,0.1); padding:8px 14px; border-radius:12px;
+}
+#topo .titulo { font-size:18px; font-weight:900;
+    background:linear-gradient(to right,#ff5eae,#ffd93d,#6be9ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.wrap { max-width:960px; margin:0 auto; padding:14px; }
+h1.big { font-size:34px; text-align:center; margin:14px 0 6px;
+    background:linear-gradient(to right,#ff5eae,#ffd93d,#6be9ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.sub { text-align:center; color:#bbb; margin-bottom:16px; font-size:15px; }
+.card {
+    background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12);
+    border-radius:18px; padding:18px; margin:12px 0;
+}
+.btn {
+    font-size:17px; font-weight:bold; padding:12px 22px; border:none; border-radius:14px;
+    background:linear-gradient(135deg,#ff5eae,#a24bff); color:#fff; cursor:pointer; margin:5px;
+}
+.btn:active { transform:scale(0.96); }
+.btn.verde { background:linear-gradient(135deg,#00c86e,#00a2ff); }
+.btn.amarelo { background:linear-gradient(135deg,#ffb300,#ff6a00); color:#3a2000; }
+.btn.pequeno { font-size:14px; padding:7px 14px; }
+.btn:disabled { opacity:0.5; }
+.abas { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.jogador {
+    display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.1);
+    border-radius:20px; padding:6px 14px; margin:5px; font-size:16px; font-weight:bold;
+}
+.codigo { font-size:30px; font-weight:900; letter-spacing:4px; color:#ffd93d; }
+/* JOGO */
+#jogo { display:none; }
+#hud {
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;
+    background:rgba(0,0,0,0.3); border-radius:14px; padding:10px 14px; margin-bottom:10px;
+}
+#palavraHud { font-size:22px; font-weight:900; letter-spacing:6px; color:#6be9ff; }
+#tempoHud { font-size:22px; font-weight:900; color:#ffd93d; }
+#vezHud { font-size:15px; color:#ff9ed6; }
+.jarea { display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap; }
+#canvasBox { flex:1; min-width:280px; }
+canvas#tela { width:100%; background:#fff; border-radius:14px; touch-action:none; display:block; }
+#ferramentas { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:8px; }
+.cor { width:30px; height:30px; border-radius:50%; border:3px solid rgba(255,255,255,0.3); cursor:pointer; }
+.cor.sel { border-color:#fff; transform:scale(1.15); }
+#lateral { width:230px; min-width:200px; flex:0 0 auto; }
+#placarLista .linha { display:flex; justify-content:space-between; background:rgba(255,255,255,0.08);
+    border-radius:10px; padding:6px 10px; margin:4px 0; font-size:15px; }
+#chat { background:rgba(0,0,0,0.3); border-radius:12px; padding:8px; height:180px; overflow-y:auto; margin-top:8px; font-size:14px; }
+#chat p { margin:3px 0; }
+#chatEntrada { display:flex; gap:6px; margin-top:6px; }
+#chatInput { flex:1; padding:10px; border-radius:10px; border:none; font-size:15px; }
+.acerto { color:#00ff88; font-weight:bold; }
+.sistema { color:#ffd93d; }
+.aviso-jogo { text-align:center; font-size:20px; color:#ff9ed6; margin:20px 0; }
+#rankingBox { display:none; text-align:center; }
+.medalha { font-size:22px; margin:8px 0; }
+@media(max-width:720px){ #lateral{ width:100%; } canvas#tela{ max-height:46vh; } }
+</style>
+</head>
+<body>
+<div id="topo">
+    <a class="home" href="/">🏠 Início</a>
+    <span class="titulo">🎨 Desenha e Adivinha</span>
+    <span style="width:70px"></span>
+</div>
+
+<!-- LOBBY -->
+<div id="lobby" class="wrap">
+    <h1 class="big">🎨 Desenha e Adivinha</h1>
+    <p class="sub">Desenhe e faça a galera adivinhar! Estilo Gartic, só com amigos de verdade. 🖍️✨</p>
+    <div id="lobbyArea"></div>
+</div>
+
+<!-- JOGO -->
+<div id="jogo" class="wrap">
+    <div id="hud">
+        <span id="palavraHud">_ _ _</span>
+        <span id="vezHud">—</span>
+        <span id="tempoHud">70</span>
+    </div>
+    <div class="jarea">
+        <div id="canvasBox">
+            <canvas id="tela" width="800" height="520"></canvas>
+            <div id="ferramentas"></div>
+        </div>
+        <div id="lateral">
+            <div class="card" style="padding:10px;">
+                <b>🏆 Placar</b>
+                <div id="placarLista"></div>
+            </div>
+            <div id="chat"></div>
+            <div id="chatEntrada">
+                <input id="chatInput" placeholder="Seu chute..." maxlength="30" autocomplete="off">
+                <button class="btn pequeno verde" onclick="enviarChute()">➤</button>
+            </div>
+        </div>
+    </div>
+    <div id="rankingBox" class="card"></div>
+</div>
+
+<script>
+// ================== BANCO DE PALAVRAS ==================
+const PALAVRAS = [
+ "gato","cachorro","cavalo","vaca","porco","galinha","pato","peixe","tubarão","baleia",
+ "leão","tigre","macaco","elefante","girafa","zebra","urso","coelho","rato","cobra",
+ "sapo","tartaruga","borboleta","abelha","aranha","formiga","joaninha","pinguim","coruja","papagaio",
+ "sol","lua","estrela","nuvem","chuva","arco-íris","fogo","montanha","árvore","flor",
+ "folha","rio","praia","mar","ilha","vulcão","planeta","foguete","estrela cadente","cometa",
+ "pizza","hambúrguer","cachorro-quente","batata frita","sorvete","bolo","chocolate","pipoca","queijo","ovo",
+ "pão","biscoito","bala","pirulito","refrigerante","suco","leite","café","macarrão","arroz",
+ "banana","maçã","laranja","uva","morango","melancia","abacaxi","limão","pera","manga",
+ "carro","ônibus","caminhão","moto","bicicleta","avião","helicóptero","barco","trem","navio",
+ "casa","porta","janela","cadeira","mesa","cama","sofá","televisão","geladeira","fogão",
+ "chuveiro","escova","vaso","abajur","relógio","espelho","tapete","cortina","escada","chave",
+ "livro","lápis","caneta","borracha","tesoura","cola","mochila","caderno","régua","apontador",
+ "bola","boneca","pipa","balão","robô","dado","carta","tambor","violão","piano",
+ "camiseta","calça","sapato","meia","chapéu","óculos","luva","cachecol","vestido","bota",
+ "guarda-chuva","celular","computador","fone","câmera","abajur","ventilador","martelo","serrote","pincel",
+ "palhaço","rei","rainha","pirata","fantasma","bruxa","dragão","robô","super-herói","sereia",
+ "coração","estrela do mar","caranguejo","polvo","cavalo-marinho","dinossauro","unicórnio","castelo","ponte","farol",
+ "sorvete de casquinha","escova de dente","bola de futebol","pote de mel","pé","mão","olho","boca","nariz","orelha"
+];
+
+// ================== MULTIPLAYER ==================
+const MP_API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+const MP_WS  = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=desenha';
+const MAX = 4;
+
+let mp = { ws:null, sala:'', souHost:false, meuNome:'', jogadores:[], pollConvites:null,
+    ping:null, vigia:null, checaSala:null, lastMsg:0, emJogo:false, comecou:false };
+
+// estado do jogo (autoritativo no host)
+let G = { drawer:'', palavra:'', ordem:[], idx:0, total:0, num:0, placar:{},
+    tempo:70, tickTimer:null, roundTimer:null, acertaram:[], inicioRodada:0, souDrawer:false, revelou:false };
+
+function mpLogado(){ return !!localStorage.getItem('cg_usuario'); }
+async function mpApi(payload){
+    const r = await fetch(MP_API, { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(Object.assign({
+            nome: localStorage.getItem('cg_usuario'),
+            senhaHash: localStorage.getItem('cg_senhaHash')
+        }, payload)) });
+    return r.json();
+}
+function mpEnvia(o){
+    if(mp.ws && mp.ws.readyState===1)
+        mp.ws.send(JSON.stringify(Object.assign({acao:'mp', sala:mp.sala}, o)));
+}
+function mpFechaWs(){
+    if(mp.ws){ try{mp.ws.onclose=null; mp.ws.close();}catch(e){} mp.ws=null; }
+    [mp.ping, mp.vigia].forEach(t=>t&&clearInterval(t));
+    [mp.checaSala].forEach(t=>t&&clearTimeout(t));
+    mp.ping=mp.vigia=mp.checaSala=null;
+}
+function mpDesliga(msg){
+    mpFechaWs(); pararTimers(); mp.emJogo=false; mp.comecou=false;
+    document.getElementById('jogo').style.display='none';
+    document.getElementById('lobby').style.display='block';
+    renderLobby(msg);
+}
+
+// ---------- LOBBY ----------
+function renderLobby(aviso){
+    const area = document.getElementById('lobbyArea');
+    if(!mpLogado()){
+        area.innerHTML = `<div class="card"><p class="aviso-jogo">🔒 Faça login na sua conta pra jogar com amigos!</p>
+            <div style="text-align:center"><a class="btn" href="/conta/">Fazer login</a></div></div>`;
+        return;
+    }
+    area.innerHTML = `${aviso?`<div class="card" style="text-align:center;color:#ff9ed6;font-size:18px;">${aviso}</div>`:''}
+        <div class="card" style="text-align:center;">
+            <div class="abas">
+                <button class="btn" onclick="criarSala()">➕ CRIAR SALA</button>
+                <button class="btn amarelo" onclick="verConvites()">📬 MEUS CONVITES</button>
+            </div>
+            <div id="mpArea" style="margin-top:14px;"></div>
+        </div>`;
+}
+function codigoSala(){
+    const L='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s='';
+    for(let i=0;i<6;i++) s+=L[Math.floor(Math.random()*L.length)];
+    return s;
+}
+async function criarSala(){
+    if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+    conecta(codigoSala(), true);
+    const area = document.getElementById('mpArea');
+    area.innerHTML = `<h2 class="codigo">${mp.sala}</h2>
+        <p style="color:#6be9ff;margin:6px 0;">⏳ esperando os amigos entrarem... (máx ${MAX})</p>
+        <div id="salaJogadores"></div>
+        <div id="mpAmigos"><p>carregando amigos...</p></div>
+        <div id="botaoComeca"></div>`;
+    renderSalaJogadores();
+    try{
+        const d = await mpApi({acao:'entrar'});
+        const amigos = d.amigos || [];
+        const el = document.getElementById('mpAmigos'); if(!el) return;
+        el.innerHTML = amigos.length
+            ? `<h3 style="margin:10px 0 4px;font-size:16px;">Convide seus amigos:</h3>` + amigos.map(a=>
+                `<span class="jogador">🎨 ${a}
+                 <button class="btn pequeno" onclick="convidar('${a}',this)">📨 Convidar</button></span>`).join('')
+            : `<p>Você ainda não tem amigos adicionados 😅</p>`;
+    }catch(e){
+        const el=document.getElementById('mpAmigos'); if(el) el.innerHTML='<p>Não deu pra carregar os amigos 😢</p>';
+    }
+}
+async function convidar(alvo, btn){
+    btn.disabled=true; btn.textContent='...';
+    try{
+        const d = await mpApi({acao:'convidar', alvo, sala:mp.sala, jogo:'desenha'});
+        btn.textContent = d.ok ? '✅ Convidado!' : '😢 não deu';
+        if(!d.ok) btn.disabled=false;
+    }catch(e){ btn.textContent='😢 erro'; btn.disabled=false; }
+}
+function verConvites(){
+    mpFechaWs();
+    const area = document.getElementById('mpArea');
+    area.innerHTML = `<h3>📬 Seus convites</h3><div id="mpConvites"><p>procurando...</p></div>`;
+    const busca = async ()=>{
+        try{
+            const d = await mpApi({acao:'convites'});
+            const el = document.getElementById('mpConvites'); if(!el) return;
+            const agora = Date.now();
+            const cs = (d.convites||[]).filter(c => agora-(c.ts||0) < 30000 && (c.jogo==='desenha'||!c.jogo));
+            el.innerHTML = cs.length ? cs.map(c=>{
+                const resta = Math.max(0, Math.ceil((30000-(agora-(c.ts||0)))/1000));
+                return `<p style="margin:8px 0;font-size:17px;">🎨 <b>${c.de}</b> te convidou!
+                 <button class="btn pequeno verde" onclick="entrarSala('${c.sala}')">ENTRAR</button>
+                 <span style="color:#ffd93d;font-size:14px;">⏱️ ${resta}s</span></p>`;
+            }).join('') : '<p>Nenhum convite ainda... peça pro seu amigo criar uma sala! 😄</p>';
+        }catch(e){}
+    };
+    busca();
+    if(mp.pollConvites) clearInterval(mp.pollConvites);
+    mp.pollConvites = setInterval(busca, 1000);
+}
+function entrarSala(sala){
+    if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+    const area = document.getElementById('mpArea');
+    if(area) area.innerHTML = `<p style="color:#6be9ff;">⏳ Entrando na sala ${sala}...</p>`;
+    conecta(sala, false);
+}
+function renderSalaJogadores(){
+    const el = document.getElementById('salaJogadores'); if(!el) return;
+    el.innerHTML = `<p style="margin:8px 0;">Jogadores (${mp.jogadores.length}/${MAX}):</p>` +
+        mp.jogadores.map((n,i)=>`<span class="jogador">${i===0?'👑':'🎨'} ${n}</span>`).join('');
+    const bc = document.getElementById('botaoComeca');
+    if(bc){
+        if(mp.souHost && mp.jogadores.length>=2)
+            bc.innerHTML = `<button class="btn verde" style="margin-top:12px;" onclick="hostComeca()">▶️ COMEÇAR</button>`;
+        else if(mp.souHost)
+            bc.innerHTML = `<p style="color:#bbb;margin-top:10px;">Precisa de pelo menos 2 jogadores 🙂</p>`;
+        else
+            bc.innerHTML = `<p style="color:#bbb;margin-top:10px;">Esperando o host começar... 🎮</p>`;
+    }
+}
+
+// ---------- CONEXÃO ----------
+function conecta(sala, souHost){
+    mpFechaWs();
+    mp.sala=sala; mp.souHost=souHost;
+    mp.meuNome = localStorage.getItem('cg_usuario') || 'VOCÊ';
+    mp.jogadores = souHost ? [mp.meuNome] : [];
+    mp.comecou=false; mp.emJogo=false;
+    mp.ws = new WebSocket(MP_WS);
+    mp.ws.onopen = ()=>{
+        mp.lastMsg = Date.now();
+        mpEnvia({t:'oi', nome:mp.meuNome});
+        if(!souHost){
+            mp.checaSala = setTimeout(()=>{
+                if(!mp.comecou && mp.jogadores.length<=1) mpDesliga('🚪 SALA INDISPONÍVEL!');
+            }, 8000);
+        }
+        mp.ping = setInterval(()=>mpEnvia({t:'ping'}), 4000);
+        mp.vigia = setInterval(()=>{
+            if(mp.comecou && Date.now()-mp.lastMsg > 12000) mpDesliga('🚪 SALA INDISPONÍVEL! Alguém saiu.');
+        }, 2000);
+    };
+    mp.ws.onmessage = recebe;
+    mp.ws.onclose = ()=>{ if(mp.comecou) mpDesliga('🚪 SALA INDISPONÍVEL!'); };
+}
+function recebe(ev){
+    let m; try{ m = JSON.parse(ev.data); }catch(e){ return; }
+    if(!m || m.sala !== mp.sala) return; // ignora sala diferente
+    mp.lastMsg = Date.now();
+    const eu = (m.quem === mp.meuNome);
+    switch(m.t){
+        case 'ping': return;
+        case 'oi':
+            if(mp.checaSala){ clearTimeout(mp.checaSala); mp.checaSala=null; }
+            if(mp.souHost && !mp.comecou){
+                if(!mp.jogadores.includes(m.nome) && mp.jogadores.length<MAX) mp.jogadores.push(m.nome);
+                mpEnvia({t:'jogadores', lista:mp.jogadores});
+                renderSalaJogadores();
+            }
+            return;
+        case 'jogadores':
+            if(!mp.souHost){ mp.jogadores = m.lista||[]; renderSalaJogadores(); }
+            return;
+        case 'comeca':
+            if(!mp.comecou){ mp.comecou=true; iniciaJogoUI(m.ordem, m.total); }
+            return;
+        case 'rodada':
+            aplicaRodada(m); return;
+        case 'traco':
+            if(!eu && !G.souDrawer) desenhaSegmento(m.x0,m.y0,m.x1,m.y1,m.cor,m.grossura); return;
+        case 'limpa':
+            if(!eu && !G.souDrawer) limpaCanvas(); return;
+        case 'chute':
+            if(mp.souHost) hostProcessaChute(m); return;
+        case 'chatmsg':
+            addChat(`<b>${m.nome}:</b> ${m.texto}`); return;
+        case 'acertou':
+            addChat(`🎉 <span class="acerto">${m.nome} acertou!</span>`, 'acerto'); tocaAcerto(); return;
+        case 'placar':
+            G.placar = m.placar; renderPlacar(); return;
+        case 'fimrodada':
+            aplicaFimRodada(m); return;
+        case 'fim':
+            mostraRanking(m.ranking); return;
+    }
+}
+
+// ---------- INÍCIO DO JOGO ----------
+function hostComeca(){
+    if(!mp.souHost || mp.jogadores.length<2) return;
+    const ordem = mp.jogadores.slice();
+    const total = ordem.length * 2; // cada um desenha 2 vezes
+    G.ordem = ordem; G.total = total; G.idx = 0;
+    G.placar = {}; ordem.forEach(n=>G.placar[n]=0);
+    mpEnvia({t:'comeca', ordem, total});
+    mp.comecou=true; iniciaJogoUI(ordem, total);
+    setTimeout(hostNovaRodada, 800);
+}
+function iniciaJogoUI(ordem, total){
+    mp.emJogo=true;
+    if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+    G.ordem = ordem; G.total = total;
+    if(!mp.souHost){ G.placar={}; ordem.forEach(n=>G.placar[n]=0); }
+    document.getElementById('lobby').style.display='none';
+    document.getElementById('jogo').style.display='block';
+    document.getElementById('rankingBox').style.display='none';
+    document.getElementById('chat').innerHTML='';
+    montaFerramentas();
+    limpaCanvas();
+    renderPlacar();
+    addChat('🎮 <span class="sistema">O jogo começou! Boa sorte!</span>');
+}
+
+// ---------- RODADAS (host) ----------
+function hostNovaRodada(){
+    if(G.idx >= G.total){ // fim
+        const ranking = Object.entries(G.placar).sort((a,b)=>b[1]-a[1]).map(([nome,pts])=>({nome,pts}));
+        mpEnvia({t:'fim', ranking}); mostraRanking(ranking); return;
+    }
+    const drawer = G.ordem[G.idx % G.ordem.length];
+    const palavra = PALAVRAS[Math.floor(Math.random()*PALAVRAS.length)];
+    G.drawer = drawer; G.palavra = palavra; G.acertaram=[]; G.num = G.idx+1;
+    mpEnvia({t:'rodada', drawer, palavra, num:G.num, total:G.total});
+    aplicaRodada({drawer, palavra, num:G.num, total:G.total});
+    // timer autoritativo do host
+    limparHostTimers();
+    G.roundTimer = setTimeout(()=>hostFimRodada(false), 70000);
+}
+function limparHostTimers(){ if(G.roundTimer){ clearTimeout(G.roundTimer); G.roundTimer=null; } }
+function hostProcessaChute(m){
+    if(m.nome === G.drawer) return; // desenhista não chuta
+    if(G.acertaram.includes(m.nome)) return;
+    if(normaliza(m.texto) === normaliza(G.palavra)){
+        const seg = Math.floor((Date.now()-G.inicioRodada)/1000);
+        const pts = Math.max(20, 100 - seg);
+        G.placar[m.nome] = (G.placar[m.nome]||0) + pts;
+        G.placar[G.drawer] = (G.placar[G.drawer]||0) + 25; // desenhista ganha
+        G.acertaram.push(m.nome);
+        mpEnvia({t:'acertou', nome:m.nome});
+        addChat(`🎉 <span class="acerto">${m.nome} acertou!</span>`, 'acerto'); tocaAcerto();
+        mpEnvia({t:'placar', placar:G.placar}); G.placar=G.placar; renderPlacar();
+        // todos (menos desenhista) acertaram?
+        const adivinhadores = G.ordem.filter(n=>n!==G.drawer);
+        if(adivinhadores.every(n=>G.acertaram.includes(n))) hostFimRodada(true);
+    } else {
+        mpEnvia({t:'chatmsg', nome:m.nome, texto:m.texto});
+        addChat(`<b>${m.nome}:</b> ${m.texto}`);
+    }
+}
+function hostFimRodada(todosAcertaram){
+    limparHostTimers();
+    mpEnvia({t:'fimrodada', palavra:G.palavra, placar:G.placar});
+    aplicaFimRodada({palavra:G.palavra, placar:G.placar});
+    G.idx++;
+    setTimeout(hostNovaRodada, 3500);
+}
+
+// ---------- RODADAS (todos) ----------
+function aplicaRodada(m){
+    G.drawer = m.drawer; G.num=m.num; G.total=m.total;
+    if(mp.souHost) G.palavra = m.palavra;
+    else G.palavra = m.palavra; // recebida; só o desenhista exibe
+    G.souDrawer = (m.drawer === mp.meuNome);
+    G.revelou = false;
+    G.inicioRodada = Date.now();
+    limpaCanvas();
+    document.getElementById('rankingBox').style.display='none';
+    document.getElementById('jogo').style.display='block';
+    const vez = document.getElementById('vezHud');
+    vez.textContent = G.souDrawer ? '✏️ VOCÊ desenha!' : `✏️ ${G.drawer} está desenhando`;
+    const ph = document.getElementById('palavraHud');
+    if(G.souDrawer){ ph.textContent = G.palavra.toUpperCase(); ph.style.letterSpacing='2px'; }
+    else { ph.textContent = mascara(G.palavra); ph.style.letterSpacing='6px'; }
+    document.getElementById('chatInput').disabled = G.souDrawer;
+    document.getElementById('chatInput').placeholder = G.souDrawer ? 'Você está desenhando...' : 'Seu chute...';
+    montaFerramentas();
+    addChat(`🖍️ <span class="sistema">Rodada ${G.num}/${G.total} — ${G.souDrawer?'você está desenhando!':G.drawer+' desenhando'}</span>`);
+    iniciaCronometro();
+}
+function aplicaFimRodada(m){
+    pararTimers(); G.revelou=true;
+    G.placar = m.placar || G.placar; renderPlacar();
+    document.getElementById('palavraHud').textContent = m.palavra.toUpperCase();
+    document.getElementById('palavraHud').style.letterSpacing='2px';
+    addChat(`✅ <span class="sistema">A palavra era: <b>${m.palavra.toUpperCase()}</b></span>`);
+}
+
+// ---------- CRONÔMETRO ----------
+function iniciaCronometro(){
+    pararTimers();
+    G.tempo = 70;
+    document.getElementById('tempoHud').textContent = G.tempo;
+    G.tickTimer = setInterval(()=>{
+        G.tempo--;
+        if(G.tempo<0){ pararTimers(); return; }
+        document.getElementById('tempoHud').textContent = G.tempo;
+        if(G.tempo<=10 && G.tempo>0) tocaTique();
+    }, 1000);
+}
+function pararTimers(){ if(G.tickTimer){ clearInterval(G.tickTimer); G.tickTimer=null; } }
+
+// ---------- CANVAS / DESENHO ----------
+const tela = document.getElementById('tela');
+const ctx = tela.getContext('2d');
+let corAtual = '#000000', grossuraAtual = 5, desenhando=false, ultimo=null;
+const CORES = ['#000000','#ffffff','#e11d48','#f97316','#facc15','#22c55e','#0ea5e9','#6366f1','#a855f7','#92400e','#ec4899','#94a3b8'];
+
+function montaFerramentas(){
+    const f = document.getElementById('ferramentas');
+    if(!G.souDrawer){ f.innerHTML = `<span style="color:#666;font-size:13px;">👀 adivinhe o desenho!</span>`; return; }
+    f.innerHTML = CORES.map(c=>`<span class="cor${c===corAtual?' sel':''}" style="background:${c}" onclick="pickCor('${c}')"></span>`).join('')
+        + `<button class="btn pequeno amarelo" onclick="pickBorracha()">🧽 Borracha</button>`
+        + `<button class="btn pequeno" onclick="mudaGrossura()">✏️ ${grossuraAtual}px</button>`
+        + `<button class="btn pequeno" style="background:#c00" onclick="limparTudo()">🗑️ Limpar</button>`;
+}
+function pickCor(c){ corAtual=c; montaFerramentas(); }
+function pickBorracha(){ corAtual='#ffffff'; grossuraAtual=20; montaFerramentas(); }
+function mudaGrossura(){ const g=[3,5,10,18]; grossuraAtual = g[(g.indexOf(grossuraAtual)+1)%g.length]||5; montaFerramentas(); }
+function limparTudo(){ if(!G.souDrawer) return; limpaCanvas(); mpEnvia({t:'limpa'}); }
+function limpaCanvas(){ ctx.fillStyle='#fff'; ctx.fillRect(0,0,tela.width,tela.height); }
+function desenhaSegmento(x0,y0,x1,y1,cor,gr){
+    ctx.strokeStyle=cor; ctx.lineWidth=gr; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath(); ctx.moveTo(x0*tela.width, y0*tela.height); ctx.lineTo(x1*tela.width, y1*tela.height); ctx.stroke();
+}
+function posCanvas(e){
+    const r = tela.getBoundingClientRect();
+    const p = e.touches ? e.touches[0] : e;
+    return { x:(p.clientX-r.left)/r.width, y:(p.clientY-r.top)/r.height };
+}
+function inicioDesenho(e){ if(!G.souDrawer) return; e.preventDefault(); desenhando=true; ultimo=posCanvas(e); }
+function moveDesenho(e){
+    if(!desenhando || !G.souDrawer) return; e.preventDefault();
+    const p = posCanvas(e);
+    desenhaSegmento(ultimo.x,ultimo.y,p.x,p.y,corAtual,grossuraAtual);
+    mpEnvia({t:'traco', x0:ultimo.x,y0:ultimo.y,x1:p.x,y1:p.y,cor:corAtual,grossura:grossuraAtual});
+    ultimo=p;
+}
+function fimDesenho(){ desenhando=false; ultimo=null; }
+tela.addEventListener('mousedown', inicioDesenho);
+tela.addEventListener('mousemove', moveDesenho);
+window.addEventListener('mouseup', fimDesenho);
+tela.addEventListener('touchstart', inicioDesenho, {passive:false});
+tela.addEventListener('touchmove', moveDesenho, {passive:false});
+tela.addEventListener('touchend', fimDesenho);
+
+// ---------- CHAT / CHUTE ----------
+function enviarChute(){
+    const inp = document.getElementById('chatInput');
+    const txt = (inp.value||'').trim();
+    if(!txt || G.souDrawer) return;
+    inp.value='';
+    mpEnvia({t:'chute', nome:mp.meuNome, texto:txt});
+    if(mp.souHost) hostProcessaChute({nome:mp.meuNome, texto:txt}); // host processa o próprio
+}
+document.getElementById('chatInput').addEventListener('keydown', e=>{ if(e.key==='Enter') enviarChute(); });
+function addChat(html, cls){
+    const c = document.getElementById('chat');
+    const p = document.createElement('p'); if(cls) p.className=cls; p.innerHTML=html;
+    c.appendChild(p); c.scrollTop = c.scrollHeight;
+}
+
+// ---------- PLACAR / RANKING ----------
+function renderPlacar(){
+    const el = document.getElementById('placarLista');
+    const arr = Object.entries(G.placar).sort((a,b)=>b[1]-a[1]);
+    el.innerHTML = arr.map(([n,p])=>`<div class="linha"><span>${n===G.drawer?'✏️ ':''}${n}</span><b>${p}</b></div>`).join('');
+}
+function mostraRanking(ranking){
+    pararTimers(); mp.emJogo=false;
+    const medalhas=['🥇','🥈','🥉','🎖️'];
+    const box = document.getElementById('rankingBox');
+    box.style.display='block';
+    box.innerHTML = `<h2 style="font-size:26px;margin-bottom:10px;">🏆 RANKING FINAL 🏆</h2>` +
+        ranking.map((r,i)=>`<div class="medalha">${medalhas[i]||'⭐'} <b>${r.nome}</b> — ${r.pts} pontos</div>`).join('') +
+        `<div style="margin-top:16px;">
+            <button class="btn verde" onclick="voltarLobby()">🏠 Voltar ao início</button>
+            ${mp.souHost?'<button class="btn amarelo" onclick="hostComeca()">🔁 Jogar de novo</button>':''}
+        </div>`;
+    document.getElementById('chatInput').disabled=true;
+}
+function voltarLobby(){ mpFechaWs(); pararTimers(); mp.comecou=false; mp.emJogo=false;
+    document.getElementById('jogo').style.display='none';
+    document.getElementById('lobby').style.display='block';
+    renderLobby('');
+}
+
+// ---------- UTIL ----------
+function normaliza(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,''); }
+function mascara(p){ return p.split('').map(c=> c===' '?'  ':(/[a-zA-Zà-ú]/.test(c)?'_':c)).join(' '); }
+
+// ---------- SONS (WebAudio) ----------
+let actx=null;
+function ac(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return actx; }
+function bip(freq, dur, tipo){
+    const a=ac(); if(!a) return;
+    const o=a.createOscillator(), g=a.createGain();
+    o.type=tipo||'sine'; o.frequency.value=freq;
+    o.connect(g); g.connect(a.destination);
+    g.gain.setValueAtTime(0.15, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, a.currentTime+dur);
+    o.start(); o.stop(a.currentTime+dur);
+}
+function tocaAcerto(){ bip(660,0.1,'square'); setTimeout(()=>bip(880,0.15,'square'),110); setTimeout(()=>bip(1100,0.2,'square'),240); }
+function tocaTique(){ bip(400,0.05,'triangle'); }
+
+// ---------- BOOT ----------
+function ajustaCanvas(){ /* canvas usa width/height internos fixos; CSS escala */ }
+window.addEventListener('load', ()=>{
+    limpaCanvas();
+    // entrada direta por ?sala=XXXX
+    const params = new URLSearchParams(location.search);
+    const salaConvite = params.get('sala');
+    if(salaConvite && mpLogado()){
+        renderLobby('');
+        entrarSala(salaConvite.toUpperCase());
+    } else {
+        renderLobby('');
+    }
+});
+</script>
+<script src="/stats.js"></script>
+<script src="/avisos.js?v=6"></script>
+<script>
+if (window.initStats) initStats('desenha');
+</script>
+</body>
+</html>

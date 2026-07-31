@@ -1,5 +1,11 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.4.0 (2026-07-31)
+- JOGO NOVO: Desenha e Adivinha (online com amigos, estilo Gartic)
+- JOGO NOVO: Estacionamento Maluco (3D, 30 niveis, loja de carros)
+- Quiz: 477 perguntas; Home: botoes padronizados JOGAR; davi0 operador
+
+
 ## v3.3.0 (2026-07-31)
 - JOGO NOVO: Quiz Cogumelo — 120 perguntas, 3 niveis vs bot + modo ONLINE 1x1 (quem acerta primeiro pontua, 5 pts vence)
 - Conta: botao Mudar meu nome (mantem amizades/foto/progresso, nome unico)
