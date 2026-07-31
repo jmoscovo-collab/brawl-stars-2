@@ -280,7 +280,7 @@ function fol(esc){ return 0.8 + esc; } // helper escala
 var ARQ = [
   { nome: 'Floresta', bg: 0x2f5233, fog: 0x2f5233, near: 22, far: 62, chao: 0x3e6b30, trilha: 0x5a7d3a,
     decor: function (g, x, z, esc, j) { var a = new THREE.Group(); var t = caixa(0.4, 1.4, 0.4, 0x6d4c2f); t.position.y = 0.7; a.add(t); var c = cone(1.1, 2.2, (j % 3 === 0) ? 0x2e7d32 : 0x43a047, 6); c.position.y = 2.4; a.add(c); var c2 = cone(0.85, 1.7, 0x388e3c, 6); c2.position.y = 3.4; a.add(c2); a.scale.setScalar(esc); a.position.set(x, 0, z); g.add(a); },
-    hazard: function () { var g = new THREE.Group(); var t = caixa(0.4, 3.2, 0.4, 0x6d4c2f); t.position.y = 1.6; g.add(t); var c = cone(1.2, 2.4, 0x2e7d32, 6); c.position.y = 3.8; g.add(c); return g; }, ceu: false },
+    hazard: function () { var g = new THREE.Group(); var t = caixa(0.75, 4.4, 0.75, 0x6d4c2f); t.position.y = 2.2; g.add(t); var c = cone(1.7, 3.0, 0x2e7d32, 6); c.position.y = 5.2; g.add(c); return g; }, ceu: false },
 
   { nome: 'Cidade', bg: 0x8fa3b5, fog: 0x9fb3c5, near: 26, far: 82, chao: 0x555a60, trilha: 0x3a3d42,
     decor: function (g, x, z, esc, j) { var h = 4 + ((j * 7) % 9); var cores = [0x8d99a6, 0x6b7580, 0xb0a58f, 0x9aa0a6]; var b = caixa(3, h, 3, cores[j % 4]); b.position.set(x * 1.2, h / 2, z); g.add(b); var w = glowBox(3.06, h * 0.7, 3.06, 0xffe07a); w.material.transparent = true; w.material.opacity = 0.14; w.position.set(x * 1.2, h / 2, z); g.add(w); if (j % 3 === 0) { var cc = [0xd93636, 0x2f6fd9, 0xf0c040, 0x33aa55]; var car = caixa(1.4, 0.8, 2.4, cc[j % 4]); car.position.set(x > 0 ? 4.6 : -4.6, 0.4, z + 1.5); g.add(car); var teto = caixa(1.1, 0.5, 1.2, 0x22252a); teto.position.set(car.position.x, 0.95, z + 1.3); g.add(teto); } },
@@ -852,8 +852,14 @@ function loop() {
       G.slideT -= dt;
       if (G.slideT <= 0) G.deslizando = false;
     }
-    player.scale.y = G.deslizando ? 0.45 : 1;
-    player.rotation.x = G.deslizando ? -0.5 : 0;
+    // agachar/rolar suave (interpola em vez de snap)
+    var alvoY = G.deslizando ? 0.4 : 1;
+    var alvoRot = G.deslizando ? -1.15 : 0;
+    player.scale.y += (alvoY - player.scale.y) * Math.min(1, dt * 16);
+    player.rotation.x += (alvoRot - player.rotation.x) * Math.min(1, dt * 16);
+    // achata um pouco na horizontal quando agacha, pra parecer que se encolhe
+    var alvoZ = G.deslizando ? 1.35 : 1;
+    player.scale.z += (alvoZ - player.scale.z) * Math.min(1, dt * 16);
 
     // corridinha (pernas do jogador balançam)
     var b = Math.sin(G.tempo * 18);
