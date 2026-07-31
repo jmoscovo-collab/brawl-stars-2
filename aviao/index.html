@@ -80,7 +80,8 @@
   <p><b>5 aviões</b> correndo até a linha de chegada! Chegue em 1º — mas cuidado: se <b>bater em outro avião</b>, você cai! 💥</p>
   <p class="dica"><b>PC:</b> mouse pra virar • <b>ESPAÇO</b> = turbo<br><b>Celular:</b> arraste o dedo • botão <b>TURBO</b></p>
   <div id="crash-msg" style="min-height:20px;color:#ff9a9a;font-size:16px;margin-bottom:4px"></div>
-  <button class="btn" id="btn-jogar">▶ CORRER</button>
+  <button class="btn" id="btn-jogar">▶ CORRER (online)</button>
+  <button class="btn" id="btn-bots" style="margin-top:12px;background:linear-gradient(180deg,#b9f0a0,#5cc23a);color:#123a08;box-shadow:0 6px 0 #2f7a12,0 12px 20px rgba(0,0,0,.4)">🤖 SÓ CONTRA BOTS</button>
   <button class="btn voltar" id="btn-loja" style="margin-top:12px;background:linear-gradient(180deg,#ffe08a,#f0b02a);color:#5a3d00;box-shadow:0 6px 0 #a8720a,0 12px 20px rgba(0,0,0,.4)">🛒 LOJA DE AVIÕES</button>
   <div id="online">procurando pilotos...</div>
   <div class="rec" id="rec-inicio"></div>
@@ -296,7 +297,7 @@
     roll: 0, pitch: 0, boost: 0, tempo: 0,
     morto: false, chegou: false, minhaColoc: 1,
     proxArgola: -120, proxMont: -180, proxCidade: -140, larguei: 0,
-    caiT: 0, caiVy: 0, caiMotivo: '', mult: 1, imortal: 0, matchIv: null, turbo: 1
+    caiT: 0, caiVy: 0, caiMotivo: '', mult: 1, imortal: 0, matchIv: null, turbo: 1, totalRacers: 5, soBots: false
   };
   var cidades = [];
 
@@ -385,7 +386,7 @@
     chegada.position.set(0, 0, -DIST); chegada.visible = true;
 
     // quantos pilotos reais estão na corrida?
-    var peers = peersVivos();
+    var peers = G.soBots ? [] : peersVivos();
     var nBots = Math.max(0, 4 - peers.length); // completa até 5 no total (eu + peers + bots)
     // TODOS largam lado a lado, em FILEIRA, espaçados pra não bater (jogador no meio, x=0)
     var slots = [-48, 48, -96, 96, -144, 144];
@@ -411,6 +412,7 @@
       peers[pi].mesh = pm; peers[pi].cor = pcol.c;
     }
 
+    G.totalRacers = 1 + racers.length + peers.length; // total FIXO da partida (não bugar em cima)
     document.getElementById('tela-inicio').classList.add('hidden');
     document.getElementById('tela-fim').classList.add('hidden');
     hud.style.display = 'flex';
@@ -454,7 +456,7 @@
       var tit = document.getElementById('fim-titulo'), sub = document.getElementById('fim-sub'), rec = document.getElementById('fim-rec');
       tit.textContent = col === 1 ? '🏆 VOCÊ GANHOU!' : ('🏁 ' + col + 'º lugar!');
       if (col === 1) { vitorias++; lsSet('vitorias', vitorias); }
-      sub.textContent = col === 1 ? 'Você chegou em PRIMEIRO! Ganhou +1 vitória 🏆' : ('Você chegou em ' + col + 'º de ' + (racersTotal()) + ' aviões.');
+      sub.textContent = col === 1 ? 'Você chegou em PRIMEIRO! Ganhou +1 vitória 🏆' : ('Você chegou em ' + col + 'º de ' + G.totalRacers + ' aviões.');
       rec.textContent = '🏆 Vitórias: ' + vitorias;
       somVitoria();
       document.getElementById('tela-fim').classList.remove('hidden');
@@ -542,6 +544,7 @@
 
   // ===== LOJA =====
   function abreLoja() {
+    G.totalRacers = 1 + racers.length + peers.length; // total FIXO da partida (não bugar em cima)
     document.getElementById('tela-inicio').classList.add('hidden');
     document.getElementById('tela-loja').classList.remove('hidden');
     renderLoja();
@@ -601,7 +604,8 @@
   bindHold('b-esq', function (v) { teclas.esq = v; });
   bindHold('b-dir', function (v) { teclas.dir = v; });
 
-  document.getElementById('btn-jogar').addEventListener('click', function () { this.blur(); document.getElementById('crash-msg').textContent = ''; novoJogo(); });
+  document.getElementById('btn-jogar').addEventListener('click', function () { this.blur(); G.soBots = false; document.getElementById('crash-msg').textContent = ''; novoJogo(); });
+  document.getElementById('btn-bots').addEventListener('click', function () { this.blur(); G.soBots = true; document.getElementById('crash-msg').textContent = ''; novoJogo(); });
   document.getElementById('btn-again').addEventListener('click', function () { this.blur(); document.getElementById('crash-msg').textContent = ''; novoJogo(); });
   document.getElementById('btn-home').addEventListener('click', function () { location.href = '/'; });
 
@@ -738,7 +742,7 @@
       var tt2 = racers.concat(peersVivos());
       var aFrente = 0;
       for (i = 0; i < tt2.length; i++) { var oz = tt2[i].fin ? -DIST - 1 : tt2[i].z; if (!tt2[i].morto && oz < G.z) aFrente++; }
-      G.minhaColoc = 1 + aFrente;
+      G.minhaColoc = Math.min(G.totalRacers, 1 + aFrente);
 
       // ---- nuvens recicla ----
       for (i = 0; i < nuvens.length; i++) { if (nuvens[i].position.z > G.z + 130) { nuvens[i].position.z = G.z - 900 - Math.random() * 800; nuvens[i].position.x = G.x + (Math.random() - 0.5) * 1000; nuvens[i].position.y = 20 + Math.random() * 130; } }
@@ -755,7 +759,7 @@
 
       // ---- HUD ----
       hudPos.textContent = G.minhaColoc;
-      hudTotal.textContent = racersTotal();
+      hudTotal.textContent = G.totalRacers;
       hudProg.textContent = Math.min(100, Math.round((-G.z / DIST) * 100));
       hudVel.textContent = Math.round(G.vel * 2.4);
     } else if (G.estado === 'caindo') {
