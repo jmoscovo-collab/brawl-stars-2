@@ -1,0 +1,789 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Quiz Cogumelo 🍄</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family:'Comic Sans MS','Baloo',system-ui,sans-serif;
+    background:linear-gradient(160deg,#1a0b2e 0%,#2d0b4e 40%,#0b1e3e 100%);
+    color:#fff; min-height:100vh; overflow-x:hidden;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  #topo {
+    width:100%; max-width:640px; display:flex; justify-content:space-between;
+    align-items:center; padding:12px 16px; gap:10px;
+  }
+  .btn {
+    border:none; border-radius:16px; padding:12px 18px; font-size:17px;
+    font-weight:bold; cursor:pointer; font-family:inherit; color:#fff;
+    background:linear-gradient(135deg,#7b2ff7,#f107a3); box-shadow:0 4px 0 #4a1a8a;
+    transition:transform .08s; user-select:none;
+  }
+  .btn:active { transform:translateY(3px); box-shadow:0 1px 0 #4a1a8a; }
+  .btn.verde { background:linear-gradient(135deg,#00c853,#64dd17); box-shadow:0 4px 0 #1b5e20; }
+  .btn.azul { background:linear-gradient(135deg,#2979ff,#00b0ff); box-shadow:0 4px 0 #0d47a1; }
+  .btn.laranja { background:linear-gradient(135deg,#ff9100,#ff3d00); box-shadow:0 4px 0 #bf360c; }
+  .btn.pequeno { padding:8px 14px; font-size:15px; box-shadow:0 3px 0 rgba(0,0,0,.4); }
+  #saldoTopo { font-size:17px; font-weight:bold; color:#ffe700; }
+  .tela { width:100%; max-width:640px; padding:16px; text-align:center; display:none; flex-direction:column; align-items:center; gap:14px; }
+  .tela.on { display:flex; }
+  h1 { font-size:40px; text-shadow:0 3px 0 #4a1a8a; margin:8px 0; }
+  h2 { font-size:26px; margin:6px 0; }
+  .sub { font-size:17px; color:#c9b3ff; }
+  .card {
+    background:rgba(255,255,255,.08); border:2px solid rgba(255,255,255,.15);
+    border-radius:22px; padding:20px; width:100%; box-shadow:0 8px 24px rgba(0,0,0,.35);
+  }
+  .nivelBtn { font-size:22px; padding:20px; width:100%; margin:6px 0; }
+  .opcao {
+    display:block; width:100%; margin:9px 0; padding:16px; font-size:18px;
+    text-align:left; border-radius:16px; border:2px solid rgba(255,255,255,.2);
+    background:rgba(255,255,255,.1); color:#fff; cursor:pointer; font-family:inherit;
+    font-weight:bold; transition:transform .06s, background .2s;
+  }
+  .opcao:active { transform:scale(.98); }
+  .opcao.certa { background:linear-gradient(135deg,#00c853,#64dd17); border-color:#fff; }
+  .opcao.errada { background:linear-gradient(135deg,#d50000,#ff1744); border-color:#fff; }
+  .opcao:disabled { cursor:default; }
+  #placar { display:flex; justify-content:space-around; width:100%; gap:10px; font-size:20px; font-weight:bold; }
+  .jogadorBox { flex:1; background:rgba(255,255,255,.08); border-radius:16px; padding:10px; }
+  .jogadorBox .pts { font-size:34px; color:#ffe700; }
+  #cronoBar { width:100%; height:16px; background:rgba(255,255,255,.15); border-radius:10px; overflow:hidden; margin:4px 0; }
+  #cronoFill { height:100%; width:100%; background:linear-gradient(90deg,#00e676,#ffea00,#ff1744); transition:width .1s linear; }
+  #perguntaTxt { font-size:22px; font-weight:bold; line-height:1.35; margin:10px 0; min-height:60px; }
+  #statusRodada { font-size:17px; min-height:24px; color:#ffe700; font-weight:bold; }
+  .confete { position:fixed; top:-20px; font-size:26px; pointer-events:none; z-index:100; animation:cai linear forwards; }
+  @keyframes cai { to { transform:translateY(110vh) rotate(720deg); opacity:.7; } }
+  .amigoLinha { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:8px 0; font-size:17px; }
+  .conviteLinha { background:rgba(255,255,255,.08); border-radius:14px; padding:12px; margin:8px 0; font-size:17px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+  input.codigo { font-size:26px; letter-spacing:6px; text-align:center; padding:10px; border-radius:12px; border:none; width:200px; text-transform:uppercase; font-family:inherit; }
+  #msg { position:fixed; top:20%; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.85); padding:16px 26px; border-radius:18px; font-size:22px; font-weight:bold; z-index:200; display:none; text-align:center; max-width:90%; }
+  .pill { display:inline-block; background:rgba(255,255,255,.15); border-radius:20px; padding:4px 12px; font-size:15px; margin:2px; }
+</style>
+
+<div id="topo">
+  <a href="/" class="btn pequeno azul" style="text-decoration:none;">🏠 Início</a>
+  <span id="saldoTopo">🪙 0</span>
+</div>
+
+<!-- MENU -->
+<div id="telaMenu" class="tela on">
+  <h1>🍄 Quiz Cogumelo</h1>
+  <p class="sub">Responda mais rápido que o bot e vença! 🧠⚡</p>
+  <div class="card">
+    <h2>Escolha o nível 👇</h2>
+    <button class="btn verde nivelBtn" onclick="iniciaSolo('facil')">😀 FÁCIL</button>
+    <button class="btn azul nivelBtn" onclick="iniciaSolo('medio')">🤔 MÉDIO</button>
+    <button class="btn laranja nivelBtn" onclick="iniciaSolo('dificil')">🤯 DIFÍCIL</button>
+  </div>
+  <button class="btn" style="font-size:22px;padding:18px 30px;" onclick="abreOnline()">🌍 ONLINE (contra amigos)</button>
+  <p class="sub">🏆 Vitórias: <b id="recordeTxt">0</b></p>
+</div>
+
+<!-- JOGO -->
+<div id="telaJogo" class="tela">
+  <div id="placar">
+    <div class="jogadorBox"><div id="nomeA">VOCÊ</div><div class="pts" id="ptsA">0</div></div>
+    <div class="jogadorBox"><div id="nomeB">BOT</div><div class="pts" id="ptsB">0</div></div>
+  </div>
+  <div id="cronoBar"><div id="cronoFill"></div></div>
+  <div class="card">
+    <div class="sub" id="numPergunta"></div>
+    <div id="perguntaTxt"></div>
+    <div id="opcoes"></div>
+  </div>
+  <div id="statusRodada"></div>
+</div>
+
+<!-- FIM -->
+<div id="telaFim" class="tela">
+  <h1 id="fimTitulo"></h1>
+  <div class="card">
+    <div id="fimPlacar" style="font-size:26px;font-weight:bold;"></div>
+    <div id="fimMoedas" style="font-size:19px;margin-top:12px;color:#ffe700;"></div>
+  </div>
+  <button class="btn verde" style="font-size:24px;padding:18px 34px;" onclick="deNovo()">🔁 DE NOVO</button>
+  <button class="btn azul" onclick="voltaMenu()">🏠 Menu</button>
+</div>
+
+<!-- ONLINE -->
+<div id="telaOnline" class="tela">
+  <h1>🌍 Online</h1>
+  <div id="onlineArea"></div>
+  <button class="btn azul" onclick="voltaMenu()">🏠 Menu</button>
+</div>
+
+<div id="msg"></div>
+
+<script>
+/* =========================================================
+   QUIZ COGUMELO — banco de perguntas
+   Cada item: {q, opcoes:[4], correta:idx, nivel}
+   ========================================================= */
+const PERGUNTAS = [
+  // ---------- FÁCEIS (~40) ----------
+  {q:"Qual a cor do céu num dia limpo de sol?", opcoes:["Azul","Verde","Roxo","Marrom"], correta:0, nivel:"facil"},
+  {q:"Quantas patas tem um cachorro?", opcoes:["Duas","Quatro","Seis","Oito"], correta:1, nivel:"facil"},
+  {q:"Qual animal faz 'miau'?", opcoes:["Cachorro","Vaca","Gato","Pato"], correta:2, nivel:"facil"},
+  {q:"Quanto é 2 + 2?", opcoes:["3","4","5","6"], correta:1, nivel:"facil"},
+  {q:"Qual fruta é amarela e os macacos adoram?", opcoes:["Maçã","Uva","Banana","Melancia"], correta:2, nivel:"facil"},
+  {q:"Que cor fica a grama saudável?", opcoes:["Vermelha","Verde","Azul","Preta"], correta:1, nivel:"facil"},
+  {q:"Qual animal é o 'rei da selva'?", opcoes:["Elefante","Leão","Girafa","Coelho"], correta:1, nivel:"facil"},
+  {q:"Quantos dias tem uma semana?", opcoes:["5","6","7","10"], correta:2, nivel:"facil"},
+  {q:"Onde os peixes vivem?", opcoes:["Na árvore","Na água","No céu","No deserto"], correta:1, nivel:"facil"},
+  {q:"Qual desses é uma cor?", opcoes:["Cadeira","Vermelho","Sapato","Janela"], correta:1, nivel:"facil"},
+  {q:"O que usamos para enxergar?", opcoes:["Os olhos","As mãos","Os pés","O nariz"], correta:0, nivel:"facil"},
+  {q:"Quanto é 5 + 5?", opcoes:["9","10","11","15"], correta:1, nivel:"facil"},
+  {q:"Qual animal dá leite pra gente?", opcoes:["Vaca","Cobra","Peixe","Aranha"], correta:0, nivel:"facil"},
+  {q:"Qual bicho voa e faz mel?", opcoes:["Formiga","Abelha","Minhoca","Caramujo"], correta:1, nivel:"facil"},
+  {q:"De que cor é o Sol que desenhamos?", opcoes:["Amarelo","Azul","Verde","Cinza"], correta:0, nivel:"facil"},
+  {q:"Quantos dedos tem numa mão?", opcoes:["3","4","5","6"], correta:2, nivel:"facil"},
+  {q:"O gelo é feito de quê?", opcoes:["Areia","Água","Leite","Suco"], correta:1, nivel:"facil"},
+  {q:"Qual animal é conhecido por ser bem lento?", opcoes:["Guepardo","Tartaruga","Cavalo","Coelho"], correta:1, nivel:"facil"},
+  {q:"Quanto é 3 + 1?", opcoes:["2","4","5","7"], correta:1, nivel:"facil"},
+  {q:"Qual desses é um animal de estimação comum?", opcoes:["Leão","Tubarão","Gato","Baleia"], correta:2, nivel:"facil"},
+  {q:"O que cai do céu quando chove?", opcoes:["Pedra","Água","Fogo","Areia"], correta:1, nivel:"facil"},
+  {q:"Que som a vaca faz?", opcoes:["Au au","Muuu","Miau","Quá quá"], correta:1, nivel:"facil"},
+  {q:"Qual é a primeira letra do alfabeto?", opcoes:["A","B","C","Z"], correta:0, nivel:"facil"},
+  {q:"Quantas rodas tem uma bicicleta?", opcoes:["1","2","3","4"], correta:1, nivel:"facil"},
+  {q:"Qual fruta é vermelha e pequena, começa com 'M'?", opcoes:["Banana","Morango","Abacate","Kiwi"], correta:1, nivel:"facil"},
+  {q:"O que a gente veste nos pés?", opcoes:["Luva","Chapéu","Sapato","Óculos"], correta:2, nivel:"facil"},
+  {q:"Qual animal tem uma tromba grande?", opcoes:["Elefante","Gato","Pato","Peixe"], correta:0, nivel:"facil"},
+  {q:"Quanto é 10 - 1?", opcoes:["8","9","10","11"], correta:1, nivel:"facil"},
+  {q:"De que cor é a neve?", opcoes:["Preta","Branca","Verde","Rosa"], correta:1, nivel:"facil"},
+  {q:"Qual bicho pula e faz 'coax'?", opcoes:["Sapo","Cachorro","Vaca","Galinha"], correta:0, nivel:"facil"},
+  {q:"O que usamos pra escrever no caderno?", opcoes:["Garfo","Lápis","Colher","Martelo"], correta:1, nivel:"facil"},
+  {q:"Quantos olhos tem uma pessoa?", opcoes:["1","2","3","4"], correta:1, nivel:"facil"},
+  {q:"Qual desses voa?", opcoes:["Cachorro","Passarinho","Peixe","Gato"], correta:1, nivel:"facil"},
+  {q:"Quanto é 1 + 1?", opcoes:["1","2","3","4"], correta:1, nivel:"facil"},
+  {q:"Qual bebida vem da laranja?", opcoes:["Suco de laranja","Café","Leite","Água"], correta:0, nivel:"facil"},
+  {q:"O que a galinha bota?", opcoes:["Ovos","Leite","Mel","Lã"], correta:0, nivel:"facil"},
+  {q:"Qual estação é bem quente?", opcoes:["Inverno","Verão","Outono","Nenhuma"], correta:1, nivel:"facil"},
+  {q:"Qual animal late?", opcoes:["Gato","Cachorro","Peixe","Coelho"], correta:1, nivel:"facil"},
+  {q:"Quantos dias tem o fim de semana (sábado e domingo)?", opcoes:["1","2","3","4"], correta:1, nivel:"facil"},
+  {q:"Qual é a cor de uma banana madura?", opcoes:["Azul","Amarela","Roxa","Preta"], correta:1, nivel:"facil"},
+
+  // ---------- MÉDIAS (~40) ----------
+  {q:"Qual é a capital do Brasil?", opcoes:["São Paulo","Rio de Janeiro","Brasília","Salvador"], correta:2, nivel:"medio"},
+  {q:"Quantos continentes existem no mundo?", opcoes:["5","6","7","8"], correta:2, nivel:"medio"},
+  {q:"Qual é o maior planeta do Sistema Solar?", opcoes:["Terra","Júpiter","Marte","Saturno"], correta:1, nivel:"medio"},
+  {q:"Quanto é 7 x 6?", opcoes:["36","42","48","40"], correta:1, nivel:"medio"},
+  {q:"Qual animal é o maior do mundo?", opcoes:["Elefante","Baleia-azul","Girafa","Tubarão"], correta:1, nivel:"medio"},
+  {q:"Em que país fica a Torre Eiffel?", opcoes:["Itália","Espanha","França","Alemanha"], correta:2, nivel:"medio"},
+  {q:"Qual é o planeta em que vivemos?", opcoes:["Marte","Terra","Vênus","Lua"], correta:1, nivel:"medio"},
+  {q:"Quantos lados tem um triângulo?", opcoes:["3","4","5","6"], correta:0, nivel:"medio"},
+  {q:"Qual é o maior rio do Brasil?", opcoes:["Rio Tietê","Rio Amazonas","Rio São Francisco","Rio Paraná"], correta:1, nivel:"medio"},
+  {q:"Quanto é 9 x 9?", opcoes:["72","81","91","99"], correta:1, nivel:"medio"},
+  {q:"Qual animal é conhecido por trocar de cor?", opcoes:["Camaleão","Zebra","Panda","Urso"], correta:0, nivel:"medio"},
+  {q:"Quantos minutos tem uma hora?", opcoes:["30","50","60","100"], correta:2, nivel:"medio"},
+  {q:"Qual é a estrela mais próxima da Terra?", opcoes:["A Lua","O Sol","Júpiter","Sirius"], correta:1, nivel:"medio"},
+  {q:"Que gás as plantas soltam e a gente respira?", opcoes:["Gás carbônico","Oxigênio","Hélio","Fumaça"], correta:1, nivel:"medio"},
+  {q:"Qual é o maior oceano do mundo?", opcoes:["Atlântico","Índico","Pacífico","Ártico"], correta:2, nivel:"medio"},
+  {q:"Quantos jogadores tem um time de futebol em campo?", opcoes:["9","10","11","12"], correta:2, nivel:"medio"},
+  {q:"Qual é a cor que se forma misturando azul e amarelo?", opcoes:["Verde","Laranja","Roxo","Marrom"], correta:0, nivel:"medio"},
+  {q:"Quanto é 100 - 45?", opcoes:["45","55","65","50"], correta:1, nivel:"medio"},
+  {q:"Qual animal é um mamífero que voa?", opcoes:["Águia","Morcego","Pinguim","Avestruz"], correta:1, nivel:"medio"},
+  {q:"Em qual país fica a cidade de Tóquio?", opcoes:["China","Coreia","Japão","Tailândia"], correta:2, nivel:"medio"},
+  {q:"Qual é o metal usado nas medalhas de 1º lugar?", opcoes:["Prata","Ouro","Bronze","Ferro"], correta:1, nivel:"medio"},
+  {q:"Quantos meses tem um ano?", opcoes:["10","11","12","13"], correta:2, nivel:"medio"},
+  {q:"Qual dinossauro era um grande predador de dentes enormes?", opcoes:["Tiranossauro Rex","Triceratops","Braquiossauro","Estegossauro"], correta:0, nivel:"medio"},
+  {q:"Qual é a forma da Terra?", opcoes:["Quadrada","Redonda (esfera)","Triângulo","Plana"], correta:1, nivel:"medio"},
+  {q:"Quanto é 12 x 3?", opcoes:["24","36","30","33"], correta:1, nivel:"medio"},
+  {q:"Qual é o esporte jogado com uma raquete e uma bolinha na mesa?", opcoes:["Tênis de mesa","Vôlei","Basquete","Golfe"], correta:0, nivel:"medio"},
+  {q:"Qual é o maior animal terrestre?", opcoes:["Elefante africano","Rinoceronte","Hipopótamo","Girafa"], correta:0, nivel:"medio"},
+  {q:"Qual planeta é conhecido como 'planeta vermelho'?", opcoes:["Vênus","Marte","Mercúrio","Netuno"], correta:1, nivel:"medio"},
+  {q:"Quantas cores tem o arco-íris?", opcoes:["5","6","7","8"], correta:2, nivel:"medio"},
+  {q:"Qual é a capital da Argentina?", opcoes:["Santiago","Buenos Aires","Lima","Montevidéu"], correta:1, nivel:"medio"},
+  {q:"Quanto é metade de 50?", opcoes:["20","25","30","15"], correta:1, nivel:"medio"},
+  {q:"Qual é o órgão que bombeia o sangue no corpo?", opcoes:["Pulmão","Coração","Estômago","Cérebro"], correta:1, nivel:"medio"},
+  {q:"Qual é o animal símbolo da China, preto e branco?", opcoes:["Urso polar","Panda","Coala","Zebra"], correta:1, nivel:"medio"},
+  {q:"Quanto é 8 x 7?", opcoes:["54","56","58","63"], correta:1, nivel:"medio"},
+  {q:"Quantos planetas tem o Sistema Solar?", opcoes:["7","8","9","10"], correta:1, nivel:"medio"},
+  {q:"Qual é a maior floresta do Brasil?", opcoes:["Mata Atlântica","Floresta Amazônica","Cerrado","Caatinga"], correta:1, nivel:"medio"},
+  {q:"Qual instrumento tem teclas pretas e brancas?", opcoes:["Violão","Piano","Bateria","Flauta"], correta:1, nivel:"medio"},
+  {q:"Quanto é 6 x 6?", opcoes:["30","36","42","46"], correta:1, nivel:"medio"},
+  {q:"Qual é o time de futebol com mais Copas do Mundo (país)?", opcoes:["Alemanha","Brasil","Argentina","Itália"], correta:1, nivel:"medio"},
+  {q:"Qual é a água que a gente NÃO pode beber?", opcoes:["Água do mar (salgada)","Água mineral","Água filtrada","Água da torneira fervida"], correta:0, nivel:"medio"},
+
+  // ---------- DIFÍCEIS (~40) ----------
+  {q:"Qual é a capital do Japão?", opcoes:["Pequim","Seul","Tóquio","Bangkok"], correta:2, nivel:"dificil"},
+  {q:"Quanto é 14 x 12?", opcoes:["144","168","156","174"], correta:1, nivel:"dificil"},
+  {q:"Qual é o maior deserto quente do mundo?", opcoes:["Deserto do Saara","Deserto de Gobi","Deserto do Atacama","Kalahari"], correta:0, nivel:"dificil"},
+  {q:"Qual planeta tem os anéis mais famosos?", opcoes:["Júpiter","Saturno","Urano","Netuno"], correta:1, nivel:"dificil"},
+  {q:"Qual é a capital da Austrália?", opcoes:["Sydney","Melbourne","Canberra","Perth"], correta:2, nivel:"dificil"},
+  {q:"Quanto é 256 dividido por 8?", opcoes:["32","28","36","30"], correta:0, nivel:"dificil"},
+  {q:"Quem pintou a Mona Lisa?", opcoes:["Van Gogh","Leonardo da Vinci","Picasso","Michelangelo"], correta:1, nivel:"dificil"},
+  {q:"Qual é o maior país do mundo em território?", opcoes:["China","Estados Unidos","Rússia","Canadá"], correta:2, nivel:"dificil"},
+  {q:"Quanto é 15 x 15?", opcoes:["205","225","215","235"], correta:1, nivel:"dificil"},
+  {q:"Qual gás as pessoas precisam respirar para viver?", opcoes:["Hidrogênio","Oxigênio","Nitrogênio","Hélio"], correta:1, nivel:"dificil"},
+  {q:"Qual é o menor planeta do Sistema Solar?", opcoes:["Marte","Vênus","Mercúrio","Terra"], correta:2, nivel:"dificil"},
+  {q:"Qual é a capital do Egito?", opcoes:["Cairo","Casablanca","Argel","Túnis"], correta:0, nivel:"dificil"},
+  {q:"Quanto é 1000 - 375?", opcoes:["625","635","615","725"], correta:0, nivel:"dificil"},
+  {q:"Qual é o osso mais longo do corpo humano?", opcoes:["Fêmur","Úmero","Tíbia","Costela"], correta:0, nivel:"dificil"},
+  {q:"Em que continente fica o Egito?", opcoes:["Ásia","Europa","África","Oceania"], correta:2, nivel:"dificil"},
+  {q:"Quanto é 7 x 8 x 2?", opcoes:["102","112","122","96"], correta:1, nivel:"dificil"},
+  {q:"Qual é o maior planeta rochoso do Sistema Solar?", opcoes:["Marte","Terra","Vênus","Mercúrio"], correta:1, nivel:"dificil"},
+  {q:"Qual país tem o formato de uma bota na Europa?", opcoes:["Espanha","Itália","Grécia","Portugal"], correta:1, nivel:"dificil"},
+  {q:"Quanto é 9 x 12?", opcoes:["108","98","118","96"], correta:0, nivel:"dificil"},
+  {q:"Qual é o animal mais rápido do mundo em terra?", opcoes:["Leão","Guepardo","Cavalo","Avestruz"], correta:1, nivel:"dificil"},
+  {q:"Qual é a capital dos Estados Unidos?", opcoes:["Nova York","Los Angeles","Washington, D.C.","Chicago"], correta:2, nivel:"dificil"},
+  {q:"Quantos zeros tem um milhão?", opcoes:["5","6","7","9"], correta:1, nivel:"dificil"},
+  {q:"Qual é o metal líquido em temperatura ambiente?", opcoes:["Ferro","Mercúrio","Ouro","Cobre"], correta:1, nivel:"dificil"},
+  {q:"Quanto é 13 x 13?", opcoes:["159","169","179","149"], correta:1, nivel:"dificil"},
+  {q:"Qual é a montanha mais alta do mundo?", opcoes:["Monte Everest","K2","Aconcágua","Kilimanjaro"], correta:0, nivel:"dificil"},
+  {q:"Qual é a capital da Alemanha?", opcoes:["Munique","Berlim","Frankfurt","Hamburgo"], correta:1, nivel:"dificil"},
+  {q:"Quanto é 144 dividido por 12?", opcoes:["11","12","13","14"], correta:1, nivel:"dificil"},
+  {q:"Qual é o maior mamífero terrestre da América do Sul?", opcoes:["Anta","Capivara","Onça","Tamanduá"], correta:0, nivel:"dificil"},
+  {q:"Qual é a capital da Itália?", opcoes:["Milão","Roma","Veneza","Nápoles"], correta:1, nivel:"dificil"},
+  {q:"Quanto é 25 x 4?", opcoes:["90","100","110","95"], correta:1, nivel:"dificil"},
+  {q:"Qual é o planeta mais quente do Sistema Solar?", opcoes:["Mercúrio","Vênus","Marte","Júpiter"], correta:1, nivel:"dificil"},
+  {q:"Em qual país nasceu o futebolista Messi?", opcoes:["Brasil","Portugal","Argentina","Espanha"], correta:2, nivel:"dificil"},
+  {q:"Quanto é 18 x 5?", opcoes:["80","90","100","85"], correta:1, nivel:"dificil"},
+  {q:"Qual é a capital da Rússia?", opcoes:["São Petersburgo","Moscou","Kiev","Varsóvia"], correta:1, nivel:"dificil"},
+  {q:"Qual parte da planta faz a fotossíntese?", opcoes:["A raiz","A folha","O caule","A flor"], correta:1, nivel:"dificil"},
+  {q:"Quanto é 11 x 11?", opcoes:["111","121","131","101"], correta:1, nivel:"dificil"},
+  {q:"Qual é o maior país da América do Sul?", opcoes:["Argentina","Brasil","Peru","Colômbia"], correta:1, nivel:"dificil"},
+  {q:"Qual é a velocidade da luz aproximada?", opcoes:["300 mil km/s","30 km/s","3 mil km/s","3 milhões km/s"], correta:0, nivel:"dificil"},
+  {q:"Quanto é 500 dividido por 25?", opcoes:["15","20","25","10"], correta:1, nivel:"dificil"},
+  {q:"Qual é o continente mais frio do planeta?", opcoes:["Europa","Ásia","Antártida","América do Norte"], correta:2, nivel:"dificil"},
+];
+
+/* =========================================================
+   UTIL
+   ========================================================= */
+function embaralhaOpcoes(p){
+  // retorna {opcoes, correta} com ordem embaralhada mantendo qual é a certa
+  const idx = p.opcoes.map((_,i)=>i);
+  for(let i=idx.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [idx[i],idx[j]]=[idx[j],idx[i]]; }
+  const novas = idx.map(i=>p.opcoes[i]);
+  const novaCorreta = idx.indexOf(p.correta);
+  return {q:p.q, opcoes:novas, correta:novaCorreta, nivel:p.nivel};
+}
+function sorteiaPerguntas(nivel, n){
+  const pool = PERGUNTAS.filter(p=>p.nivel===nivel).slice();
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  const escolhidas = [];
+  let i=0;
+  while(escolhidas.length<n){ escolhidas.push(pool[i % pool.length]); i++; }
+  return escolhidas.map(embaralhaOpcoes);
+}
+function mostraMsg(txt,cor,ms){
+  const el=document.getElementById('msg');
+  el.textContent=txt; el.style.color=cor||'#fff'; el.style.display='block';
+  clearTimeout(el._t); el._t=setTimeout(()=>el.style.display='none', ms||1800);
+}
+function soltaConfete(n){
+  n=n||30;
+  const em=['🎉','🎊','⭐','🍄','🏆','✨','🎈'];
+  for(let i=0;i<n;i++){
+    const c=document.createElement('div');
+    c.className='confete'; c.textContent=em[Math.floor(Math.random()*em.length)];
+    c.style.left=Math.random()*100+'vw';
+    c.style.animationDuration=(1.5+Math.random()*2)+'s';
+    c.style.fontSize=(18+Math.random()*20)+'px';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),3800);
+  }
+}
+let audioCtx=null;
+function som(freq,dur,tipo){
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type=tipo||'sine'; o.frequency.value=freq;
+    o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.15,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+(dur||0.2));
+    o.start(); o.stop(audioCtx.currentTime+(dur||0.2));
+  }catch(e){}
+}
+function somAcerto(){ som(600,0.1); setTimeout(()=>som(800,0.12),90); setTimeout(()=>som(1000,0.2),190); }
+function somErro(){ som(160,0.35,'sawtooth'); }
+
+function mostraTela(id){
+  document.querySelectorAll('.tela').forEach(t=>t.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+
+/* =========================================================
+   MOEDAS / PERSISTÊNCIA (prefixo quiz_)
+   ========================================================= */
+let moedas = parseInt(localStorage.getItem('quiz_moedas')||'0',10);
+let recorde = parseInt(localStorage.getItem('quiz_recorde')||'0',10);
+function salvaMoedas(){ localStorage.setItem('quiz_moedas', moedas); atualizaSaldo(); }
+function atualizaSaldo(){ document.getElementById('saldoTopo').textContent='🪙 '+moedas; document.getElementById('recordeTxt').textContent=recorde; }
+
+/* =========================================================
+   MODO SOLO (contra bot)
+   ========================================================= */
+const CFG = {
+  facil:   { tempo:15000, botAcerto:0.55, botMin:5000, botMax:12000, moedaVit:20 },
+  medio:   { tempo:12000, botAcerto:0.70, botMin:3500, botMax:9000,  moedaVit:35 },
+  dificil: { tempo:9000,  botAcerto:0.85, botMin:2000, botMax:6000,  moedaVit:50 },
+};
+let solo = null;
+
+function iniciaSolo(nivel){
+  localStorage.setItem('quiz_nivel', nivel);
+  solo = {
+    nivel, cfg:CFG[nivel],
+    perguntas: sorteiaPerguntas(nivel, 40),
+    idx:0, ptsVoce:0, ptsBot:0,
+    respondido:false, tRestante:0, crono:null, botTimer:null,
+    moedasGanhas:0, inicioRodada:0,
+  };
+  document.getElementById('nomeA').textContent='VOCÊ 😎';
+  document.getElementById('nomeB').textContent='BOT 🤖';
+  atualizaPlacarSolo();
+  mostraTela('telaJogo');
+  proximaSolo();
+}
+function atualizaPlacarSolo(){
+  document.getElementById('ptsA').textContent=solo.ptsVoce;
+  document.getElementById('ptsB').textContent=solo.ptsBot;
+}
+function proximaSolo(){
+  if(solo.ptsVoce>=5 || solo.ptsBot>=5){ return fimSolo(); }
+  const p = solo.perguntas[solo.idx % solo.perguntas.length];
+  solo.pergAtual=p; solo.respondido=false; solo.botRespondeu=false;
+  document.getElementById('statusRodada').textContent='';
+  document.getElementById('numPergunta').textContent='Pergunta '+(solo.idx+1)+' • '+niveLabel(solo.nivel);
+  document.getElementById('perguntaTxt').textContent=p.q;
+  renderOpcoes(p, respondeSolo);
+  solo.inicioRodada=Date.now();
+  // cronômetro
+  iniciaCrono(solo.cfg.tempo, ()=>{ if(!solo.respondido) respondeSolo(-1); });
+  // bot decide quando responde e se acerta
+  const botDelay = solo.cfg.botMin + Math.random()*(solo.cfg.botMax-solo.cfg.botMin);
+  const botAcerta = Math.random() < solo.cfg.botAcerto;
+  solo.botTimer = setTimeout(()=>{
+    solo.botRespondeu = true; solo.botAcertou = botAcerta;
+    if(!solo.respondido && botAcerta){
+      // bot acertou primeiro
+      resolveRodadaSolo('bot');
+    }
+  }, botDelay);
+}
+function niveLabel(n){ return n==='facil'?'😀 Fácil':n==='medio'?'🤔 Médio':'🤯 Difícil'; }
+
+function respondeSolo(escolha){
+  if(solo.respondido) return;
+  solo.respondido=true;
+  paraCrono();
+  const p=solo.pergAtual;
+  const acertou = escolha===p.correta;
+  marcaOpcoes(p.correta, escolha);
+  if(acertou){
+    // você acertou. Ganha o ponto se o bot ainda não acertou antes
+    if(solo.botRespondeu && solo.botAcertou){
+      resolveRodadaSolo('bot','O bot respondeu primeiro! 🤖');
+    } else {
+      clearTimeout(solo.botTimer);
+      resolveRodadaSolo('voce');
+    }
+  } else {
+    // você errou (ou estourou o tempo) → ponto do bot se ele acertar
+    clearTimeout(solo.botTimer);
+    if(solo.botAcertou){
+      resolveRodadaSolo('bot', escolha===-1?'⏰ Tempo esgotado!':'Você errou! 😅');
+    } else {
+      resolveRodadaSolo('ninguem', escolha===-1?'⏰ Tempo esgotado! O bot também errou.':'Os dois erraram! 😆');
+    }
+  }
+}
+function resolveRodadaSolo(quem, extra){
+  const st=document.getElementById('statusRodada');
+  if(quem==='voce'){
+    solo.ptsVoce++; solo.moedasGanhas+=5; moedas+=5; salvaMoedas();
+    st.textContent='✅ Você marcou o ponto! (+5 🪙)'; somAcerto(); soltaConfete(12);
+  } else if(quem==='bot'){
+    solo.ptsBot++;
+    st.textContent='🤖 Ponto do bot! '+(extra||''); somErro();
+  } else {
+    st.textContent='😐 Ninguém pontuou. '+(extra||'');
+  }
+  atualizaPlacarSolo();
+  setTimeout(()=>{ solo.idx++; proximaSolo(); }, 2100);
+}
+
+function fimSolo(){
+  paraCrono(); clearTimeout(solo.botTimer);
+  const venceu = solo.ptsVoce>=5;
+  if(venceu){
+    const b=solo.cfg.moedaVit; moedas+=b; solo.moedasGanhas+=b; salvaMoedas();
+    recorde++; localStorage.setItem('quiz_recorde', recorde);
+  }
+  document.getElementById('fimTitulo').textContent = venceu ? '🏆 VOCÊ VENCEU!' : '😢 O bot venceu...';
+  document.getElementById('fimPlacar').textContent = `VOCÊ ${solo.ptsVoce} × ${solo.ptsBot} BOT`;
+  document.getElementById('fimMoedas').textContent = venceu
+    ? `Você ganhou 🪙 ${solo.moedasGanhas} moedas nessa partida!`
+    : `Você ganhou 🪙 ${solo.moedasGanhas} moedas. Tenta de novo! 💪`;
+  if(venceu){ soltaConfete(60); somAcerto(); }
+  else somErro();
+  atualizaSaldo();
+  mostraTela('telaFim');
+}
+function deNovo(){
+  const n = localStorage.getItem('quiz_nivel')||'facil';
+  iniciaSolo(n);
+}
+function voltaMenu(){
+  paraCrono();
+  if(solo){ clearTimeout(solo.botTimer); }
+  mpFechaWs();
+  mostraTela('telaMenu');
+  atualizaSaldo();
+}
+
+/* ------- render de opções e cronômetro (compartilhado) ------- */
+function renderOpcoes(p, cb){
+  const box=document.getElementById('opcoes');
+  box.innerHTML='';
+  p.opcoes.forEach((op,i)=>{
+    const b=document.createElement('button');
+    b.className='opcao'; b.textContent=String.fromCharCode(65+i)+') '+op;
+    b.onclick=()=>cb(i);
+    box.appendChild(b);
+  });
+}
+function marcaOpcoes(correta, escolha){
+  const bts=document.querySelectorAll('#opcoes .opcao');
+  bts.forEach((b,i)=>{
+    b.disabled=true;
+    if(i===correta) b.classList.add('certa');
+    else if(i===escolha) b.classList.add('errada');
+  });
+}
+let cronoState={raf:null, fim:0, dur:0, cb:null};
+function iniciaCrono(dur, cb){
+  paraCrono();
+  cronoState.dur=dur; cronoState.fim=Date.now()+dur; cronoState.cb=cb;
+  const fill=document.getElementById('cronoFill');
+  function tick(){
+    const resta=cronoState.fim-Date.now();
+    const pct=Math.max(0, resta/cronoState.dur*100);
+    fill.style.width=pct+'%';
+    if(resta<=0){ cronoState.raf=null; const c=cronoState.cb; cronoState.cb=null; if(c)c(); return; }
+    cronoState.raf=requestAnimationFrame(tick);
+  }
+  tick();
+}
+function paraCrono(){
+  if(cronoState.raf){ cancelAnimationFrame(cronoState.raf); cronoState.raf=null; }
+  cronoState.cb=null;
+}
+
+/* =========================================================
+   MODO ONLINE (contra pessoas reais) — padrão penaltis
+   ========================================================= */
+const MP_API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+const MP_WS  = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=quiz';
+let mp = { ativo:false, comecou:false, ws:null, sala:'', souHost:false, meuNome:'', opNome:'',
+  ptsEu:0, ptsEle:0, idx:0, respondido:false, minhaMs:0, respostas:{}, perguntasHost:[],
+  lastMsg:0, pollConvites:null, ping:null, vigia:null, checaSala:null };
+
+function mpLogado(){ return !!localStorage.getItem('cg_usuario'); }
+async function mpApi(payload){
+  const r = await fetch(MP_API, { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(Object.assign({
+      nome: localStorage.getItem('cg_usuario'),
+      senhaHash: localStorage.getItem('cg_senhaHash')
+    }, payload)) });
+  return r.json();
+}
+function abreOnline(){
+  mostraTela('telaOnline');
+  const area=document.getElementById('onlineArea');
+  if(!mpLogado()){
+    area.innerHTML=`<div class="card"><p style="font-size:20px;">🔒 Faça login na sua conta pra jogar online com amigos!</p>
+      <p class="sub" style="margin-top:10px;">Volte pra página inicial e entre na sua conta 😉</p></div>`;
+    return;
+  }
+  area.innerHTML=`<div class="card">
+      <button class="btn verde" style="width:100%;margin:6px 0;font-size:19px;" onclick="mpCriarSala()">➕ CRIAR SALA</button>
+      <button class="btn azul" style="width:100%;margin:6px 0;font-size:19px;" onclick="mpVerConvites()">📬 MEUS CONVITES</button>
+    </div>
+    <div id="mpArea"></div>`;
+}
+function mpCodigoSala(){
+  const L='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s='';
+  for(let i=0;i<6;i++) s+=L[Math.floor(Math.random()*L.length)];
+  return s;
+}
+async function mpCriarSala(){
+  if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+  const sala=mpCodigoSala();
+  mpConecta(sala, true);
+  const area=document.getElementById('mpArea');
+  area.innerHTML=`<div class="card"><h2>Sala <span style="color:#00ff88">${sala}</span></h2>
+    <p style="color:#00ccff;">⏳ esperando amigo entrar...</p>
+    <div id="mpAmigos"><p>carregando seus amigos...</p></div></div>`;
+  try{
+    const d=await mpApi({acao:'entrar'});
+    const amigos=d.amigos||[];
+    const el=document.getElementById('mpAmigos'); if(!el) return;
+    el.innerHTML = amigos.length
+      ? `<h2 style="font-size:18px;margin:8px 0;">Convide um amigo:</h2>`+amigos.map(a=>
+          `<div class="amigoLinha">🧠 <b>${a}</b>
+           <button class="btn pequeno" onclick="mpConvidar('${a}','${sala}',this)">📨 Convidar</button></div>`).join('')
+      : `<p>Você ainda não tem amigos adicionados 😅</p>`;
+  }catch(e){
+    const el=document.getElementById('mpAmigos'); if(el) el.innerHTML='<p>Não deu pra carregar os amigos 😢</p>';
+  }
+}
+async function mpConvidar(alvo, sala, btn){
+  btn.disabled=true; btn.textContent='...';
+  try{
+    const d=await mpApi({acao:'convidar', alvo, sala, jogo:'quiz'});
+    if(d.ok){ btn.textContent='✅ Convidado!'; }
+    else { btn.textContent='😢 não deu'; mostraMsg(d.erro||d.message||'Não deu pra convidar 😢','#ffaa00',2500); }
+  }catch(e){ btn.textContent='😢 erro'; btn.disabled=false; }
+}
+function mpVerConvites(){
+  mpFechaWs();
+  const area=document.getElementById('mpArea');
+  area.innerHTML=`<div class="card"><h2>📬 Meus convites</h2><div id="mpConvites"><p>procurando convites...</p></div></div>`;
+  const busca=async ()=>{
+    try{
+      const d=await mpApi({acao:'convites'});
+      const el=document.getElementById('mpConvites'); if(!el) return;
+      const agora=Date.now();
+      const cs=(d.convites||[]).filter(c=>agora-(c.ts||0)<30000);
+      el.innerHTML = cs.length ? cs.map(c=>{
+        const resta=Math.max(0,Math.ceil((30000-(agora-(c.ts||0)))/1000));
+        return `<div class="conviteLinha">🧠 <b>${c.de}</b> te chamou!
+          <span><button class="btn pequeno verde" onclick="mpEntrarSala('${c.sala}')">ENTRAR</button>
+          <span style="color:#ffaa00;">⏱️ ${resta}s</span></span></div>`;
+      }).join('') : '<p>Nenhum convite ainda... peça pro seu amigo criar uma sala! 😄</p>';
+    }catch(e){}
+  };
+  busca();
+  if(mp.pollConvites) clearInterval(mp.pollConvites);
+  mp.pollConvites=setInterval(busca,1000);
+}
+function mpEntrarSala(sala){
+  if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+  const area=document.getElementById('mpArea');
+  if(area) area.innerHTML=`<div class="card"><p style="color:#00ccff;">⏳ Entrando na sala ${sala}...</p></div>`;
+  mpConecta(sala, false);
+}
+function mpConecta(sala, souHost){
+  mpFechaWs();
+  mp.sala=sala; mp.souHost=souHost;
+  mp.meuNome=localStorage.getItem('cg_usuario')||'VOCÊ';
+  mp.opNome=''; mp.comecou=false; mp.ativo=false;
+  mp.ws=new WebSocket(MP_WS);
+  mp.ws.onopen=()=>{
+    mp.lastMsg=Date.now();
+    mpEnvia({t:'oi', nome:mp.meuNome});
+    if(!souHost){
+      if(mp.checaSala) clearTimeout(mp.checaSala);
+      mp.checaSala=setTimeout(()=>{ if(!mp.comecou && !mp.opNome) mpDesliga('🚪 SALA INDISPONÍVEL!'); }, 8000);
+    }
+    mp.ping=setInterval(()=>mpEnvia({t:'ping'}),4000);
+    mp.vigia=setInterval(()=>{ if(mp.ativo && Date.now()-mp.lastMsg>10000) mpDesliga('🚪 SALA INDISPONÍVEL! Seu amigo saiu.'); },2000);
+  };
+  mp.ws.onmessage=mpRecebe;
+  mp.ws.onclose=()=>{
+    if(mp.checaSala){ clearTimeout(mp.checaSala); mp.checaSala=null; }
+    if(mp.ativo) mpDesliga('🚪 SALA INDISPONÍVEL!');
+  };
+}
+function mpEnvia(o){
+  if(mp.ws && mp.ws.readyState===1)
+    mp.ws.send(JSON.stringify(Object.assign({acao:'mp', sala:mp.sala}, o)));
+}
+function mpRecebe(ev){
+  let m; try{ m=JSON.parse(ev.data); }catch(e){ return; }
+  if(!m || m.sala!==mp.sala) return; // ignora sala diferente
+  mp.lastMsg=Date.now();
+  if(m.t==='ping') return;
+  if(m.t==='oi'){
+    if(mp.checaSala){ clearTimeout(mp.checaSala); mp.checaSala=null; }
+    if(mp.comecou) return;
+    mp.opNome=m.nome||'AMIGO';
+    if(mp.souHost){
+      mpEnvia({t:'oi', nome:mp.meuNome});
+      mpComecaHost();
+    }
+    return;
+  }
+  if(m.t==='comeca'){ if(!mp.comecou && !mp.souHost){ mpComecaConvidado(m.nomeHost); } return; }
+  if(m.t==='pergunta'){ mpMostraPergunta(m); return; }
+  if(m.t==='resposta'){ if(mp.souHost) mpHostRecebeResposta(m); return; }
+  if(m.t==='placar'){ mpAtualizaPlacar(m); return; }
+  if(m.t==='fim'){ mpFim(m.vencedor===mp.meuNome, m.a, m.b, m.nomeA, m.nomeB); return; }
+}
+function mpComecaHost(){
+  mp.comecou=true; mp.ativo=true;
+  if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+  mp.ptsEu=0; mp.ptsEle=0; mp.idx=0;
+  // host escolhe as perguntas: mistura de todos níveis pra online
+  mp.perguntasHost = sorteiaOnline(9);
+  mpEnvia({t:'comeca', nomeHost:mp.meuNome});
+  mpAbreTelaJogoOnline(mp.meuNome, mp.opNome);
+  mostraMsg(`🧠 ${mp.meuNome} × ${mp.opNome}! Pela diversão!`, '#fff', 1800);
+  setTimeout(mpHostEnviaPergunta, 1900);
+}
+function mpComecaConvidado(nomeHost){
+  mp.comecou=true; mp.ativo=true;
+  if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+  mp.ptsEu=0; mp.ptsEle=0;
+  mp.opNome=nomeHost||mp.opNome;
+  mpAbreTelaJogoOnline(mp.meuNome, mp.opNome);
+  mostraMsg(`🧠 ${mp.meuNome} × ${mp.opNome}! Pela diversão!`, '#fff', 1800);
+}
+function sorteiaOnline(n){
+  // mistura equilibrada: pega de vários níveis
+  const todas = PERGUNTAS.slice();
+  for(let i=todas.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [todas[i],todas[j]]=[todas[j],todas[i]]; }
+  return todas.slice(0,n).map(embaralhaOpcoes);
+}
+function mpAbreTelaJogoOnline(a,b){
+  document.getElementById('nomeA').textContent=a.toUpperCase()+' 😎';
+  document.getElementById('nomeB').textContent=b.toUpperCase()+' 🧑';
+  document.getElementById('ptsA').textContent='0';
+  document.getElementById('ptsB').textContent='0';
+  mostraTela('telaJogo');
+}
+// HOST envia a próxima pergunta sincronizada
+function mpHostEnviaPergunta(){
+  if(!mp.ativo) return;
+  if(mp.ptsEu>=5 || mp.ptsEle>=5) return;
+  const p=mp.perguntasHost[mp.idx % mp.perguntasHost.length];
+  mp.respostas={}; mp.respondido=false;
+  const msg={t:'pergunta', idx:mp.idx, q:p.q, opcoes:p.opcoes, correta:p.correta, n:niveLabel(p.nivel)};
+  mpEnvia(msg);
+  mpMostraPergunta(msg); // host também mostra
+}
+// os dois mostram a MESMA pergunta
+function mpMostraPergunta(m){
+  mp.respondido=false; mp.idxAtual=m.idx; mp.corretaAtual=m.correta;
+  document.getElementById('statusRodada').textContent='';
+  document.getElementById('numPergunta').textContent='Pergunta '+(m.idx+1)+' • '+(m.n||'');
+  document.getElementById('perguntaTxt').textContent=m.q;
+  const p={opcoes:m.opcoes, correta:m.correta};
+  mp.inicioRodada=Date.now();
+  renderOpcoes(p, (i)=>mpResponde(i, m.correta));
+  iniciaCrono(12000, ()=>{ if(!mp.respondido) mpResponde(-1, m.correta); });
+}
+function mpResponde(escolha, correta){
+  if(mp.respondido) return;
+  mp.respondido=true; paraCrono();
+  const acertou=escolha===correta;
+  const ms=Date.now()-mp.inicioRodada;
+  marcaOpcoes(correta, escolha);
+  document.getElementById('statusRodada').textContent = acertou?'✅ Acertou! Esperando o resultado...':'❌ Errou! Esperando...';
+  mpEnvia({t:'resposta', idx:mp.idxAtual, nome:mp.meuNome, correta:acertou, ms});
+  if(mp.souHost) mpHostRecebeResposta({idx:mp.idxAtual, nome:mp.meuNome, correta:acertou, ms});
+}
+// HOST decide o vencedor da rodada
+function mpHostRecebeResposta(m){
+  if(m.idx!==mp.idx) return;
+  mp.respostas[m.nome]={correta:m.correta, ms:m.ms};
+  // espera os dois OU decide se der pra decidir
+  const nomes=Object.keys(mp.respostas);
+  if(nomes.length<2){
+    // se o único que respondeu acertou rápido, ainda espera o outro (pode acertar mais rápido? não, já passou o tempo dele)
+    return; // aguarda o segundo (ou timeout do crono do outro cliente que enviará -1)
+  }
+  mpHostDecideRodada();
+}
+function mpHostDecideRodada(){
+  if(mp._decidindo) return; mp._decidindo=true;
+  const rEu=mp.respostas[mp.meuNome]||{correta:false,ms:999999};
+  const rEle=mp.respostas[mp.opNome]||{correta:false,ms:999999};
+  let ponto=null;
+  if(rEu.correta && rEle.correta) ponto = rEu.ms<=rEle.ms ? mp.meuNome : mp.opNome;
+  else if(rEu.correta) ponto=mp.meuNome;
+  else if(rEle.correta) ponto=mp.opNome;
+  if(ponto===mp.meuNome) mp.ptsEu++;
+  else if(ponto===mp.opNome) mp.ptsEle++;
+  const placar={t:'placar', ponto:ponto||'', a:mp.ptsEu, b:mp.ptsEle, nomeA:mp.meuNome, nomeB:mp.opNome};
+  mpEnvia(placar);
+  mpAtualizaPlacar(placar);
+  mp._decidindo=false;
+  mp.idx++;
+  if(mp.ptsEu>=5 || mp.ptsEle>=5){
+    const vencedor = mp.ptsEu>=5 ? mp.meuNome : mp.opNome;
+    const fim={t:'fim', vencedor, a:mp.ptsEu, b:mp.ptsEle, nomeA:mp.meuNome, nomeB:mp.opNome};
+    setTimeout(()=>{ mpEnvia(fim); mpFim(vencedor===mp.meuNome, mp.ptsEu, mp.ptsEle, mp.meuNome, mp.opNome); }, 2000);
+  } else {
+    setTimeout(mpHostEnviaPergunta, 2200);
+  }
+}
+function mpAtualizaPlacar(m){
+  // a/b são do ponto de vista do HOST (nomeA=host). Ajusta pra minha tela.
+  const souA = (m.nomeA===mp.meuNome);
+  const meus = souA ? m.a : m.b;
+  const dele = souA ? m.b : m.a;
+  mp.ptsEu=meus; mp.ptsEle=dele;
+  document.getElementById('ptsA').textContent=meus;
+  document.getElementById('ptsB').textContent=dele;
+  const st=document.getElementById('statusRodada');
+  if(m.ponto===mp.meuNome){ st.textContent='✅ Você ganhou o ponto!'; somAcerto(); soltaConfete(12); }
+  else if(m.ponto===mp.opNome){ st.textContent='😅 Ponto de '+mp.opNome+'!'; somErro(); }
+  else { st.textContent='😐 Ninguém pontuou nessa!'; }
+}
+function mpFim(venceu, a, b, nomeA, nomeB){
+  mp.ativo=false; mp.comecou=false;
+  const souA=(nomeA===mp.meuNome);
+  const meus=souA?a:b, dele=souA?b:a;
+  document.getElementById('fimTitulo').textContent = venceu ? '🏆 VOCÊ VENCEU!' : `😢 ${mp.opNome} venceu...`;
+  document.getElementById('fimPlacar').textContent = `${mp.meuNome.toUpperCase()} ${meus} × ${dele} ${mp.opNome.toUpperCase()}`;
+  document.getElementById('fimMoedas').textContent = 'Amistoso é pela diversão! 🤝 (sem moedas)';
+  document.getElementById('telaFim').dataset.online='1';
+  if(venceu){ soltaConfete(60); somAcerto(); } else somErro();
+  mpFechaWs();
+  mostraTela('telaFim');
+}
+function mpFechaWs(){
+  if(mp.ping){ clearInterval(mp.ping); mp.ping=null; }
+  if(mp.vigia){ clearInterval(mp.vigia); mp.vigia=null; }
+  if(mp.ws){ try{ mp.ws.onclose=null; mp.ws.close(); }catch(e){} mp.ws=null; }
+}
+function mpDesliga(aviso){
+  const estava=mp.ativo;
+  mp.ativo=false; mp.comecou=false;
+  if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+  paraCrono();
+  mpFechaWs();
+  if(aviso) mostraMsg(aviso,'#ffaa00',2600);
+  if(estava){ mostraTela('telaMenu'); atualizaSaldo(); }
+}
+
+/* ------- adaptação do botão DE NOVO / MENU pra online ------- */
+const _deNovoOrig = deNovo;
+deNovo = function(){
+  if(document.getElementById('telaFim').dataset.online==='1'){
+    document.getElementById('telaFim').dataset.online='';
+    abreOnline();
+    return;
+  }
+  _deNovoOrig();
+};
+
+/* =========================================================
+   ENTRADA POR ?sala=XXXX (convite aceito)
+   ========================================================= */
+(function(){
+  const q=new URLSearchParams(location.search);
+  const salaConvite=q.get('sala');
+  if(salaConvite && localStorage.getItem('cg_usuario')){
+    setTimeout(()=>{
+      try{
+        abreOnline();
+        mpEntrarSala(salaConvite.replace(/[^A-Za-z0-9]/g,'').slice(0,10));
+        const de=q.get('de'); if(de) mostraMsg(`🧠 Entrando na sala de ${de}!`, '#00ff88', 2000);
+      }catch(e){}
+    }, 300);
+  }
+})();
+
+atualizaSaldo();
+</script>
+<script src="/stats.js"></script>
+<script src="/avisos.js?v=5"></script>
+<script>
+if (window.initStats) initStats('quiz');
+</script>

@@ -1,5 +1,11 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.3.0 (2026-07-31)
+- JOGO NOVO: Quiz Cogumelo — 120 perguntas, 3 niveis vs bot + modo ONLINE 1x1 (quem acerta primeiro pontua, 5 pts vence)
+- Conta: botao Mudar meu nome (mantem amizades/foto/progresso, nome unico)
+- Convites: rota do quiz na central de avisos
+
+
 ## v3.2.0 (2026-07-30)
 - Zumbi Survival: modo JOGAR COM AMIGOS (coop online) — salas, convites so entre amigos,
   zumbis autoritativos no host, suprimentos em dobro, moedas valendo com +25% de bonus de equipe
