@@ -293,6 +293,7 @@ var player = new THREE.Group();
 var pCorpo, pCabeca, pChapeu, pPerna1, pPerna2, pOrelha1, pOrelha2;
 function montaPlayer() {
   while (player.children.length) player.remove(player.children[0]);
+  player.rotation.y = Math.PI;
   var s = skinAtual();
   var pele = (s.pele !== undefined) ? s.pele : 0xd9a066;
   var cabelo = (s.cabelo !== undefined) ? s.cabelo : 0x2a1a0e;
@@ -334,6 +335,7 @@ function montaPlayer() {
   }
 }
 montaPlayer();
+player.rotation.y = Math.PI; // olha pra frente (direção da corrida)
 scene.add(player);
 
 // ============ T-REX GIGANTE ============
@@ -378,7 +380,7 @@ var dinoPernaE, dinoPernaD, dinoCabeca, dinoBocaBaixo;
     esp.position.set(0, 6.1 - k * 0.3, -0.8 + k * 1.5);
     dino.add(esp);
   }
-  dino.scale.setScalar(0.65); // ~35% menor pra não tapar a visão dos obstáculos
+  dino.scale.setScalar(0.42); // do tamanho do homem das cavernas
   scene.add(dino);
 })();
 
@@ -533,7 +535,7 @@ function limpaMundo() {
 function novaPartida() {
   limpaMundo();
   G.rodando = true; G.fim = false;
-  G.vel = 16; G.dist = 0; G.moedasRun = 0;
+  G.vel = 19; G.dist = 0; G.moedasRun = 0;
   G.lane = 1; G.laneX = 0; G.y = 0; G.vy = 0;
   G.pulando = false; G.deslizando = false; G.slideT = 0;
   G.dinoDist = 26; G.invencivel = 0; G.shake = 0; G.tRugido = 0;
@@ -716,7 +718,7 @@ function loop() {
 
   if (G.rodando && !G.fim) {
     // velocidade cresce
-    G.vel += dt * 0.34;
+    G.vel += dt * 0.5;
     var dz = G.vel * dt;
     player.position.z -= dz;
     G.dist += dz;
@@ -752,7 +754,7 @@ function loop() {
     // spawn
     while (G.proxSpawn > player.position.z - 90) {
       spawnRodada(G.proxSpawn);
-      G.proxSpawn -= 12 + Math.random() * 6;
+      G.proxSpawn -= 9 + Math.random() * 4;
     }
 
     // recicla chão
@@ -786,7 +788,7 @@ function loop() {
     G.proxArvore -= dt;
     if (G.proxArvore <= 0 && G.dist > 40) {
       criaArvoreCaindo(Math.floor(Math.random() * 3), player.position.z - (34 + Math.random() * 8));
-      G.proxArvore = 5 + Math.random() * 5; // intervalo entre árvores
+      G.proxArvore = 3.5 + Math.random() * 3.5; // arvores mais frequentes
     }
     atualizaArvores(dt);
 
@@ -830,6 +832,10 @@ function loop() {
   // camera atrás do jogador, dino visível
   var camY = 4.2, camZ = player.position.z + 8.5;
   camera.position.set(G.laneX * 0.4, camY, camZ);
+  // tremor CONSTANTE (terremoto do Dino) + sustos por cima
+  var baseShake = 0.18;
+  camera.position.x += (Math.random() - 0.5) * baseShake;
+  camera.position.y += (Math.random() - 0.5) * baseShake;
   if (G.shake > 0) {
     G.shake -= dt;
     camera.position.x += (Math.random() - 0.5) * G.shake * 0.8;
