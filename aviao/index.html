@@ -337,17 +337,19 @@
     // quantos pilotos reais estão na corrida?
     var peers = peersVivos();
     var nBots = Math.max(0, 4 - peers.length); // completa até 5 no total (eu + peers + bots)
-    var spots = [-170, 170, -100, 100, -135]; // largam BEM longe uns dos outros (o jogador fica no 0)
+    var spots = [-190, 190, -120, 120, -150]; // cada um numa faixa BEM separada (o jogador fica no 0)
+    var alts = [70, 20, 90, 12, 55];          // e em alturas diferentes
     var usados = [1, 2, 3, 4];
     for (var b = 0; b < nBots; b++) {
       var ci = usados.length ? usados.shift() : (1 + b % 4);
       var col = CORES[ci % CORES.length];
       var lane = spots[b % spots.length];
-      var z0 = -6 - b * 10;                     // escalonados também no comprimento
-      var mesh = fazAviao(col.c, col.a); mesh.position.set(lane, 42, z0); scene.add(mesh);
+      var alt = alts[b % alts.length];
+      var z0 = -30 - b * 45;                    // MUITO escalonados no comprimento (não nascem juntos)
+      var mesh = fazAviao(col.c, col.a); mesh.position.set(lane, alt, z0); scene.add(mesh);
       var hab = 0.6 + Math.random() * 0.4;
       // bots começam no MESMO nível do seu avião (acompanham sua velocidade)
-      racers.push({ tipo: 'bot', mesh: mesh, x: lane, y: 42, z: z0, vel: 92 * G.mult, nome: 'Bot ' + col.nome, cor: col.c, fin: false, morto: false, lane: lane, fase: Math.random() * 6, hab: hab });
+      racers.push({ tipo: 'bot', mesh: mesh, x: lane, y: alt, z: z0, vel: 92 * G.mult, nome: 'Bot ' + col.nome, cor: col.c, fin: false, morto: false, lane: lane, alt: alt, fase: Math.random() * 6, hab: hab });
     }
     // cria aviões dos peers
     for (var pi = 0; pi < peers.length; pi++) {
@@ -575,9 +577,9 @@
         if (correndo) {
           o.fase += dt;
           // segue sua lane com leve zigue-zague e tenta acompanhar o jogador
-          var alvoLaneX = o.lane + Math.sin(o.fase * 0.7) * 14;
-          o.x += (alvoLaneX - o.x) * Math.min(1, dt * 1.5);
-          o.y += ((42 + Math.sin(o.fase * 0.5) * 22) - o.y) * Math.min(1, dt * 1.2);
+          var alvoLaneX = o.lane + Math.sin(o.fase * 0.7) * 10;
+          o.x += (alvoLaneX - o.x) * Math.min(1, dt * 1.2);
+          o.y += (((o.alt || 42) + Math.sin(o.fase * 0.5) * 12) - o.y) * Math.min(1, dt * 1.0);
           o.vel += ((G.velBase * (0.97 + o.hab * 0.06)) - o.vel) * Math.min(1, dt * 0.6); // ~mesmo nível do jogador
           o.z -= o.vel * dt;
           if (o.z <= -DIST) { o.fin = true; o.z = -DIST; }
