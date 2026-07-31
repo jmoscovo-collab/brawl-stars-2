@@ -57,6 +57,7 @@
   <div id="stick-base"><div id="stick-knob"></div></div>
   <div id="boost">⚡ TURBO</div>
 </div>
+<div id="escudo" style="position:fixed;top:60px;left:0;right:0;text-align:center;z-index:11;display:none;font-size:22px;font-weight:bold;color:#7ef0ff;text-shadow:0 2px 8px #0009;pointer-events:none"></div>
 <div id="countdown"></div>
 
 <div id="tela-inicio" class="tela">
@@ -361,6 +362,7 @@
     document.getElementById('tela-inicio').classList.add('hidden');
     document.getElementById('tela-fim').classList.add('hidden');
     hud.style.display = 'flex';
+    document.getElementById('escudo').style.display = 'none';
     document.getElementById('ctrl').style.display = 'block';
     mpEnvia({ t: 'st', id: meuId, nome: meuNome, x: G.x, y: G.y, z: G.z, co: false, mo: false, fi: false });
 
@@ -380,6 +382,7 @@
     G.estado = 'fim';
     document.getElementById('ctrl').style.display = 'none';
     hud.style.display = 'none';
+    document.getElementById('escudo').style.display = 'none';
     mpEnvia({ t: 'st', id: meuId, nome: meuNome, x: G.x, y: G.y, z: G.z, co: false, mo: !chegou, fi: chegou });
     if (chegou) {
       var col = G.minhaColoc;
@@ -642,7 +645,9 @@
       for (i = cidades.length - 1; i >= 0; i--) { if (cidades[i].z > G.z + 120) { scene.remove(cidades[i].mesh); cidades.splice(i, 1); } }
 
       // ---- imortalidade da largada (3s) ----
-      if (G.imortal > 0) { G.imortal -= dt; aviao.visible = (Math.floor(G.tempo * 10) % 2 === 0); } else { aviao.visible = true; }
+      var escEl = document.getElementById('escudo');
+      if (G.imortal > 0) { G.imortal -= dt; aviao.visible = (Math.floor(G.tempo * 10) % 2 === 0); escEl.style.display = 'block'; escEl.textContent = '🛡️ Protegido ' + Math.ceil(G.imortal) + 's'; }
+      else { aviao.visible = true; if (escEl.style.display !== 'none') escEl.style.display = 'none'; }
 
       // ---- envia meu estado ----
       if (correndo && now() - mp.ultimoEnvio > 100) { mp.ultimoEnvio = now(); mpEnvia({ t: 'st', id: meuId, nome: meuNome, x: G.x, y: G.y, z: G.z, co: true, mo: G.morto, fi: G.chegou }); }
