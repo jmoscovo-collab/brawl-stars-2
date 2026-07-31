@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Corrida no Céu — 5 Aviões ✈️🏁</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#89c6f0; font-family:'Comic Sans MS','Chalkboard SE',cursive,sans-serif; user-select:none; }
+  #game-canvas { display:block; width:100%; height:100%; }
+
+  #hud { position:fixed; top:10px; left:0; right:0; display:none; justify-content:space-between; align-items:flex-start; padding:0 14px; z-index:10; pointer-events:none; }
+  .pill { background:rgba(0,0,0,.42); color:#fff; font-size:20px; font-weight:bold; padding:6px 14px; border-radius:14px; text-shadow:0 2px 4px #0008; }
+  .pill small { font-size:12px; opacity:.85; display:block; }
+  #pos-pill { font-size:26px; }
+  #pos-pill b { color:#ffe45a; }
+
+  .tela { position:fixed; inset:0; z-index:30; display:flex; flex-direction:column; align-items:center; justify-content:center;
+          background:linear-gradient(180deg, rgba(20,60,110,.86), rgba(10,30,70,.94)); color:#fff; text-align:center; padding:24px; }
+  .tela.hidden { display:none; }
+  .tela h1 { font-size:36px; margin-bottom:6px; text-shadow:0 4px 10px #0007; }
+  .tela p { font-size:17px; opacity:.92; margin-bottom:6px; max-width:470px; line-height:1.35; }
+  .btn { margin-top:16px; padding:16px 40px; font-size:24px; font-weight:bold; border:none; border-radius:16px; cursor:pointer;
+         color:#08324f; background:linear-gradient(180deg,#8fe0ff,#2ba6e0); box-shadow:0 6px 0 #14608a, 0 12px 20px rgba(0,0,0,.4);
+         font-family:inherit; transition:transform .08s; }
+  .btn:active { transform:translateY(4px); box-shadow:0 2px 0 #14608a, 0 6px 12px rgba(0,0,0,.4); }
+  .btn.voltar { background:linear-gradient(180deg,#c9d4dd,#8a99a6); color:#1a2530; box-shadow:0 6px 0 #4a5560,0 12px 20px rgba(0,0,0,.4); font-size:18px; padding:12px 26px; }
+  .rec { margin-top:12px; font-size:16px; color:#ffe58a; }
+  .dica { margin-top:16px; font-size:14px; opacity:.82; max-width:430px; }
+  #online { margin-top:10px; font-size:16px; color:#9ff0b0; min-height:22px; }
+
+  #ctrl { position:fixed; inset:0; z-index:20; display:none; }
+  #stick-zona { position:absolute; left:0; bottom:0; width:55%; height:70%; touch-action:none; }
+  #boost { position:absolute; right:20px; bottom:36px; width:96px; height:96px; border-radius:50%;
+           background:radial-gradient(circle at 40% 35%, #ffd777, #ff9021); border:4px solid #fff8;
+           color:#5a2c00; font-size:15px; font-weight:bold; display:flex; align-items:center; justify-content:center;
+           box-shadow:0 6px 16px rgba(0,0,0,.4); touch-action:none; }
+  #stick-base { position:absolute; width:128px; height:128px; border-radius:50%; border:3px solid #ffffff66;
+                background:rgba(255,255,255,.12); display:none; }
+  #stick-knob { position:absolute; width:60px; height:60px; border-radius:50%; background:rgba(255,255,255,.55);
+                border:3px solid #fff; box-shadow:0 3px 10px rgba(0,0,0,.35); }
+  #countdown { position:fixed; inset:0; z-index:25; display:none; align-items:center; justify-content:center;
+               font-size:130px; font-weight:bold; color:#fff; text-shadow:0 6px 24px #0009; pointer-events:none; }
+</style>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+
+<div id="hud">
+  <div class="pill" id="pos-pill">🏁 <b><span id="hud-pos">1</span>º</b> / <span id="hud-total">5</span></div>
+  <div class="pill">🚩 <span id="hud-prog">0</span>%<small>da corrida</small></div>
+  <div class="pill">⚡ <span id="hud-vel">0</span><small>km/h</small></div>
+</div>
+
+<div id="ctrl">
+  <div id="stick-zona"></div>
+  <div id="stick-base"><div id="stick-knob"></div></div>
+  <div id="boost">⚡ TURBO</div>
+</div>
+<div id="countdown"></div>
+
+<div id="tela-inicio" class="tela">
+  <h1>✈️🏁 Corrida no Céu</h1>
+  <p><b>5 aviões</b> correndo até a linha de chegada! Chegue em 1º — mas cuidado: se <b>bater em outro avião</b>, você cai! 💥</p>
+  <p class="dica"><b>PC:</b> mouse pra virar • <b>ESPAÇO</b> = turbo<br><b>Celular:</b> arraste o dedo • botão <b>TURBO</b></p>
+  <div id="crash-msg" style="min-height:20px;color:#ff9a9a;font-size:16px;margin-bottom:4px"></div>
+  <button class="btn" id="btn-jogar">▶ CORRER</button>
+  <button class="btn voltar" id="btn-loja" style="margin-top:12px;background:linear-gradient(180deg,#ffe08a,#f0b02a);color:#5a3d00;box-shadow:0 6px 0 #a8720a,0 12px 20px rgba(0,0,0,.4)">🛒 LOJA DE AVIÕES</button>
+  <div id="online">procurando pilotos...</div>
+  <div class="rec" id="rec-inicio"></div>
+  <a href="/" style="margin-top:20px;color:#cfe6ff;font-size:15px;text-decoration:none">← voltar aos jogos</a>
+</div>
+
+<div id="tela-fim" class="tela hidden">
+  <h1 id="fim-titulo">🏁 Chegou!</h1>
+  <p id="fim-sub"></p>
+  <div class="rec" id="fim-rec"></div>
+  <button class="btn" id="btn-again">🔁 CORRER DE NOVO</button>
+  <button class="btn voltar" id="btn-home">🏠 Menu</button>
+</div>
+
+<div id="tela-loja" class="tela hidden" style="justify-content:flex-start;padding-top:26px;overflow-y:auto">
+  <h1 style="font-size:30px">🛒 Loja de Aviões</h1>
+  <p style="margin-bottom:4px">Ganhe <b>vitórias</b> 🏆 chegando em 1º e troque por aviões mais rápidos!</p>
+  <div id="loja-saldo" style="font-size:20px;color:#ffe45a;font-weight:bold;margin-bottom:12px"></div>
+  <div id="loja-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;width:100%;max-width:720px"></div>
+  <button class="btn" id="btn-loja-voltar" style="margin-top:20px">✔ PRONTO</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var THREE = window.THREE;
+  var now = function () { return (window.performance && performance.now) ? performance.now() : Date.now(); };
+
+  // ================= BÁSICO =================
+  var canvas = document.getElementById('game-canvas');
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x89c6f0);
+  scene.fog = new THREE.Fog(0x9ed2f5, 140, 640);
+
+  var camera = new THREE.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.5, 2500);
+  var sol = new THREE.DirectionalLight(0xfff4e0, 1.1); sol.position.set(60, 120, 40); scene.add(sol);
+  scene.add(new THREE.HemisphereLight(0xcfefff, 0x3a6b2a, 0.9));
+
+  function mat(cor, opts) { var o = { color: cor }; if (opts) for (var k in opts) o[k] = opts[k]; return new THREE.MeshLambertMaterial(o); }
+  function box(w, h, d, cor) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(cor)); }
+  function cil(rt, rb, h, cor, seg) { return new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg || 12), mat(cor)); }
+  function esf(r, cor) { return new THREE.Mesh(new THREE.SphereGeometry(r, 14, 12), mat(cor)); }
+  function cone(r, h, cor, seg) { return new THREE.Mesh(new THREE.ConeGeometry(r, h, seg || 12), mat(cor)); }
+
+  // ================= CENÁRIO =================
+  var chao = new THREE.Mesh(new THREE.PlaneGeometry(6000, 8000), mat(0x3aa15e));
+  chao.rotation.x = -Math.PI / 2; chao.position.y = -40; scene.add(chao);
+  for (var r = 0; r < 8; r++) {
+    var agua = new THREE.Mesh(new THREE.PlaneGeometry(160 + Math.random() * 220, 8000), mat(0x2f83c9));
+    agua.rotation.x = -Math.PI / 2; agua.position.set(-1800 + r * 480 + Math.random() * 160, -39.7, 0); scene.add(agua);
+  }
+  function fazNuvem() {
+    var g = new THREE.Group(); var n = 3 + Math.floor(Math.random() * 4);
+    for (var i = 0; i < n; i++) { var b = esf(6 + Math.random() * 8, 0xffffff); b.position.set((Math.random() - 0.5) * 26, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 18); b.material.transparent = true; b.material.opacity = 0.92; g.add(b); }
+    return g;
+  }
+  var nuvens = [];
+  for (var c = 0; c < 30; c++) { var nv = fazNuvem(); nv.position.set((Math.random() - 0.5) * 1000, 20 + Math.random() * 130, -Math.random() * 1800 - 80); scene.add(nv); nuvens.push(nv); }
+
+  // montanhas decorativas (perigo também)
+  var montanhas = [];
+  function fazMontanha() {
+    var g = new THREE.Group(); var h = 70 + Math.random() * 130;
+    var base = cone(30 + Math.random() * 26, h, 0x5a8f3a, 8); base.position.y = h / 2 - 40; g.add(base);
+    var neve = cone(13, h * 0.28, 0xffffff, 8); neve.position.y = h - 40 - h * 0.12; g.add(neve);
+    return g;
+  }
+
+  // ================= AVIÃO (fábrica colorida) =================
+  function fazAviao(cor, corAsa) {
+    var a = new THREE.Group();
+    var corpo = cil(2.0, 1.2, 12, cor, 12); corpo.rotation.x = Math.PI / 2; a.add(corpo);
+    var nariz = cone(2.0, 3, 0xcfcfcf, 12); nariz.rotation.x = -Math.PI / 2; nariz.position.z = -7.4; a.add(nariz);
+    var eixo = cil(0.35, 0.35, 0.6, 0x333333, 8); eixo.rotation.x = Math.PI / 2; eixo.position.z = -9; a.add(eixo);
+    var helice = new THREE.Group();
+    helice.add(box(0.6, 7, 0.25, 0x222222)); helice.add(box(7, 0.6, 0.25, 0x222222));
+    helice.position.z = -9.2; a.add(helice); a.userData.helice = helice;
+    var asa = box(24, 0.5, 4.2, corAsa || 0xf4f4f4); asa.position.y = 0.4; a.add(asa);
+    var asaBaixo = box(16, 0.4, 3, cor); asaBaixo.position.set(0, -1.4, 3); a.add(asaBaixo);
+    var caudaV = box(0.5, 4, 3.4, corAsa || 0xf4f4f4); caudaV.position.set(0, 1.8, 6.2); a.add(caudaV);
+    var caudaH = box(8, 0.4, 2.4, corAsa || 0xf4f4f4); caudaH.position.set(0, 0.4, 6.2); a.add(caudaH);
+    var vidro = esf(1.6, 0x8fd0ff); vidro.material.transparent = true; vidro.material.opacity = 0.65;
+    vidro.scale.set(1, 0.8, 1.5); vidro.position.set(0, 1.5, -1); a.add(vidro);
+    return a;
+  }
+  var CORES = [
+    { c: 0xe8402e, a: 0xf4f4f4, nome: 'Vermelho' },
+    { c: 0x2f7fe0, a: 0xdfefff, nome: 'Azul' },
+    { c: 0x39c15a, a: 0xeafff0, nome: 'Verde' },
+    { c: 0xffb020, a: 0xfff0d0, nome: 'Laranja' },
+    { c: 0xb060e0, a: 0xf3e6ff, nome: 'Roxo' }
+  ];
+
+  // ===== FROTA / LOJA (aviões reais, comprados com vitórias) =====
+  var PLANES = [
+    { id: 'paulistinha', nome: 'Paulistinha',      preco: 0,   mult: 1.00, cor: 0xe8402e, corAsa: 0xf4f4f4 },
+    { id: 'cessna172',   nome: 'Cessna 172',       preco: 3,   mult: 1.07, cor: 0x2f7fe0, corAsa: 0xdfefff },
+    { id: 'pipercub',    nome: 'Piper Cub',        preco: 8,   mult: 1.13, cor: 0xffb020, corAsa: 0xfff0d0 },
+    { id: 'tucano',      nome: 'Embraer Tucano',   preco: 15,  mult: 1.19, cor: 0x39c15a, corAsa: 0xeafff0 },
+    { id: 'cirrus',      nome: 'Cirrus SR22',      preco: 25,  mult: 1.25, cor: 0xb060e0, corAsa: 0xf3e6ff },
+    { id: 'pilatus',     nome: 'Pilatus PC-12',    preco: 40,  mult: 1.31, cor: 0x00b3a4, corAsa: 0xd6fff9 },
+    { id: 'kingair',     nome: 'King Air 350',     preco: 55,  mult: 1.37, cor: 0xff5a8a, corAsa: 0xffe0ea },
+    { id: 'learjet',     nome: 'Learjet 45',       preco: 75,  mult: 1.44, cor: 0x4457ff, corAsa: 0xe0e4ff },
+    { id: 'citation',    nome: 'Cessna Citation',  preco: 95,  mult: 1.51, cor: 0x1a1a2a, corAsa: 0xffd23a },
+    { id: 'gulfstream',  nome: 'Gulfstream G650',  preco: 120, mult: 1.58, cor: 0xc0c6cf, corAsa: 0x2f7fe0 },
+    { id: 'concorde',    nome: 'Concorde',         preco: 145, mult: 1.66, cor: 0xffffff, corAsa: 0xe8402e },
+    { id: 'f16',         nome: 'Caça F-16',        preco: 160, mult: 1.74, cor: 0x5a6b3a, corAsa: 0x2a3320 }
+  ];
+  function planoPorId(id) { for (var i = 0; i < PLANES.length; i++) if (PLANES[i].id === id) return PLANES[i]; return PLANES[0]; }
+  var frota, selecionado;
+  try { frota = JSON.parse(localStorage.getItem('avc_frota') || '["paulistinha"]'); } catch (e) { frota = ['paulistinha']; }
+  if (frota.indexOf('paulistinha') < 0) frota.push('paulistinha');
+  selecionado = localStorage.getItem('avc_aviao') || 'paulistinha';
+  if (frota.indexOf(selecionado) < 0) selecionado = 'paulistinha';
+  function planoAtual() { return planoPorId(selecionado); }
+
+  var aviao;
+  function montaMeuAviao() { if (aviao) scene.remove(aviao); var pl = planoAtual(); aviao = fazAviao(pl.cor, pl.corAsa); scene.add(aviao); }
+  montaMeuAviao();
+
+  // ================= ARGOLAS (portões da corrida) =================
+  var argolas = [];
+  function fazArgola() {
+    var g = new THREE.Group();
+    var aro = new THREE.Mesh(new THREE.TorusGeometry(11, 1.4, 10, 26), mat(0xffd23a, { emissive: 0x5a4400 }));
+    g.add(aro); g.userData.raio = 11; return g;
+  }
+
+  // linha de chegada
+  var chegada = new THREE.Group();
+  (function () {
+    for (var i = 0; i < 2; i++) { var post = box(2, 90, 2, 0xffffff); post.position.set(i ? 90 : -90, 5, 0); chegada.add(post); }
+    var faixa = box(184, 14, 1, 0xffffff); faixa.position.y = 46; chegada.add(faixa);
+    // xadrez
+    for (var x = 0; x < 20; x++) for (var y = 0; y < 2; y++) { if ((x + y) % 2) { var q = box(9.2, 7, 1.2, 0x111111); q.position.set(-88 + x * 9.2, 42 + y * 7, 0); chegada.add(q); } }
+  })();
+  chegada.visible = false; scene.add(chegada);
+
+  // ================= ESTADO =================
+  var DIST = 5200; // comprimento da corrida (metros de z)
+  var G = {
+    estado: 'menu', // menu | largada | correndo | fim
+    vel: 92, velBase: 92, x: 0, y: 42, z: 0, alvoX: 0, alvoY: 42,
+    roll: 0, pitch: 0, boost: 0, tempo: 0,
+    morto: false, chegou: false, minhaColoc: 1,
+    proxArgola: -120, proxMont: -180, larguei: 0
+  };
+
+  // ---- outros aviões (bots + jogadores reais) ----
+  var racers = []; // {tipo, mesh, x,y,z, vel, nome, cor, fin, morto, lastSeen, lane}
+
+  function lsGet(k, d) { try { var v = localStorage.getItem('avc_' + k); return v == null ? d : v; } catch (e) { return d; } }
+  function lsSet(k, v) { try { localStorage.setItem('avc_' + k, v); } catch (e) {} }
+  var vitorias = parseInt(lsGet('vitorias', 0), 10) || 0;
+  var meuNome = (function () { try { return localStorage.getItem('cg_usuario') || ''; } catch (e) { return ''; } })() || ('Piloto' + Math.floor(Math.random() * 900 + 100));
+  var meuId = meuNome + '_' + Math.floor(Math.random() * 100000);
+
+  var hud = document.getElementById('hud');
+  var hudPos = document.getElementById('hud-pos'), hudTotal = document.getElementById('hud-total');
+  var hudProg = document.getElementById('hud-prog'), hudVel = document.getElementById('hud-vel');
+  var cdEl = document.getElementById('countdown');
+
+  // ================= MULTIPLAYER (relay público) =================
+  var MP_WS = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=corrida-aviao';
+  var SALA = 'publica';
+  var mp = { ws: null, peers: {}, ultimoEnvio: 0, conectado: false };
+
+  function mpConecta() {
+    try {
+      mp.ws = new WebSocket(MP_WS);
+      mp.ws.onopen = function () {
+        mp.conectado = true;
+        mpEnvia({ t: 'oi', id: meuId, nome: meuNome });
+        mp.ping = setInterval(function () { if (mp.ws && mp.ws.readyState === 1) mpEnvia({ t: 'ping', id: meuId }); }, 4000);
+      };
+      mp.ws.onmessage = mpRecebe;
+      mp.ws.onclose = function () { mp.conectado = false; clearInterval(mp.ping); setTimeout(mpConecta, 3000); };
+      mp.ws.onerror = function () { try { mp.ws.close(); } catch (e) {} };
+    } catch (e) {}
+  }
+  function mpEnvia(o) { try { if (mp.ws && mp.ws.readyState === 1) mp.ws.send(JSON.stringify(Object.assign({ acao: 'mp', sala: SALA }, o))); } catch (e) {} }
+  function mpRecebe(ev) {
+    var m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    if (!m || m.sala !== SALA || !m.id || m.id === meuId) return;
+    var p = mp.peers[m.id];
+    if (!p) {
+      p = mp.peers[m.id] = { id: m.id, nome: m.nome || 'Piloto', x: 0, y: 42, z: 0, correndo: false, morto: false, fin: false, lastSeen: now(), mesh: null };
+    }
+    p.lastSeen = now();
+    if (m.nome) p.nome = m.nome;
+    if (m.t === 'oi') { mpEnvia({ t: 'oi', id: meuId, nome: meuNome }); }
+    if (m.t === 'st') { p.x = m.x; p.y = m.y; p.z = m.z; p.correndo = !!m.co; p.morto = !!m.mo; p.fin = !!m.fi; }
+  }
+  function peersVivos() {
+    var arr = [], t = now();
+    for (var k in mp.peers) { var p = mp.peers[k]; if (t - p.lastSeen < 3000) arr.push(p); else { if (p.mesh) { scene.remove(p.mesh); p.mesh = null; } delete mp.peers[k]; } }
+    return arr;
+  }
+  function atualizaOnline() {
+    var n = peersVivos().length;
+    var el = document.getElementById('online');
+    if (n > 0) el.textContent = '👥 ' + n + ' piloto' + (n > 1 ? 's' : '') + ' online agora — você vai correr JUNTO com ' + (n > 1 ? 'eles' : 'ele') + '!';
+    else el.textContent = '👥 ninguém online agora — você corre contra 4 bots';
+  }
+  mpConecta();
+  setInterval(atualizaOnline, 1500); atualizaOnline();
+
+  // ================= MONTAR CORRIDA =================
+  function limpaMundo() {
+    var i;
+    for (i = 0; i < argolas.length; i++) scene.remove(argolas[i].mesh);
+    argolas.length = 0;
+    for (i = 0; i < montanhas.length; i++) scene.remove(montanhas[i].mesh);
+    montanhas.length = 0;
+    for (i = 0; i < racers.length; i++) if (racers[i].mesh) scene.remove(racers[i].mesh);
+    racers.length = 0;
+    for (var k in mp.peers) { if (mp.peers[k].mesh) { scene.remove(mp.peers[k].mesh); mp.peers[k].mesh = null; } }
+  }
+
+  function novoJogo() {
+    limpaMundo();
+    montaMeuAviao();
+    G.mult = planoAtual().mult;
+    G.estado = 'largada'; G.morto = false; G.chegou = false;
+    G.vel = G.velBase = 92 * G.mult; G.x = 0; G.y = 42; G.z = 0; G.alvoX = 0; G.alvoY = 42;
+    G.roll = 0; G.pitch = 0; G.boost = 0; G.tempo = 0; G.minhaColoc = 1;
+    G.proxArgola = -140; G.proxMont = -220; G.larguei = 0;
+    aviao.position.set(0, 42, 0);
+    chegada.position.set(0, 0, -DIST); chegada.visible = true;
+
+    // quantos pilotos reais estão na corrida?
+    var peers = peersVivos();
+    var nBots = Math.max(0, 4 - peers.length); // completa até 5 no total (eu + peers + bots)
+    var usados = [1, 2, 3, 4]; // índices de cor livres (0 é o meu)
+    // cria bots
+    for (var b = 0; b < nBots; b++) {
+      var ci = usados.length ? usados.shift() : (1 + b % 4);
+      var col = CORES[ci % CORES.length];
+      var lane = (b - (nBots - 1) / 2) * 34 + (Math.random() - 0.5) * 8;
+      var mesh = fazAviao(col.c, col.a); mesh.position.set(lane, 42, -8 - Math.random() * 6); scene.add(mesh);
+      var vbot = (88 + Math.random() * 10) * (0.82 + 0.18 * (G.mult || 1));
+      racers.push({ tipo: 'bot', mesh: mesh, x: lane, y: 42, z: -8, vel: vbot, nome: 'Bot ' + col.nome, cor: col.c, fin: false, morto: false, lane: lane, fase: Math.random() * 6, hab: 0.6 + Math.random() * 0.4 });
+    }
+    // cria aviões dos peers
+    for (var pi = 0; pi < peers.length; pi++) {
+      var pcol = CORES[(1 + pi) % CORES.length];
+      var pm = fazAviao(pcol.c, pcol.a); scene.add(pm);
+      peers[pi].mesh = pm; peers[pi].cor = pcol.c;
+    }
+
+    document.getElementById('tela-inicio').classList.add('hidden');
+    document.getElementById('tela-fim').classList.add('hidden');
+    hud.style.display = 'flex';
+    document.getElementById('ctrl').style.display = 'block';
+    mpEnvia({ t: 'st', id: meuId, nome: meuNome, x: G.x, y: G.y, z: G.z, co: false, mo: false, fi: false });
+
+    // contagem 3..2..1..JÁ
+    var cont = 3;
+    cdEl.style.display = 'flex'; cdEl.textContent = '3'; beep(500, 0.2, 'square', 0.08);
+    var iv = setInterval(function () {
+      cont--;
+      if (cont > 0) { cdEl.textContent = String(cont); beep(500, 0.2, 'square', 0.08); }
+      else if (cont === 0) { cdEl.textContent = 'JÁ! 🏁'; beep(900, 0.4, 'square', 0.1); G.estado = 'correndo'; G.larguei = G.tempo; }
+      else { clearInterval(iv); cdEl.style.display = 'none'; }
+    }, 900);
+  }
+
+  function fimDeJogo(chegou, motivo) {
+    if (G.estado === 'fim') return;
+    G.estado = 'fim';
+    document.getElementById('ctrl').style.display = 'none';
+    hud.style.display = 'none';
+    mpEnvia({ t: 'st', id: meuId, nome: meuNome, x: G.x, y: G.y, z: G.z, co: false, mo: !chegou, fi: chegou });
+    if (chegou) {
+      var col = G.minhaColoc;
+      var tit = document.getElementById('fim-titulo'), sub = document.getElementById('fim-sub'), rec = document.getElementById('fim-rec');
+      tit.textContent = col === 1 ? '🏆 VOCÊ GANHOU!' : ('🏁 ' + col + 'º lugar!');
+      if (col === 1) { vitorias++; lsSet('vitorias', vitorias); }
+      sub.textContent = col === 1 ? 'Você chegou em PRIMEIRO! Ganhou +1 vitória 🏆' : ('Você chegou em ' + col + 'º de ' + (racersTotal()) + ' aviões.');
+      rec.textContent = '🏆 Vitórias: ' + vitorias;
+      somVitoria();
+      document.getElementById('tela-fim').classList.remove('hidden');
+    } else {
+      // BATEU: volta pro início
+      somQueda();
+      cdEl.style.display = 'flex'; cdEl.style.fontSize = '90px'; cdEl.textContent = '💥';
+      setTimeout(function () { cdEl.style.display = 'none'; cdEl.style.fontSize = '130px'; voltaMenu(motivo || 'Você bateu!'); }, 1300);
+    }
+  }
+  function voltaMenu(motivo) {
+    G.estado = 'menu';
+    limpaMundo(); chegada.visible = false; montaMeuAviao();
+    G.z = 0; G.x = 0; G.y = 42; aviao.position.set(0, 42, 0);
+    document.getElementById('tela-fim').classList.add('hidden');
+    document.getElementById('crash-msg').textContent = motivo ? ('💥 ' + motivo + ' — voltou pro início!') : '';
+    document.getElementById('rec-inicio').textContent = '🏆 Suas vitórias: ' + vitorias;
+    document.getElementById('tela-inicio').classList.remove('hidden');
+  }
+  function racersTotal() { return 1 + racers.length + peersVivos().length; }
+
+  // ================= SOM =================
+  var actx = null;
+  function ac() { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } return actx; }
+  function beep(f, d, tipo, vol, slide) { var a = ac(); if (!a) return; var o = a.createOscillator(), g = a.createGain(); o.type = tipo || 'sine'; o.frequency.value = f; if (slide) o.frequency.exponentialRampToValueAtTime(slide, a.currentTime + d); g.gain.value = vol || 0.06; g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + d); o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + d); }
+  function somArgola() { beep(760, 0.1, 'sine', 0.08); beep(1100, 0.12, 'sine', 0.06); }
+  function somQueda() { beep(320, 0.5, 'sawtooth', 0.12, 60); }
+  function somVitoria() { [660, 880, 1100, 1320].forEach(function (f, i) { setTimeout(function () { beep(f, 0.18, 'square', 0.08); }, i * 130); }); }
+
+  // ================= INPUT =================
+  var alvoTelaX = 0.5, alvoTelaY = 0.5, usandoMouse = false;
+  window.addEventListener('mousemove', function (e) { if (G.estado === 'correndo' || G.estado === 'largada') { usandoMouse = true; alvoTelaX = e.clientX / window.innerWidth; alvoTelaY = e.clientY / window.innerHeight; } });
+  window.addEventListener('keydown', function (e) { if (e.code === 'Space') { e.preventDefault(); G.boost = 1; } if (e.code === 'Enter' && G.estado === 'fim') novoJogo(); });
+  window.addEventListener('keyup', function (e) { if (e.code === 'Space') G.boost = 0; });
+
+  var stickBase = document.getElementById('stick-base'), stickKnob = document.getElementById('stick-knob'), stickZona = document.getElementById('stick-zona');
+  var stickId = null, stickCx = 0, stickCy = 0, stickDX = 0, stickDY = 0;
+  function stickStart(e) { var t = e.changedTouches ? e.changedTouches[0] : e; stickId = e.changedTouches ? t.identifier : 'mouse'; stickCx = t.clientX; stickCy = t.clientY; stickBase.style.display = 'block'; stickBase.style.left = (stickCx - 64) + 'px'; stickBase.style.top = (stickCy - 64) + 'px'; stickKnob.style.left = '34px'; stickKnob.style.top = '34px'; }
+  function stickMove(e) { if (stickId === null) return; var t = null, tl = e.changedTouches || [e]; for (var i = 0; i < tl.length; i++) { if ((e.changedTouches ? tl[i].identifier : 'mouse') === stickId) t = tl[i]; } if (!t) return; var dx = t.clientX - stickCx, dy = t.clientY - stickCy; var d = Math.min(58, Math.hypot(dx, dy)); var ang = Math.atan2(dy, dx); stickDX = Math.cos(ang) * (d / 58); stickDY = Math.sin(ang) * (d / 58); stickKnob.style.left = (34 + Math.cos(ang) * d) + 'px'; stickKnob.style.top = (34 + Math.sin(ang) * d) + 'px'; }
+  function stickEnd() { stickId = null; stickDX = 0; stickDY = 0; stickBase.style.display = 'none'; }
+  stickZona.addEventListener('touchstart', function (e) { e.preventDefault(); stickStart(e); }, { passive: false });
+  stickZona.addEventListener('touchmove', function (e) { e.preventDefault(); stickMove(e); }, { passive: false });
+  stickZona.addEventListener('touchend', function () { stickEnd(); });
+  stickZona.addEventListener('mousedown', function (e) { stickStart(e); });
+  window.addEventListener('mousemove', function (e) { if (stickId === 'mouse') stickMove(e); });
+  window.addEventListener('mouseup', function () { if (stickId === 'mouse') stickEnd(); });
+  var boostBtn = document.getElementById('boost');
+  boostBtn.addEventListener('touchstart', function (e) { e.preventDefault(); G.boost = 1; }, { passive: false });
+  boostBtn.addEventListener('touchend', function (e) { e.preventDefault(); G.boost = 0; }, { passive: false });
+  boostBtn.addEventListener('mousedown', function () { G.boost = 1; });
+  boostBtn.addEventListener('mouseup', function () { G.boost = 0; });
+
+  // ===== LOJA =====
+  function abreLoja() {
+    document.getElementById('tela-inicio').classList.add('hidden');
+    document.getElementById('tela-loja').classList.remove('hidden');
+    renderLoja();
+  }
+  function fechaLoja() {
+    document.getElementById('tela-loja').classList.add('hidden');
+    document.getElementById('crash-msg').textContent = '';
+    document.getElementById('rec-inicio').textContent = '🏆 Suas vitórias: ' + vitorias;
+    document.getElementById('tela-inicio').classList.remove('hidden');
+    montaMeuAviao();
+  }
+  function corHex(n) { var s = n.toString(16); while (s.length < 6) s = '0' + s; return '#' + s; }
+  function renderLoja() {
+    document.getElementById('loja-saldo').textContent = 'Você tem ' + vitorias + ' 🏆 vitórias';
+    var grid = document.getElementById('loja-grid'); grid.innerHTML = '';
+    for (var i = 0; i < PLANES.length; i++) {
+      (function (pl) {
+        var tem = frota.indexOf(pl.id) >= 0;
+        var sel = selecionado === pl.id;
+        var d = document.createElement('div');
+        d.style.cssText = 'background:rgba(255,255,255,.1);border:3px solid ' + (sel ? '#4dff6a' : (tem ? '#8fd0ff55' : '#ffffff33')) + ';border-radius:14px;padding:10px;text-align:center;';
+        var barras = '';
+        var nb = Math.round((pl.mult - 1) / 0.74 * 5) + 1;
+        for (var k = 0; k < 6; k++) barras += (k < nb ? '🟩' : '⬜');
+        var estado = sel ? '<b style="color:#4dff6a">✔ EM USO</b>'
+          : (tem ? '<button class="lj-usar" style="padding:7px 14px;border:none;border-radius:9px;font-weight:bold;cursor:pointer;background:#2ba6e0;color:#fff;font-family:inherit">USAR</button>'
+                 : '<button class="lj-comprar" style="padding:7px 14px;border:none;border-radius:9px;font-weight:bold;cursor:pointer;background:' + (vitorias >= pl.preco ? '#f0b02a' : '#666') + ';color:#3a2600;font-family:inherit">🏆 ' + pl.preco + '</button>');
+        d.innerHTML = '<div style="width:44px;height:44px;border-radius:50%;margin:0 auto 6px;background:' + corHex(pl.cor) + ';border:3px solid ' + corHex(pl.corAsa) + '"></div>' +
+          '<div style="font-weight:bold;font-size:15px;min-height:38px;display:flex;align-items:center;justify-content:center">' + pl.nome + '</div>' +
+          '<div style="font-size:12px;margin:4px 0">velocidade<br>' + barras + '</div>' + estado;
+        var bc = d.querySelector('.lj-comprar');
+        if (bc) bc.onclick = function () {
+          if (vitorias < pl.preco) { document.getElementById('loja-saldo').textContent = 'Faltam ' + (pl.preco - vitorias) + ' 🏆 pra esse avião!'; return; }
+          vitorias -= pl.preco; lsSet('vitorias', vitorias);
+          frota.push(pl.id); lsSet('avc_frota', JSON.stringify(frota));
+          selecionado = pl.id; lsSet('avc_aviao', selecionado);
+          somVitoria(); renderLoja();
+        };
+        var bu = d.querySelector('.lj-usar');
+        if (bu) bu.onclick = function () { selecionado = pl.id; lsSet('avc_aviao', selecionado); beep(700, 0.1, 'sine', 0.07); renderLoja(); };
+        grid.appendChild(d);
+      })(PLANES[i]);
+    }
+  }
+  document.getElementById('btn-loja').addEventListener('click', abreLoja);
+  document.getElementById('btn-loja-voltar').addEventListener('click', fechaLoja);
+  document.getElementById('btn-jogar').addEventListener('click', function () { document.getElementById('crash-msg').textContent = ''; novoJogo(); });
+  document.getElementById('btn-again').addEventListener('click', function () { document.getElementById('crash-msg').textContent = ''; novoJogo(); });
+  document.getElementById('btn-home').addEventListener('click', function () { location.href = '/'; });
+
+  // ================= LOOP =================
+  var clock = new THREE.Clock();
+  function loop() {
+    requestAnimationFrame(loop);
+    var dt = Math.min(clock.getDelta(), 0.05);
+    if (aviao.userData.helice) aviao.userData.helice.rotation.z += dt * (G.estado === 'correndo' ? 45 : 14);
+
+    if (G.estado === 'largada' || G.estado === 'correndo') {
+      G.tempo += dt;
+      var correndo = (G.estado === 'correndo');
+
+      // ---- controle ----
+      if (correndo) {
+        if (stickId !== null) { G.alvoX += stickDX * 150 * dt; G.alvoY -= stickDY * 130 * dt; }
+        else if (usandoMouse) { G.alvoX = (alvoTelaX - 0.5) * 260; G.alvoY = 42 - (alvoTelaY - 0.5) * 190; }
+        G.alvoX = Math.max(-150, Math.min(150, G.alvoX));
+        G.alvoY = Math.max(-24, Math.min(150, G.alvoY));
+      }
+      var nx = G.x + (G.alvoX - G.x) * Math.min(1, dt * 3.4);
+      var ny = G.y + (G.alvoY - G.y) * Math.min(1, dt * 3.4);
+      G.roll = Math.max(-0.75, Math.min(0.75, (nx - G.x) * 0.14));
+      G.pitch = Math.max(-0.5, Math.min(0.5, (ny - G.y) * 0.12));
+      G.x = nx; G.y = ny;
+
+      // ---- avanço ----
+      if (correndo) {
+        var alvoVel = G.velBase + (G.boost ? 95 * (G.mult || 1) : 0);
+        G.vel += (alvoVel - G.vel) * Math.min(1, dt * 2);
+        G.velBase += dt * 1.1;
+        G.z -= G.vel * dt;
+      }
+      aviao.position.set(G.x, G.y, G.z);
+      aviao.rotation.z = -G.roll; aviao.rotation.x = G.pitch; aviao.rotation.y = G.roll * 0.5;
+
+      // ---- câmera ----
+      camera.position.x += ((G.x - G.roll * 20) - camera.position.x) * Math.min(1, dt * 4);
+      camera.position.y += ((G.y + 15) - camera.position.y) * Math.min(1, dt * 4);
+      camera.position.z = G.z + 44;
+      camera.lookAt(G.x, G.y - 4, G.z - 40);
+
+      // ---- spawns ----
+      while (G.proxArgola > G.z - 720 && G.proxArgola > -DIST) { var g = fazArgola(); var px = (Math.random() - 0.5) * 130, py = 25 + Math.random() * 90; g.position.set(px, py, G.proxArgola); scene.add(g); argolas.push({ mesh: g, x: px, y: py, z: G.proxArgola, pego: false }); G.proxArgola -= 150 + Math.random() * 80; }
+      while (G.proxMont > G.z - 720 && G.proxMont > -DIST) { var mm = fazMontanha(); mm.position.set((Math.random() - 0.5) * 240, -40, G.proxMont); scene.add(mm); montanhas.push({ mesh: mm, x: mm.position.x, z: G.proxMont, raio: 32 }); G.proxMont -= 160 + Math.random() * 120; }
+
+      // ---- bots ----
+      var i, o, dx, dy;
+      for (i = 0; i < racers.length; i++) {
+        o = racers[i]; if (o.tipo !== 'bot' || o.fin || o.morto) { continue; }
+        if (correndo) {
+          o.fase += dt;
+          // segue sua lane com leve zigue-zague e tenta acompanhar o jogador
+          var alvoLaneX = o.lane + Math.sin(o.fase * 0.7) * 14;
+          o.x += (alvoLaneX - o.x) * Math.min(1, dt * 1.5);
+          o.y += ((42 + Math.sin(o.fase * 0.5) * 22) - o.y) * Math.min(1, dt * 1.2);
+          o.vel += (((90 + o.hab * 26) * (0.82 + 0.18 * (G.mult || 1))) - o.vel) * Math.min(1, dt * 0.5);
+          o.z -= o.vel * dt;
+          if (o.z <= -DIST) { o.fin = true; o.z = -DIST; }
+        }
+        o.mesh.position.set(o.x, o.y, o.z);
+        o.mesh.rotation.z = Math.sin(o.fase * 0.7) * -0.3;
+      }
+
+      // ---- peers (jogadores reais) ----
+      var peers = peersVivos();
+      for (i = 0; i < peers.length; i++) {
+        o = peers[i];
+        if (!o.mesh) { var pcol = CORES[(1 + i) % CORES.length]; o.mesh = fazAviao(pcol.c, pcol.a); scene.add(o.mesh); }
+        o.mesh.position.set(o.x, o.y, o.z);
+        o.mesh.visible = !o.morto;
+      }
+
+      // ---- colisões com outros aviões (bot ou peer) ----
+      if (correndo && !G.morto && !G.chegou) {
+        var todos = racers.concat(peers);
+        for (i = 0; i < todos.length; i++) {
+          o = todos[i]; if (o.morto || o.fin) continue;
+          if (Math.abs(o.z - G.z) < 8 && Math.hypot(G.x - o.x, G.y - o.y) < 9) {
+            G.morto = true; fimDeJogo(false, 'Bateu no avião ' + (o.nome || 'adversário') + '! ✈️💥'); break;
+          }
+        }
+      }
+
+      // ---- montanhas ----
+      if (correndo && !G.morto && !G.chegou) {
+        for (i = 0; i < montanhas.length; i++) { o = montanhas[i]; if (Math.abs(o.z - G.z) < 22 && Math.hypot(G.x - o.x, o.z - G.z) < o.raio && G.y < 62) { G.morto = true; fimDeJogo(false, 'Bateu na montanha! ⛰️'); break; } }
+      }
+
+      // ---- argolas (só efeito: turbinho + som) ----
+      for (i = argolas.length - 1; i >= 0; i--) {
+        o = argolas[i]; o.mesh.rotation.z += dt * 0.5;
+        if (!o.pego && Math.abs(o.z - G.z) < 6 && Math.hypot(G.x - o.x, G.y - o.y) < o.raio) { o.pego = true; somArgola(); o.mesh.children[0].material.color.setHex(0x4dff6a); G.velBase += 2; }
+        if (o.z > G.z + 60) { scene.remove(o.mesh); argolas.splice(i, 1); }
+      }
+
+      // ---- chegou na linha? ----
+      if (correndo && !G.chegou && G.z <= -DIST) {
+        G.chegou = true;
+        // coloca a colocação = 1 + quantos já terminaram antes
+        var antes = 0, tt = racers.concat(peers);
+        for (i = 0; i < tt.length; i++) { if (tt[i].fin) antes++; }
+        G.minhaColoc = 1 + antes;
+        fimDeJogo(true);
+      }
+
+      // ---- ranking ao vivo (por z) ----
+      var tt2 = racers.concat(peersVivos());
+      var aFrente = 0;
+      for (i = 0; i < tt2.length; i++) { var oz = tt2[i].fin ? -DIST - 1 : tt2[i].z; if (!tt2[i].morto && oz < G.z) aFrente++; }
+      G.minhaColoc = 1 + aFrente;
+
+      // ---- nuvens recicla ----
+      for (i = 0; i < nuvens.length; i++) { if (nuvens[i].position.z > G.z + 130) { nuvens[i].position.z = G.z - 900 - Math.random() * 800; nuvens[i].position.x = G.x + (Math.random() - 0.5) * 1000; nuvens[i].position.y = 20 + Math.random() * 130; } }
+
+      // ---- envia meu estado ----
+      if (correndo && now() - mp.ultimoEnvio > 100) { mp.ultimoEnvio = now(); mpEnvia({ t: 'st', id: meuId, nome: meuNome, x: G.x, y: G.y, z: G.z, co: true, mo: G.morto, fi: G.chegou }); }
+
+      // ---- HUD ----
+      hudPos.textContent = G.minhaColoc;
+      hudTotal.textContent = racersTotal();
+      hudProg.textContent = Math.min(100, Math.round((-G.z / DIST) * 100));
+      hudVel.textContent = Math.round(G.vel * 2.4);
+    } else {
+      // menu: avião flutuando
+      aviao.position.set(0, 42 + Math.sin(clock.getElapsedTime() * 1.5) * 2, 0);
+      aviao.rotation.set(0, Math.sin(clock.getElapsedTime() * 0.4) * 0.25, 0);
+      camera.position.set(0, 54, 62); camera.lookAt(0, 42, -20);
+    }
+    renderer.render(scene, camera);
+  }
+
+  document.getElementById('rec-inicio').textContent = vitorias > 0 ? ('🏆 Suas vitórias: ' + vitorias) : '';
+  window.addEventListener('resize', function () { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+  loop();
+})();
+</script>
+<script src="/avisos.js?v=5"></script>
+</body>
+</html>
