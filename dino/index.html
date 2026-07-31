@@ -264,31 +264,124 @@ function caixa(w, h, d, cor) { return new THREE.Mesh(new THREE.BoxGeometry(w, h,
 function cone(r, h, cor, seg) { return new THREE.Mesh(new THREE.ConeGeometry(r, h, seg || 6), mat(cor)); }
 
 // ============ CENARIO ============
-// chão: 2 segmentos que reciclam
+// ======= 50 MAPAS / BIOMAS =======
+function cil(rt, rb, h, cor, seg) { return new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg || 8), mat(cor)); }
+function esfera(r, cor) { return new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), mat(cor)); }
+function glowBox(w, h, d, cor) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color: cor })); }
+function tintCor(hex, f) {
+  var r = Math.min(255, Math.round(((hex >> 16) & 255) * f));
+  var g = Math.min(255, Math.round(((hex >> 8) & 255) * f));
+  var b = Math.min(255, Math.round((hex & 255) * f));
+  return (r << 16) | (g << 8) | b;
+}
+function fol(esc){ return 0.8 + esc; } // helper escala
+
+// Cada bioma: bg/fog/chao/trilha + decor(g,x,z,esc,j,lado) + hazard() + ceu(cai do céu?)
+var ARQ = [
+  { nome: 'Floresta', bg: 0x2f5233, fog: 0x2f5233, near: 22, far: 62, chao: 0x3e6b30, trilha: 0x5a7d3a,
+    decor: function (g, x, z, esc, j) { var a = new THREE.Group(); var t = caixa(0.4, 1.4, 0.4, 0x6d4c2f); t.position.y = 0.7; a.add(t); var c = cone(1.1, 2.2, (j % 3 === 0) ? 0x2e7d32 : 0x43a047, 6); c.position.y = 2.4; a.add(c); var c2 = cone(0.85, 1.7, 0x388e3c, 6); c2.position.y = 3.4; a.add(c2); a.scale.setScalar(esc); a.position.set(x, 0, z); g.add(a); },
+    hazard: function () { var g = new THREE.Group(); var t = caixa(0.4, 3.2, 0.4, 0x6d4c2f); t.position.y = 1.6; g.add(t); var c = cone(1.2, 2.4, 0x2e7d32, 6); c.position.y = 3.8; g.add(c); return g; }, ceu: false },
+
+  { nome: 'Cidade', bg: 0x8fa3b5, fog: 0x9fb3c5, near: 26, far: 82, chao: 0x555a60, trilha: 0x3a3d42,
+    decor: function (g, x, z, esc, j) { var h = 4 + ((j * 7) % 9); var cores = [0x8d99a6, 0x6b7580, 0xb0a58f, 0x9aa0a6]; var b = caixa(3, h, 3, cores[j % 4]); b.position.set(x * 1.2, h / 2, z); g.add(b); var w = glowBox(3.06, h * 0.7, 3.06, 0xffe07a); w.material.transparent = true; w.material.opacity = 0.14; w.position.set(x * 1.2, h / 2, z); g.add(w); if (j % 3 === 0) { var cc = [0xd93636, 0x2f6fd9, 0xf0c040, 0x33aa55]; var car = caixa(1.4, 0.8, 2.4, cc[j % 4]); car.position.set(x > 0 ? 4.6 : -4.6, 0.4, z + 1.5); g.add(car); var teto = caixa(1.1, 0.5, 1.2, 0x22252a); teto.position.set(car.position.x, 0.95, z + 1.3); g.add(teto); } },
+    hazard: function () { var g = new THREE.Group(); var h = 4.4; var b = caixa(1.7, h, 1.7, 0x9aa0a6); b.position.y = h / 2; g.add(b); var w = glowBox(1.75, h * 0.7, 1.75, 0xffe07a); w.material.transparent = true; w.material.opacity = 0.22; w.position.y = h / 2; g.add(w); return g; }, ceu: false },
+
+  { nome: 'Vulcão', bg: 0x2a1310, fog: 0x3a1a12, near: 18, far: 52, chao: 0x2e1a14, trilha: 0x4a2318,
+    decor: function (g, x, z, esc, j) { var r = cil(0.2 + esc * 0.4, 0.5 + esc * 0.6, 1.2 + esc, 0x3a2a26, 6); r.position.set(x, 0.6, z); g.add(r); if (j % 4 === 0) { var lava = glowBox(2, 0.12, 2, 0xff5a1e); lava.position.set(x, 0.06, z); g.add(lava); } if (j % 6 === 0) { var v = cone(3, 4, 0x241512, 6); v.position.set(x * 1.6, 2, z); g.add(v); var topo = glowBox(1.3, 0.35, 1.3, 0xff7a2a); topo.position.set(x * 1.6, 4, z); g.add(topo); } },
+    hazard: function () { var g = new THREE.Group(); var p = esfera(1.1, 0xcc3a10); p.position.y = 1.1; g.add(p); var brasa = glowBox(1.0, 0.9, 1.0, 0xff7a2a); brasa.material.transparent = true; brasa.material.opacity = 0.6; brasa.position.y = 1.1; g.add(brasa); return g; }, ceu: true },
+
+  { nome: 'Neve', bg: 0xcfe3ef, fog: 0xdff0f7, near: 24, far: 72, chao: 0xeef6fb, trilha: 0xd6e6f0,
+    decor: function (g, x, z, esc, j) { var a = new THREE.Group(); var t = caixa(0.4, 1.2, 0.4, 0x6d4c2f); t.position.y = 0.6; a.add(t); var c = cone(1.1, 2.2, 0x2f6b46, 6); c.position.y = 2.2; a.add(c); var n = cone(1.18, 0.7, 0xffffff, 6); n.position.y = 3.0; a.add(n); a.scale.setScalar(esc); a.position.set(x, 0, z); g.add(a); if (j % 5 === 0) { var b1 = esfera(0.5, 0xffffff); b1.position.set(x * 0.9, 0.5, z + 2); g.add(b1); } },
+    hazard: function () { var g = new THREE.Group(); var b = esfera(1.1, 0xdff0f7); b.position.y = 1.1; g.add(b); var b2 = esfera(0.8, 0xffffff); b2.position.y = 2.4; g.add(b2); return g; }, ceu: true },
+
+  { nome: 'Deserto', bg: 0xe8c98f, fog: 0xf0d7a0, near: 26, far: 80, chao: 0xd8b877, trilha: 0xc7a866,
+    decor: function (g, x, z, esc, j) { if (j % 3 === 0) { var pir = cone(3.2, 3.6, 0xcaa96a, 4); pir.position.set(x * 1.4, 1.8, z); g.add(pir); } else { var ca = new THREE.Group(); var tr = cil(0.35, 0.4, 2.2, 0x3f7d3a, 6); tr.position.y = 1.1; ca.add(tr); var br = cil(0.22, 0.25, 1.0, 0x3f7d3a, 6); br.position.set(0.5, 1.4, 0); br.rotation.z = -1.2; ca.add(br); ca.scale.setScalar(esc); ca.position.set(x, 0, z); g.add(ca); } },
+    hazard: function () { var g = new THREE.Group(); var p = esfera(1.2, 0xb98a4a); p.position.y = 1.2; g.add(p); return g; }, ceu: false },
+
+  { nome: 'Praia', bg: 0x8fd6e8, fog: 0xa8e2f0, near: 26, far: 80, chao: 0xe6d59a, trilha: 0xd9c884,
+    decor: function (g, x, z, esc, j) { var pa = new THREE.Group(); var tr = cil(0.25, 0.35, 3.2, 0x9c7b45, 6); tr.position.y = 1.6; pa.add(tr); for (var k = 0; k < 5; k++) { var fo = cone(0.3, 1.6, 0x3fae5a, 5); fo.position.y = 3.2; fo.rotation.z = 1.2; fo.rotation.y = k * 1.25; pa.add(fo); } pa.scale.setScalar(esc); pa.position.set(x, 0, z); g.add(pa); },
+    hazard: function () { var g = new THREE.Group(); var c = esfera(0.9, 0x5a3a1e); c.position.y = 0.9; g.add(c); return g; }, ceu: true },
+
+  { nome: 'Espaço', bg: 0x05060f, fog: 0x05060f, near: 30, far: 95, chao: 0x1a1c2a, trilha: 0x2a2d40,
+    decor: function (g, x, z, esc, j) { if (j % 4 === 0) { var pl = esfera(1.4 + (j % 3), [0xff6b6b, 0x6bb2ff, 0xffd36b, 0xb06bff][j % 4]); pl.position.set(x * 1.5, 6 + (j % 4), z); g.add(pl); } else { var st = glowBox(0.3, 0.3, 0.3, 0xffffff); st.position.set(x * 1.3, 3 + (j % 6), z); g.add(st); } },
+    hazard: function () { var g = new THREE.Group(); var p = esfera(1.1, 0x7a6a5a); p.position.y = 1.1; g.add(p); return g; }, ceu: true },
+
+  { nome: 'Caverna', bg: 0x14100c, fog: 0x1a140e, near: 16, far: 48, chao: 0x2a231b, trilha: 0x3a3226,
+    decor: function (g, x, z, esc, j) { if (j % 2 === 0) { var sg = cone(0.6 * esc, 1.8 * esc, 0x574a38, 6); sg.position.set(x, 0.9 * esc, z); g.add(sg); } else { var sc = cone(0.5 * esc, 1.6 * esc, 0x4a3f30, 6); sc.rotation.z = Math.PI; sc.position.set(x, 7, z); g.add(sc); } },
+    hazard: function () { var g = new THREE.Group(); var p = esfera(1.15, 0x574a38); p.position.y = 1.15; g.add(p); return g; }, ceu: true },
+
+  { nome: 'Doce', bg: 0xffd6ec, fog: 0xffe0f0, near: 24, far: 72, chao: 0xffc2e0, trilha: 0xffaad6,
+    decor: function (g, x, z, esc, j) { var pi = new THREE.Group(); var pa = cil(0.12, 0.12, 2.4, 0xffffff, 6); pa.position.y = 1.2; pi.add(pa); var bo = esfera(0.7, [0xff5aa5, 0x6bd6ff, 0xffe45a, 0x9a6bff][j % 4]); bo.position.y = 2.6; pi.add(bo); pi.scale.setScalar(esc); pi.position.set(x, 0, z); g.add(pi); },
+    hazard: function () { var g = new THREE.Group(); var d = cil(1.0, 1.0, 0.6, 0xff5aa5, 12); d.rotation.x = Math.PI / 2; d.position.y = 1.0; g.add(d); return g; }, ceu: true },
+
+  { nome: 'Pântano', bg: 0x2b3a2a, fog: 0x33422f, near: 18, far: 52, chao: 0x2f3d2a, trilha: 0x3a4a30,
+    decor: function (g, x, z, esc, j) { var a = new THREE.Group(); var t = cil(0.25, 0.4, 3.2 * esc, 0x3a2f22, 6); t.position.y = 1.6 * esc; a.add(t); var b1 = cil(0.12, 0.15, 1.4, 0x3a2f22, 5); b1.position.set(0.5, 2.4 * esc, 0); b1.rotation.z = -1; a.add(b1); a.position.set(x, 0, z); g.add(a); if (j % 4 === 0) { var poca = glowBox(2.5, 0.05, 2.5, 0x2f5540); poca.position.set(x, 0.03, z); g.add(poca); } },
+    hazard: function () { var g = new THREE.Group(); var t = cil(0.35, 0.45, 3.0, 0x3a2f22, 6); t.position.y = 1.5; g.add(t); return g; }, ceu: false },
+
+  { nome: 'Lua', bg: 0x0a0a12, fog: 0x0a0a12, near: 30, far: 92, chao: 0x9a9aa2, trilha: 0x7a7a82,
+    decor: function (g, x, z, esc, j) { var cr = cil(1.2 * esc, 1.5 * esc, 0.4, 0x81818a, 10); cr.position.set(x, 0.2, z); g.add(cr); if (j % 7 === 0) { var terra = esfera(2.2, 0x3a7bd6); terra.position.set(x * 1.5, 9, z - 4); g.add(terra); } },
+    hazard: function () { var g = new THREE.Group(); var p = esfera(1.15, 0x81818a); p.position.y = 1.15; g.add(p); return g; }, ceu: true },
+
+  { nome: 'Selva', bg: 0x123d20, fog: 0x1a4a28, near: 20, far: 58, chao: 0x24512b, trilha: 0x2f6136,
+    decor: function (g, x, z, esc, j) { var a = new THREE.Group(); var t = cil(0.35, 0.5, 4.5 * esc, 0x5a4326, 6); t.position.y = 2.2 * esc; a.add(t); for (var k = 0; k < 4; k++) { var fo = cone(0.4, 2.2, 0x2f8a3a, 5); fo.position.y = 4.4 * esc; fo.rotation.z = 1.1; fo.rotation.y = k * 1.57; a.add(fo); } a.position.set(x, 0, z); g.add(a); },
+    hazard: function () { var g = new THREE.Group(); var t = caixa(0.5, 3.4, 0.5, 0x5a4326); t.position.y = 1.7; g.add(t); var c = cone(1.4, 2.6, 0x2f8a3a, 6); c.position.y = 4.0; g.add(c); return g; }, ceu: false },
+
+  { nome: 'Fábrica', bg: 0x3a3d45, fog: 0x44474f, near: 22, far: 66, chao: 0x4a4d55, trilha: 0x33363c,
+    decor: function (g, x, z, esc, j) { var b = caixa(3.4, 3 + (j % 4), 3.4, 0x6a6d75); b.position.set(x * 1.2, (3 + (j % 4)) / 2, z); g.add(b); var chamine = cil(0.5, 0.6, 4, 0x55585f, 8); chamine.position.set(x * 1.2 + 1, 3.5, z); g.add(chamine); if (j % 5 === 0) { var fumaca = esfera(1, 0xbbbbbb); fumaca.material.transparent = true; fumaca.material.opacity = 0.5; fumaca.position.set(x * 1.2 + 1, 6, z); g.add(fumaca); } },
+    hazard: function () { var g = new THREE.Group(); var b = caixa(1.6, 1.6, 1.6, 0x9a6d3a); b.position.y = 0.8; g.add(b); return g; }, ceu: true },
+
+  { nome: 'Gelo', bg: 0x7fc7e8, fog: 0x9fdcf5, near: 24, far: 74, chao: 0xbfe8f7, trilha: 0xa8dbef,
+    decor: function (g, x, z, esc, j) { var ic = cone(0.8 * esc, 3.5 * esc, 0xaee6ff, 5); ic.position.set(x, 1.7 * esc, z); g.add(ic); var ic2 = cone(0.5 * esc, 2 * esc, 0xd6f4ff, 5); ic2.position.set(x * 0.85, 1 * esc, z + 3); g.add(ic2); },
+    hazard: function () { var g = new THREE.Group(); var b = caixa(1.6, 1.8, 1.6, 0xaee6ff); b.material.transparent = true; b.material.opacity = 0.85; b.position.y = 0.9; g.add(b); return g; }, ceu: true },
+
+  { nome: 'Lava', bg: 0x1a0a06, fog: 0x2a0e06, near: 16, far: 46, chao: 0x3a1206, trilha: 0xff5a1e,
+    decor: function (g, x, z, esc, j) { var r = esfera(0.9 * esc, 0x2a1008); r.position.set(x, 0.6, z); g.add(r); if (j % 3 === 0) { var lava = glowBox(2.2, 0.15, 2.2, 0xff7a1e); lava.position.set(x, 0.08, z); g.add(lava); } },
+    hazard: function () { var g = new THREE.Group(); var p = esfera(1.1, 0xff5a1e); p.material.transparent = true; p.material.opacity = 0.9; p.position.y = 1.1; g.add(p); return g; }, ceu: true },
+
+  { nome: 'Noturna', bg: 0x0d1a12, fog: 0x0d1a12, near: 18, far: 50, chao: 0x16281a, trilha: 0x203524,
+    decor: function (g, x, z, esc, j) { var a = new THREE.Group(); var t = caixa(0.4, 1.6, 0.4, 0x241a12); t.position.y = 0.8; a.add(t); var c = cone(1.2, 2.4, 0x18402a, 6); c.position.y = 3.0; a.add(c); a.scale.setScalar(esc); a.position.set(x, 0, z); g.add(a); if (j % 6 === 0) { var lum = glowBox(0.3, 0.3, 0.3, 0xffe45a); lum.position.set(x * 0.8, 2 + (j % 3), z); g.add(lum); } },
+    hazard: function () { var g = new THREE.Group(); var t = caixa(0.4, 3.2, 0.4, 0x241a12); t.position.y = 1.6; g.add(t); var c = cone(1.2, 2.4, 0x18402a, 6); c.position.y = 3.8; g.add(c); return g; }, ceu: false }
+];
+
+// 50 mapas: cicla os biomas com uma variação de cor (tint) por índice
+var NUM_MAPAS = 50;
+var TEMAS = [];
+for (var _m = 0; _m < NUM_MAPAS; _m++) {
+  TEMAS.push({ arq: ARQ[_m % ARQ.length], tint: (_m === 0 ? 1 : (0.78 + ((_m * 29) % 44) / 100)) });
+}
+
+var temaAtual = 0;
+var temaArq = ARQ[0];
+
+// chão: 2 segmentos que reciclam (agora vazios; montaSeg preenche conforme o bioma)
 var chaoSegs = [];
-(function () {
-  for (var i = 0; i < 2; i++) {
-    var g = new THREE.Group();
-    var chao = caixa(60, 0.5, 100, 0x3e6b30); chao.position.y = -0.25; g.add(chao);
-    var trilha = caixa(9, 0.52, 100, 0x5a7d3a); trilha.position.y = -0.24; g.add(trilha);
-    // FLORESTA densa: muitas árvores dos dois lados, do chão ao infinito (a neblina esconde o fim)
-    for (var j = 0; j < 60; j++) {
-      var lado = (j % 2 === 0) ? -1 : 1;
-      var dist = 5.2 + Math.abs(Math.sin(j * 3.1)) * 22; // de 5 a ~27 de distância = várias camadas
-      var esc = 0.8 + Math.abs(Math.cos(j * 1.7)) * 1.4;
-      var arv = new THREE.Group();
-      var tronco = caixa(0.4, 1.4, 0.4, 0x6d4c2f); tronco.position.y = 0.7; arv.add(tronco);
-      var copa = cone(1.1, 2.2, (j % 3 === 0) ? 0x2e7d32 : 0x43a047, 6); copa.position.y = 2.4; arv.add(copa);
-      var copa2 = cone(0.85, 1.7, (j % 2 === 0) ? 0x388e3c : 0x2e7d32, 6); copa2.position.y = 3.4; arv.add(copa2);
-      arv.scale.setScalar(esc);
-      arv.position.set(lado * dist + Math.sin(j * 7) * 1.2, 0, -50 + (j % 30) * 3.4 + Math.sin(j * 13) * 2);
-      g.add(arv);
-    }
-    g.position.z = -i * 100;
-    scene.add(g);
-    chaoSegs.push(g);
+for (var _i = 0; _i < 2; _i++) { var _g = new THREE.Group(); _g.position.z = -_i * 100; scene.add(_g); chaoSegs.push(_g); }
+
+function montaSeg(g, a, f) {
+  while (g.children.length) g.remove(g.children[0]);
+  var chao = caixa(60, 0.5, 100, tintCor(a.chao, f)); chao.position.y = -0.25; g.add(chao);
+  var trilha = caixa(9, 0.52, 100, tintCor(a.trilha, f)); trilha.position.y = -0.24; g.add(trilha);
+  for (var j = 0; j < 48; j++) {
+    var lado = (j % 2 === 0) ? -1 : 1;
+    var dist = 5.2 + Math.abs(Math.sin(j * 3.1)) * 22;
+    var esc = 0.8 + Math.abs(Math.cos(j * 1.7)) * 1.4;
+    var x = lado * dist + Math.sin(j * 7) * 1.2;
+    var z = -50 + (j % 30) * 3.4 + Math.sin(j * 13) * 2;
+    a.decor(g, x, z, esc, j, lado);
   }
-})();
+}
+
+function aplicaTema(idx) {
+  temaAtual = idx;
+  var e = TEMAS[idx]; var a = e.arq; var f = e.tint;
+  temaArq = a;
+  scene.background.setHex(tintCor(a.bg, f));
+  scene.fog.color.setHex(tintCor(a.fog, f));
+  scene.fog.near = a.near; scene.fog.far = a.far;
+  montaSeg(chaoSegs[0], a, f);
+  montaSeg(chaoSegs[1], a, f);
+}
+aplicaTema(0);
 
 // ============ JOGADOR (capivara/explorador low-poly) ============
 var player = new THREE.Group();
@@ -429,18 +522,18 @@ var arvoresCaindo = [];
 var sombraGeo = new THREE.CircleGeometry(1.3, 16);
 var sombraMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35 });
 function criaArvoreCaindo(lane, z) {
-  var lado = Math.random() < 0.5 ? -1 : 1;   // tomba da esquerda ou direita do mapa
-  // árvore IGUAL às decorativas do canyon (tronco + copa)
-  var g = new THREE.Group();
-  var tronco = caixa(0.4, 3.2, 0.4, 0x6d4c2f); tronco.position.y = 1.6; g.add(tronco);
-  var copa = cone(1.2, 2.4, Math.random() < 0.5 ? 0x2e7d32 : 0x43a047, 6); copa.position.y = 3.8; g.add(copa);
-  // nasce EM PÉ na beirada do mapa (onde ficam as árvores decorativas)
-  g.position.set(lado * 5.4, 0, z);
+  // o obstáculo que cai depende do bioma atual (árvore, prédio, pedra de lava, meteoro, gelo...)
+  var a = temaArq || ARQ[0];
+  var lado = Math.random() < 0.5 ? -1 : 1;
+  var g = a.hazard();
+  var doCeu = !!a.ceu;
+  if (doCeu) { g.position.set(LANES[lane], 8, z); g.rotation.z = 0.05; }
+  else { g.position.set(lado * 5.4, 0, z); }
   scene.add(g);
   var sombra = new THREE.Mesh(sombraGeo, sombraMat.clone());
   sombra.rotation.x = -Math.PI / 2; sombra.position.set(LANES[lane], 0.06, z);
   scene.add(sombra);
-  arvoresCaindo.push({ mesh: g, sombra: sombra, lane: lane, z: z, lado: lado, estado: 'aviso', t: 0, atingiu: false, ativo: true });
+  arvoresCaindo.push({ mesh: g, sombra: sombra, lane: lane, z: z, lado: lado, ceu: doCeu, estado: 'aviso', t: 0, atingiu: false, ativo: true });
 }
 function atualizaArvores(dt) {
   var viv = [];
@@ -452,12 +545,18 @@ function atualizaArvores(dt) {
       a.sombra.material.opacity = 0.2 + Math.abs(Math.sin(a.t * 12)) * 0.3;
       if (a.t > 0.9) { a.estado = 'caindo'; a.t = 0; }
     } else if (a.estado === 'caindo') {
-      // TOMBA da beirada pra dentro da pista (gira deitando por cima)
       var k = Math.min(1, a.t / 0.5);
-      var ke = k*k*(3-2*k); // suaviza
-      // a base fica na beirada; a copa cai em direção ao centro
-      a.mesh.rotation.z = a.lado * (Math.PI / 2) * ke; // deita pro centro
-      a.mesh.position.x = (a.lado * 5.4) * (1 - ke) + LANES[a.lane] * ke;
+      var ke = k * k * (3 - 2 * k); // suaviza
+      if (a.ceu) {
+        // cai do céu direto na lane (meteoro, pedra de lava, gelo...)
+        a.mesh.position.y = 8 * (1 - ke);
+        a.mesh.position.x = LANES[a.lane];
+        a.mesh.rotation.z = 0.05 + (Math.PI / 2) * ke * 0.2;
+      } else {
+        // TOMBA da beirada pra dentro da pista (árvore, prédio, tronco...)
+        a.mesh.rotation.z = a.lado * (Math.PI / 2) * ke;
+        a.mesh.position.x = (a.lado * 5.4) * (1 - ke) + LANES[a.lane] * ke;
+      }
       a.sombra.material.opacity = 0.35;
       if (k >= 1) {
         a.estado = 'chao'; a.t = 0;
@@ -505,6 +604,9 @@ var G = {
   tRugido: 0,
   tRugidoAleat: 7,   // countdown pro rugido aleatório que treme a tela
   proxArvore: 4.5,   // countdown pro spawn de árvore caindo
+  proxTema: 1000,    // próxima troca de mapa (metros)
+  proxVel: 1000,     // próximo degrau de velocidade
+
   fim: false
 };
 
@@ -535,13 +637,15 @@ function limpaMundo() {
 function novaPartida() {
   limpaMundo();
   G.rodando = true; G.fim = false;
-  G.vel = 19; G.dist = 0; G.moedasRun = 0;
+  G.vel = 13; G.dist = 0; G.moedasRun = 0; G.proxVel = 1000;
   G.lane = 1; G.laneX = 0; G.y = 0; G.vy = 0;
   G.pulando = false; G.deslizando = false; G.slideT = 0;
   G.dinoDist = 26; G.invencivel = 0; G.shake = 0; G.tRugido = 0;
   G.tRugidoAleat = 6 + Math.random() * 5; G.proxArvore = 4 + Math.random() * 4;
   arvoresCaindo = [];
   G.proxSpawn = -35;
+  G.proxTema = 1000;               // a cada 1000m troca de lugar
+  aplicaTema(0);                    // ao morrer/começar volta pra primeira floresta
   player.position.set(0, 0, 0);
   chaoSegs[0].position.z = 0; chaoSegs[1].position.z = -100;
   document.getElementById('boca-dino').classList.remove('fechando');
@@ -718,10 +822,18 @@ function loop() {
 
   if (G.rodando && !G.fim) {
     // velocidade cresce
-    G.vel += dt * 0.5;
+    G.vel += dt * 0.28;                 // acelera bem devagar
+    if (G.dist >= G.proxVel) { G.vel += 2.2; G.proxVel += 1000; } // degrau de velocidade a cada 1000m
     var dz = G.vel * dt;
     player.position.z -= dz;
     G.dist += dz;
+
+    // a cada 2000m: sorteia um dos 50 mapas (qualquer um pode aparecer)
+    if (G.dist >= G.proxTema) {
+      aplicaTema(Math.floor(Math.random() * NUM_MAPAS));
+      mostraAviso('🌍 Novo lugar: ' + temaArq.nome + '!');
+      G.proxTema += 1000;
+    }
 
     // lane suave
     G.laneX += (LANES[G.lane] - G.laneX) * Math.min(1, dt * 12);
@@ -833,7 +945,7 @@ function loop() {
   var camY = 4.2, camZ = player.position.z + 8.5;
   camera.position.set(G.laneX * 0.4, camY, camZ);
   // tremor CONSTANTE (terremoto do Dino) + sustos por cima
-  var baseShake = 0.18;
+  var baseShake = 0.06;
   camera.position.x += (Math.random() - 0.5) * baseShake;
   camera.position.y += (Math.random() - 0.5) * baseShake;
   if (G.shake > 0) {
