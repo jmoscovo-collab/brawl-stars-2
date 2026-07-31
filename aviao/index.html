@@ -465,6 +465,18 @@
       setTimeout(function () { cdEl.style.display = 'none'; cdEl.style.fontSize = '130px'; voltaMenu(motivo || 'Você bateu!'); }, 1300);
     }
   }
+  function respawnCorrida() {
+    // BATEU: volta pro início da pista mas CONTINUA na mesma partida (não sai)
+    if (aviao.userData.fogo) { aviao.remove(aviao.userData.fogo); aviao.userData.fogo = null; }
+    aviao.rotation.set(0, 0, 0);
+    G.x = 0; G.y = 42; G.z = 0; G.alvoX = 0; G.alvoY = 42;
+    G.vel = G.velBase; G.morto = false; G.chegou = false; G.caiT = 0; G.caiVy = 0;
+    G.imortal = 3; G.turbo = 1; G.estado = 'correndo';
+    aviao.position.set(0, 42, 0); aviao.visible = true;
+    hud.style.display = 'flex';
+    document.getElementById('ctrl').style.display = 'block';
+    document.getElementById('crash-msg').textContent = '';
+  }
   function voltaMenu(motivo) {
     document.getElementById('turbo-wrap').style.display = 'none';
     if (G.matchIv) { clearInterval(G.matchIv); G.matchIv = null; }
@@ -760,7 +772,7 @@
       camera.position.y += ((G.y + 20) - camera.position.y) * Math.min(1, dt * 3);
       camera.position.z = G.z + 52;
       camera.lookAt(G.x, G.y, G.z - 18);
-      if (G.y <= -34 || G.caiT > 3.2) { beep(160, 0.5, 'sawtooth', 0.14, 40); voltaMenu(G.caiMotivo || 'Você bateu e caiu!'); }
+      if (G.y <= -34 || G.caiT > 3.2) { beep(160, 0.5, 'sawtooth', 0.14, 40); respawnCorrida(); }
     } else {
       // menu: avião flutuando
       aviao.position.set(0, 42 + Math.sin(clock.getElapsedTime() * 1.5) * 2, 0);
