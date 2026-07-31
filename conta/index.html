@@ -522,6 +522,30 @@ mostraAmigos();
     atualizaSocial();
     setInterval(atualizaSocial, 30000); // pedidos novos aparecem sozinhos!
 })();
+
+// ============ TROCAR NOME ============
+function abreTrocaNome(){
+    var p = document.getElementById('painelNome');
+    p.style.display = (p.style.display==='block') ? 'none' : 'block';
+    var inp = document.getElementById('novoNomeConta');
+    if(inp) inp.value = usuario();
+}
+async function trocaNome(){
+    var el = document.getElementById('novoNomeConta');
+    var novo = (el ? el.value : '').trim();
+    if(novo.length < 2) return aviso('O nome precisa ter pelo menos 2 letras!');
+    if(novo === usuario()){ document.getElementById('painelNome').style.display='none'; return; }
+    aviso('⏳ Mudando seu nome...', true);
+    try {
+        var r = await chamaAPI({ acao:'renomear', nome:usuario(), senhaHash:localStorage.getItem('cg_senhaHash'), novoNome:novo });
+        localStorage.setItem('cg_usuario', r.nome || novo);
+        document.getElementById('painelNome').style.display='none';
+        aviso('🎉 Agora você é '+ (r.nome||novo) +'!', true);
+        mostraEstado();
+        if(typeof mostraMeuPerfil==='function') mostraMeuPerfil();
+    } catch(e){ aviso('😕 '+e.message); }
+}
+window.abreTrocaNome = abreTrocaNome; window.trocaNome = trocaNome;
 </script>
 </body>
 </html>
