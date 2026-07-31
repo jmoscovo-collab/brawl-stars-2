@@ -322,7 +322,7 @@ function recebe(ev){
             aplicaRodada(m); return;
         case 'traco':
             if(!eu && !G.souDrawer) desenhaSegmento(m.x0,m.y0,m.x1,m.y1,m.cor,m.grossura); return;
-        case 'reta': case 'retangulo': case 'circulo': case 'balde':
+        case 'ponto': case 'reta': case 'retangulo': case 'circulo': case 'balde':
             if(!eu && !G.souDrawer) aplicaOp(m, false); return;
         case 'redraw':
             if(!eu && !G.souDrawer){ limpaCanvas(); (m.ops||[]).forEach(function(op){ aplicaOp(op,false); }); } return;
@@ -495,7 +495,8 @@ function desfazer(){
 function aplicaOp(op, local){
     ctx.strokeStyle=op.cor; ctx.fillStyle=op.cor; ctx.lineWidth=op.gr; ctx.lineCap='round'; ctx.lineJoin='round';
     const W=tela.width, H=tela.height;
-    if(op.t==='traco'){ ctx.beginPath(); ctx.moveTo(op.x0*W,op.y0*H); ctx.lineTo(op.x1*W,op.y1*H); ctx.stroke(); }
+    if(op.t==='ponto'){ ctx.fillStyle=op.cor; ctx.beginPath(); ctx.arc(op.x0*W,op.y0*H,op.gr/2,0,7); ctx.fill(); }
+    else if(op.t==='traco'){ ctx.beginPath(); ctx.moveTo(op.x0*W,op.y0*H); ctx.lineTo(op.x1*W,op.y1*H); ctx.stroke(); }
     else if(op.t==='reta'){ ctx.beginPath(); ctx.moveTo(op.x0*W,op.y0*H); ctx.lineTo(op.x1*W,op.y1*H); ctx.stroke(); }
     else if(op.t==='retangulo'){ ctx.strokeRect(Math.min(op.x0,op.x1)*W, Math.min(op.y0,op.y1)*H, Math.abs(op.x1-op.x0)*W, Math.abs(op.y1-op.y0)*H); }
     else if(op.t==='circulo'){ ctx.beginPath(); ctx.ellipse((op.x0+op.x1)/2*W,(op.y0+op.y1)/2*H, Math.abs(op.x1-op.x0)/2*W, Math.abs(op.y1-op.y0)/2*H, 0,0,7); ctx.stroke(); }
@@ -524,8 +525,18 @@ function inicioDesenho(e){
         return;
     }
     desenhando=true; ultimo=p; inicioForma=p;
-    if(ferramenta!=='pincel' && ferramenta!=='borracha')
-        snapshot = ctx.getImageData(0,0,tela.width,tela.height); // pra prévia
+    if(ferramenta==='pincel' || ferramenta==='borracha'){
+        // clique = pinta uma bolinha do tamanho do pincel (sem precisar arrastar)
+        pintaPonto(p.x, p.y, corEfetiva(), grossuraEfetiva());
+    } else {
+        snapshot = ctx.getImageData(0,0,tela.width,tela.height); // pra prévia da forma
+    }
+}
+function pintaPonto(x,y,cor,gr){
+    ctx.fillStyle=cor;
+    ctx.beginPath(); ctx.arc(x*tela.width, y*tela.height, gr/2, 0, 7); ctx.fill();
+    const op={t:'ponto',x0:x,y0:y,x1:x,y1:y,cor:cor,gr:gr};
+    registra(op); mpEnvia(op);
 }
 function moveDesenho(e){
     if(!desenhando || !G.souDrawer) return; e.preventDefault();
