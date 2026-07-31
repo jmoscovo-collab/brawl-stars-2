@@ -285,7 +285,7 @@
     roll: 0, pitch: 0, boost: 0, tempo: 0,
     morto: false, chegou: false, minhaColoc: 1,
     proxArgola: -120, proxMont: -180, proxCidade: -140, larguei: 0,
-    caiT: 0, caiVy: 0, caiMotivo: '', mult: 1, imortal: 0
+    caiT: 0, caiVy: 0, caiMotivo: '', mult: 1, imortal: 0, matchIv: null
   };
   var cidades = [];
 
@@ -406,19 +406,30 @@
     document.getElementById('ctrl').style.display = 'block';
     mpEnvia({ t: 'st', id: meuId, nome: meuNome, x: G.x, y: G.y, z: G.z, co: false, mo: false, fi: false });
 
-    // contagem 3..2..1..JÁ
-    var cont = 3;
-    cdEl.style.display = 'flex'; cdEl.textContent = '3'; beep(500, 0.2, 'square', 0.08);
-    var iv = setInterval(function () {
-      cont--;
-      if (cont > 0) { cdEl.textContent = String(cont); beep(500, 0.2, 'square', 0.08); }
-      else if (cont === 0) { cdEl.textContent = 'JÁ! 🏁'; beep(900, 0.4, 'square', 0.1); G.estado = 'correndo'; G.larguei = G.tempo; G.imortal = 3; }
-      else { clearInterval(iv); cdEl.style.display = 'none'; }
-    }, 900);
+    // PARTIDA SINCRONIZADA: começa no próximo horário "redondo" (a cada 5s no relógio).
+    // Todos que entram na mesma janela largam JUNTOS. Mostra a contagem de 5s pra baixo.
+    if (G.matchIv) clearInterval(G.matchIv);
+    cdEl.style.display = 'flex';
+    var alvo = Math.ceil((Date.now() + 600) / 5000) * 5000; // alinhado a 5s, com folga pra ver a contagem
+    var ultimoBip = -1;
+    G.matchIv = setInterval(function () {
+      var ms = alvo - Date.now();
+      if (ms > 250) {
+        var seg = Math.min(5, Math.ceil(ms / 1000));
+        cdEl.innerHTML = '<div style="font-size:24px;opacity:.92;margin-bottom:-8px">A partida começa em</div>' + seg;
+        if (seg !== ultimoBip) { ultimoBip = seg; beep(520, 0.16, 'square', 0.07); }
+      } else {
+        cdEl.textContent = 'JÁ! 🏁'; beep(920, 0.4, 'square', 0.1);
+        G.estado = 'correndo'; G.larguei = G.tempo; G.imortal = 3;
+        clearInterval(G.matchIv); G.matchIv = null;
+        setTimeout(function () { if (G.estado === 'correndo') cdEl.style.display = 'none'; }, 550);
+      }
+    }, 100);
   }
 
   function fimDeJogo(chegou, motivo) {
     if (G.estado === 'fim') return;
+    if (G.matchIv) { clearInterval(G.matchIv); G.matchIv = null; }
     G.estado = 'fim';
     document.getElementById('ctrl').style.display = 'none';
     hud.style.display = 'none';
@@ -441,6 +452,7 @@
     }
   }
   function voltaMenu(motivo) {
+    if (G.matchIv) { clearInterval(G.matchIv); G.matchIv = null; }
     G.estado = 'menu';
     limpaMundo(); chegada.visible = false; montaMeuAviao();
     G.z = 0; G.x = 0; G.y = 42; aviao.position.set(0, 42, 0);
