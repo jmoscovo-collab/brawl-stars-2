@@ -427,21 +427,18 @@ var arvoresCaindo = [];
 var sombraGeo = new THREE.CircleGeometry(1.3, 16);
 var sombraMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35 });
 function criaArvoreCaindo(lane, z) {
+  var lado = Math.random() < 0.5 ? -1 : 1;   // tomba da esquerda ou direita do mapa
+  // árvore IGUAL às decorativas do canyon (tronco + copa)
   var g = new THREE.Group();
-  // tronco alto que vai tombar
-  var tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 4.2, 8), mat(0x6d4c2f));
-  tronco.position.y = 2.1; g.add(tronco);
-  var copa = cone(1.4, 2.4, 0x2e7d32, 6); copa.position.y = 4.6; g.add(copa);
-  // pivô no chão pra tombar; começa em pé e no alto (vem do céu)
-  g.position.set(LANES[lane], 8, z);
-  g.rotation.z = 0.05;
+  var tronco = caixa(0.4, 3.2, 0.4, 0x6d4c2f); tronco.position.y = 1.6; g.add(tronco);
+  var copa = cone(1.2, 2.4, Math.random() < 0.5 ? 0x2e7d32 : 0x43a047, 6); copa.position.y = 3.8; g.add(copa);
+  // nasce EM PÉ na beirada do mapa (onde ficam as árvores decorativas)
+  g.position.set(lado * 5.4, 0, z);
   scene.add(g);
-  // sombra/aviso no chão
   var sombra = new THREE.Mesh(sombraGeo, sombraMat.clone());
   sombra.rotation.x = -Math.PI / 2; sombra.position.set(LANES[lane], 0.06, z);
   scene.add(sombra);
-  arvoresCaindo.push({ mesh: g, sombra: sombra, lane: lane, z: z, estado: 'aviso', t: 0, atingiu: false, ativo: true });
-  mostraAviso('⚠️ ÁRVORE CAINDO! Pula ou desvia!');
+  arvoresCaindo.push({ mesh: g, sombra: sombra, lane: lane, z: z, lado: lado, estado: 'aviso', t: 0, atingiu: false, ativo: true });
 }
 function atualizaArvores(dt) {
   var viv = [];
@@ -453,15 +450,16 @@ function atualizaArvores(dt) {
       a.sombra.material.opacity = 0.2 + Math.abs(Math.sin(a.t * 12)) * 0.3;
       if (a.t > 0.9) { a.estado = 'caindo'; a.t = 0; }
     } else if (a.estado === 'caindo') {
-      // desce do céu e tomba (rotação até deitar cruzando a pista)
-      var k = Math.min(1, a.t / 0.45);
-      a.mesh.position.y = 8 * (1 - k);
-      a.mesh.rotation.z = 0.05 + (Math.PI / 2) * k; // deita no eixo X
+      // TOMBA da beirada pra dentro da pista (gira deitando por cima)
+      var k = Math.min(1, a.t / 0.5);
+      var ke = k*k*(3-2*k); // suaviza
+      // a base fica na beirada; a copa cai em direção ao centro
+      a.mesh.rotation.z = a.lado * (Math.PI / 2) * ke; // deita pro centro
+      a.mesh.position.x = (a.lado * 5.4) * (1 - ke) + LANES[a.lane] * ke;
       a.sombra.material.opacity = 0.35;
       if (k >= 1) {
         a.estado = 'chao'; a.t = 0;
-        a.mesh.position.y = 0.5;
-        triggerShake(0.7); // TELA TREME quando a árvore bate
+        triggerShake(0.7); // TELA TREME quando bate
         somTropeco();
       }
     } else if (a.estado === 'chao') {
