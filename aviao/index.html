@@ -374,6 +374,34 @@
     for (var k in mp.peers) { if (mp.peers[k].mesh) { scene.remove(mp.peers[k].mesh); mp.peers[k].mesh = null; } }
   }
 
+  function montarGrid() {
+    // cria os oponentes AGORA (fim da contagem): pilotos reais presentes + bots pra completar 5.
+    // Assim, quem entrou durante a espera substitui um bot.
+    var peers = G.soBots ? [] : peersVivos();
+    var nBots = Math.max(0, 4 - peers.length);
+    var slots = [-48, 48, -96, 96, -144, 144];
+    var usados = [1, 2, 3, 4]; var si = 0;
+    for (var b = 0; b < nBots; b++) {
+      var ci = usados.length ? usados.shift() : (1 + b % 4);
+      var col = CORES[ci % CORES.length];
+      var lane = slots[si++ % slots.length];
+      var mesh = fazAviao(col.c, col.a); mesh.position.set(lane, 42, 0); scene.add(mesh);
+      if (!G.soBots) mesh.add(fazLabel('Bot', '#ffd23a'));
+      var bturbo = fazTurbo(0.85); mesh.add(bturbo);
+      var hab = 0.6 + Math.random() * 0.4;
+      racers.push({ tipo: 'bot', mesh: mesh, x: lane, y: 42, z: 0, vel: 92 * G.mult, nome: 'Bot', cor: col.c, fin: false, morto: false, lane: lane, alt: 42, fase: Math.random() * 6, hab: hab, turboMesh: bturbo, boostT: 0, bcool: 2 + Math.random() * 3 });
+    }
+    for (var pi = 0; pi < peers.length; pi++) {
+      var pcol = CORES[(1 + pi) % CORES.length];
+      var pm = fazAviao(pcol.c, pcol.a);
+      var pslot = slots[si++ % slots.length];
+      pm.position.set(pslot, 42, 0); scene.add(pm);
+      pm.add(fazLabel(peers[pi].nome || 'Piloto', '#7ef0ff'));
+      peers[pi].mesh = pm; peers[pi].cor = pcol.c;
+    }
+    G.totalRacers = 1 + racers.length + peers.length; // total FIXO da partida
+  }
+
   function novoJogo() {
     limpaMundo();
     montaMeuAviao();
@@ -385,34 +413,8 @@
     aviao.position.set(0, 42, 0);
     chegada.position.set(0, 0, -DIST); chegada.visible = true;
 
-    // quantos pilotos reais estão na corrida?
-    var peers = G.soBots ? [] : peersVivos();
-    var nBots = Math.max(0, 4 - peers.length); // completa até 5 no total (eu + peers + bots)
-    // TODOS largam lado a lado, em FILEIRA, espaçados pra não bater (jogador no meio, x=0)
-    var slots = [-48, 48, -96, 96, -144, 144];
-    var usados = [1, 2, 3, 4]; var si = 0;
-    for (var b = 0; b < nBots; b++) {
-      var ci = usados.length ? usados.shift() : (1 + b % 4);
-      var col = CORES[ci % CORES.length];
-      var lane = slots[si++ % slots.length];
-      var mesh = fazAviao(col.c, col.a); mesh.position.set(lane, 42, 0); scene.add(mesh);
-      if (!G.soBots) mesh.add(fazLabel('Bot', '#ffd23a'));
-      var bturbo = fazTurbo(0.85); mesh.add(bturbo);
-      var hab = 0.6 + Math.random() * 0.4;
-      // bots no MESMO nível do seu avião (acompanham sua velocidade)
-      racers.push({ tipo: 'bot', mesh: mesh, x: lane, y: 42, z: 0, vel: 92 * G.mult, nome: 'Bot', cor: col.c, fin: false, morto: false, lane: lane, alt: 42, fase: Math.random() * 6, hab: hab, turboMesh: bturbo, boostT: 0, bcool: 2 + Math.random() * 3 });
-    }
-    // aviões dos peers (também na fileira)
-    for (var pi = 0; pi < peers.length; pi++) {
-      var pcol = CORES[(1 + pi) % CORES.length];
-      var pm = fazAviao(pcol.c, pcol.a);
-      var pslot = slots[si++ % slots.length];
-      pm.position.set(pslot, 42, 0); scene.add(pm);
-      pm.add(fazLabel(peers[pi].nome || 'Piloto', '#7ef0ff'));
-      peers[pi].mesh = pm; peers[pi].cor = pcol.c;
-    }
-
-    G.totalRacers = 1 + racers.length + peers.length; // total FIXO da partida (não bugar em cima)
+    // A grade (bots + jogadores) é montada só no LARGAR (fim da contagem),
+    // pra quem entrar durante a espera substituir um bot.
     document.getElementById('tela-inicio').classList.add('hidden');
     document.getElementById('tela-fim').classList.add('hidden');
     hud.style.display = 'flex';
@@ -424,6 +426,7 @@
     if (G.matchIv) clearInterval(G.matchIv);
     cdEl.style.display = 'flex';
     function largar() {
+      montarGrid(); // cria bots + pilotos reais AGORA (late-joiners substituem bots)
       cdEl.textContent = 'JÁ! 🏁'; beep(920, 0.4, 'square', 0.1);
       G.estado = 'correndo'; G.larguei = G.tempo; G.imortal = 3;
       clearInterval(G.matchIv); G.matchIv = null;
