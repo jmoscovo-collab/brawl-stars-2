@@ -7,7 +7,7 @@
 - JOGO NOVO: Cavando Fundo (/cavando/) — mineracao 2D ate 1800m+, camadas com minerios proprios,
   lava/gas/morcegos/desabamento, lanterna com raio de luz, mochila com limite, elevador,
   loja com 4 trilhas de melhoria (picareta/mochila/bota/lanterna), Livro do Minerador e conquistas
-- Home: os dois jogos novos no comeco da lista
+- Home: cards dos dois ESCONDIDOS (display:none) a pedido do Davi — jogos no ar por URL, sem lancar ainda
 
 ## v3.4.0 (2026-07-31)
 - JOGO NOVO: Desenha e Adivinha (online com amigos, estilo Gartic)
