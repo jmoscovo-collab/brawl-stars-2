@@ -169,16 +169,146 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
     .fig .fem { font-size:19px; }
     .pacotes { grid-template-columns:repeat(2,1fr); }
 }
+
+/* ===== UPGRADE: brilhantes, embalagem, mascote, streak, páginas ===== */
+.holo { position:relative; overflow:hidden; }
+.holo::after {
+    content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+    background:linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.55) 45%,
+               rgba(120,255,255,0.5) 50%, rgba(255,120,255,0.5) 55%, transparent 70%);
+    background-size:280% 280%; animation:holoAnda 2.4s linear infinite; mix-blend-mode:screen;
+}
+@keyframes holoAnda { 0%{background-position:0% 50%;} 100%{background-position:200% 50%;} }
+.selinhoB {
+    position:absolute; top:2px; right:3px; font-size:11px; text-shadow:0 0 6px #fff;
+    animation:pulsaB 1.2s ease-in-out infinite;
+}
+@keyframes pulsaB { 0%,100%{transform:scale(1);} 50%{transform:scale(1.35);} }
+
+/* embalagem do pacote (sacudir + rasgar) */
+#embal { position:relative; width:min(80vw,260px); height:min(52vh,340px); margin:10px auto; perspective:700px; }
+.pkt {
+    position:absolute; inset:0; border-radius:18px; border:4px solid #ffd700;
+    background:linear-gradient(150deg,#5a2ea6,#2a1a6a 60%,#8a1f5a);
+    box-shadow:0 0 26px rgba(255,215,0,0.45), inset 0 0 40px rgba(0,0,0,0.5);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    overflow:hidden; user-select:none; -webkit-user-select:none; touch-action:none;
+}
+.pkt .pIc { font-size:66px; filter:drop-shadow(0 0 12px rgba(255,255,255,0.5)); }
+.pkt .pNome { font-size:18px; font-weight:900; color:#ffd700; }
+.pkt .pDica { font-size:13px; color:#fff; opacity:0.9; padding:0 10px; }
+.pkt .serra {
+    position:absolute; top:26%; left:0; right:0; height:0;
+    border-top:4px dashed rgba(255,255,255,0.75);
+}
+.pkt.sacode { animation:sacodePkt .45s ease-in-out; }
+@keyframes sacodePkt {
+    0%,100%{transform:rotate(0) translateY(0);} 15%{transform:rotate(-7deg) translateY(-6px);}
+    35%{transform:rotate(8deg) translateY(4px);} 55%{transform:rotate(-6deg) translateY(-3px);}
+    75%{transform:rotate(5deg) translateY(2px);}
+}
+#embal .topo, #embal .baixo { position:absolute; left:0; right:0; overflow:hidden; transition:transform .6s ease, opacity .6s ease; }
+#embal .topo { top:0; height:26%; }
+#embal .baixo { top:26%; bottom:0; }
+#embal.aberto .topo { transform:translateY(-140%) rotate(-10deg); opacity:0; }
+#embal.aberto .baixo { transform:translateY(140%) rotate(8deg); opacity:0; }
+#rasgaBarra { width:min(80vw,260px); height:12px; margin:6px auto 0; background:#222248; border-radius:8px; overflow:hidden; }
+#rasgaBarra div { height:100%; width:0%; background:linear-gradient(to right,#ffd700,#fff); }
+
+/* brilho da beirada avisando a raridade */
+.cartaPack.costas.g1 { box-shadow:0 0 12px rgba(255,255,255,0.25); }
+.cartaPack.costas.g2 { box-shadow:0 0 20px rgba(0,255,136,0.55); border-color:#00ff88; }
+.cartaPack.costas.g3 { box-shadow:0 0 26px rgba(0,204,255,0.7); border-color:#00ccff; }
+.cartaPack.costas.g4 { box-shadow:0 0 34px rgba(205,139,255,0.85); border-color:#cd8bff; animation:pisca .8s ease-in-out infinite; }
+.cartaPack.costas.g5 { box-shadow:0 0 44px rgba(255,170,0,0.95); border-color:#ffaa00; animation:pisca .5s ease-in-out infinite; }
+.cartaPack.costas.g6 { box-shadow:0 0 60px rgba(255,255,255,1); border-color:#fff; animation:pisca .3s ease-in-out infinite; }
+@keyframes pisca { 0%,100%{filter:brightness(1);} 50%{filter:brightness(1.5);} }
+
+/* raios de luz atrás da carta */
+.raios {
+    position:absolute; left:50%; top:50%; width:220%; height:220%; transform:translate(-50%,-50%);
+    background:conic-gradient(from 0deg, rgba(255,255,255,0.32) 0 6deg, transparent 6deg 30deg,
+        rgba(255,255,255,0.32) 30deg 36deg, transparent 36deg 60deg,
+        rgba(255,255,255,0.32) 60deg 66deg, transparent 66deg 90deg,
+        rgba(255,255,255,0.32) 90deg 96deg, transparent 96deg 120deg,
+        rgba(255,255,255,0.32) 120deg 126deg, transparent 126deg 150deg,
+        rgba(255,255,255,0.32) 150deg 156deg, transparent 156deg 180deg,
+        rgba(255,255,255,0.32) 180deg 186deg, transparent 186deg 210deg,
+        rgba(255,255,255,0.32) 210deg 216deg, transparent 216deg 240deg,
+        rgba(255,255,255,0.32) 240deg 246deg, transparent 246deg 270deg,
+        rgba(255,255,255,0.32) 270deg 276deg, transparent 276deg 300deg,
+        rgba(255,255,255,0.32) 300deg 306deg, transparent 306deg 330deg,
+        rgba(255,255,255,0.32) 330deg 336deg, transparent 336deg 360deg);
+    animation:giraRaios 9s linear infinite; pointer-events:none; z-index:-1; border-radius:50%;
+}
+@keyframes giraRaios { to { transform:translate(-50%,-50%) rotate(360deg); } }
+
+/* mascote */
+#mascote {
+    position:fixed; left:8px; bottom:10px; z-index:70; display:flex; align-items:flex-end; gap:6px;
+    pointer-events:none; max-width:min(72vw,330px);
+}
+#mascote .cara { font-size:40px; animation:pulaMasc 2.6s ease-in-out infinite; filter:drop-shadow(0 3px 6px #000); }
+@keyframes pulaMasc { 0%,100%{transform:translateY(0) rotate(-3deg);} 50%{transform:translateY(-7px) rotate(3deg);} }
+#mascote .fala {
+    background:#fff; color:#222; border-radius:14px; padding:7px 11px; font-size:13px; font-weight:bold;
+    box-shadow:0 3px 10px rgba(0,0,0,0.6); position:relative; opacity:0; transition:opacity .3s, transform .3s;
+    transform:translateY(6px);
+}
+#mascote.falando .fala { opacity:1; transform:translateY(0); }
+#mascote .fala::after {
+    content:''; position:absolute; left:-7px; bottom:9px; border:7px solid transparent; border-right-color:#fff;
+}
+
+/* streak da semana */
+.streakLinha { display:flex; gap:5px; justify-content:center; margin:8px 0 4px; flex-wrap:wrap; }
+.sdia {
+    width:38px; border-radius:10px; border:2px solid #3a3a6a; background:rgba(20,20,50,0.9);
+    font-size:11px; padding:4px 2px; text-align:center; color:#aaa;
+}
+.sdia .sic { font-size:16px; display:block; }
+.sdia.feito { border-color:#00ff88; color:#00ff88; }
+.sdia.hoje { border-color:#ffd700; color:#ffd700; animation:pisca 1s ease-in-out infinite; }
+
+/* álbum: silhueta, selo, páginas */
+.fig.vazia .fem { filter:grayscale(1) brightness(0.32); opacity:0.6; }
+.fig { position:relative; }
+.selo {
+    display:inline-block; background:linear-gradient(135deg,#ffd700,#ffaa00); color:#3a2a00;
+    border-radius:12px; padding:3px 9px; font-size:11px; font-weight:900; margin-left:6px;
+}
+.pag { display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0 2px; }
+.pag button {
+    font-size:18px; font-weight:900; border:2px solid #3a3a6a; background:rgba(25,25,60,0.95); color:#fff;
+    border-radius:12px; padding:6px 14px; cursor:pointer;
+}
+.pag button:disabled { opacity:0.3; cursor:not-allowed; }
+.pag .pgTxt { font-size:13px; color:#bbb; }
+.gridFig.vira { animation:viraPag .3s ease; }
+@keyframes viraPag { from { opacity:0; transform:rotateY(22deg) translateX(14px); } to { opacity:1; transform:none; } }
+
+#btnSom {
+    position:fixed; top:6px; right:8px; z-index:90; font-size:16px; border:2px solid #444;
+    background:rgba(20,20,50,0.9); color:#fff; border-radius:12px; padding:5px 10px; cursor:pointer;
+}
+.conq {
+    display:inline-block; background:rgba(0,40,25,0.85); border:2px solid #00ff88; color:#00ff88;
+    border-radius:20px; padding:6px 12px; margin:3px; font-size:12px; font-weight:bold;
+}
+.conq.travada { background:rgba(35,35,35,0.85); border-color:#555; color:#777; }
+.figdia { border:2px dashed #ffd700; border-radius:14px; padding:8px; margin:8px 0; background:rgba(50,40,0,0.6); }
 </style>
 </head>
 <body>
 <a class="voltar" href="/">← Cogumelo Games</a>
+<button id="btnSom" title="Som">🔊</button>
 
 <div id="barra">
     <span class="moedas" id="hudMoedas">🪙 0</span>
     <span class="coladas" id="hudColadas">📕 0/500</span>
     <span id="hudPct">0%</span>
     <span id="hudPacotes">🎁 0</span>
+    <span id="hudBri" style="color:#fff">✨ 0/500</span>
     <div id="progWrap"><div id="progBar"></div></div>
 </div>
 
@@ -194,6 +324,7 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
 
 <div class="tela on" id="telaLoja">
     <div class="cartaoInfo" id="boxDiario">🎁 carregando...</div>
+    <div class="cartaoInfo" id="boxFigDia"></div>
     <div class="pacotes" id="listaPacotes"></div>
     <div class="cartaoInfo" style="margin-top:12px">
         <b>Como ganhar moedas de graça 🪙</b><br>
@@ -205,6 +336,7 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
 
 <div class="tela" id="telaAlbum">
     <div class="cartaoInfo" id="boxMedalhas"></div>
+    <div class="cartaoInfo" id="boxConquistas"></div>
     <div id="listaColecoes"></div>
 </div>
 
@@ -228,9 +360,18 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
 <div class="painel" id="painelPack">
     <h2 id="packTitulo" style="font-size:20px; margin:6px 0">🎁 Abrindo pacotinho!</h2>
     <div class="sub" id="packAjuda">Toca na carta pra virar 👇</div>
+    <div id="embal" style="display:none">
+        <div class="topo"><div class="pkt" id="pktTopo"></div></div>
+        <div class="baixo"><div class="pkt" id="pktBaixo" style="margin-top:-26vh"></div></div>
+    </div>
+    <div id="rasgaBarra" style="display:none"><div id="rasgaProg"></div></div>
+    <div id="boxEmbal" style="display:none">
+        <button class="btn azul" id="btnSacode">🤲 SACUDIR</button>
+        <button class="btn verde" id="btnRasga">✂️ RASGAR O PACOTE</button>
+    </div>
     <div id="pilha"></div>
-    <div>
-        <button class="btn azul" id="btnAbrirTudo">⚡ ABRIR TUDO DE UMA VEZ</button>
+    <div id="boxPack">
+        <button class="btn azul" id="btnAbrirTudo">⏭ PULAR (abrir tudo)</button>
         <button class="btn cinza" id="btnFechaPack">✅ PRONTO</button>
     </div>
     <div id="resumoPack" style="margin-top:10px"></div>
@@ -253,6 +394,7 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
 </div>
 
 <canvas id="fx"></canvas>
+<div id="mascote"><span class="cara">🍄</span><span class="fala" id="mascFala">Oi!</span></div>
 <div id="toast"></div>
 
 <script src="/stats.js"></script>
@@ -422,13 +564,28 @@ var S = {
     medalhas: ler('medalhas', []),     // nomes de coleções completas premiadas
     fimVisto: ler('fimVisto', false),
     desafios: ler('desafios', null),
-    contadores: ler('contadores', { novas:0, pacotes:0, vendidas:0, trocas:0 })
+    contadores: ler('contadores', { novas:0, pacotes:0, vendidas:0, trocas:0 }),
+    // ---- campos novos (entram com padrão em quem já jogava) ----
+    brilho: ler('brilho', {}),          // { numero: quantidade de brilhantes }
+    streak: ler('streak', 0),           // dia da sequência (0 a 7)
+    streakDia: ler('streakDia', ''),    // último dia contado na sequência
+    conq: ler('conq', []),              // ids das conquistas ganhas
+    som: ler('som', true),
+    figDiaData: ler('figDiaData', ''),
+    figDiaNum: ler('figDiaNum', 0)
 };
 if (typeof S.moedas !== 'number' || isNaN(S.moedas)) S.moedas = 300;
 if (!S.tenho || typeof S.tenho !== 'object') S.tenho = {};
 if (typeof S.pacotesGratis !== 'number' || isNaN(S.pacotesGratis)) S.pacotesGratis = 1;
 if (!Array.isArray(S.medalhas)) S.medalhas = [];
 if (!S.contadores || typeof S.contadores !== 'object') S.contadores = { novas:0, pacotes:0, vendidas:0, trocas:0 };
+if (!S.brilho || typeof S.brilho !== 'object') S.brilho = {};
+if (typeof S.streak !== 'number' || isNaN(S.streak) || S.streak < 0) S.streak = 0;
+if (typeof S.streakDia !== 'string') S.streakDia = '';
+if (!Array.isArray(S.conq)) S.conq = [];
+if (typeof S.som !== 'boolean') S.som = true;
+if (typeof S.figDiaNum !== 'number' || isNaN(S.figDiaNum)) S.figDiaNum = 0;
+if (typeof S.figDiaData !== 'string') S.figDiaData = '';
 
 function salvaTudo() {
     salvar('moedas', S.moedas);
@@ -439,6 +596,87 @@ function salvaTudo() {
     salvar('fimVisto', S.fimVisto);
     salvar('desafios', S.desafios);
     salvar('contadores', S.contadores);
+    salvar('brilho', S.brilho);
+    salvar('streak', S.streak);
+    salvar('streakDia', S.streakDia);
+    salvar('conq', S.conq);
+    salvar('som', S.som);
+    salvar('figDiaData', S.figDiaData);
+    salvar('figDiaNum', S.figDiaNum);
+}
+
+// ================= SONS (WebAudio, sem arquivo) + VIBRAÇÃO =================
+var AC = null;
+function audio() {
+    if (!S.som) return null;
+    try {
+        if (!AC) {
+            var Ctor = window.AudioContext || window.webkitAudioContext;
+            if (!Ctor) return null;
+            AC = new Ctor();
+        }
+        if (AC.state === 'suspended' && AC.resume) AC.resume();
+        return AC;
+    } catch (e) { return null; }
+}
+function bip(freq, dur, tipo, vol, atraso) {
+    var ac = audio();
+    if (!ac) return;
+    try {
+        var t0 = ac.currentTime + (atraso || 0);
+        var osc = ac.createOscillator(), g = ac.createGain();
+        osc.type = tipo || 'sine';
+        osc.frequency.setValueAtTime(freq, t0);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(vol || 0.16, t0 + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        osc.connect(g); g.connect(ac.destination);
+        osc.start(t0); osc.stop(t0 + dur + 0.02);
+    } catch (e) {}
+}
+function somRasgo() {
+    var ac = audio();
+    if (!ac) return;
+    try {
+        var dur = 0.5, taxa = ac.sampleRate, buf = ac.createBuffer(1, Math.floor(taxa * dur), taxa);
+        var d = buf.getChannelData(0);
+        for (var i = 0; i < d.length; i++) {
+            var f = 1 - i / d.length;
+            d[i] = (Math.random() * 2 - 1) * f * f * 0.5;
+        }
+        var src = ac.createBufferSource(); src.buffer = buf;
+        var flt = ac.createBiquadFilter(); flt.type = 'highpass'; flt.frequency.value = 900;
+        src.connect(flt); flt.connect(ac.destination); src.start();
+    } catch (e) {}
+}
+function somNova()   { bip(880, 0.12, 'triangle', 0.15); bip(1320, 0.16, 'triangle', 0.12, 0.08); }
+function somRep()    { bip(300, 0.14, 'sine', 0.10); }
+function somMoeda()  { bip(1200, 0.07, 'square', 0.08); bip(1600, 0.09, 'square', 0.07, 0.05); }
+function somFanfarra() {
+    var notas = [523, 659, 784, 1047, 1319];
+    for (var i = 0; i < notas.length; i++) bip(notas[i], 0.22, 'triangle', 0.16, i * 0.1);
+}
+function somSecreta() {
+    var notas = [784, 988, 1175, 1568, 1976, 2637];
+    for (var i = 0; i < notas.length; i++) bip(notas[i], 0.3, 'sawtooth', 0.13, i * 0.09);
+}
+function vibra(ms) {
+    try { if (navigator && navigator.vibrate) navigator.vibrate(ms); } catch (e) {}
+}
+function pintaSom() {
+    var b = el('btnSom');
+    if (b) b.textContent = S.som ? '🔊' : '🔇';
+}
+
+// ================= MASCOTE =================
+var mascTimer = null;
+function masc(frase, ms) {
+    var m = el('mascote'), f = el('mascFala');
+    if (!m || !f) return;
+    f.textContent = frase;
+    m.classList.add('falando');
+    if (mascTimer) clearTimeout(mascTimer);
+    mascTimer = setTimeout(function(){ m.classList.remove('falando'); }, ms || 3200);
 }
 
 function qtd(n) { var q = S.tenho[n]; return (typeof q === 'number' && q > 0) ? q : 0; }
@@ -466,6 +704,97 @@ function valorRepetidas() {
     var v = 0, l = listaRepetidas();
     for (var i = 0; i < l.length; i++) v += l[i].extra * RARIDADES[fig(l[i].n).rar].venda;
     return v;
+}
+
+// ================= BRILHANTES ✨ =================
+var CHANCE_BRILHO = 0.04;   // 4% de qualquer figurinha vir brilhante
+var BONUS_BRILHO = 3;       // repetida brilhante vale 3x
+function qtdB(n) { var q = S.brilho[n]; return (typeof q === 'number' && q > 0) ? q : 0; }
+function totalBrilhantes() {
+    var t = 0;
+    for (var i = 1; i <= FIGS.length; i++) if (qtdB(i) > 0) t++;
+    return t;
+}
+function listaRepBri() {
+    var out = [];
+    for (var i = 1; i <= FIGS.length; i++) { var q = qtdB(i); if (q > 1) out.push({ n:i, extra:q - 1 }); }
+    return out;
+}
+function valorRepBri() {
+    var v = 0, l = listaRepBri();
+    for (var i = 0; i < l.length; i++) v += l[i].extra * RARIDADES[fig(l[i].n).rar].venda * BONUS_BRILHO;
+    return v;
+}
+function temAlgum(n) { return qtd(n) > 0 || qtdB(n) > 0; }
+
+// ================= FIGURINHA DO DIA =================
+function checaFigDia() {
+    if (S.figDiaData !== hojeStr() || !S.figDiaNum) {
+        S.figDiaData = hojeStr();
+        S.figDiaNum = 1 + Math.floor(Math.random() * FIGS.length);
+        salvaTudo();
+    }
+    return S.figDiaNum;
+}
+
+// ================= CONQUISTAS =================
+var CONQUISTAS = [
+    { id:'bri1',   ic:'✨', nome:'Primeira brilhante',   ok:function(){ return totalBrilhantes() >= 1; } },
+    { id:'sec1',   ic:'🌟', nome:'Achou uma SECRETA',    ok:function(){ return temRaridade('secreta'); } },
+    { id:'pac100', ic:'🎁', nome:'100 pacotes abertos',  ok:function(){ return (S.contadores.pacotes || 0) >= 100; } },
+    { id:'col250', ic:'📕', nome:'250 figurinhas coladas',ok:function(){ return totalColadas() >= 250; } },
+    { id:'streak7',ic:'🔥', nome:'7 dias seguidos',      ok:function(){ return S.streak >= 7; } },
+    { id:'bri50',  ic:'💎', nome:'50 brilhantes',        ok:function(){ return totalBrilhantes() >= 50; } },
+    { id:'col500', ic:'👑', nome:'Álbum completo',       ok:function(){ return totalColadas() >= FIGS.length; } }
+];
+function temRaridade(rar) {
+    for (var i = 1; i <= FIGS.length; i++) if (temAlgum(i) && fig(i).rar === rar) return true;
+    return false;
+}
+function checaConquistas() {
+    for (var i = 0; i < CONQUISTAS.length; i++) {
+        var c = CONQUISTAS[i];
+        if (S.conq.indexOf(c.id) === -1) {
+            var passou = false;
+            try { passou = c.ok(); } catch (e) { passou = false; }
+            if (passou) {
+                S.conq.push(c.id);
+                S.moedas += 500;
+                salvaTudo();
+                aviso('🏆 CONQUISTA: ' + c.ic + ' ' + c.nome + '! +500 🪙');
+                masc('Conquista nova! ' + c.ic + ' ' + c.nome + '!');
+                efeitoFesta(4);
+                somFanfarra();
+            }
+        }
+    }
+}
+
+// ================= SEQUÊNCIA DIÁRIA (STREAK) =================
+function ontemStr() {
+    var d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+}
+// prêmio de cada dia da semana: qual pacote grátis ele ganha
+var PREMIO_STREAK = ['simples','simples','grande','grande','dourado','dourado','magico'];
+function pacotePorId(id) {
+    for (var i = 0; i < PACOTES.length; i++) if (PACOTES[i].id === id) return PACOTES[i];
+    return PACOTES[0];
+}
+function checaStreak() {
+    var hoje = hojeStr();
+    if (S.streakDia === hoje) return false;
+    if (S.streakDia === ontemStr() && S.streak > 0 && S.streak < 7) S.streak += 1;
+    else if (S.streakDia === ontemStr() && S.streak >= 7) S.streak = 7;
+    else S.streak = 1;
+    S.streakDia = hoje;
+    salvaTudo();
+    return true;
+}
+function premioDeHoje() {
+    var dia = Math.max(1, Math.min(7, S.streak));
+    return pacotePorId(PREMIO_STREAK[dia - 1]);
 }
 
 // ================= SORTEIO =================
@@ -544,6 +873,7 @@ function pintaHud() {
     txt('hudColadas', '📕 ' + col + '/' + FIGS.length);
     txt('hudPct', pct + '%');
     txt('hudPacotes', '🎁 ' + S.pacotesGratis);
+    txt('hudBri', '✨ ' + totalBrilhantes() + '/' + FIGS.length);
     var b = el('progBar'); if (b) b.style.width = pct + '%';
 }
 
@@ -566,13 +896,25 @@ function pintaDiario(ganhou) {
     if (!box) return;
     var d = new Date();
     var falta = (23 - d.getHours()) + 'h ' + (59 - d.getMinutes()) + 'min';
+    // bolinhas da sequência da semana 🔥
+    var linha = '<div class="streakLinha">';
+    for (var i = 1; i <= 7; i++) {
+        var pk = pacotePorId(PREMIO_STREAK[i - 1]);
+        var cls = 'sdia' + (i < S.streak ? ' feito' : '') + (i === S.streak ? ' hoje' : '');
+        linha += '<div class="' + cls + '"><span class="sic">' + pk.ic + '</span>dia ' + i + '</div>';
+    }
+    linha += '</div>';
+    var pkHoje = premioDeHoje();
     box.innerHTML =
         (ganhou ? '<b>🎉 PRESENTE DE HOJE LIBERADO!</b><br>' : '<b>🎁 Presente diário</b><br>') +
-        'Você tem <b>' + S.pacotesGratis + '</b> pacote(s) Simples grátis guardado(s).<br>' +
+        '🔥 Você está no <b>dia ' + Math.max(1, S.streak) + ' seguido</b> — hoje o presente é <b>' + pkHoje.ic + ' ' + pkHoje.nome + '</b>!' +
+        linha +
+        '<span style="font-size:12px;color:#aaa">Entra todo dia pra chegar no dia 7 e ganhar o Pacote Mágico! 🪄 (se faltar um dia, volta pro dia 1)</span><br>' +
+        'Você tem <b>' + S.pacotesGratis + '</b> pacote(s) grátis guardado(s).<br>' +
         'Próximo presente em <b>' + falta + '</b> ⏰' +
         (S.pacotesGratis > 0 ? '<br><button class="btn verde" id="btnGratis">🎁 ABRIR PACOTE GRÁTIS</button>' : '');
     var bg = el('btnGratis');
-    if (bg) bg.onclick = function(){ abrePacote(PACOTES[0], true); };
+    if (bg) bg.onclick = function(){ abrePacote(premioDeHoje(), true); };
 }
 
 // ================= LOJA =================
@@ -610,7 +952,7 @@ function abrePacote(p, gratis) {
         if (S.pacotesGratis <= 0) { aviso('Sem pacote grátis agora 😅 volta amanhã!'); return; }
         S.pacotesGratis -= 1;
     }
-    var cartas = [], i;
+    var cartas = [], bri = [], i;
     for (i = 0; i < p.qtd; i++) cartas.push(sorteiaFig(null));
     if (p.garante) {
         var temGarantia = false;
@@ -619,17 +961,98 @@ function abrePacote(p, gratis) {
         }
         if (!temGarantia) cartas[cartas.length - 1] = sorteiaFig(p.garante);
     }
+    for (i = 0; i < cartas.length; i++) bri.push(Math.random() < CHANCE_BRILHO);
     S.contadores.pacotes = (S.contadores.pacotes || 0) + 1;
     salvaTudo();
 
-    packAtual = { cartas:cartas, idx:0, novas:0, reps:0, p:p };
+    packAtual = { cartas:cartas, bri:bri, idx:0, novas:0, reps:0, brilhos:0, p:p, aberto:false };
     txt('packTitulo', p.ic + ' ' + p.nome + ' — ' + p.qtd + ' figurinhas!');
-    txt('packAjuda', 'Toca na carta pra virar 👇 (falta ' + cartas.length + ')');
     var resumo = el('resumoPack'); if (resumo) resumo.innerHTML = '';
-    montaPilha();
+    mostraEmbalagem(p);
     var pan = el('painelPack'); if (pan) pan.classList.add('on');
     pintaHud();
     pintaDiario(false);
+}
+
+// ---- embalagem: sacudir e rasgar antes de ver as cartas ----
+var rasgo = 0, rasgando = false;
+function mostraEmbalagem(p) {
+    rasgo = 0; rasgando = false;
+    var emb = el('embal'), pilha = el('pilha'), box = el('boxEmbal'), bp = el('boxPack'), rb = el('rasgaBarra');
+    if (emb) {
+        emb.classList.remove('aberto');
+        emb.style.display = 'block';
+        var dentro = '<div class="pIc">' + p.ic + '</div><div class="pNome">' + p.nome + '</div>' +
+                     '<div class="pDica">✂️ passa o dedo em cima da linha pra rasgar!</div><div class="serra"></div>';
+        var t = el('pktTopo'), b = el('pktBaixo');
+        if (t) t.innerHTML = dentro;
+        if (b) b.innerHTML = dentro;
+    }
+    if (pilha) { pilha.innerHTML = ''; pilha.style.display = 'none'; }
+    if (box) box.style.display = 'block';
+    if (bp) bp.style.display = 'none';
+    if (rb) rb.style.display = 'block';
+    var pr = el('rasgaProg'); if (pr) pr.style.width = '0%';
+    txt('packAjuda', 'Sacode e rasga o pacote! 🤲✂️');
+    masc('Sacode pra ver se vem coisa boa! 🤲');
+}
+function sacode() {
+    var t = el('pktTopo'), b = el('pktBaixo');
+    [t, b].forEach(function(e){
+        if (!e) return;
+        e.classList.remove('sacode');
+        void e.offsetWidth;
+        e.classList.add('sacode');
+    });
+    bip(180 + Math.random() * 120, 0.08, 'square', 0.07);
+    vibra(35);
+    var frases = ['Tem coisa boa aí dentro! 👀', 'Ouvi um barulho de LENDÁRIA! 😱', 'Sacode mais! 🤲', 'Tá pesado esse pacote! 💪'];
+    masc(frases[Math.floor(Math.random() * frases.length)], 2000);
+}
+function avancaRasgo(passo) {
+    if (!packAtual || packAtual.aberto) return;
+    rasgo = Math.min(100, rasgo + passo);
+    var pr = el('rasgaProg'); if (pr) pr.style.width = rasgo + '%';
+    if (passo > 3) bip(500 + rasgo * 12, 0.03, 'sawtooth', 0.05);
+    if (rasgo >= 100) abreEmbalagem();
+}
+function abreEmbalagem() {
+    if (!packAtual || packAtual.aberto) return;
+    packAtual.aberto = true;
+    somRasgo();
+    vibra([25, 40, 25]);
+    var emb = el('embal');
+    if (emb) emb.classList.add('aberto');
+    var box = el('boxEmbal'); if (box) box.style.display = 'none';
+    var rb = el('rasgaBarra'); if (rb) rb.style.display = 'none';
+    masc('ABRIU! Vira as cartas! 🎴');
+    setTimeout(function(){
+        if (emb) emb.style.display = 'none';
+        var pilha = el('pilha'); if (pilha) pilha.style.display = 'block';
+        var bp = el('boxPack'); if (bp) bp.style.display = 'block';
+        if (packAtual) txt('packAjuda', 'Toca na carta pra virar 👇 (falta ' + packAtual.cartas.length + ')');
+        montaPilha();
+    }, 620);
+}
+function ligaRasgo() {
+    var emb = el('embal');
+    if (!emb) return;
+    var ultimoX = null;
+    function move(x, y) {
+        if (ultimoX !== null) avancaRasgo(Math.min(9, Math.abs(x - ultimoX) * 0.5));
+        ultimoX = x;
+    }
+    emb.addEventListener('mousedown', function(e){ rasgando = true; ultimoX = e.clientX; });
+    window.addEventListener('mouseup', function(){ rasgando = false; ultimoX = null; });
+    emb.addEventListener('mousemove', function(e){ if (rasgando) move(e.clientX, e.clientY); });
+    emb.addEventListener('touchstart', function(e){
+        rasgando = true;
+        if (e.touches && e.touches[0]) ultimoX = e.touches[0].clientX;
+    }, { passive:true });
+    emb.addEventListener('touchend', function(){ rasgando = false; ultimoX = null; }, { passive:true });
+    emb.addEventListener('touchmove', function(e){
+        if (rasgando && e.touches && e.touches[0]) move(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive:true });
 }
 
 function montaPilha() {
@@ -639,14 +1062,43 @@ function montaPilha() {
     var restam = packAtual.cartas.length - packAtual.idx;
     if (restam <= 0) { fimDaPilha(); return; }
     var mostra = Math.min(restam, 3);
+    // brilho da beirada revela o quão boa é a próxima carta 👀
+    var prox = packAtual.cartas[packAtual.idx];
+    var grau = prox ? (ORDEM_RAR.indexOf(fig(prox).rar) + 1) : 1;
     for (var k = mostra - 1; k >= 0; k--) {
         var c = document.createElement('div');
-        c.className = 'cartaPack costas';
+        c.className = 'cartaPack costas' + (k === 0 ? ' g' + grau : '');
         c.style.transform = 'translateY(' + (k * 6) + 'px) scale(' + (1 - k * 0.03) + ')';
-        c.innerHTML = '<div class="cpem">🎴</div><div class="cpnome">Figurinha ' + (packAtual.idx + 1) + ' de ' + packAtual.cartas.length + '</div><div class="cpajuda">👆 toca pra virar!</div>';
+        c.innerHTML = '<div class="cpem">🎴</div><div class="cpnome">Figurinha ' + (packAtual.idx + 1) + ' de ' + packAtual.cartas.length + '</div>' +
+            (k === 0 ? '<div class="cprar" style="color:#ffd700">' + dicaBrilho(grau) + '</div>' : '') +
+            '<div class="cpajuda">👆 toca pra virar!</div>';
         if (k === 0) c.onclick = viraCarta;
         pilha.appendChild(c);
     }
+}
+function dicaBrilho(grau) {
+    if (grau >= 6) return '😱 ESSA BRILHA DEMAIS!!';
+    if (grau >= 5) return '🔥 tá brilhando MUITO!';
+    if (grau >= 4) return '✨ tá brilhando bastante!';
+    if (grau >= 3) return '💡 tem um brilho aí...';
+    if (grau >= 2) return '🙂 brilhinho fraquinho';
+    return '😴 sem brilho nenhum';
+}
+// carta inclina e o brilho anda acompanhando o dedo/mouse
+function ligaInclina(elCarta) {
+    if (!elCarta) return;
+    function inclina(px, py) {
+        var r = elCarta.getBoundingClientRect();
+        var dx = (px - r.left) / r.width - 0.5, dy = (py - r.top) / r.height - 0.5;
+        elCarta.style.transform = 'perspective(700px) rotateY(' + (dx * 18) + 'deg) rotateX(' + (-dy * 18) + 'deg)';
+    }
+    function solta() { elCarta.style.transform = ''; }
+    elCarta.addEventListener('mousemove', function(e){ inclina(e.clientX, e.clientY); });
+    elCarta.addEventListener('mouseleave', solta);
+    elCarta.addEventListener('touchmove', function(e){
+        if (e.touches && e.touches[0]) inclina(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive:true });
+    elCarta.addEventListener('touchend', solta, { passive:true });
 }
 
 function viraCarta() {
@@ -654,21 +1106,36 @@ function viraCarta() {
     var n = packAtual.cartas[packAtual.idx];
     if (!n) { fimDaPilha(); return; }
     var f = fig(n);
-    var nova = qtd(n) === 0;
-    S.tenho[n] = qtd(n) + 1;
+    var ehBri = !!(packAtual.bri && packAtual.bri[packAtual.idx]);
+    var nova = ehBri ? (qtdB(n) === 0) : (qtd(n) === 0);
+    if (ehBri) { S.brilho[n] = qtdB(n) + 1; packAtual.brilhos++; }
+    else S.tenho[n] = qtd(n) + 1;
     if (nova) { packAtual.novas++; S.contadores.novas = (S.contadores.novas || 0) + 1; }
     else packAtual.reps++;
+
+    // figurinha do dia vale o dobro de moedas na hora
+    var bonusDia = 0;
+    if (n === checaFigDia()) {
+        var R0 = RARIDADES[f.rar];
+        bonusDia = R0.venda * 2 * (ehBri ? BONUS_BRILHO : 1);
+        S.moedas += bonusDia;
+    }
 
     var pilha = el('pilha');
     if (pilha) {
         var c = document.createElement('div');
         var R = RARIDADES[f.rar];
-        c.className = 'cartaPack r-' + R.cls;
+        c.className = 'cartaPack r-' + R.cls + (ehBri ? ' holo' : '');
         c.innerHTML =
+            (ORDEM_RAR.indexOf(f.rar) >= 4 ? '<div class="raios"></div>' : '') +
             '<div class="cpem">' + f.em + '</div>' +
-            '<div class="cpnome">' + f.nome + '</div>' +
-            '<div class="cprar txt-' + R.cls + '">' + R.ic + ' ' + R.nome + ' · nº ' + f.n + '</div>' +
-            '<div class="cptag ' + (nova ? 'nova' : 'rep') + '">' + (nova ? '✨ NOVA!' : '🔁 REPETIDA (+' + R.venda + ' 🪙 se vender)') + '</div>' +
+            '<div class="cpnome">' + (ehBri ? '✨ ' : '') + f.nome + (ehBri ? ' ✨' : '') + '</div>' +
+            '<div class="cprar txt-' + R.cls + '">' + R.ic + ' ' + R.nome + ' · nº ' + f.n +
+                (ehBri ? '<br><span style="color:#fff">✨ BRILHANTE! ✨</span>' : '') + '</div>' +
+            '<div class="cptag ' + (nova ? 'nova' : 'rep') + '">' +
+                (nova ? (ehBri ? '✨ BRILHANTE NOVA!' : '✨ NOVA!')
+                      : '🔁 REPETIDA (+' + (R.venda * (ehBri ? BONUS_BRILHO : 1)) + ' 🪙 se vender)') + '</div>' +
+            (bonusDia ? '<div class="cptag nova">⭐ FIGURINHA DO DIA! +' + bonusDia + ' 🪙</div>' : '') +
             '<div class="cpajuda">👆 toca de novo pra próxima</div>';
         c.onclick = function(){
             c.classList.add('saiu');
@@ -677,10 +1144,21 @@ function viraCarta() {
         };
         pilha.innerHTML = '';
         pilha.appendChild(c);
+        ligaInclina(c);
     }
     var iR = ORDEM_RAR.indexOf(f.rar);
-    if (iR >= 3) efeitoFesta(iR);
-    if (iR >= 4) { document.body.classList.add('tremer'); setTimeout(function(){ document.body.classList.remove('tremer'); }, 420); }
+    if (iR >= 3 || ehBri) efeitoFesta(Math.max(iR, ehBri ? 4 : 0));
+    if (iR >= 4 || ehBri) { document.body.classList.add('tremer'); setTimeout(function(){ document.body.classList.remove('tremer'); }, 420); }
+
+    // sons, vibração e o mascote comentando
+    if (iR >= 5) { somSecreta(); vibra([60, 50, 60, 50, 120]); masc('AAAH!! UMA SECRETA!!! 🌟😱'); }
+    else if (iR >= 4) { somFanfarra(); vibra([50, 40, 90]); masc('UMA LENDÁRIA! Que sorte! 🟠🎉'); }
+    else if (ehBri) { somFanfarra(); vibra([40, 30, 70]); masc('BRILHANTEEE! ✨ Essa é rara de vir!'); }
+    else if (iR >= 3) { somNova(); vibra(45); masc('Uma Épica! Boa! 🟣'); }
+    else if (nova) { somNova(); masc('Figurinha nova! Cola no álbum! 📕'); }
+    else { somRep(); masc('Essa eu já tinha... 🔁'); }
+    if (bonusDia) somMoeda();
+
     txt('packAjuda', 'Faltam ' + (packAtual.cartas.length - packAtual.idx - 1) + ' cartas');
     checaColecoes();
     salvaTudo();
@@ -689,14 +1167,32 @@ function viraCarta() {
 
 function abrirTudo() {
     if (!packAtual) return;
+    if (!packAtual.aberto) abreEmbalagem();   // se pular antes de rasgar, abre na hora
+    packAtual.aberto = true;
+    var emb = el('embal'); if (emb) emb.style.display = 'none';
+    var be = el('boxEmbal'); if (be) be.style.display = 'none';
+    var rb = el('rasgaBarra'); if (rb) rb.style.display = 'none';
+    var pl = el('pilha'); if (pl) pl.style.display = 'block';
+    var bp = el('boxPack'); if (bp) bp.style.display = 'block';
+    var achouBom = 0;
     while (packAtual.idx < packAtual.cartas.length) {
         var n = packAtual.cartas[packAtual.idx];
-        var nova = qtd(n) === 0;
-        S.tenho[n] = qtd(n) + 1;
+        var ehBri = !!(packAtual.bri && packAtual.bri[packAtual.idx]);
+        var nova = ehBri ? (qtdB(n) === 0) : (qtd(n) === 0);
+        if (ehBri) { S.brilho[n] = qtdB(n) + 1; packAtual.brilhos++; }
+        else S.tenho[n] = qtd(n) + 1;
         if (nova) { packAtual.novas++; S.contadores.novas = (S.contadores.novas || 0) + 1; }
         else packAtual.reps++;
+        if (n === checaFigDia()) {
+            var bd = RARIDADES[fig(n).rar].venda * 2 * (ehBri ? BONUS_BRILHO : 1);
+            S.moedas += bd;
+            aviso('⭐ Veio a FIGURINHA DO DIA! +' + bd + ' 🪙');
+        }
+        if (ORDEM_RAR.indexOf(fig(n).rar) >= 4 || ehBri) achouBom++;
         packAtual.idx++;
     }
+    if (achouBom) { somFanfarra(); efeitoFesta(5); vibra([50, 40, 90]); }
+    else somMoeda();
     checaColecoes();
     salvaTudo();
     pintaHud();
@@ -708,7 +1204,8 @@ function fimDaPilha() {
     var pilha = el('pilha');
     if (pilha) pilha.innerHTML = '<div class="cartaPack" style="cursor:default"><div class="cpem">🎊</div>' +
         '<div class="cpnome">Pacote aberto!</div>' +
-        '<div class="cprar txt-legal">✨ ' + packAtual.novas + ' nova(s) · 🔁 ' + packAtual.reps + ' repetida(s)</div></div>';
+        '<div class="cprar txt-legal">✨ ' + packAtual.novas + ' nova(s) · 🔁 ' + packAtual.reps + ' repetida(s)' +
+        (packAtual.brilhos ? '<br><span style="color:#fff">✨ ' + packAtual.brilhos + ' BRILHANTE(S)!</span>' : '') + '</div></div>';
     txt('packAjuda', 'Olha tudo o que veio 👇');
     var box = el('resumoPack');
     if (box) {
@@ -716,20 +1213,30 @@ function fimDaPilha() {
         var vistos = {};
         for (var i = 0; i < packAtual.cartas.length; i++) {
             var n = packAtual.cartas[i], f = fig(n), R = RARIDADES[f.rar];
+            var b = !!(packAtual.bri && packAtual.bri[i]);
             var d = document.createElement('div');
-            d.className = 'fig r-' + R.cls;
+            d.className = 'fig r-' + R.cls + (b ? ' holo' : '');
             d.innerHTML = '<div class="fnum">nº ' + f.n + '</div><div class="fem">' + f.em + '</div>' +
                           '<div class="fnome txt-' + R.cls + '">' + f.nome + '</div>' +
+                          (b ? '<div class="selinhoB">✨</div>' : '') +
                           (vistos[n] ? '<div class="fqtd">🔁</div>' : '');
             vistos[n] = true;
             box.appendChild(d);
         }
     }
+    checaConquistas();
     pintaTudo();
 }
 
 function fechaPack() {
+    // se fechar no meio, as figurinhas que faltavam entram no álbum de qualquer jeito 😌
+    if (packAtual && packAtual.idx < packAtual.cartas.length) abrirTudo();
     var pan = el('painelPack'); if (pan) pan.classList.remove('on');
+    var emb = el('embal'); if (emb) { emb.style.display = 'none'; emb.classList.remove('aberto'); }
+    var be = el('boxEmbal'); if (be) be.style.display = 'none';
+    var rb = el('rasgaBarra'); if (rb) rb.style.display = 'none';
+    var pl = el('pilha'); if (pl) pl.style.display = 'block';
+    var bp = el('boxPack'); if (bp) bp.style.display = 'block';
     packAtual = null;
     pintaTudo();
     checaFinal();
@@ -737,6 +1244,30 @@ function fechaPack() {
 
 // ================= ÁLBUM =================
 var abertas = {};
+var pagina = {};
+function mostraFaltando(ci) {
+    var info = COLS[ci], falta = [];
+    for (var n = info.ini; n <= info.fim; n++) if (qtd(n) === 0 && qtdB(n) === 0) falta.push(n);
+    var box = el('cartaGrande');
+    if (box) {
+        box.className = '';
+        if (!falta.length) {
+            box.innerHTML = '<div class="cgem">🏅</div><div class="cgnome">Coleção COMPLETA!</div>' +
+                '<div class="cginfo">' + info.ic + ' ' + info.nome + ' — você colou todas as 50! 🎉</div>';
+        } else {
+            var lista = '';
+            for (var i = 0; i < falta.length; i++) {
+                var f = fig(falta[i]);
+                lista += '<div style="font-size:13px;text-align:left;padding:2px 0">nº ' + f.n + ' ' + f.em + ' ' + f.nome +
+                         ' <span class="txt-' + RARIDADES[f.rar].cls + '">' + RARIDADES[f.rar].ic + '</span></div>';
+            }
+            box.innerHTML = '<div class="cgem">🔍</div><div class="cgnome">Faltam ' + falta.length + '!</div>' +
+                '<div class="cgrar">' + info.ic + ' ' + info.nome + '</div>' +
+                '<div class="cginfo" style="max-height:40vh;overflow-y:auto">' + lista + '</div>';
+        }
+    }
+    var pan = el('painelCarta'); if (pan) pan.classList.add('on');
+}
 function pintaAlbum() {
     var box = el('listaColecoes');
     if (!box) return;
@@ -754,26 +1285,53 @@ function pintaAlbum() {
             head.onclick = function(){ abertas[ci] = !abertas[ci]; pintaAlbum(); };
             wrap.appendChild(head);
             if (abertas[ci]) {
+                var POR_PAG = 10;
+                var totPag = Math.ceil(50 / POR_PAG);
+                if (typeof pagina[ci] !== 'number') pagina[ci] = 0;
+                if (pagina[ci] < 0) pagina[ci] = 0;
+                if (pagina[ci] > totPag - 1) pagina[ci] = totPag - 1;
+
+                var nav = document.createElement('div');
+                nav.className = 'pag';
+                nav.innerHTML = '<button' + (pagina[ci] === 0 ? ' disabled' : '') + '>◀</button>' +
+                    '<span class="pgTxt">📄 página ' + (pagina[ci] + 1) + ' de ' + totPag + '</span>' +
+                    '<button' + (pagina[ci] === totPag - 1 ? ' disabled' : '') + '>▶</button>';
+                var bts = nav.querySelectorAll('button');
+                if (bts[0]) bts[0].onclick = function(){ pagina[ci]--; bip(420, 0.05, 'sine', 0.06); pintaAlbum(); };
+                if (bts[1]) bts[1].onclick = function(){ pagina[ci]++; bip(520, 0.05, 'sine', 0.06); pintaAlbum(); };
+                wrap.appendChild(nav);
+
                 var g = document.createElement('div');
-                g.className = 'gridFig';
-                for (var n = info.ini; n <= info.fim; n++) {
+                g.className = 'gridFig vira';
+                var de = info.ini + pagina[ci] * POR_PAG;
+                var ate = Math.min(info.fim, de + POR_PAG - 1);
+                for (var n = de; n <= ate; n++) {
                     (function(num){
-                        var f = fig(num), q = qtd(num), R = RARIDADES[f.rar];
+                        var f = fig(num), q = qtd(num), qb = qtdB(num), R = RARIDADES[f.rar];
                         var d = document.createElement('div');
-                        if (q > 0) {
-                            d.className = 'fig r-' + R.cls;
+                        if (q > 0 || qb > 0) {
+                            d.className = 'fig r-' + R.cls + (qb > 0 ? ' holo' : '');
                             d.innerHTML = '<div class="fnum">' + num + '</div><div class="fem">' + f.em + '</div>' +
                                 '<div class="fnome txt-' + R.cls + '">' + f.nome + '</div>' +
-                                (q > 1 ? '<div class="fqtd">🔁' + (q - 1) + '</div>' : '');
+                                (qb > 0 ? '<div class="selinhoB">✨</div>' : '') +
+                                (q + qb > 1 ? '<div class="fqtd">🔁' + (q + qb - 1) + '</div>' : '');
                         } else {
+                            // silhueta cinza: dá pra ver o formato, mas não é sua ainda 👀
                             d.className = 'fig vazia';
-                            d.innerHTML = '<div class="fnum">' + num + '</div><div class="fem">❔</div><div class="fnome">?</div>';
+                            d.innerHTML = '<div class="fnum">' + num + '</div><div class="fem">' + f.em + '</div><div class="fnome">?</div>';
                         }
                         d.onclick = function(){ mostraCarta(num); };
                         g.appendChild(d);
                     })(n);
                 }
                 wrap.appendChild(g);
+
+                var bf = document.createElement('button');
+                bf.className = 'btn cinza';
+                bf.style.marginTop = '6px';
+                bf.textContent = '🔍 O QUE FALTA NESSA COLEÇÃO';
+                bf.onclick = function(){ mostraFaltando(ci); };
+                wrap.appendChild(bf);
             }
             box.appendChild(wrap);
         })(c);
@@ -791,18 +1349,20 @@ function pintaAlbum() {
 }
 
 function mostraCarta(num) {
-    var f = fig(num), q = qtd(num), R = RARIDADES[f.rar];
+    var f = fig(num), q = qtd(num), R = RARIDADES[f.rar], qb = qtdB(num);
     var box = el('cartaGrande');
     if (box) {
         box.className = '';
         box.classList.add('r-' + R.cls);
-        if (q > 0) {
+        if (qb > 0) box.classList.add('holo');
+        if (q > 0 || qb > 0) {
             box.innerHTML = '<div class="cgem">' + f.em + '</div>' +
                 '<div class="cgnome">' + f.nome + '</div>' +
                 '<div class="cgrar txt-' + R.cls + '">' + R.ic + ' ' + R.nome + '</div>' +
                 '<div class="cginfo">Figurinha nº ' + f.n + ' · Coleção ' + COLS[f.col].ic + ' ' + COLS[f.col].nome + '<br>' +
-                'Você tem <b>' + q + '</b> (repetidas: ' + (q - 1) + ')<br>' +
-                'Vale ' + R.venda + ' 🪙 cada repetida</div>';
+                'Você tem <b>' + q + '</b> normal(is)' + (q > 1 ? ' (repetidas: ' + (q - 1) + ')' : '') + '<br>' +
+                (qb > 0 ? '<b style="color:#fff">✨ E TEM ' + qb + ' BRILHANTE!</b><br>' : '✨ brilhante dessa: ainda não 😢<br>') +
+                'Vale ' + R.venda + ' 🪙 cada repetida (brilhante vale ' + (R.venda * BONUS_BRILHO) + ' 🪙)</div>';
         } else {
             box.innerHTML = '<div class="cgem">❔</div><div class="cgnome">Ainda não colei!</div>' +
                 '<div class="cgrar txt-' + R.cls + '">' + R.ic + ' ' + R.nome + '</div>' +
@@ -817,23 +1377,35 @@ function pintaRepetidas() {
     var box = el('boxRepetidas');
     if (!box) return;
     var t = totalRepetidas(), v = valorRepetidas();
-    box.innerHTML = '<b>🔁 Suas repetidas</b><br>Você tem <b>' + t + '</b> figurinha(s) repetida(s).<br>' +
+    var lb = listaRepBri(), tb = 0;
+    for (var i = 0; i < lb.length; i++) tb += lb[i].extra;
+    v += valorRepBri();
+    box.innerHTML = '<b>🔁 Suas repetidas</b><br>Você tem <b>' + t + '</b> figurinha(s) repetida(s)' +
+        (tb ? ' e <b style="color:#fff">' + tb + ' brilhante(s) repetida(s) ✨</b>' : '') + '.<br>' +
         'Vendendo todas você ganha <b>' + v + ' 🪙</b>!<br>' +
+        '<span style="font-size:12px;color:#aaa">A sua primeira brilhante de cada figurinha fica guardada, nunca é vendida 😌</span><br>' +
         'Ou troca 5 repetidas por 1 figurinha <b>nova garantida</b> ✨ (faltam ' + faltando().length + ' pro álbum completo)';
     var bv = el('btnVender'), bt = el('btnTrocar');
-    if (bv) bv.disabled = t === 0;
+    if (bv) bv.disabled = (t + tb) === 0;
     if (bt) bt.disabled = t < 5 || faltando().length === 0;
 }
 function venderTodas() {
-    var l = listaRepetidas();
-    if (!l.length) { aviso('Não tem nenhuma repetida 😅'); return; }
+    var l = listaRepetidas(), lb = listaRepBri();
+    if (!l.length && !lb.length) { aviso('Não tem nenhuma repetida 😅'); return; }
     var ganho = 0, qtdVend = 0;
     for (var i = 0; i < l.length; i++) {
         ganho += l[i].extra * RARIDADES[fig(l[i].n).rar].venda;
         qtdVend += l[i].extra;
         S.tenho[l[i].n] = 1;
     }
+    // repetidas brilhantes valem 3x — a primeira brilhante NUNCA é vendida ✨
+    for (var j = 0; j < lb.length; j++) {
+        ganho += lb[j].extra * RARIDADES[fig(lb[j].n).rar].venda * BONUS_BRILHO;
+        qtdVend += lb[j].extra;
+        S.brilho[lb[j].n] = 1;
+    }
     S.moedas += ganho;
+    somMoeda();
     S.contadores.vendidas = (S.contadores.vendidas || 0) + qtdVend;
     salvaTudo();
     aviso('💰 Vendeu ' + qtdVend + ' repetidas e ganhou ' + ganho + ' 🪙!');
@@ -997,6 +1569,33 @@ function trocaAba(qual) {
     window.scrollTo(0, 0);
 }
 
+// ================= FIGURINHA DO DIA (caixinha) =================
+function pintaFigDia() {
+    var box = el('boxFigDia');
+    if (!box) return;
+    var n = checaFigDia(), f = fig(n), R = RARIDADES[f.rar];
+    var jaTem = temAlgum(n);
+    box.className = 'cartaoInfo figdia';
+    box.innerHTML = '<b>⭐ FIGURINHA DO DIA</b><br>' +
+        '<span style="font-size:34px">' + f.em + '</span><br>' +
+        '<b class="txt-' + R.cls + '">nº ' + f.n + ' · ' + f.nome + '</b> ' + R.ic + '<br>' +
+        'Se ela vier num pacotinho hoje, você ganha <b>' + (R.venda * 2) + ' 🪙 de bônus</b> na hora! (brilhante paga o triplo ✨)<br>' +
+        '<span style="font-size:12px;color:#ccc">' + (jaTem ? 'Você já tem essa — mas o bônus vale de novo! 😄' : 'Você ainda não tem essa! 👀') + '</span>';
+}
+
+// ================= ESTANTE DE CONQUISTAS =================
+function pintaConquistas() {
+    var box = el('boxConquistas');
+    if (!box) return;
+    var h = '<b>🏆 Minha estante de conquistas</b><br>';
+    for (var i = 0; i < CONQUISTAS.length; i++) {
+        var c = CONQUISTAS[i], tem = S.conq.indexOf(c.id) !== -1;
+        h += '<span class="conq' + (tem ? '' : ' travada') + '">' + (tem ? c.ic : '🔒') + ' ' + c.nome + '</span>';
+    }
+    h += '<br><span style="font-size:12px;color:#aaa">Cada conquista dá +500 🪙 na hora que você ganha!</span>';
+    box.innerHTML = h;
+}
+
 // ================= PINTA TUDO =================
 function pintaTudo() {
     pintaHud();
@@ -1005,6 +1604,8 @@ function pintaTudo() {
     pintaRepetidas();
     pintaDesafios();
     pintaDiario(false);
+    pintaFigDia();
+    pintaConquistas();
 }
 
 // ================= LIGAR BOTÕES =================
@@ -1019,7 +1620,15 @@ function ligaBotoes() {
         ['btnFechaCarta', function(){ var p = el('painelCarta'); if (p) p.classList.remove('on'); }],
         ['btnFechaFim', function(){ var p = el('painelFim'); if (p) p.classList.remove('on'); trocaAba('album'); }],
         ['btnVender', venderTodas],
-        ['btnTrocar', trocaTroca]
+        ['btnTrocar', trocaTroca],
+        ['btnSacode', sacode],
+        ['btnRasga', function(){ avancaRasgo(34); }],
+        ['btnSom', function(){
+            S.som = !S.som;
+            salvaTudo();
+            pintaSom();
+            if (S.som) { somNova(); aviso('🔊 Som ligado!'); } else aviso('🔇 Som desligado');
+        }]
     ];
     for (var i = 0; i < pares.length; i++) {
         var e = el(pares[i][0]);
@@ -1031,14 +1640,28 @@ function ligaBotoes() {
 function iniciar() {
     try {
         ligaBotoes();
+        ligaRasgo();
+        pintaSom();
+        var subiu = checaStreak();
         var ganhou = checaDiario();
         abertas[0] = true;
+        checaFigDia();
         checaColecoes();
+        checaConquistas();
         pintaTudo();
         pintaDiario(ganhou);
         salvaTudo();
-        if (ganhou) aviso('🎁 Presente de hoje: 1 pacote Simples grátis!');
-        else if (S.pacotesGratis > 0) aviso('🎁 Você tem ' + S.pacotesGratis + ' pacote grátis pra abrir!');
+        if (ganhou) {
+            var pk = premioDeHoje();
+            aviso('🎁 Presente de hoje (dia ' + S.streak + ' seguido): ' + pk.ic + ' ' + pk.nome + '!');
+            masc('Você voltou! 🔥 Dia ' + S.streak + ' seguido — pega seu ' + pk.nome + '!', 5000);
+        } else if (S.pacotesGratis > 0) {
+            aviso('🎁 Você tem ' + S.pacotesGratis + ' pacote grátis pra abrir!');
+            masc('Tem ' + S.pacotesGratis + ' pacote grátis te esperando! 🎁', 5000);
+        } else {
+            masc('Bora completar esse álbum! 📕✨', 4200);
+        }
+        if (subiu && S.streak >= 7) aviso('🔥 7 DIAS SEGUIDOS! Pacote Mágico liberado! 🪄');
         checaFinal();
     } catch (e) {
         aviso('Ops, deu um probleminha, mas o jogo continua! 😅');

@@ -1,5 +1,20 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.5.1 (2026-08-01)
+- Album de Figurinhas MUITO mais legal (pedido do Davi):
+  - Abrir pacote virou show: embalagem que SACODE e RASGA (dedo/mouse ou botao),
+    brilho na beirada da carta avisando a raridade, raios de luz na revelacao,
+    carta que inclina/brilha acompanhando o dedo, botao PULAR
+  - Sons via WebAudio (rasgo, carta nova, fanfarra, moeda) + vibracao no celular + botao mudo
+  - Figurinha BRILHANTE (4%): colecao paralela de 500, vale 3x como repetida,
+    a primeira brilhante de cada figurinha nunca e vendida
+  - Sequencia diaria de 7 dias (dia 7 = Pacote Magico) com as bolinhas da semana
+  - Figurinha do Dia (bonus em dobro, triplo se brilhante)
+  - Estante de 7 conquistas (+500 moedas cada) e mascote que comenta o jogo
+  - Album com paginas de verdade (10 por pagina, setas), silhueta cinza do que falta,
+    selo de colecao completa e botao "o que falta nessa colecao"
+  - Save antigo continua valendo (campos novos entram com padrao)
+
 ## v3.5.0 (2026-08-01)
 - JOGO NOVO: Album de Figurinhas (/figurinhas/) — 500 figurinhas em 10 colecoes, 6 raridades
   (SECRETA 0,1%), 4 tipos de pacotinho, abertura carta por carta, venda/troca de repetidas,

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="Cavando Fundo — cave a terra, ache carvão, ouro, diamante e o Cogumelo Lendário! Melhore a picareta e desça cada vez mais fundo. Cogumelo Games.">
-<title>⛏️ Cavando Fundo — Cogumelo Games</title>
+<meta name="description" content="Cavando Fundo 3D — um mineiro humano cava um mundo de cubos! Ache carvão, ouro, diamante e o Cogumelo Lendário. WASD ou setas. Cogumelo Games.">
+<title>⛏️ Cavando Fundo 3D — Cogumelo Games</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
@@ -13,20 +13,36 @@ body {
     min-height:100vh; overflow:hidden; touch-action:none;
 }
 #hud {
-    color:#fff; padding:6px 8px; width:100%; max-width:900px;
+    color:#fff; padding:6px 8px; width:100%;
     background:rgba(0,0,0,0.55); font-size:15px; font-weight:bold;
     display:flex; justify-content:space-around; align-items:center; gap:6px; flex-wrap:wrap;
+    position:relative; z-index:12;
 }
 #moedasHud { color:#ffd700; }
 #profHud { color:#7fe0ff; }
 #vidaHud { color:#ff6b6b; }
 #energiaHud { color:#ffe066; }
 #mochilaHud { color:#b0ff9d; }
-canvas#c { background:#000; border-radius:10px; max-width:100vw; max-height:calc(100vh - 66px); }
+canvas#c { display:block; background:#000; width:100vw; height:calc(100vh - 40px); }
 #msg {
-    position:fixed; top:32%; left:50%; transform:translate(-50%,-50%);
-    font-size:34px; font-weight:900; color:#fff; text-shadow:0 0 18px #000, 0 0 6px #000;
-    pointer-events:none; opacity:0; transition:opacity .2s; text-align:center; z-index:10; width:100%;
+    position:fixed; top:30%; left:50%; transform:translate(-50%,-50%);
+    font-size:32px; font-weight:900; color:#fff; text-shadow:0 0 18px #000, 0 0 6px #000;
+    pointer-events:none; opacity:0; transition:opacity .2s; text-align:center; z-index:14; width:100%;
+}
+#camadaTxt {
+    position:fixed; bottom:6px; left:50%; transform:translateX(-50%);
+    color:rgba(255,255,255,0.75); font-size:14px; font-weight:bold; z-index:11;
+    text-shadow:0 0 8px #000; pointer-events:none; text-align:center;
+}
+#barraCavar {
+    position:fixed; top:52%; left:50%; transform:translateX(-50%);
+    width:150px; height:12px; background:rgba(0,0,0,0.6); border:2px solid #fff8;
+    border-radius:8px; display:none; z-index:13; overflow:hidden;
+}
+#barraCavarIn { height:100%; width:0%; background:linear-gradient(90deg,#ffd700,#ff8a00); }
+#flashDano {
+    position:fixed; inset:0; background:rgba(255,0,0,0.25); opacity:0;
+    pointer-events:none; z-index:13; transition:opacity .25s;
 }
 .painel {
     position:fixed; top:0; left:0; width:100vw; height:100vh; height:100dvh;
@@ -36,7 +52,7 @@ canvas#c { background:#000; border-radius:10px; max-width:100vw; max-height:calc
 }
 .painel h1 { font-size:30px; margin:6px 0;
     background:linear-gradient(to right,#ffd700,#ff8a00,#00e5ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-.painel .sub { color:#aab; margin:4px 0 10px; font-size:15px; max-width:520px; line-height:1.4; }
+.painel .sub { color:#aab; margin:4px 0 10px; font-size:15px; max-width:540px; line-height:1.5; }
 .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:10px; max-width:780px; width:100%; padding-bottom:16px; }
 .item { background:rgba(28,24,56,0.9); border:2px solid #3b3b66; border-radius:14px; padding:10px; color:#fff; }
 .item .inome { font-size:15px; font-weight:bold; margin:3px 0; }
@@ -52,6 +68,9 @@ canvas#c { background:#000; border-radius:10px; max-width:100vw; max-height:calc
 .livroItem.segredo { color:#667; }
 .conq { background:rgba(28,24,56,0.9); border:2px solid #3b3b66; border-radius:12px; padding:8px; font-size:13px; }
 .conq.ok { border-color:#00ff88; color:#b6ffdc; }
+.teclas { background:rgba(20,18,44,0.9); border:2px solid #3b3b66; border-radius:14px;
+    padding:10px 14px; font-size:15px; line-height:1.7; max-width:420px; margin-bottom:10px; }
+.teclas b { color:#ffd700; }
 .fechar {
     margin:12px 0 26px; font-size:17px; font-weight:bold; padding:12px 26px; border:none; border-radius:12px;
     background:#3a3a5c; color:#fff; cursor:pointer;
@@ -62,25 +81,29 @@ canvas#c { background:#000; border-radius:10px; max-width:100vw; max-height:calc
 }
 .btnLoja { background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200; }
 .btnSubir { background:linear-gradient(135deg,#00e5ff,#0088ff); color:#04283a; }
-#controles {
-    position:fixed; bottom:8px; left:0; right:0; z-index:15;
-    display:none; justify-content:space-between; align-items:flex-end; padding:0 12px; pointer-events:none;
+#controles { position:fixed; inset:0; z-index:15; display:none; pointer-events:none; }
+#joy {
+    position:absolute; left:16px; bottom:18px; width:132px; height:132px; border-radius:50%;
+    background:rgba(255,255,255,0.12); border:2px solid rgba(255,255,255,0.4); pointer-events:auto;
 }
-.ctl { display:flex; gap:10px; align-items:flex-end; }
-.ctl div {
-    width:62px; height:62px; border-radius:50%; background:rgba(255,255,255,0.16);
-    border:2px solid rgba(255,255,255,0.5); color:#fff; font-size:26px;
-    display:flex; align-items:center; justify-content:center; pointer-events:auto; user-select:none; -webkit-user-select:none;
+#joyBola {
+    position:absolute; left:41px; top:41px; width:50px; height:50px; border-radius:50%;
+    background:rgba(255,255,255,0.5); border:2px solid #fff;
 }
-.ctl div.apertado { background:rgba(255,170,0,0.55); }
-a.voltar { position:fixed; top:6px; left:10px; color:#8a8aa0; text-decoration:none; z-index:40; font-size:14px; }
+#botoes { position:absolute; right:12px; bottom:16px; display:flex; flex-direction:column; gap:9px; align-items:flex-end; }
+#botoes div {
+    pointer-events:auto; user-select:none; -webkit-user-select:none;
+    background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.5); color:#fff;
+    border-radius:16px; padding:12px 15px; font-size:16px; font-weight:bold; min-width:112px; text-align:center;
+}
+#botoes div.apertado { background:rgba(255,170,0,0.6); }
+a.voltar { position:fixed; bottom:6px; left:10px; color:#8a8aa0; text-decoration:none; z-index:40; font-size:13px; }
 @media (max-width:700px){
     #hud { font-size:12px; padding:5px; }
-    canvas#c { max-height:calc(100vh - 108px); }
-    #msg { font-size:24px; }
+    canvas#c { height:calc(100vh - 36px); }
+    #msg { font-size:23px; }
     .painel h1 { font-size:23px; }
     .grid { grid-template-columns:repeat(auto-fill, minmax(140px,1fr)); gap:8px; }
-    .ctl div { width:56px; height:56px; font-size:23px; }
 }
 </style>
 </head>
@@ -98,19 +121,42 @@ a.voltar { position:fixed; top:6px; left:10px; color:#8a8aa0; text-decoration:no
     <button class="btnTopo" id="btnMenuTopo">📋 MENU</button>
 </div>
 
-<canvas id="c" width="768" height="512"></canvas>
+<canvas id="c"></canvas>
 <div id="msg"></div>
+<div id="camadaTxt"></div>
+<div id="barraCavar"><div id="barraCavarIn"></div></div>
+<div id="flashDano"></div>
 
 <div id="controles">
-    <div class="ctl"><div id="btnEsq">◀</div><div id="btnBaixo">🔽</div><div id="btnDir">▶</div></div>
-    <div class="ctl"><div id="btnPulo">⬆️</div></div>
+    <div id="joy"><div id="joyBola"></div></div>
+    <div id="botoes">
+        <div id="btnCavar">⛏️ CAVAR</div>
+        <div id="btnBaixo">🔽 CAVAR PRA BAIXO</div>
+        <div id="btnPulo">⬆️ PULAR</div>
+    </div>
 </div>
 
 <div class="painel" id="menu" style="display:flex;">
-    <h1>⛏️ Cavando Fundo</h1>
-    <div class="sub">Você é um cogumelo mineiro! 🍄 Cave pra baixo, ache minérios brilhantes, volte pra superfície pra vender e melhore o equipamento pra cavar AINDA mais fundo!</div>
+    <h1>⛏️ Cavando Fundo 3D</h1>
+    <div class="sub">Você é um mineiro de verdade, com capacete e lanterna! 🪖 Cave os cubos pra baixo, ache minérios brilhantes, volte pra superfície pra vender e melhore o equipamento pra descer AINDA mais fundo! 🍄</div>
     <div class="sub" id="recordeTxt">🏆 Recorde de profundidade: 0m</div>
-    <div class="sub">💻 Setas/WASD pra andar e cavar · ESPAÇO pula<br>📱 botões grandes na tela</div>
+    <div class="teclas">
+        💻 <b>No computador (tanto faz WASD ou as setas!)</b><br>
+        <b>W</b> ou <b>↑</b> = andar pra frente<br>
+        <b>S</b> ou <b>↓</b> = andar pra trás<br>
+        <b>A</b> ou <b>←</b> = pro lado esquerdo<br>
+        <b>D</b> ou <b>→</b> = pro lado direito<br>
+        <b>ESPAÇO</b> = pular ⬆️<br>
+        <b>E</b> ou clique = cavar ⛏️ (segure!)<br>
+        <b>Shift</b> = cavar pra baixo 🔽<br>
+        arraste o mouse = girar a câmera 🎥
+    </div>
+    <div class="teclas">
+        📱 <b>No celular</b><br>
+        joystick da esquerda = andar<br>
+        botões grandes = ⛏️ cavar, 🔽 cavar pra baixo, ⬆️ pular<br>
+        arraste o dedo na tela = girar a câmera
+    </div>
     <div style="display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap; justify-content:center;">
         <button class="fechar" style="margin:0; background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a;" id="btnJogar">⛏️ CAVAR!</button>
         <button class="fechar" style="margin:0; background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200;" id="btnLojaMenu">🛒 LOJA</button>
@@ -140,12 +186,22 @@ a.voltar { position:fixed; top:6px; left:10px; color:#8a8aa0; text-decoration:no
     <button class="fechar" id="btnFechaConq">⬅️ VOLTAR</button>
 </div>
 
+<div class="painel" id="semNet">
+    <h1>😕 Sem internet</h1>
+    <div class="sub">O jogo 3D não conseguiu carregar. Confere a internet e tenta de novo!</div>
+    <button class="fechar" onclick="location.reload()">🔄 TENTAR DE NOVO</button>
+</div>
+
 <script src="/stats.js"></script>
 <script src="/avisos.js?v=6"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 if (window.initStats) initStats('cavando');
 
-// ==================== SAVE SEGURO ====================
+// ==================== CAVANDO FUNDO 3D ====================
+// Mundo de cubos (voxel) + mineiro humano. Save 100% compatível com a versão 2D.
+
+// ---------- SAVE SEGURO ----------
 function leSave(chave, padrao){
     try {
         const v = localStorage.getItem('cavando_' + chave);
@@ -160,13 +216,14 @@ function gravaSave(chave, valor){
 let moedas       = leSave('moedas', 0);
 let totalMoedas  = leSave('totalMoedas', 0);
 let recorde      = leSave('recorde', 0);
-let livro        = leSave('livro', {});          // { idMinerio: quantidade }
+let livro        = leSave('livro', {});
 let conqFeitas   = leSave('conquistas', []);
 let ultimoDia    = leSave('dia', '');
 let melhorias    = leSave('melhorias', { picareta:0, mochila:0, bota:0, lanterna:0 });
 if (typeof melhorias !== 'object' || melhorias === null) melhorias = { picareta:0, mochila:0, bota:0, lanterna:0 };
 ['picareta','mochila','bota','lanterna'].forEach(k=>{
     if (typeof melhorias[k] !== 'number' || melhorias[k] < 0) melhorias[k] = 0;
+    if (melhorias[k] > 8) melhorias[k] = 8;
 });
 if (typeof livro !== 'object' || livro === null) livro = {};
 if (!Array.isArray(conqFeitas)) conqFeitas = [];
@@ -184,7 +241,7 @@ function salvaTudo(){
     gravaSave('dia', ultimoDia);
 }
 
-// ==================== MELHORIAS ====================
+// ---------- MELHORIAS ----------
 const TRILHAS = [
     { id:'picareta', emoji:'⛏️', titulo:'Picareta', desc:'Cava mais rápido e quebra pedra mais dura',
       nomes:['Picareta de Pau','Picareta de Pedra','Picareta de Cobre','Picareta de Ferro','Picareta de Prata','Picareta de Ouro','Picareta de Diamante','Picareta Turbo','Picareta Lendária'],
@@ -203,49 +260,57 @@ const PICARETA_FORCA = [1,2,3,4,5,6,7,8,9];
 const PICARETA_VEL   = [1.0,1.45,1.95,2.5,3.2,4.0,5.0,6.3,8.0];
 const MOCHILA_SLOTS  = [6,9,13,18,24,32,42,56,80];
 const ENERGIA_MAX    = [100,135,180,235,300,390,510,690,999];
-const LUZ_RAIO       = [95,118,142,170,205,245,292,348,420];
+const PICARETA_COR   = [0x9e9e9e,0xbdbdbd,0xc1691f,0xcfd8dc,0xeceff1,0xffd700,0x7fe9ff,0xff8a65,0xff3ea5];
+// lanterna: alcance (em blocos) e abertura do facho
+const LUZ_DIST  = [9,11,13,15,18,21,25,29,34];
+const LUZ_ANG   = [0.42,0.46,0.50,0.55,0.60,0.66,0.72,0.80,0.90];
 
 const up = id => melhorias[id] || 0;
 const forcaPicareta = () => PICARETA_FORCA[up('picareta')];
 const velPicareta   = () => PICARETA_VEL[up('picareta')];
 const slotsMochila  = () => MOCHILA_SLOTS[up('mochila')];
 const energiaMax    = () => ENERGIA_MAX[up('bota')];
-const raioLuz       = () => LUZ_RAIO[up('lanterna')];
+const luzDist       = () => LUZ_DIST[up('lanterna')];
+const luzAng        = () => LUZ_ANG[up('lanterna')];
 
-// ==================== CAMADAS ====================
+// ---------- CAMADAS ----------
 const CAMADAS = [
-    { ate:50,    nome:'Terra Fofa',       cor:'#7b4a24', cor2:'#8f5a2c', fundo:'#3a2213', dur:1 },
-    { ate:150,   nome:'Pedra Cinza',      cor:'#7d7d85', cor2:'#8d8d96', fundo:'#26262c', dur:2 },
-    { ate:300,   nome:'Pedra Gelada',     cor:'#68798a', cor2:'#78899a', fundo:'#1c242e', dur:3 },
-    { ate:500,   nome:'Rocha Dourada',    cor:'#8a7a48', cor2:'#9c8b56', fundo:'#2a2413', dur:4 },
-    { ate:800,   nome:'Caverna das Joias',cor:'#6b4a7d', cor2:'#7d5890', fundo:'#241033', dur:5 },
-    { ate:1200,  nome:'Fundo Congelado',  cor:'#456a8c', cor2:'#537a9c', fundo:'#0d1a2b', dur:6 },
-    { ate:1800,  nome:'Obsidiana Negra',  cor:'#2f2937', cor2:'#3c3547', fundo:'#120f18', dur:7 },
-    { ate:999999,nome:'Fundo do Mundo',   cor:'#40182c', cor2:'#521f38', fundo:'#190510', dur:8 }
+    { ate:50,    nome:'Terra Fofa',       cor:0x7b4a24, cor2:0x8f5a2c, fundo:0x3a2213, dur:1 },
+    { ate:150,   nome:'Pedra Cinza',      cor:0x7d7d85, cor2:0x8d8d96, fundo:0x26262c, dur:2 },
+    { ate:300,   nome:'Pedra Gelada',     cor:0x68798a, cor2:0x78899a, fundo:0x1c242e, dur:3 },
+    { ate:500,   nome:'Rocha Dourada',    cor:0x8a7a48, cor2:0x9c8b56, fundo:0x2a2413, dur:4 },
+    { ate:800,   nome:'Caverna das Joias',cor:0x6b4a7d, cor2:0x7d5890, fundo:0x241033, dur:5 },
+    { ate:1200,  nome:'Fundo Congelado',  cor:0x456a8c, cor2:0x537a9c, fundo:0x0d1a2b, dur:6 },
+    { ate:1800,  nome:'Obsidiana Negra',  cor:0x2f2937, cor2:0x3c3547, fundo:0x120f18, dur:7 },
+    { ate:999999,nome:'Fundo do Mundo',   cor:0x40182c, cor2:0x521f38, fundo:0x190510, dur:8 }
 ];
 function camadaDe(prof){
     for (let i=0;i<CAMADAS.length;i++) if (prof < CAMADAS[i].ate) return CAMADAS[i];
     return CAMADAS[CAMADAS.length-1];
 }
+function indiceCamada(prof){
+    for (let i=0;i<CAMADAS.length;i++) if (prof < CAMADAS[i].ate) return i;
+    return CAMADAS.length-1;
+}
 
-// ==================== MINÉRIOS ====================
+// ---------- MINÉRIOS ----------
 const MINERIOS = [
-    { id:'carvao',    nome:'Carvão',            emoji:'🖤', cor:'#2b2b2b', brilho:'#555555', valor:5,    dur:2, de:20,   ate:400,    chance:0.048 },
-    { id:'cobre',     nome:'Cobre',             emoji:'🟠', cor:'#c1691f', brilho:'#ff9d4d', valor:10,   dur:2, de:45,   ate:400,    chance:0.038 },
-    { id:'ferro',     nome:'Ferro',             emoji:'⚙️', cor:'#b0a9a0', brilho:'#e8e2d8', valor:20,   dur:3, de:130,  ate:700,    chance:0.030 },
-    { id:'prata',     nome:'Prata',             emoji:'⚪', cor:'#d6dde4', brilho:'#ffffff', valor:40,   dur:3, de:160,  ate:900,    chance:0.022 },
-    { id:'ouro',      nome:'Ouro',              emoji:'🥇', cor:'#ffcc22', brilho:'#fff6a8', valor:85,   dur:4, de:290,  ate:1200,   chance:0.017 },
-    { id:'rubi',      nome:'Rubi',              emoji:'❤️', cor:'#e01a3c', brilho:'#ff7a95', valor:170,  dur:5, de:480,  ate:1500,   chance:0.011 },
-    { id:'esmeralda', nome:'Esmeralda',         emoji:'💚', cor:'#12b76a', brilho:'#7dffc0', valor:230,  dur:5, de:500,  ate:1600,   chance:0.010 },
-    { id:'diamante',  nome:'Diamante',          emoji:'💎', cor:'#7fe9ff', brilho:'#e6feff', valor:500,  dur:6, de:790,  ate:2400,   chance:0.007 },
-    { id:'cristal',   nome:'Cristal Mágico',    emoji:'🔮', cor:'#b06cff', brilho:'#e6ccff', valor:1100, dur:7, de:1210, ate:999999, chance:0.005 },
-    { id:'estrela',   nome:'Poeira de Estrela', emoji:'✨', cor:'#ffe66d', brilho:'#ffffff', valor:2200, dur:8, de:1600, ate:999999, chance:0.003 },
-    { id:'lendario',  nome:'Cogumelo Lendário', emoji:'🍄', cor:'#ff3ea5', brilho:'#ffd9f0', valor:9000, dur:8, de:1800, ate:999999, chance:0.0012 }
+    { id:'carvao',    nome:'Carvão',            emoji:'🖤', cor:0x2b2b2b, brilho:'#555555', valor:5,    dur:2, de:20,   ate:400,    chance:0.048 },
+    { id:'cobre',     nome:'Cobre',             emoji:'🟠', cor:0xc1691f, brilho:'#ff9d4d', valor:10,   dur:2, de:45,   ate:400,    chance:0.038 },
+    { id:'ferro',     nome:'Ferro',             emoji:'⚙️', cor:0xb0a9a0, brilho:'#e8e2d8', valor:20,   dur:3, de:130,  ate:700,    chance:0.030 },
+    { id:'prata',     nome:'Prata',             emoji:'⚪', cor:0xd6dde4, brilho:'#ffffff', valor:40,   dur:3, de:160,  ate:900,    chance:0.022 },
+    { id:'ouro',      nome:'Ouro',              emoji:'🥇', cor:0xffcc22, brilho:'#fff6a8', valor:85,   dur:4, de:290,  ate:1200,   chance:0.017 },
+    { id:'rubi',      nome:'Rubi',              emoji:'❤️', cor:0xe01a3c, brilho:'#ff7a95', valor:170,  dur:5, de:480,  ate:1500,   chance:0.011 },
+    { id:'esmeralda', nome:'Esmeralda',         emoji:'💚', cor:0x12b76a, brilho:'#7dffc0', valor:230,  dur:5, de:500,  ate:1600,   chance:0.010 },
+    { id:'diamante',  nome:'Diamante',          emoji:'💎', cor:0x7fe9ff, brilho:'#e6feff', valor:500,  dur:6, de:790,  ate:2400,   chance:0.007 },
+    { id:'cristal',   nome:'Cristal Mágico',    emoji:'🔮', cor:0xb06cff, brilho:'#e6ccff', valor:1100, dur:7, de:1210, ate:999999, chance:0.005 },
+    { id:'estrela',   nome:'Poeira de Estrela', emoji:'✨', cor:0xffe66d, brilho:'#ffffff', valor:2200, dur:8, de:1600, ate:999999, chance:0.003 },
+    { id:'lendario',  nome:'Cogumelo Lendário', emoji:'🍄', cor:0xff3ea5, brilho:'#ffd9f0', valor:9000, dur:8, de:1800, ate:999999, chance:0.0012 }
 ];
 const MINERIO_POR_ID = {};
 MINERIOS.forEach(m => { MINERIO_POR_ID[m.id] = m; });
 
-// ==================== CONQUISTAS ====================
+// ---------- CONQUISTAS ----------
 const CONQUISTAS = [
     { id:'primeiro',  nome:'⛏️ Primeira Cavada',      dica:'Quebre o seu primeiro bloco' },
     { id:'minerio1',  nome:'💰 Primeiro Minério',     dica:'Ache qualquer minério' },
@@ -271,66 +336,7 @@ function ganhaConquista(id){
     som(700,0.1); setTimeout(()=>som(950,0.18),110);
 }
 
-// ==================== MUNDO ====================
-const T = 32;              // tamanho do bloco
-const MUNDO_W = 46;        // colunas
-const blocos = new Map();  // só o que já foi visitado
-
-function hash(c,r,s){
-    let h = Math.imul(c|0, 374761393) + Math.imul(r|0, 668265263) + Math.imul(s|0, 362437) + 1013904223;
-    h = Math.imul(h ^ (h >>> 13), 1274126177);
-    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-}
-// bloco: 0 = ar, ou { tipo:'terra'|'pedra'|'lava'|'gas'|'minerio', ore:id|null, dur:n }
-function geraBloco(c,r){
-    if (r < 0) return 0;
-    const prof = r;
-    const cam = camadaDe(prof);
-    const h1 = hash(c,r,1), h2 = hash(c,r,2), h3 = hash(c,r,3);
-    if (r >= 4 && h1 < 0.055) return 0;                       // caverninha vazia
-    if (prof >= 70) {
-        const chLava = 0.007 + Math.min(0.028, prof/45000);
-        const chGas  = prof >= 130 ? 0.006 + Math.min(0.02, prof/70000) : 0;
-        if (h2 < chLava) return { tipo:'lava', ore:null, dur:99 };
-        if (h2 < chLava + chGas) return { tipo:'gas', ore:null, dur:1 };
-    }
-    let acc = 0;
-    for (const m of MINERIOS) {
-        if (prof < m.de || prof > m.ate) continue;
-        acc += m.chance;
-        if (h3 < acc) return { tipo:'minerio', ore:m.id, dur:m.dur };
-    }
-    return { tipo: prof < 50 ? 'terra' : 'pedra', ore:null, dur:cam.dur };
-}
-function bloco(c,r){
-    if (c < 0 || c >= MUNDO_W) return { tipo:'borda', ore:null, dur:999 };
-    if (r < 0) return 0;
-    const k = c + ',' + r;
-    if (blocos.has(k)) return blocos.get(k);
-    const b = geraBloco(c,r);
-    blocos.set(k, b);
-    return b;
-}
-function limpaBloco(c,r){ blocos.set(c + ',' + r, 0); }
-function solido(b){ return b !== 0; }
-
-// ==================== ESTADO DO JOGADOR ====================
-const VIDA_MAX = 5;
-const cv = document.getElementById('c'), ctx = cv.getContext('2d');
-const W = cv.width, H = cv.height;
-
-const p = { x:0, y:0, vx:0, vy:0, w:22, h:26, chao:false, olhando:1 };
-let vida = VIDA_MAX, energia = 100, mochila = [], jogando = false;
-let camX = 0, camY = 0, tGlobal = 0, invuln = 0, cansado = 0;
-let alvo = null, prog = 0, avisoFraca = 0;
-let morcegos = [], pedrasCaindo = [], nuvensGas = [], particulas = [];
-let elevProximo = 0, profMax = 0, ultimoDano = 0;
-const teclas = {};
-const btnEstado = { esq:false, dir:false, baixo:false, pulo:false };
-
-const profundidade = () => Math.max(0, Math.floor((p.y + p.h) / T));
-
-// ==================== SOM ====================
+// ---------- SOM ----------
 let audio;
 function som(freq, dur, tipo='square', vol=0.1){
     try {
@@ -342,18 +348,186 @@ function som(freq, dur, tipo='square', vol=0.1){
     } catch(e){}
 }
 
-// ==================== MENSAGEM / HUD ====================
+// ---------- MENSAGEM / HUD ----------
+const el = id => document.getElementById(id);
 let msgTimer = 0;
 function mostraMsg(txt, cor='#fff', tempo=1400){
-    const m = document.getElementById('msg');
+    const m = el('msg');
     if (!m) return;
     m.textContent = txt; m.style.color = cor; m.style.opacity = 1;
     m.style.whiteSpace = 'pre-line';
     clearTimeout(msgTimer);
     msgTimer = setTimeout(()=>{ m.style.opacity = 0; }, tempo);
 }
+
+// ==================== MUNDO VOXEL ====================
+const MUNDO_W = 46;            // largura em x e em z (cubos)
+const postos    = new Map();   // blocos que apareceram depois (pedra que caiu)
+const quebrados = new Set();   // blocos que o jogador cavou
+const ordemQuebra = [];        // pra podar memória se cavar MUITO
+const cache     = new Map();   // blocos gerados (pode ser descartado a qualquer hora)
+
+function chave(x,y,z){ return x + ',' + y + ',' + z; }
+
+function hash(x,y,z,s){
+    let h = Math.imul(x|0, 374761393) + Math.imul(y|0, 668265263) + Math.imul(z|0, 2246822519) + Math.imul(s|0, 362437) + 1013904223;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+// bloco: 0 = ar, ou { tipo:'terra'|'pedra'|'lava'|'gas'|'minerio'|'borda', ore, dur }
+const BORDA = { tipo:'borda', ore:null, dur:999 };
+function geraBloco(x,y,z){
+    const prof = y;
+    const cam = camadaDe(prof);
+    const h1 = hash(x,y,z,1), h2 = hash(x,y,z,2), h3 = hash(x,y,z,3);
+    if (y >= 4 && h1 < 0.09) return 0;                      // caverninha vazia
+    if (prof >= 70) {
+        const chLava = 0.006 + Math.min(0.024, prof/50000);
+        const chGas  = prof >= 130 ? 0.005 + Math.min(0.018, prof/80000) : 0;
+        if (h2 < chLava) return { tipo:'lava', ore:null, dur:99 };
+        if (h2 < chLava + chGas) return { tipo:'gas', ore:null, dur:1 };
+    }
+    let acc = 0;
+    for (const m of MINERIOS) {
+        if (prof < m.de || prof > m.ate) continue;
+        acc += m.chance;
+        if (h3 < acc) return { tipo:'minerio', ore:m.id, dur:m.dur };
+    }
+    return { tipo: prof < 50 ? 'terra' : 'pedra', ore:null, dur:cam.dur };
+}
+function bloco(x,y,z){
+    if (x < 0 || x >= MUNDO_W || z < 0 || z >= MUNDO_W) return BORDA;
+    if (y < 0) return 0;
+    const k = chave(x,y,z);
+    if (postos.has(k)) return postos.get(k);
+    if (quebrados.has(k)) return 0;
+    let b = cache.get(k);
+    if (b === undefined) {
+        b = geraBloco(x,y,z);
+        if (cache.size > 90000) cache.clear();   // memória: joga o cache fora e regenera
+        cache.set(k, b);
+    }
+    return b;
+}
+function limpaBloco(x,y,z){
+    const k = chave(x,y,z);
+    postos.delete(k);
+    if (!quebrados.has(k)) { quebrados.add(k); ordemQuebra.push(k); }
+    if (ordemQuebra.length > 30000) { quebrados.delete(ordemQuebra.shift()); }
+    cache.delete(k);
+    mundoSujo = true;
+}
+function poeBloco(x,y,z,b){
+    const k = chave(x,y,z);
+    quebrados.delete(k);
+    postos.set(k, b);
+    mundoSujo = true;
+}
+const solido = b => b !== 0;
+
+// ==================== CENA THREE.JS ====================
+const canvas = el('c');
+let renderer, scene, camera, luzAmbiente, luzSol, lanterna, alvoLanterna, contorno;
+let mundoSujo = true, ultimaCelula = '';
+
+const grupos = new Map();      // chave do material -> { mesh, mat, n }
+const MAXI = 1800;             // limite de cubos vivos por material
+let geoCubo, matriz;   // criados só quando o Three.js já carregou
+
+function corDaCamada(i, alt){
+    const c = CAMADAS[Math.max(0, Math.min(CAMADAS.length-1, i))];
+    return alt ? c.cor2 : c.cor;
+}
+function materialDe(tipoKey){
+    if (grupos.has(tipoKey)) return grupos.get(tipoKey);
+    let mat;
+    if (tipoKey === 'borda') {
+        mat = new THREE.MeshLambertMaterial({ color:0x15121c });
+    } else if (tipoKey === 'lava') {
+        mat = new THREE.MeshBasicMaterial({ color:0xff6a00 });
+    } else if (tipoKey === 'gas') {
+        mat = new THREE.MeshBasicMaterial({ color:0x8cff8c, transparent:true, opacity:0.45 });
+    } else if (tipoKey.indexOf('minerio:') === 0) {
+        const m = MINERIO_POR_ID[tipoKey.slice(8)];
+        mat = new THREE.MeshLambertMaterial({ color:(m?m.cor:0xffffff), emissive:(m?m.cor:0xffffff), emissiveIntensity:0.85 });
+    } else {
+        const partes = tipoKey.split(':');
+        mat = new THREE.MeshLambertMaterial({ color: corDaCamada(+partes[1], partes[2] === '1') });
+    }
+    const mesh = new THREE.InstancedMesh(geoCubo, mat, MAXI);
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    mesh.frustumCulled = false;
+    mesh.count = 0;
+    scene.add(mesh);
+    const g = { mesh:mesh, mat:mat, n:0 };
+    grupos.set(tipoKey, g);
+    return g;
+}
+function chaveMaterial(b, y){
+    if (b.tipo === 'borda')   return 'borda';
+    if (b.tipo === 'lava')    return 'lava';
+    if (b.tipo === 'gas')     return 'gas';
+    if (b.tipo === 'minerio') return 'minerio:' + b.ore;
+    return 'rocha:' + indiceCamada(y) + ':' + (((y + b.dur) & 1) ? '1' : '0');
+}
+
+// só desenha cubo que tem pelo menos um vizinho vazio (o resto ninguém vê)
+function exposto(x,y,z){
+    if (!solido(bloco(x, y-1, z))) return true;
+    if (!solido(bloco(x, y+1, z))) return true;
+    if (!solido(bloco(x-1, y, z))) return true;
+    if (!solido(bloco(x+1, y, z))) return true;
+    if (!solido(bloco(x, y, z-1))) return true;
+    if (!solido(bloco(x, y, z+1))) return true;
+    return false;
+}
+
+const RAIO_XZ = 9, RAIO_CIMA = 6, RAIO_BAIXO = 10;
+function montaMundo(){
+    grupos.forEach(g => { g.n = 0; });
+    const cx = Math.floor(p.x), cy = Math.max(0, Math.floor(-p.y)), cz = Math.floor(p.z);
+    for (let y = cy - RAIO_CIMA; y <= cy + RAIO_BAIXO; y++) {
+        if (y < 0) continue;
+        for (let x = cx - RAIO_XZ; x <= cx + RAIO_XZ; x++) {
+            for (let z = cz - RAIO_XZ; z <= cz + RAIO_XZ; z++) {
+                const b = bloco(x,y,z);
+                if (b === 0) continue;
+                if (b.tipo === 'borda') continue;   // parede do mundo desenhada só como caixa
+                if (!exposto(x,y,z)) continue;
+                const g = materialDe(chaveMaterial(b, y));
+                if (g.n >= MAXI) continue;
+                matriz.makeTranslation(x + 0.5, -(y + 0.5), z + 0.5);
+                g.mesh.setMatrixAt(g.n, matriz);
+                g.n++;
+            }
+        }
+    }
+    grupos.forEach(g => {
+        g.mesh.count = g.n;
+        g.mesh.instanceMatrix.needsUpdate = true;
+    });
+    mundoSujo = false;
+}
+
+// ==================== ESTADO DO JOGADOR ====================
+const VIDA_MAX = 5;
+const PW = 0.62, PH = 1.7;    // largura e altura do mineiro (em cubos)
+// p.y = altura dos PÉS no mundo 3D (0 = superfície, negativo = fundo)
+const p = { x:6.5, y:0, z:6.5, vx:0, vz:0, vy:0, chao:false, yaw:0 };
+let vida = VIDA_MAX, energia = 100, mochila = [], jogando = false;
+let tGlobal = 0, invuln = 0, cansado = 0, ultimoDano = -9;
+let alvo = null, prog = 0, avisoFraca = 0, passo = 0, martelada = 0;
+let morcegos = [], pedrasCaindo = [], nuvensGas = [];
+let elevProximo = 0;
+const teclas = {};
+const btn = { cavar:false, baixo:false, pulo:false };
+const joy = { x:0, z:0, ativo:false };
+let camDist = 5.2, camYaw = 0;
+
+const profundidade = () => Math.max(0, Math.floor(-p.y));
+
 function atualizaHud(){
-    const el = id => document.getElementById(id);
     if (el('moedasHud'))  el('moedasHud').textContent  = '🪙 ' + moedas;
     if (el('vidaHud'))    el('vidaHud').textContent    = '❤️'.repeat(Math.max(0,vida)) + '🖤'.repeat(Math.max(0, VIDA_MAX - vida));
     if (el('energiaHud')) el('energiaHud').textContent = '🔋 ' + Math.round(Math.max(0, energia) / energiaMax() * 100) + '%';
@@ -361,14 +535,185 @@ function atualizaHud(){
     if (el('profHud'))    el('profHud').textContent    = '📏 ' + profundidade() + 'm';
 }
 
+// ==================== O MINEIRO HUMANO ====================
+let boneco, pernaE, pernaD, bracoE, bracoD, picaretaCabeca, picaretaCabo, lanternaVidro;
+const PELE = 0xffd9b3;
+
+function caixa(w,h,d, cor, x,y,z, pai){
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshLambertMaterial({ color:cor }));
+    m.position.set(x,y,z);
+    pai.add(m);
+    return m;
+}
+function criaMineiro(){
+    boneco = new THREE.Group();
+
+    // pernas (com pivô no quadril, pra balançar)
+    pernaE = new THREE.Group(); pernaE.position.set(-0.15, 0.72, 0);
+    pernaD = new THREE.Group(); pernaD.position.set( 0.15, 0.72, 0);
+    caixa(0.22, 0.72, 0.22, 0x2f3a5c, 0, -0.36, 0, pernaE);
+    caixa(0.22, 0.72, 0.22, 0x2f3a5c, 0, -0.36, 0, pernaD);
+    caixa(0.26, 0.12, 0.32, 0x4a2f16, 0, -0.70, 0.04, pernaE);   // botas
+    caixa(0.26, 0.12, 0.32, 0x4a2f16, 0, -0.70, 0.04, pernaD);
+    boneco.add(pernaE); boneco.add(pernaD);
+
+    // corpo: macacão azul com alça e cinto
+    caixa(0.56, 0.62, 0.32, 0x2f5fa8, 0, 1.03, 0, boneco);
+    caixa(0.58, 0.08, 0.34, 0x1b3a6b, 0, 0.78, 0, boneco);       // cinto
+    caixa(0.12, 0.30, 0.34, 0xffcc44, -0.16, 1.24, 0, boneco);   // alças
+    caixa(0.12, 0.30, 0.34, 0xffcc44,  0.16, 1.24, 0, boneco);
+    caixa(0.30, 0.28, 0.16, 0x6b4a2a, 0, 1.06, -0.24, boneco);   // mochila nas costas
+
+    // braços (pivô no ombro)
+    bracoE = new THREE.Group(); bracoE.position.set(-0.37, 1.30, 0);
+    bracoD = new THREE.Group(); bracoD.position.set( 0.37, 1.30, 0);
+    caixa(0.18, 0.56, 0.18, 0x2f5fa8, 0, -0.28, 0, bracoE);
+    caixa(0.18, 0.56, 0.18, 0x2f5fa8, 0, -0.28, 0, bracoD);
+    caixa(0.19, 0.14, 0.19, PELE, 0, -0.62, 0, bracoE);          // mãos
+    caixa(0.19, 0.14, 0.19, PELE, 0, -0.62, 0, bracoD);
+    boneco.add(bracoE); boneco.add(bracoD);
+
+    // picareta na mão direita
+    const pic = new THREE.Group();
+    pic.position.set(0, -0.62, 0.05);
+    pic.rotation.x = -0.6;
+    picaretaCabo = caixa(0.07, 0.62, 0.07, 0x8d6e63, 0, -0.22, 0, pic);
+    picaretaCabeca = caixa(0.44, 0.10, 0.12, 0x9e9e9e, 0, -0.50, 0, pic);
+    bracoD.add(pic);
+
+    // cabeça com rosto
+    const cab = new THREE.Group();
+    cab.position.set(0, 1.55, 0);
+    caixa(0.44, 0.44, 0.42, PELE, 0, 0, 0, cab);
+    caixa(0.09, 0.09, 0.03, 0x222222, -0.11, 0.05, 0.22, cab);   // olhos
+    caixa(0.09, 0.09, 0.03, 0x222222,  0.11, 0.05, 0.22, cab);
+    caixa(0.06, 0.04, 0.03, 0xffffff, -0.11, 0.07, 0.235, cab);  // brilhinho do olho
+    caixa(0.06, 0.04, 0.03, 0xffffff,  0.11, 0.07, 0.235, cab);
+    caixa(0.18, 0.05, 0.03, 0x8a3b2f, 0, -0.13, 0.22, cab);      // boca
+    caixa(0.30, 0.06, 0.05, 0x5a3a20, 0, 0.02, -0.22, cab);      // cabelinho atrás
+    // capacete amarelo + lanterna
+    caixa(0.50, 0.20, 0.48, 0xffd400, 0, 0.28, 0, cab);
+    caixa(0.62, 0.06, 0.60, 0xffc000, 0, 0.17, 0.02, cab);
+    lanternaVidro = new THREE.Mesh(
+        new THREE.BoxGeometry(0.16, 0.16, 0.10),
+        new THREE.MeshBasicMaterial({ color:0xfff3a0 })
+    );
+    lanternaVidro.position.set(0, 0.24, 0.26);
+    cab.add(lanternaVidro);
+    boneco.add(cab);
+
+    scene.add(boneco);
+}
+function atualizaPicareta(){
+    const c = PICARETA_COR[up('picareta')] || 0x9e9e9e;
+    if (picaretaCabeca) {
+        picaretaCabeca.material.color.setHex(c);
+        const g = 1 + up('picareta') * 0.06;
+        picaretaCabeca.scale.set(g, g, g);
+    }
+}
+
+// ==================== CENA / LUZES / LOJINHA ====================
+let lojinha, sol, maxPixelRatio = Math.min(2, window.devicePixelRatio || 1);
+
+function criaLojinha(){
+    lojinha = new THREE.Group();
+    caixa(3.4, 2.2, 3.0, 0x6d4c41, 0, 1.1, 0, lojinha);
+    caixa(3.9, 0.4, 3.5, 0xc62828, 0, 2.35, 0, lojinha);
+    caixa(2.6, 0.35, 2.4, 0xe53935, 0, 2.7, 0, lojinha);
+    caixa(0.9, 1.5, 0.2, 0x3e2723, 0, 0.75, 1.55, lojinha);       // porta
+    caixa(0.8, 0.8, 0.2, 0xffe082, -1.1, 1.4, 1.55, lojinha);     // janela
+    caixa(1.4, 0.5, 0.2, 0xffd700, 0.7, 2.05, 1.62, lojinha);     // plaquinha
+    lojinha.position.set(11.5, 0, 6.5);
+    scene.add(lojinha);
+}
+function criaSol(){
+    sol = new THREE.Mesh(new THREE.SphereGeometry(6, 12, 10),
+        new THREE.MeshBasicMaterial({ color:0xffe066, fog:false }));
+    sol.position.set(60, 55, -70);
+    scene.add(sol);
+}
+
+function iniciaCena(){
+    geoCubo = new THREE.BoxGeometry(1,1,1);
+    matriz  = new THREE.Matrix4();
+    corTmp   = new THREE.Color();
+    corFundo = new THREE.Color();
+    renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias:false });
+    renderer.setPixelRatio(maxPixelRatio);
+    scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x87ceeb, 12, 34);
+    scene.background = new THREE.Color(0x87ceeb);
+
+    camera = new THREE.PerspectiveCamera(66, 1, 0.1, 200);
+    camera.position.set(6.5, 4, 1);
+
+    luzAmbiente = new THREE.AmbientLight(0xffffff, 0.85);
+    scene.add(luzAmbiente);
+    luzSol = new THREE.DirectionalLight(0xfff2cc, 0.7);
+    luzSol.position.set(0.6, 1, 0.4);
+    scene.add(luzSol);
+
+    // lanterna do capacete
+    lanterna = new THREE.SpotLight(0xfff0c0, 1.5, luzDist(), luzAng(), 0.45, 1.1);
+    alvoLanterna = new THREE.Object3D();
+    scene.add(alvoLanterna);
+    lanterna.target = alvoLanterna;
+    scene.add(lanterna);
+
+    // contorno do cubo que vai quebrar (a "mira")
+    contorno = new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.BoxGeometry(1.03,1.03,1.03)),
+        new THREE.LineBasicMaterial({ color:0xffffff })
+    );
+    contorno.visible = false;
+    scene.add(contorno);
+
+    criaMineiro();
+    atualizaPicareta();
+    criaLojinha();
+    criaSol();
+    redimensiona();
+}
+
+function redimensiona(){
+    if (!renderer || !camera) return;
+    const w = Math.max(1, window.innerWidth);
+    const h = Math.max(1, window.innerHeight - (el('hud') ? el('hud').offsetHeight : 40));
+    renderer.setPixelRatio(maxPixelRatio);
+    renderer.setSize(w, h, false);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', redimensiona);
+window.addEventListener('orientationchange', ()=> setTimeout(redimensiona, 250));
+
+// ==================== COLISÃO ====================
+function ocupado(x, y, z){
+    const x0 = Math.floor(x - PW/2), x1 = Math.floor(x + PW/2);
+    const z0 = Math.floor(z - PW/2), z1 = Math.floor(z + PW/2);
+    const y0 = Math.floor(-(y + PH)), y1 = Math.floor(-y - 0.0001);
+    for (let gy = y0; gy <= y1; gy++) {
+        if (gy < 0) continue;
+        for (let gx = x0; gx <= x1; gx++)
+            for (let gz = z0; gz <= z1; gz++)
+                if (solido(bloco(gx, gy, gz))) return true;
+    }
+    return false;
+}
+
 // ==================== SUPERFÍCIE / VENDER ====================
 function vaiPraSuperficie(){
-    p.x = 6 * T + 5; p.y = -p.h - 2; p.vx = 0; p.vy = 0;
+    p.x = 6.5; p.z = 6.5; p.y = 0.05;
+    p.vx = 0; p.vz = 0; p.vy = 0;
     alvo = null; prog = 0;
-    morcegos = []; pedrasCaindo = []; nuvensGas = [];
+    limpaBichos();
     vida = VIDA_MAX;
     energia = energiaMax();
     vendeTudo();
+    mundoSujo = true;
     atualizaHud();
 }
 function vendeTudo(){
@@ -390,6 +735,8 @@ function levaDano(qtd, texto){
     if (invuln > 0 || !jogando) return;
     vida -= qtd; invuln = 1.1; ultimoDano = tGlobal;
     som(160, 0.3, 'sawtooth');
+    const f = el('flashDano');
+    if (f) { f.style.opacity = 1; setTimeout(()=>{ f.style.opacity = 0; }, 120); }
     atualizaHud();
     if (vida <= 0) return morre();
     mostraMsg(texto || 'AI! 💥', '#ff6666', 900);
@@ -429,37 +776,72 @@ function usaElevador(){
     vaiPraSuperficie();
 }
 
+// ==================== FAÍSCAS (partículas simples) ====================
+const faiscaPool = [];
+function faisca(x,y,z,cor){
+    let f = faiscaPool.find(o => !o.mesh.visible);
+    if (!f) {
+        if (faiscaPool.length >= 34) return;
+        const m = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,0.12),
+            new THREE.MeshBasicMaterial({ color:cor }));
+        scene.add(m);
+        f = { mesh:m, vida:0, vx:0, vy:0, vz:0 };
+        faiscaPool.push(f);
+    }
+    f.mesh.material.color.setHex(cor);
+    f.mesh.position.set(x,y,z);
+    f.mesh.visible = true;
+    f.vida = 0.55;
+    f.vx = (Math.random()-0.5)*3.2; f.vy = 1.6 + Math.random()*2; f.vz = (Math.random()-0.5)*3.2;
+}
+function atualizaFaiscas(dt){
+    for (const f of faiscaPool) {
+        if (!f.mesh.visible) continue;
+        f.vida -= dt;
+        if (f.vida <= 0) { f.mesh.visible = false; continue; }
+        f.vy -= 11 * dt;
+        f.mesh.position.x += f.vx * dt;
+        f.mesh.position.y += f.vy * dt;
+        f.mesh.position.z += f.vz * dt;
+    }
+}
+
 // ==================== CAVAR ====================
-function achaAlvo(esq, dir, baixo){
-    const cCentro = Math.floor((p.x + p.w/2) / T);
-    const rPe     = Math.floor((p.y + p.h - 4) / T);
-    if (baixo) {
-        const r = Math.floor((p.y + p.h + 3) / T);
-        if (solido(bloco(cCentro, r))) return { c:cCentro, r:r };
+function frenteX(){ return Math.sin(p.yaw); }
+function frenteZ(){ return Math.cos(p.yaw); }
+
+function achaAlvo(querFrente, querBaixo){
+    if (querBaixo) {
+        const gx = Math.floor(p.x), gy = Math.floor(-p.y), gz = Math.floor(p.z);
+        if (solido(bloco(gx,gy,gz))) return { x:gx, y:gy, z:gz };
     }
-    if (dir) {
-        const c = Math.floor((p.x + p.w + 3) / T);
-        if (solido(bloco(c, rPe))) return { c:c, r:rPe };
-    }
-    if (esq) {
-        const c = Math.floor((p.x - 3) / T);
-        if (solido(bloco(c, rPe))) return { c:c, r:rPe };
+    if (querFrente) {
+        const fx = p.x + frenteX() * 0.72, fz = p.z + frenteZ() * 0.72;
+        const gx = Math.floor(fx), gz = Math.floor(fz);
+        for (const alt of [1.05, 0.4, 1.6]) {
+            const gy = Math.floor(-(p.y + alt));
+            if (gy < 0) continue;
+            if (solido(bloco(gx,gy,gz))) return { x:gx, y:gy, z:gz };
+        }
+        // se não achou nada na frente, cava embaixo (ajuda a criança a descer)
+        const gy2 = Math.floor(-p.y);
+        const bx = Math.floor(p.x), bz = Math.floor(p.z);
+        if (solido(bloco(bx,gy2,bz))) return { x:bx, y:gy2, z:bz };
     }
     return null;
 }
-function quebra(c,r){
-    const b = bloco(c,r);
+
+function quebra(x,y,z){
+    const b = bloco(x,y,z);
     if (!b || b === 0) return;
-    limpaBloco(c,r);
+    limpaBloco(x,y,z);
     ganhaConquista('primeiro');
     som(240 + Math.random()*80, 0.06, 'triangle', 0.07);
-    for (let i=0;i<6;i++) particulas.push({
-        x:c*T + T/2, y:r*T + T/2,
-        vx:(Math.random()-0.5)*3, vy:(Math.random()-0.7)*3,
-        vida:0.5, cor: b.tipo==='minerio' ? (MINERIO_POR_ID[b.ore]||{}).cor || '#fff' : camadaDe(r).cor
-    });
+    const cf = b.tipo === 'minerio' ? ((MINERIO_POR_ID[b.ore]||{}).cor || 0xffffff) : camadaDe(y).cor2;
+    for (let i=0;i<6;i++) faisca(x+0.5, -(y+0.5), z+0.5, cf);
+
     if (b.tipo === 'gas') {
-        nuvensGas.push({ x:c*T + T/2, y:r*T + T/2, vida:4, raio:26 });
+        criaGas(x+0.5, -(y+0.5), z+0.5);
         mostraMsg('💨 GÁS! Sai de perto!', '#aaff88', 1200);
         return;
     }
@@ -480,57 +862,147 @@ function quebra(c,r){
             } else {
                 mostraMsg(m.emoji + ' ' + m.nome + '! 🪙 ' + m.valor, m.brilho, 1100);
             }
-            if (MINERIOS.every(x => livro[x.id] > 0)) ganhaConquista('livro');
+            if (MINERIOS.every(x2 => livro[x2.id] > 0)) ganhaConquista('livro');
             if (mochila.length >= slotsMochila()) ganhaConquista('cheia');
             salvaTudo();
             som(760,0.09); setTimeout(()=>som(1000,0.12),80);
         }
         atualizaHud();
     }
-    // desmoronamento: o bloco de cima às vezes cai na sua cabeça
-    const acima = bloco(c, r-1);
-    if (solido(acima) && acima.tipo !== 'borda' && r > 30) {
-        const chance = Math.min(0.28, 0.05 + r/9000);
+    // desabamento: o cubo de cima às vezes desaba na sua cabeça
+    const acima = bloco(x, y-1, z);
+    if (solido(acima) && acima.tipo !== 'borda' && y > 30 && pedrasCaindo.length < 5) {
+        const chance = Math.min(0.28, 0.05 + y/9000);
         if (Math.random() < chance) {
-            limpaBloco(c, r-1);
-            pedrasCaindo.push({ x:c*T, y:(r-1)*T, vy:0, cor: camadaDe(r).cor2 });
+            limpaBloco(x, y-1, z);
+            criaPedra(x, y-1, z, camadaDe(y).cor2);
         }
     }
 }
 
-// ==================== BICHOS E PERIGOS ====================
-let proxMorcego = 0;
-function spawnaMorcego(){
+// ==================== PERIGOS EM 3D ====================
+function criaGas(x,y,z){
+    if (nuvensGas.length >= 4) return;
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.6, 10, 8),
+        new THREE.MeshBasicMaterial({ color:0x9cff9c, transparent:true, opacity:0.4 }));
+    m.position.set(x,y,z);
+    scene.add(m);
+    nuvensGas.push({ mesh:m, vida:4, raio:0.7 });
+}
+function criaPedra(gx,gy,gz,cor){
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.94,0.94,0.94),
+        new THREE.MeshLambertMaterial({ color:cor }));
+    m.position.set(gx+0.5, -(gy+0.5), gz+0.5);
+    scene.add(m);
+    pedrasCaindo.push({ mesh:m, gx:gx, gz:gz, d:gy, vd:0 });
+}
+function criaMorcego(){
     const prof = profundidade();
-    if (prof < 150 || morcegos.length >= 4) return;
-    const cJog = Math.floor((p.x + p.w/2) / T), rJog = Math.floor((p.y + p.h/2) / T);
-    for (let tent=0; tent<20; tent++){
-        const c = cJog + Math.floor((Math.random()-0.5)*16);
-        const r = rJog + Math.floor((Math.random()-0.5)*10);
-        if (c < 0 || c >= MUNDO_W || r < 3) continue;
-        const d = Math.hypot((c-cJog)*T, (r-rJog)*T);
-        if (d < 140 || d > 420) continue;
-        if (bloco(c,r) === 0) { morcegos.push({ x:c*T+T/2, y:r*T+T/2, vx:0, vy:0, fase:Math.random()*7 }); return; }
+    if (prof < 150 || morcegos.length >= 3) return;
+    const cx = Math.floor(p.x), cy = Math.floor(-p.y), cz = Math.floor(p.z);
+    for (let t=0;t<24;t++){
+        const gx = cx + Math.floor((Math.random()-0.5)*14);
+        const gz = cz + Math.floor((Math.random()-0.5)*14);
+        const gy = cy + Math.floor((Math.random()-0.5)*8);
+        if (gx < 0 || gx >= MUNDO_W || gz < 0 || gz >= MUNDO_W || gy < 3) continue;
+        const dd = Math.hypot(gx-cx, gy-cy, gz-cz);
+        if (dd < 4 || dd > 12) continue;
+        if (bloco(gx,gy,gz) !== 0) continue;
+        const g = new THREE.Group();
+        caixa(0.3,0.26,0.3, 0x3a2145, 0,0,0, g);
+        const asaE = caixa(0.42,0.05,0.26, 0x4a2c5a, -0.34,0.02,0, g);
+        const asaD = caixa(0.42,0.05,0.26, 0x4a2c5a,  0.34,0.02,0, g);
+        caixa(0.07,0.07,0.04, 0xff5252, -0.08,0.05,0.16, g);
+        caixa(0.07,0.07,0.04, 0xff5252,  0.08,0.05,0.16, g);
+        g.position.set(gx+0.5, -(gy+0.5), gz+0.5);
+        scene.add(g);
+        morcegos.push({ g:g, asaE:asaE, asaD:asaD, fase:Math.random()*7 });
+        return;
     }
 }
+function limpaBichos(){
+    morcegos.forEach(m => scene.remove(m.g));
+    pedrasCaindo.forEach(o => scene.remove(o.mesh));
+    nuvensGas.forEach(o => scene.remove(o.mesh));
+    morcegos = []; pedrasCaindo = []; nuvensGas = [];
+}
+function pontoSolido(x,y,z){
+    return solido(bloco(Math.floor(x), Math.floor(-y), Math.floor(z)));
+}
 
-// ==================== FÍSICA + LÓGICA ====================
+// ==================== LÓGICA PRINCIPAL ====================
+let proxMorcego = 0;
+
 function atualiza(dt){
     if (!jogando) return;
-    const esq   = teclas['ArrowLeft']  || teclas['KeyA'] || btnEstado.esq;
-    const dir   = teclas['ArrowRight'] || teclas['KeyD'] || btnEstado.dir;
-    const baixo = teclas['ArrowDown']  || teclas['KeyS'] || btnEstado.baixo;
-    const pulo  = teclas['Space'] || teclas['ArrowUp'] || teclas['KeyW'] || btnEstado.pulo;
 
-    if (esq) p.olhando = -1;
-    if (dir) p.olhando = 1;
+    const kFrente = teclas['KeyW'] || teclas['ArrowUp'];
+    const kTras   = teclas['KeyS'] || teclas['ArrowDown'];
+    const kEsq    = teclas['KeyA'] || teclas['ArrowLeft'];
+    const kDir    = teclas['KeyD'] || teclas['ArrowRight'];
+    const pulo    = teclas['Space'] || btn.pulo;
+    const cavaBaixo  = teclas['ShiftLeft'] || teclas['ShiftRight'] || btn.baixo;
+    const cavaFrente = teclas['KeyE'] || teclas['Enter'] || mouseCavando || btn.cavar;
+
+    let mv = (kFrente ? 1 : 0) - (kTras ? 1 : 0);
+    let sv = (kDir ? 1 : 0) - (kEsq ? 1 : 0);
+    if (joy.ativo) { mv += -joy.z; sv += joy.x; }
+    const tam = Math.hypot(mv, sv);
+    if (tam > 1) { mv /= tam; sv /= tam; }
+
+    // direções em volta da câmera (frente é pra onde a câmera olha)
+    const fx = Math.sin(camYaw),  fz = Math.cos(camYaw);
+    const rx = -Math.cos(camYaw), rz = Math.sin(camYaw);
+    let dx = fx*mv + rx*sv, dz = fz*mv + rz*sv;
+    const andando = Math.hypot(dx,dz) > 0.05;
+    andandoAgora = andando;
+
+    if (andando) {
+        const alvoYaw = Math.atan2(dx, dz);
+        let dif = alvoYaw - p.yaw;
+        while (dif >  Math.PI) dif -= Math.PI*2;
+        while (dif < -Math.PI) dif += Math.PI*2;
+        p.yaw += dif * Math.min(1, dt*14);
+        passo += dt * 9;
+    } else {
+        let dif = camYaw - p.yaw;
+        while (dif >  Math.PI) dif -= Math.PI*2;
+        while (dif < -Math.PI) dif += Math.PI*2;
+        p.yaw += dif * Math.min(1, dt*6);
+    }
+
+    // ---- movimento com colisão ----
+    const VEL = 3.6;
+    const nx = p.x + dx * VEL * dt;
+    if (!ocupado(nx, p.y, p.z)) p.x = nx;
+    const nz = p.z + dz * VEL * dt;
+    if (!ocupado(p.x, p.y, nz)) p.z = nz;
+
+    if (p.chao && pulo) { p.vy = 7.4; p.chao = false; som(420,0.07,'triangle',0.06); }
+    p.vy = Math.max(-26, p.vy - 24 * dt);
+    const ny = p.y + p.vy * dt;
+    if (!ocupado(p.x, ny, p.z)) {
+        p.y = ny;
+        p.chao = false;
+    } else if (p.vy <= 0) {
+        p.y = -Math.floor(-ny);
+        p.vy = 0; p.chao = true;
+    } else {
+        const gyTeto = Math.floor(-(ny + PH));
+        p.y = -(gyTeto + 1) - PH - 0.001;
+        p.vy = 0;
+    }
+    if (p.y > 8) { p.y = 8; p.vy = 0; }
+    p.chao = ocupado(p.x, p.y - 0.06, p.z);
+    p.x = Math.max(0.4, Math.min(MUNDO_W - 0.4, p.x));
+    p.z = Math.max(0.4, Math.min(MUNDO_W - 0.4, p.z));
 
     // ---- cavar ----
-    const novoAlvo = achaAlvo(esq, dir, baixo);
-    if (!novoAlvo || !alvo || novoAlvo.c !== alvo.c || novoAlvo.r !== alvo.r) prog = 0;
-    alvo = novoAlvo;
+    const novo = achaAlvo(cavaFrente, cavaBaixo);
+    if (!novo || !alvo || novo.x !== alvo.x || novo.y !== alvo.y || novo.z !== alvo.z) prog = 0;
+    alvo = novo;
     if (alvo) {
-        const b = bloco(alvo.c, alvo.r);
+        const b = bloco(alvo.x, alvo.y, alvo.z);
         if (b && b.tipo === 'borda') {
             if (avisoFraca <= 0) { mostraMsg('🧱 A parede do mundo é dura demais!', '#ffcc66', 1200); avisoFraca = 2; }
             prog = 0;
@@ -543,7 +1015,8 @@ function atualiza(dt){
         } else if (b) {
             prog += dt * velPicareta() / (b.dur * 0.5);
             energia -= dt * 3.5;
-            if (prog >= 1) { quebra(alvo.c, alvo.r); prog = 0; alvo = null; }
+            martelada += dt * 13;
+            if (prog >= 1) { quebra(alvo.x, alvo.y, alvo.z); prog = 0; alvo = null; }
         }
     }
     avisoFraca -= dt;
@@ -553,33 +1026,8 @@ function atualiza(dt){
     if (energia <= 0 && cansado <= 0) { cansado = 1; energia = 0; voltaCansado(); return; }
     cansado -= dt;
 
-    // ---- movimento ----
-    p.vx = (dir ? 3.1 : 0) - (esq ? 3.1 : 0);
-    if (p.chao && pulo) { p.vy = -8.2; p.chao = false; som(420,0.07,'triangle',0.06); }
-    p.vy = Math.min(p.vy + 0.52, 12);
-
-    p.x += p.vx;
-    for (const ry of [p.y+2, p.y+p.h/2, p.y+p.h-2]) {
-        const r = Math.floor(ry / T);
-        if (p.vx > 0 && solido(bloco(Math.floor((p.x+p.w)/T), r))) p.x = Math.floor((p.x+p.w)/T)*T - p.w - 0.01;
-        if (p.vx < 0 && solido(bloco(Math.floor(p.x/T), r)))       p.x = (Math.floor(p.x/T)+1)*T + 0.01;
-    }
-    p.y += p.vy;
-    p.chao = false;
-    for (const rx of [p.x+2, p.x+p.w-2]) {
-        const c = Math.floor(rx / T);
-        if (p.vy > 0 && solido(bloco(Math.floor((p.y+p.h)/T), c))) {
-            p.y = Math.floor((p.y+p.h)/T)*T - p.h - 0.01; p.vy = 0; p.chao = true;
-        }
-        if (p.vy < 0 && solido(bloco(Math.floor(p.y/T), c))) {
-            p.y = (Math.floor(p.y/T)+1)*T + 0.01; p.vy = 0;
-        }
-    }
-    if (p.y < -8*T) { p.y = -8*T; p.vy = 0; }
-
-    // ---- recorde ----
+    // ---- recorde e conquistas ----
     const prof = profundidade();
-    if (prof > profMax) profMax = prof;
     if (prof > recorde) {
         recorde = prof;
         if (recorde % 50 === 0) mostraMsg('🏆 NOVO RECORDE: ' + recorde + 'm!', '#7fe0ff', 1400);
@@ -589,308 +1037,183 @@ function atualiza(dt){
     if (prof >= 500)  ganhaConquista('m500');
     if (prof >= 1000) ganhaConquista('m1000');
     if (prof >= 1800) ganhaConquista('m1800');
-
-    // ---- chegou na superfície: vende ----
     if (prof <= 0 && mochila.length > 0) vendeTudo();
 
     // ---- lava encostando ----
     invuln -= dt;
-    const c1 = Math.floor(p.x/T), c2 = Math.floor((p.x+p.w)/T);
-    const r1 = Math.floor(p.y/T), r2 = Math.floor((p.y+p.h)/T);
-    for (let c=c1;c<=c2;c++) for (let r=r1;r<=r2;r++) {
-        const b = bloco(c,r);
+    for (const alt of [0.2, 0.9, 1.5]) {
+        const b = bloco(Math.floor(p.x), Math.floor(-(p.y + alt)), Math.floor(p.z));
         if (b !== 0 && b.tipo === 'lava') levaDano(1, '🔥 QUEIMOU! Cuidado com a lava!');
     }
 
     // ---- gás ----
     for (let i=nuvensGas.length-1;i>=0;i--) {
         const g = nuvensGas[i];
-        g.vida -= dt; g.raio = Math.min(46, g.raio + dt*10);
-        if (g.vida <= 0) { nuvensGas.splice(i,1); continue; }
-        if (Math.hypot(g.x - (p.x+p.w/2), g.y - (p.y+p.h/2)) < g.raio) levaDano(1, '💨 O gás te tonteou!');
+        g.vida -= dt;
+        g.raio = Math.min(1.5, g.raio + dt*0.35);
+        g.mesh.scale.setScalar(g.raio / 0.6);
+        if (g.vida <= 0) { scene.remove(g.mesh); nuvensGas.splice(i,1); continue; }
+        const d = Math.hypot(g.mesh.position.x - p.x, g.mesh.position.y - (p.y+0.9), g.mesh.position.z - p.z);
+        if (d < g.raio + 0.4) levaDano(1, '💨 O gás te tonteou!');
     }
 
-    // ---- pedras caindo ----
+    // ---- pedras desabando ----
     for (let i=pedrasCaindo.length-1;i>=0;i--) {
         const pe = pedrasCaindo[i];
-        pe.vy = Math.min(pe.vy + 0.7, 14);
-        pe.y += pe.vy;
-        const cc = Math.floor((pe.x + T/2)/T), rr = Math.floor((pe.y + T)/T);
-        if (pe.x < p.x + p.w && pe.x + T > p.x && pe.y < p.y + p.h && pe.y + T > p.y) {
+        pe.vd = Math.min(18, pe.vd + 26 * dt);
+        pe.d += pe.vd * dt;
+        pe.mesh.position.y = -(pe.d + 0.5);
+        const dist = Math.hypot(pe.mesh.position.x - p.x, pe.mesh.position.z - p.z);
+        if (dist < 0.8 && Math.abs(pe.mesh.position.y - (p.y + 1.2)) < 1.1) {
             levaDano(1, '🪨 Pedra na cabeça!');
-            pedrasCaindo.splice(i,1); continue;
+            scene.remove(pe.mesh); pedrasCaindo.splice(i,1); continue;
         }
-        if (solido(bloco(cc, rr))) {
-            blocos.set(cc + ',' + (rr-1), { tipo:'pedra', ore:null, dur:Math.max(1, camadaDe(rr).dur - 1) });
-            pedrasCaindo.splice(i,1);
+        let gy = Math.floor(pe.d);
+        if (solido(bloco(pe.gx, gy, pe.gz))) gy -= 1;
+        if (gy >= 0 && solido(bloco(pe.gx, gy+1, pe.gz))) {
+            poeBloco(pe.gx, gy, pe.gz, { tipo:'pedra', ore:null, dur:Math.max(1, camadaDe(gy).dur - 1) });
+            scene.remove(pe.mesh); pedrasCaindo.splice(i,1);
             som(180,0.1,'triangle',0.06);
             continue;
         }
-        if (pe.y > (profundidade() + 40) * T) pedrasCaindo.splice(i,1);
+        if (pe.d > profundidade() + 40) { scene.remove(pe.mesh); pedrasCaindo.splice(i,1); }
     }
 
     // ---- morcegos ----
     proxMorcego -= dt;
-    if (proxMorcego <= 0) { spawnaMorcego(); proxMorcego = 3 + Math.random()*4; }
+    if (proxMorcego <= 0) { criaMorcego(); proxMorcego = 4 + Math.random()*4; }
     for (let i=morcegos.length-1;i>=0;i--) {
         const mo = morcegos[i];
-        mo.fase += dt*8;
-        const dx = (p.x + p.w/2) - mo.x, dy = (p.y + p.h/2) - mo.y;
-        const d = Math.hypot(dx,dy) || 1;
-        if (d > 700) { morcegos.splice(i,1); continue; }
-        const vel = 62 + Math.min(60, profundidade()/25);
-        mo.x += (dx/d) * vel * dt;
-        mo.y += (dy/d) * vel * dt + Math.sin(mo.fase) * 26 * dt;
-        if (d < 20) levaDano(1, '🦇 Morcego! Corre!');
+        mo.fase += dt*11;
+        const bx = mo.g.position.x, by = mo.g.position.y, bz = mo.g.position.z;
+        const ax = p.x - bx, ay = (p.y + 1.1) - by, az = p.z - bz;
+        const d = Math.hypot(ax,ay,az) || 1;
+        if (d > 26) { scene.remove(mo.g); morcegos.splice(i,1); continue; }
+        const vel = 2.2 + Math.min(2.2, profundidade()/500);
+        mo.g.position.x += (ax/d) * vel * dt;
+        mo.g.position.y += (ay/d) * vel * dt + Math.sin(mo.fase) * 0.9 * dt;
+        mo.g.position.z += (az/d) * vel * dt;
+        mo.g.rotation.y = Math.atan2(ax, az);
+        const asa = Math.sin(mo.fase) * 0.8;
+        mo.asaE.rotation.z = -asa; mo.asaD.rotation.z = asa;
+        if (d < 0.8) levaDano(1, '🦇 Morcego! Corre!');
     }
 
-    // ---- partículas ----
-    for (let i=particulas.length-1;i>=0;i--) {
-        const pa = particulas[i];
-        pa.vida -= dt; pa.x += pa.vx; pa.y += pa.vy; pa.vy += 0.25;
-        if (pa.vida <= 0) particulas.splice(i,1);
-    }
-
-    // ---- câmera ----
-    camX = Math.max(0, Math.min(p.x + p.w/2 - W/2, MUNDO_W*T - W));
-    camY = p.y + p.h/2 - H/2;
-    if (camY < -7*T) camY = -7*T;
-
+    atualizaFaiscas(dt);
     if (MINERIOS.every(x => livro[x.id] > 0)) ganhaConquista('livro');
     atualizaHud();
 }
 
-// ==================== DESENHO ====================
-function desenhaMineiro(x, y){
-    ctx.save();
-    ctx.translate(x, y);
-    if (invuln > 0 && Math.sin(tGlobal*30) > 0) ctx.globalAlpha = 0.45;
-    // corpo
-    ctx.fillStyle = '#ffe0b2'; ctx.fillRect(3, 12, 16, 14);
-    // olhos
-    ctx.fillStyle = '#222'; ctx.fillRect(6, 15, 3, 5); ctx.fillRect(13, 15, 3, 5);
-    // chapéu de cogumelo (com capacete amarelo)
-    ctx.fillStyle = '#c62828';
-    ctx.beginPath(); ctx.arc(11, 12, 12, Math.PI, 0); ctx.fill();
-    ctx.fillRect(-1, 9, 24, 4);
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(5, 6, 2.4, 0, 7); ctx.fill();
-    ctx.beginPath(); ctx.arc(16, 4.5, 2.8, 0, 7); ctx.fill();
-    // lanterninha do capacete
-    ctx.fillStyle = '#ffe066';
-    ctx.beginPath(); ctx.arc(11 + p.olhando*8, 8, 3, 0, 7); ctx.fill();
-    // pés
-    ctx.fillStyle = '#5d4037';
-    const bal = (p.chao && Math.abs(p.vx) > 0.1) ? Math.sin(tGlobal*14)*2.5 : 0;
-    ctx.fillRect(3+bal, 26, 7, 3); ctx.fillRect(12-bal, 26, 7, 3);
-    // picareta
-    ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(11 + p.olhando*4, 20); ctx.lineTo(11 + p.olhando*16, 12);
-    ctx.stroke();
-    ctx.strokeStyle = ['#9e9e9e','#bdbdbd','#c1691f','#cfd8dc','#eceff1','#ffd700','#7fe9ff','#ff8a65','#ff3ea5'][up('picareta')] || '#9e9e9e';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(11 + p.olhando*11, 8); ctx.lineTo(11 + p.olhando*19, 15);
-    ctx.stroke();
-    ctx.restore();
+// ==================== ANIMAÇÃO, LUZ E CÂMERA ====================
+const COR_CEU = 0x87ceeb;
+let corTmp, corFundo;
+let mouseCavando = false;
+let andandoAgora = false;
+
+function animaBoneco(dt){
+    if (!boneco) return;
+    boneco.position.set(p.x, p.y, p.z);
+    boneco.rotation.y = p.yaw;
+    boneco.visible = !(invuln > 0 && Math.sin(tGlobal*28) > 0);
+
+    const balanco = andandoAgora ? Math.sin(passo) * 0.75 : 0;
+    if (pernaE) pernaE.rotation.x =  balanco;
+    if (pernaD) pernaD.rotation.x = -balanco;
+
+    const cavando = !!(alvo && prog > 0);
+    if (bracoD) {
+        // martelada da picareta: braço direito girando forte enquanto cava
+        bracoD.rotation.x = cavando ? (-1.5 + Math.abs(Math.sin(martelada)) * 1.7) : -balanco * 0.7;
+    }
+    if (bracoE) bracoE.rotation.x = cavando ? -0.5 : balanco * 0.7;
 }
 
-function desenhaBloco(b, x, y, r){
-    const cam = camadaDe(r);
-    if (b.tipo === 'borda') {
-        ctx.fillStyle = '#15121c'; ctx.fillRect(x, y, T, T);
-        ctx.fillStyle = '#231d30'; ctx.fillRect(x+3, y+3, T-6, T-6);
-        return;
-    }
-    if (b.tipo === 'lava') {
-        const g = ctx.createLinearGradient(x, y, x, y+T);
-        g.addColorStop(0, '#ffdd00'); g.addColorStop(0.5, '#ff6600'); g.addColorStop(1, '#cc1100');
-        ctx.fillStyle = g; ctx.fillRect(x, y, T, T);
-        ctx.fillStyle = 'rgba(255,220,120,0.8)';
-        for (let i=0;i<3;i++) {
-            const bx = x + 6 + ((i*11 + tGlobal*22) % (T-10));
-            ctx.beginPath(); ctx.arc(bx, y + 8 + (i%3)*8, 2.5, 0, 7); ctx.fill();
-        }
-        return;
-    }
-    if (b.tipo === 'gas') {
-        ctx.fillStyle = 'rgba(140,255,140,0.28)'; ctx.fillRect(x, y, T, T);
-        ctx.fillStyle = 'rgba(190,255,190,0.5)';
-        ctx.beginPath(); ctx.arc(x+T/2, y+T/2 + Math.sin(tGlobal*3)*3, 8, 0, 7); ctx.fill();
-        ctx.font = '13px Arial'; ctx.fillStyle = '#dfffdf'; ctx.textAlign = 'center';
-        ctx.fillText('💨', x+T/2, y+T/2+5); ctx.textAlign = 'start';
-        return;
-    }
-    // rocha de fundo
-    ctx.fillStyle = cam.cor; ctx.fillRect(x, y, T, T);
-    ctx.fillStyle = cam.cor2; ctx.fillRect(x+2, y+2, T-4, T-4);
-    ctx.fillStyle = 'rgba(0,0,0,0.16)';
-    ctx.fillRect(x+5, y+7, 5, 4); ctx.fillRect(x+18, y+16, 6, 5);
-    if (b.tipo === 'minerio') {
-        const m = MINERIO_POR_ID[b.ore];
-        if (m) {
-            ctx.fillStyle = m.cor;
-            ctx.beginPath();
-            ctx.moveTo(x+T/2, y+5); ctx.lineTo(x+T-6, y+T/2); ctx.lineTo(x+T/2, y+T-5); ctx.lineTo(x+6, y+T/2);
-            ctx.closePath(); ctx.fill();
-            ctx.fillStyle = m.brilho;
-            ctx.beginPath(); ctx.arc(x+T/2-3, y+T/2-4, 3.2, 0, 7); ctx.fill();
-            if (m.id === 'lendario' || m.id === 'estrela') {
-                ctx.globalAlpha = 0.55 + Math.sin(tGlobal*6)*0.35;
-                ctx.fillStyle = m.brilho;
-                ctx.beginPath(); ctx.arc(x+T/2, y+T/2, 11, 0, 7); ctx.fill();
-                ctx.globalAlpha = 1;
-            }
-        }
-    }
-}
-
-function desenhaSuperficie(){
-    // céu
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#1a2a55'); g.addColorStop(1, '#6fa8d0');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    // sol
-    ctx.fillStyle = '#ffe066';
-    ctx.beginPath(); ctx.arc(W-70, 60, 26, 0, 7); ctx.fill();
-    // nuvens
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    for (let i=0;i<4;i++) {
-        const nx = ((i*260 - camX*0.25) % (W+220) + W+220) % (W+220) - 110;
-        const ny = 50 + i*32 - camY*0.1;
-        if (ny < -60 || ny > H) continue;
-        ctx.beginPath(); ctx.arc(nx, ny, 18, 0, 7); ctx.arc(nx+22, ny-7, 24, 0, 7); ctx.arc(nx+46, ny, 17, 0, 7); ctx.fill();
-    }
-}
-
-function desenhaLojinha(){
-    // casinha da loja na superfície, em cima das colunas 3..7
-    const x = 3*T - camX, y = -3*T - camY;
-    ctx.fillStyle = '#6d4c41'; ctx.fillRect(x, y+30, 5*T, 66);
-    ctx.fillStyle = '#c62828';
-    ctx.beginPath(); ctx.moveTo(x-8, y+32); ctx.lineTo(x + 2.5*T, y-6); ctx.lineTo(x + 5*T + 8, y+32); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#ffe082'; ctx.fillRect(x+18, y+52, 30, 26);
-    ctx.fillStyle = '#3e2723'; ctx.fillRect(x+3*T, y+56, 26, 40);
-    ctx.font = 'bold 18px Arial'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
-    ctx.fillText('🛒 LOJA', x + 2.5*T, y+22);
-    ctx.textAlign = 'start';
-}
-
-function desenha(){
+function atualizaLuzes(){
     const prof = profundidade();
     const cam = camadaDe(prof);
-    // fundo
-    if (camY < 0) desenhaSuperficie();
-    ctx.fillStyle = cam.fundo;
-    const chaoY = -camY;
-    if (chaoY < H) ctx.fillRect(0, Math.max(0, chaoY), W, H - Math.max(0, chaoY));
-    if (camY >= 0) { ctx.fillStyle = cam.fundo; ctx.fillRect(0, 0, W, H); }
+    const escuro = Math.min(1, Math.max(0, (prof - 4) / 40));
 
-    // grama da superfície
-    if (camY < 20) {
-        ctx.fillStyle = '#3ea34a';
-        ctx.fillRect(0, -camY - 6, W, 8);
-    }
-    if (camY - (-6*T) < H) desenhaLojinha();
+    if (luzAmbiente) luzAmbiente.intensity = 0.92 - 0.84 * escuro;
+    if (luzSol) luzSol.intensity = 0.75 * (1 - escuro);
+    if (sol) sol.visible = escuro < 0.85;
+    if (lojinha) lojinha.visible = prof < 40;
 
-    // blocos visíveis
-    const c0 = Math.max(0, Math.floor(camX / T)), c1 = Math.min(MUNDO_W-1, Math.ceil((camX + W)/T));
-    const r0 = Math.max(0, Math.floor(camY / T)), r1 = Math.floor((camY + H)/T);
-    for (let r=r0;r<=r1;r++) for (let c=c0;c<=c1;c++) {
-        const b = bloco(c,r);
-        if (b === 0) continue;
-        desenhaBloco(b, c*T - camX, r*T - camY, r);
-    }
-    // paredes do mundo (fora do grid)
-    ctx.fillStyle = '#15121c';
-    if (camX < 0) ctx.fillRect(0, Math.max(0,-camY), -camX, H);
-    const fimX = MUNDO_W*T - camX;
-    if (fimX < W) ctx.fillRect(fimX, Math.max(0,-camY), W - fimX, H);
-
-    // gás
-    nuvensGas.forEach(g=>{
-        ctx.fillStyle = 'rgba(150,255,150,0.32)';
-        ctx.beginPath(); ctx.arc(g.x - camX, g.y - camY, g.raio, 0, 7); ctx.fill();
-    });
-    // pedras caindo
-    pedrasCaindo.forEach(pe=>{
-        ctx.fillStyle = pe.cor || '#8d8d96';
-        ctx.fillRect(pe.x - camX + 2, pe.y - camY + 2, T-4, T-4);
-        ctx.fillStyle = 'rgba(0,0,0,0.25)';
-        ctx.fillRect(pe.x - camX + 8, pe.y - camY + 10, 8, 6);
-    });
-    // partículas
-    particulas.forEach(pa=>{
-        ctx.globalAlpha = Math.max(0, pa.vida*2);
-        ctx.fillStyle = pa.cor;
-        ctx.fillRect(pa.x - camX - 2, pa.y - camY - 2, 4, 4);
-        ctx.globalAlpha = 1;
-    });
-    // morcegos
-    morcegos.forEach(mo=>{
-        const mx = mo.x - camX, my = mo.y - camY;
-        ctx.fillStyle = '#4a2c5a';
-        const asa = Math.sin(mo.fase)*6;
-        ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx-14, my-asa); ctx.lineTo(mx-6, my+5); ctx.closePath(); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx+14, my-asa); ctx.lineTo(mx+6, my+5); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#2e1b38';
-        ctx.beginPath(); ctx.arc(mx, my, 6, 0, 7); ctx.fill();
-        ctx.fillStyle = '#ff5252';
-        ctx.fillRect(mx-3, my-2, 2, 2); ctx.fillRect(mx+1, my-2, 2, 2);
-    });
-
-    // jogador
-    desenhaMineiro(p.x - camX, p.y - camY);
-
-    // barra de cavar
-    if (alvo && prog > 0.02) {
-        const bx = p.x - camX - 4, by = p.y - camY - 14;
-        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(bx, by, 30, 7);
-        ctx.fillStyle = '#ffd700'; ctx.fillRect(bx+1, by+1, 28*Math.min(1,prog), 5);
+    corFundo.setHex(COR_CEU).lerp(corTmp.setHex(cam.fundo), escuro);
+    if (scene.background) scene.background.copy(corFundo);
+    if (scene.fog) {
+        scene.fog.color.copy(corFundo);
+        scene.fog.near = 6;
+        scene.fog.far  = escuro > 0.4 ? (luzDist() + 6) : 46;
     }
 
-    // escuridão + luz da lanterna
-    const escuro = Math.min(0.93, Math.max(0, (prof - 6) / 90));
-    if (escuro > 0.02) {
-        const lx = p.x - camX + p.w/2, ly = p.y - camY + p.h/2;
-        const raio = raioLuz() * (0.55 + 0.45 * Math.max(0.25, energia/energiaMax()));
-        const g = ctx.createRadialGradient(lx, ly, raio*0.32, lx, ly, raio);
-        g.addColorStop(0, 'rgba(0,0,0,0)');
-        g.addColorStop(0.65, 'rgba(0,0,0,' + (escuro*0.55) + ')');
-        g.addColorStop(1, 'rgba(0,0,0,' + escuro + ')');
-        ctx.fillStyle = g;
-        ctx.fillRect(lx-raio, ly-raio, raio*2, raio*2);
-        ctx.fillStyle = 'rgba(0,0,0,' + escuro + ')';
-        ctx.fillRect(0, 0, W, Math.max(0, ly-raio));
-        ctx.fillRect(0, Math.min(H, ly+raio), W, H);
-        ctx.fillRect(0, Math.max(0, ly-raio), Math.max(0, lx-raio), Math.min(H, raio*2));
-        ctx.fillRect(Math.min(W, lx+raio), Math.max(0, ly-raio), W, Math.min(H, raio*2));
+    if (lanterna) {
+        const fpx = Math.sin(p.yaw), fpz = Math.cos(p.yaw);
+        lanterna.position.set(p.x + fpx*0.22, p.y + 1.66, p.z + fpz*0.22);
+        alvoLanterna.position.set(p.x + fpx*luzDist(), p.y + 1.1, p.z + fpz*luzDist());
+        lanterna.distance = luzDist() + 3;
+        lanterna.angle = luzAng();
+        const forca = 0.55 + 0.75 * Math.max(0.3, energia / energiaMax());
+        lanterna.intensity = escuro > 0.05 ? forca * 1.5 : forca * 0.6;
     }
+}
 
-    // etiqueta da camada + tela vermelha ao levar dano
-    ctx.font = 'bold 14px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.65)';
-    ctx.fillText(cam.nome + ' · ' + prof + 'm', 10, H-12);
-    ctx.fillText('🏆 ' + recorde + 'm', 10, 22);
-    if (tGlobal - ultimoDano < 0.3) {
-        ctx.fillStyle = 'rgba(255,0,0,0.22)'; ctx.fillRect(0,0,W,H);
+function atualizaCamera(dt){
+    const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
+    const olhoY = p.y + 1.35;
+    let dist = camDist;
+    for (let t = 0.5; t <= camDist; t += 0.4) {
+        const px = p.x - fx*t, pz = p.z - fz*t, py = olhoY + 1.9 * (t / camDist);
+        if (pontoSolido(px, py, pz)) { dist = Math.max(1.4, t - 0.45); break; }
     }
-    if (!jogando) {
-        ctx.fillStyle = 'rgba(0,0,10,0.55)'; ctx.fillRect(0,0,W,H);
+    const tx = p.x - fx*dist, tz = p.z - fz*dist, ty = olhoY + 1.9 * (dist / camDist);
+    const k = Math.min(1, dt * 11);
+    camera.position.x += (tx - camera.position.x) * k;
+    camera.position.y += (ty - camera.position.y) * k;
+    camera.position.z += (tz - camera.position.z) * k;
+    camera.lookAt(p.x, olhoY, p.z);
+}
+
+function atualizaMira(){
+    const barra = el('barraCavar'), dentro = el('barraCavarIn');
+    if (!jogando) { alvo = null; prog = 0; }
+    if (alvo && contorno) {
+        contorno.visible = true;
+        contorno.position.set(alvo.x + 0.5, -(alvo.y + 0.5), alvo.z + 0.5);
+        const pisca = 0.6 + 0.4 * Math.sin(tGlobal * 8);
+        contorno.material.color.setRGB(1, 1, pisca);
+    } else if (contorno) {
+        contorno.visible = false;
     }
+    if (barra && dentro) {
+        if (alvo && prog > 0.02) {
+            barra.style.display = 'block';
+            dentro.style.width = Math.min(100, prog * 100) + '%';
+        } else {
+            barra.style.display = 'none';
+        }
+    }
+    const ct = el('camadaTxt');
+    if (ct) ct.textContent = camadaDe(profundidade()).nome + ' · ' + profundidade() + 'm · 🏆 ' + recorde + 'm';
 }
 
 // ==================== LOOP (nunca morre!) ====================
-let ultimoT = 0;
+let ultimoT = 0, proxMonta = 0;
 function loop(agora){
     try {
         const dt = Math.min(0.05, ultimoT ? (agora - ultimoT)/1000 : 0.016);
         ultimoT = agora;
         tGlobal += dt;
         atualiza(dt);
-        desenha();
+        const cel = Math.floor(p.x) + ',' + Math.floor(-p.y) + ',' + Math.floor(p.z);
+        if ((mundoSujo || cel !== ultimaCelula) && tGlobal >= proxMonta) {
+            ultimaCelula = cel; proxMonta = tGlobal + 0.08; montaMundo();
+        }
+        animaBoneco(dt);
+        atualizaLuzes();
+        atualizaCamera(dt);
+        atualizaMira();
+        renderer.render(scene, camera);
     } catch(e) {
-        // nunca deixa o jogo travar na tela preta
         if (window.console) console.error(e);
     }
     requestAnimationFrame(loop);
@@ -898,34 +1221,33 @@ function loop(agora){
 
 // ==================== PAINÉIS ====================
 function escondeTodos(){
-    ['menu','loja','livro','conquistas'].forEach(id=>{
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
+    ['menu','loja','livro','conquistas','semNet'].forEach(id=>{
+        const e = el(id);
+        if (e) e.style.display = 'none';
     });
 }
 function abreMenu(){
     jogando = false;
     escondeTodos();
-    const el = document.getElementById('menu');
-    if (el) el.style.display = 'flex';
-    const rt = document.getElementById('recordeTxt');
+    const m = el('menu');
+    if (m) m.style.display = 'flex';
+    const rt = el('recordeTxt');
     if (rt) rt.textContent = '🏆 Recorde de profundidade: ' + recorde + 'm  ·  🪙 ' + moedas;
 }
 function comecaJogo(){
     escondeTodos();
-    if (p.y === 0 && p.x === 0) vaiPraSuperficie();
     jogando = true;
     atualizaHud();
-    if (profundidade() <= 0) mostraMsg('⛏️ Cave pra baixo! 🔽', '#fff', 1500);
+    if (profundidade() <= 0) mostraMsg('⛏️ Cave pra baixo! 🔽', '#fff', 1600);
 }
 function abreLoja(){
     jogando = false;
     escondeTodos();
-    const painel = document.getElementById('loja');
+    const painel = el('loja');
     if (painel) painel.style.display = 'flex';
-    const mo = document.getElementById('lojaMoedas');
+    const mo = el('lojaMoedas');
     if (mo) mo.textContent = '🪙 ' + moedas;
-    const grid = document.getElementById('lojaGrid');
+    const grid = el('lojaGrid');
     if (!grid) return;
     grid.innerHTML = '';
     TRILHAS.forEach(tr=>{
@@ -941,38 +1263,39 @@ function abreLoja(){
         ds.className = 'idesc';
         ds.textContent = tr.desc + ' (nível ' + (nivel+1) + '/' + (maxNivel+1) + ')';
         d.appendChild(ds);
-        const btn = document.createElement('button');
+        const b = document.createElement('button');
         if (nivel >= maxNivel) {
-            btn.textContent = '👑 NO MÁXIMO!';
-            btn.disabled = true;
+            b.textContent = '👑 NO MÁXIMO!';
+            b.disabled = true;
         } else {
             const preco = tr.precos[nivel];
-            btn.textContent = '🪙 ' + preco + ' → ' + tr.nomes[nivel+1];
-            btn.disabled = moedas < preco;
-            btn.onclick = ()=>{
+            b.textContent = '🪙 ' + preco + ' → ' + tr.nomes[nivel+1];
+            b.disabled = moedas < preco;
+            b.onclick = ()=>{
                 if (moedas < preco) return;
                 moedas -= preco;
                 melhorias[tr.id] = nivel + 1;
                 if (tr.id === 'bota') energia = energiaMax();
+                if (tr.id === 'picareta') atualizaPicareta();
                 salvaTudo(); atualizaHud();
                 som(620,0.09); setTimeout(()=>som(880,0.16),90);
                 if (TRILHAS.every(x => up(x.id) >= x.nomes.length-1)) ganhaConquista('tudomax');
                 abreLoja();
             };
         }
-        d.appendChild(btn);
+        d.appendChild(b);
         grid.appendChild(d);
     });
 }
 function abreLivro(){
     jogando = false;
     escondeTodos();
-    const painel = document.getElementById('livro');
+    const painel = el('livro');
     if (painel) painel.style.display = 'flex';
     const achados = MINERIOS.filter(m => livro[m.id] > 0).length;
-    const sub = document.getElementById('livroSub');
+    const sub = el('livroSub');
     if (sub) sub.textContent = 'Você já achou ' + achados + ' de ' + MINERIOS.length + ' minérios!';
-    const grid = document.getElementById('livroGrid');
+    const grid = el('livroGrid');
     if (!grid) return;
     grid.innerHTML = '';
     MINERIOS.forEach(m=>{
@@ -991,11 +1314,11 @@ function abreLivro(){
 function abreConquistas(){
     jogando = false;
     escondeTodos();
-    const painel = document.getElementById('conquistas');
+    const painel = el('conquistas');
     if (painel) painel.style.display = 'flex';
-    const sub = document.getElementById('conqSub');
+    const sub = el('conqSub');
     if (sub) sub.textContent = conqFeitas.length + ' de ' + CONQUISTAS.length + ' conquistas · 🏆 recorde ' + recorde + 'm · 🪙 ' + totalMoedas + ' no total';
-    const grid = document.getElementById('conqGrid');
+    const grid = el('conqGrid');
     if (!grid) return;
     grid.innerHTML = '';
     CONQUISTAS.forEach(c=>{
@@ -1015,34 +1338,110 @@ function presenteDoDia(){
     const bonus = 60 + Math.min(500, recorde);
     moedas += bonus; totalMoedas += bonus;
     salvaTudo();
-    setTimeout(()=> mostraMsg('🎁 PRESENTE DO DIA!\n+🪙 ' + bonus, '#ffd700', 2600), 600);
+    setTimeout(()=> mostraMsg('🎁 PRESENTE DO DIA!\n+🪙 ' + bonus, '#ffd700', 2600), 700);
 }
 
 // ==================== CONTROLES ====================
+const TECLAS_JOGO = ['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','KeyE','ShiftLeft','ShiftRight'];
 addEventListener('keydown', e=>{
     teclas[e.code] = true;
-    if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD'].includes(e.code)) e.preventDefault();
+    if (TECLAS_JOGO.indexOf(e.code) >= 0) e.preventDefault();
 });
 addEventListener('keyup', e=>{ teclas[e.code] = false; });
-addEventListener('blur', ()=>{ for (const k in teclas) teclas[k] = false; });
+addEventListener('blur', ()=>{
+    for (const k in teclas) teclas[k] = false;
+    mouseCavando = false; btn.cavar = false; btn.baixo = false; btn.pulo = false;
+    joy.ativo = false; joy.x = 0; joy.z = 0;
+});
+
+// --- mouse: arrastar gira a câmera, clicar cava ---
+let arrastando = false, ultimoMX = 0, ultimoMY = 0;
+canvas.addEventListener('mousedown', e=>{
+    arrastando = true; ultimoMX = e.clientX; ultimoMY = e.clientY;
+    mouseCavando = true;
+});
+addEventListener('mouseup', ()=>{ arrastando = false; mouseCavando = false; });
+addEventListener('mousemove', e=>{
+    if (!arrastando) return;
+    const dx = e.clientX - ultimoMX;
+    ultimoMX = e.clientX; ultimoMY = e.clientY;
+    if (Math.abs(dx) > 1) mouseCavando = false;   // se arrastou, é pra girar
+    camYaw -= dx * 0.006;
+});
+
+// --- toque: um dedo na tela (fora dos controles) gira a câmera ---
+let toqueCam = null;
+canvas.addEventListener('touchstart', e=>{
+    const t = e.changedTouches[0];
+    toqueCam = { id:t.identifier, x:t.clientX };
+}, {passive:true});
+canvas.addEventListener('touchmove', e=>{
+    if (!toqueCam) return;
+    for (let i=0;i<e.changedTouches.length;i++){
+        const t = e.changedTouches[i];
+        if (t.identifier !== toqueCam.id) continue;
+        camYaw -= (t.clientX - toqueCam.x) * 0.008;
+        toqueCam.x = t.clientX;
+    }
+}, {passive:true});
+canvas.addEventListener('touchend', ()=>{ toqueCam = null; }, {passive:true});
+
+// --- joystick ---
+const joyEl = el('joy'), joyBola = el('joyBola');
+let joyId = null;
+function moveJoy(cx, cy){
+    if (!joyEl || !joyBola) return;
+    const r = joyEl.getBoundingClientRect();
+    let dx = (cx - (r.left + r.width/2)) / (r.width/2);
+    let dy = (cy - (r.top + r.height/2)) / (r.height/2);
+    const t = Math.hypot(dx,dy);
+    if (t > 1) { dx /= t; dy /= t; }
+    joy.x = dx; joy.z = dy; joy.ativo = t > 0.18;
+    joyBola.style.left = (41 + dx*38) + 'px';
+    joyBola.style.top  = (41 + dy*38) + 'px';
+}
+function soltaJoy(){
+    joy.x = 0; joy.z = 0; joy.ativo = false;
+    joyId = null;
+    if (joyBola) { joyBola.style.left = '41px'; joyBola.style.top = '41px'; }
+}
+if (joyEl) {
+    joyEl.addEventListener('touchstart', e=>{
+        e.preventDefault();
+        const t = e.changedTouches[0];
+        joyId = t.identifier;
+        moveJoy(t.clientX, t.clientY);
+    }, {passive:false});
+    joyEl.addEventListener('touchmove', e=>{
+        e.preventDefault();
+        for (let i=0;i<e.changedTouches.length;i++){
+            const t = e.changedTouches[i];
+            if (t.identifier === joyId) moveJoy(t.clientX, t.clientY);
+        }
+    }, {passive:false});
+    joyEl.addEventListener('touchend', e=>{ e.preventDefault(); soltaJoy(); }, {passive:false});
+    joyEl.addEventListener('touchcancel', ()=> soltaJoy());
+}
 
 function ligaBtn(id, prop){
-    const el = document.getElementById(id);
-    if (!el) return;
-    const on  = e=>{ e.preventDefault(); btnEstado[prop] = true;  el.classList.add('apertado'); };
-    const off = e=>{ e.preventDefault(); btnEstado[prop] = false; el.classList.remove('apertado'); };
-    el.addEventListener('touchstart', on, {passive:false});
-    el.addEventListener('touchend', off, {passive:false});
-    el.addEventListener('touchcancel', off, {passive:false});
-    el.addEventListener('mousedown', on);
-    el.addEventListener('mouseup', off);
-    el.addEventListener('mouseleave', off);
+    const e = el(id);
+    if (!e) return;
+    const on  = ev=>{ ev.preventDefault(); btn[prop] = true;  e.classList.add('apertado'); };
+    const off = ev=>{ if (ev && ev.preventDefault) ev.preventDefault(); btn[prop] = false; e.classList.remove('apertado'); };
+    e.addEventListener('touchstart', on, {passive:false});
+    e.addEventListener('touchend', off, {passive:false});
+    e.addEventListener('touchcancel', off, {passive:false});
+    e.addEventListener('mousedown', on);
+    e.addEventListener('mouseup', off);
+    e.addEventListener('mouseleave', off);
 }
-ligaBtn('btnEsq','esq'); ligaBtn('btnDir','dir'); ligaBtn('btnBaixo','baixo'); ligaBtn('btnPulo','pulo');
+ligaBtn('btnCavar','cavar');
+ligaBtn('btnBaixo','baixo');
+ligaBtn('btnPulo','pulo');
 
 function ligaClique(id, fn){
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('click', fn);
+    const e = el(id);
+    if (e) e.addEventListener('click', fn);
 }
 ligaClique('btnJogar', comecaJogo);
 ligaClique('btnLojaMenu', abreLoja);
@@ -1056,16 +1455,27 @@ ligaClique('btnFechaLivro', abreMenu);
 ligaClique('btnFechaConq', abreMenu);
 
 // ==================== START ====================
-if ('ontouchstart' in window) {
-    const ctl = document.getElementById('controles');
-    if (ctl) ctl.style.display = 'flex';
+function comeca(){
+    if (typeof THREE === 'undefined') {
+        escondeTodos();
+        const s = el('semNet');
+        if (s) s.style.display = 'flex';
+        return;
+    }
+    iniciaCena();
+    if ('ontouchstart' in window) {
+        const ctl = el('controles');
+        if (ctl) ctl.style.display = 'block';
+    }
+    vaiPraSuperficie();
+    jogando = false;
+    presenteDoDia();
+    atualizaHud();
+    abreMenu();
+    montaMundo();
+    requestAnimationFrame(loop);
 }
-vaiPraSuperficie();
-jogando = false;
-presenteDoDia();
-atualizaHud();
-abreMenu();
-requestAnimationFrame(loop);
+comeca();
 </script>
 </body>
 </html>
