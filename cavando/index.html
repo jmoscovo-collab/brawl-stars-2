@@ -40,6 +40,16 @@ canvas#c { display:block; background:#000; width:100vw; height:calc(100vh - 40px
     border-radius:8px; display:none; z-index:13; overflow:hidden;
 }
 #barraCavarIn { height:100%; width:0%; background:linear-gradient(90deg,#ffd700,#ff8a00); }
+#mira {
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:22px; height:22px; z-index:12; pointer-events:none; display:none;
+}
+#mira::before, #mira::after {
+    content:''; position:absolute; background:rgba(255,255,255,0.85);
+    box-shadow:0 0 4px #000;
+}
+#mira::before { left:50%; top:0; width:2px; height:22px; margin-left:-1px; }
+#mira::after  { top:50%; left:0; height:2px; width:22px; margin-top:-1px; }
 #flashDano {
     position:fixed; inset:0; background:rgba(255,0,0,0.25); opacity:0;
     pointer-events:none; z-index:13; transition:opacity .25s;
@@ -118,6 +128,7 @@ a.voltar { position:fixed; bottom:6px; left:10px; color:#8a8aa0; text-decoration
     <span id="profHud">📏 0m</span>
     <button class="btnTopo btnSubir" id="btnElevador">🛗 SUBIR</button>
     <button class="btnTopo btnLoja" id="btnLojaTopo">🛒 LOJA</button>
+    <button class="btnTopo" id="btnVisao">👁️ VISÃO</button>
     <button class="btnTopo" id="btnMenuTopo">📋 MENU</button>
 </div>
 
@@ -125,6 +136,7 @@ a.voltar { position:fixed; bottom:6px; left:10px; color:#8a8aa0; text-decoration
 <div id="msg"></div>
 <div id="camadaTxt"></div>
 <div id="barraCavar"><div id="barraCavarIn"></div></div>
+<div id="mira" style="display:none"></div>
 <div id="flashDano"></div>
 
 <div id="controles">
@@ -138,7 +150,7 @@ a.voltar { position:fixed; bottom:6px; left:10px; color:#8a8aa0; text-decoration
 
 <div class="painel" id="menu" style="display:flex;">
     <h1>⛏️ Cavando Fundo 3D</h1>
-    <div class="sub">Você é um mineiro de verdade, com capacete e lanterna! 🪖 Cave os cubos pra baixo, ache minérios brilhantes, volte pra superfície pra vender e melhore o equipamento pra descer AINDA mais fundo! 🍄</div>
+    <div class="sub">🧑‍🔧 Você é um <b>mineiro humano</b> num mundo de cubos 3D! Cave os cubos pra baixo, ache minérios brilhantes, volte pra superfície pra vender e melhore o equipamento pra descer AINDA mais fundo! 🍄</div>
     <div class="sub" id="recordeTxt">🏆 Recorde de profundidade: 0m</div>
     <div class="teclas">
         💻 <b>No computador (tanto faz WASD ou as setas!)</b><br>
@@ -149,19 +161,20 @@ a.voltar { position:fixed; bottom:6px; left:10px; color:#8a8aa0; text-decoration
         <b>ESPAÇO</b> = pular ⬆️<br>
         <b>E</b> ou clique = cavar ⛏️ (segure!)<br>
         <b>Shift</b> = cavar pra baixo 🔽<br>
-        arraste o mouse = girar a câmera 🎥
+        arraste o mouse = olhar em volta 👀
     </div>
     <div class="teclas">
         📱 <b>No celular</b><br>
         joystick da esquerda = andar<br>
         botões grandes = ⛏️ cavar, 🔽 cavar pra baixo, ⬆️ pular<br>
-        arraste o dedo na tela = girar a câmera
+        arraste o dedo na tela = olhar em volta 👀
     </div>
     <div style="display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap; justify-content:center;">
         <button class="fechar" style="margin:0; background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a;" id="btnJogar">⛏️ CAVAR!</button>
         <button class="fechar" style="margin:0; background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200;" id="btnLojaMenu">🛒 LOJA</button>
         <button class="fechar" style="margin:0;" id="btnLivroMenu">📖 LIVRO</button>
         <button class="fechar" style="margin:0;" id="btnConqMenu">🏅 CONQUISTAS</button>
+        <button class="fechar" style="margin:0; background:linear-gradient(135deg,#7fe0ff,#4a6cff); color:#04283a;" id="btnVisaoMenu">👁️ TROCAR A VISÃO</button>
     </div>
 </div>
 
@@ -219,6 +232,8 @@ let recorde      = leSave('recorde', 0);
 let livro        = leSave('livro', {});
 let conqFeitas   = leSave('conquistas', []);
 let ultimoDia    = leSave('dia', '');
+let visao        = leSave('visao', 'terceira');
+if (visao !== 'primeira' && visao !== 'terceira') visao = 'terceira';
 let melhorias    = leSave('melhorias', { picareta:0, mochila:0, bota:0, lanterna:0 });
 if (typeof melhorias !== 'object' || melhorias === null) melhorias = { picareta:0, mochila:0, bota:0, lanterna:0 };
 ['picareta','mochila','bota','lanterna'].forEach(k=>{
@@ -239,6 +254,7 @@ function salvaTudo(){
     gravaSave('conquistas', conqFeitas);
     gravaSave('melhorias', melhorias);
     gravaSave('dia', ultimoDia);
+    gravaSave('visao', visao);
 }
 
 // ---------- MELHORIAS ----------
@@ -361,7 +377,7 @@ function mostraMsg(txt, cor='#fff', tempo=1400){
 }
 
 // ==================== MUNDO VOXEL ====================
-const MUNDO_W = 46;            // largura em x e em z (cubos)
+const MUNDO_W = 200;           // largura em x e em z (cubos) — mapa GRANDÃO pra explorar 🗺️
 const postos    = new Map();   // blocos que apareceram depois (pedra que caiu)
 const quebrados = new Set();   // blocos que o jogador cavou
 const ordemQuebra = [];        // pra podar memória se cavar MUITO
@@ -428,7 +444,7 @@ const solido = b => b !== 0;
 
 // ==================== CENA THREE.JS ====================
 const canvas = el('c');
-let renderer, scene, camera, luzAmbiente, luzSol, lanterna, alvoLanterna, contorno;
+let renderer, scene, camera, luzAmbiente, luzCeu, luzSol, lanterna, alvoLanterna, contorno, luzMineiro;
 let mundoSujo = true, ultimaCelula = '';
 
 const grupos = new Map();      // chave do material -> { mesh, mat, n }
@@ -439,24 +455,66 @@ function corDaCamada(i, alt){
     const c = CAMADAS[Math.max(0, Math.min(CAMADAS.length-1, i))];
     return alt ? c.cor2 : c.cor;
 }
+// ---- texturas feitas na hora, dão o granulado de pedra de verdade ----
+const cacheTextura = new Map();
+function mexeCor(cor, f){
+    let r = (cor >> 16) & 255, g = (cor >> 8) & 255, b = cor & 255;
+    r = Math.max(0, Math.min(255, Math.round(r * f)));
+    g = Math.max(0, Math.min(255, Math.round(g * f)));
+    b = Math.max(0, Math.min(255, Math.round(b * f)));
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+function texturaPedra(cor, pintas){
+    const k = cor + ':' + (pintas || 0);
+    if (cacheTextura.has(k)) return cacheTextura.get(k);
+    const N = 16;
+    const cv2 = document.createElement('canvas');
+    cv2.width = N; cv2.height = N;
+    const g2 = cv2.getContext('2d');
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        const n = 0.80 + Math.random() * 0.40;                 // granulado
+        const borda = (x === 0 || y === 0 || x === N-1 || y === N-1) ? 0.62 : 1;
+        g2.fillStyle = mexeCor(cor, n * borda);                // cantinho escuro = parece cubo de verdade
+        g2.fillRect(x, y, 1, 1);
+    }
+    if (pintas) {                                              // veiazinhas do minério
+        for (let i = 0; i < 22; i++) {
+            const x = 1 + Math.floor(Math.random() * (N-3)), y = 1 + Math.floor(Math.random() * (N-3));
+            g2.fillStyle = mexeCor(pintas, 0.85 + Math.random() * 0.5);
+            g2.fillRect(x, y, 2, 2);
+        }
+    }
+    const t = new THREE.CanvasTexture(cv2);
+    t.magFilter = THREE.NearestFilter;
+    if (THREE.sRGBEncoding) t.encoding = THREE.sRGBEncoding;
+    cacheTextura.set(k, t);
+    return t;
+}
 function materialDe(tipoKey){
     if (grupos.has(tipoKey)) return grupos.get(tipoKey);
     let mat;
     if (tipoKey === 'borda') {
-        mat = new THREE.MeshLambertMaterial({ color:0x15121c });
+        mat = new THREE.MeshStandardMaterial({ color:0x15121c, map:texturaPedra(0x15121c), roughness:1, metalness:0 });
     } else if (tipoKey === 'lava') {
-        mat = new THREE.MeshBasicMaterial({ color:0xff6a00 });
+        mat = new THREE.MeshStandardMaterial({ color:0xff8a1e, map:texturaPedra(0xff6a00, 0xffe066), emissive:0xff4d00, emissiveIntensity:1.15, roughness:0.75, metalness:0 });
     } else if (tipoKey === 'gas') {
-        mat = new THREE.MeshBasicMaterial({ color:0x8cff8c, transparent:true, opacity:0.45 });
+        mat = new THREE.MeshStandardMaterial({ color:0x8cff8c, transparent:true, opacity:0.42, emissive:0x2f7d2f, emissiveIntensity:0.5, roughness:0.5, metalness:0 });
     } else if (tipoKey.indexOf('minerio:') === 0) {
         const m = MINERIO_POR_ID[tipoKey.slice(8)];
-        mat = new THREE.MeshLambertMaterial({ color:(m?m.cor:0xffffff), emissive:(m?m.cor:0xffffff), emissiveIntensity:0.85 });
+        const cm = m ? m.cor : 0xffffff;
+        mat = new THREE.MeshStandardMaterial({
+            color:0xbdbdbd, map:texturaPedra(0x8a8a92, cm),
+            emissive:cm, emissiveIntensity:0.55,
+            roughness:0.32, metalness:0.75                    // minério brilha tipo metal/pedra preciosa
+        });
     } else {
         const partes = tipoKey.split(':');
-        mat = new THREE.MeshLambertMaterial({ color: corDaCamada(+partes[1], partes[2] === '1') });
+        const cr = corDaCamada(+partes[1], partes[2] === '1');
+        mat = new THREE.MeshStandardMaterial({ color:0xffffff, map:texturaPedra(cr), roughness:0.95, metalness:0.05 });
     }
     const mesh = new THREE.InstancedMesh(geoCubo, mat, MAXI);
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    if (sombraLigada && tipoKey !== 'gas') { mesh.castShadow = true; mesh.receiveShadow = true; }
     mesh.frustumCulled = false;
     mesh.count = 0;
     scene.add(mesh);
@@ -523,7 +581,7 @@ let elevProximo = 0;
 const teclas = {};
 const btn = { cavar:false, baixo:false, pulo:false };
 const joy = { x:0, z:0, ativo:false };
-let camDist = 5.2, camYaw = 0;
+let camYaw = 0, camPitch = 0;
 
 const profundidade = () => Math.max(0, Math.floor(-p.y));
 
@@ -537,13 +595,58 @@ function atualizaHud(){
 
 // ==================== O MINEIRO HUMANO ====================
 let boneco, pernaE, pernaD, bracoE, bracoD, picaretaCabeca, picaretaCabo, lanternaVidro;
+let bracoFPS, picaretaFPS;   // o braço com a picareta que aparece na sua frente
+const metaisPicareta = [];   // todas as partes de metal, pra pintar da cor do nível
 const PELE = 0xffd9b3;
 
 function caixa(w,h,d, cor, x,y,z, pai){
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshLambertMaterial({ color:cor }));
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),
+        new THREE.MeshStandardMaterial({ color:cor, roughness:0.78, metalness:0.06 }));
+    m.castShadow = sombraLigada;
     m.position.set(x,y,z);
     pai.add(m);
     return m;
+}
+// ---- picareta 3D de verdade: cabo de madeira roliço, anel de couro e cabeça de metal com bico ----
+function criaPicareta(escala){
+    const g = new THREE.Group();
+    const madeira = new THREE.MeshStandardMaterial({ color:0x7a5230, roughness:0.9, metalness:0.03 });
+    const couro   = new THREE.MeshStandardMaterial({ color:0x3b2415, roughness:0.85, metalness:0.05 });
+    const metal   = new THREE.MeshStandardMaterial({ color:0xb9bcc2, roughness:0.28, metalness:0.95 });
+
+    // cabo roliço (mais fino em cima, mais grosso embaixo)
+    const cabo = new THREE.Mesh(new THREE.CylinderGeometry(0.030, 0.042, 0.78, 10), madeira);
+    cabo.position.y = -0.30;
+    g.add(cabo);
+    // pomo embaixo do cabo
+    const pomo = new THREE.Mesh(new THREE.CylinderGeometry(0.050, 0.040, 0.06, 10), couro);
+    pomo.position.y = -0.68;
+    g.add(pomo);
+    // enrolado de couro onde a mão pega
+    const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.048, 0.20, 10), couro);
+    grip.position.y = -0.20;
+    g.add(grip);
+    // luva de metal que segura a cabeça
+    const luva = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.09, 10), metal);
+    luva.position.y = 0.055;
+    g.add(luva);
+    // bico comprido de um lado
+    const bico = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.055, 0.30, 6), metal);
+    bico.rotation.z = Math.PI / 2;
+    bico.position.set(0.17, 0.075, 0);
+    g.add(bico);
+    // pá curtinha do outro lado
+    const pa = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.085, 0.075), metal);
+    pa.position.set(-0.13, 0.075, 0);
+    g.add(pa);
+    const paPonta = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.11, 0.085), metal);
+    paPonta.position.set(-0.245, 0.075, 0);
+    g.add(paPonta);
+
+    [cabo, pomo, grip, luva, bico, pa, paPonta].forEach(m => { m.castShadow = sombraLigada; });
+    metaisPicareta.push(luva, bico, pa, paPonta);
+    g.scale.setScalar(escala || 1);
+    return g;
 }
 function criaMineiro(){
     boneco = new THREE.Group();
@@ -574,11 +677,9 @@ function criaMineiro(){
     boneco.add(bracoE); boneco.add(bracoD);
 
     // picareta na mão direita
-    const pic = new THREE.Group();
-    pic.position.set(0, -0.62, 0.05);
-    pic.rotation.x = -0.6;
-    picaretaCabo = caixa(0.07, 0.62, 0.07, 0x8d6e63, 0, -0.22, 0, pic);
-    picaretaCabeca = caixa(0.44, 0.10, 0.12, 0x9e9e9e, 0, -0.50, 0, pic);
+    const pic = criaPicareta(1.0);
+    pic.position.set(0.02, -0.66, 0.06);
+    pic.rotation.set(-0.55, 0, 0.15);
     bracoD.add(pic);
 
     // cabeça com rosto
@@ -604,16 +705,33 @@ function criaMineiro(){
 
     scene.add(boneco);
 }
+// o braço + picareta que você vê na sua frente (fica pendurado na câmera)
+function criaBracoFPS(){
+    bracoFPS = new THREE.Group();
+    caixa(0.17, 0.46, 0.17, 0x2f5fa8, 0, -0.20, 0, bracoFPS);   // manga do macacão
+    caixa(0.19, 0.15, 0.19, PELE, 0, -0.45, 0.02, bracoFPS);     // mão
+    const pic = criaPicareta(1.05);
+    pic.position.set(0.02, -0.48, 0.10);
+    pic.rotation.set(-1.05, 0.2, 0.12);
+    bracoFPS.add(pic);
+    bracoFPS.position.set(0.34, -0.34, -0.62);
+    bracoFPS.rotation.set(-0.35, -0.25, 0.18);
+    camera.add(bracoFPS);
+}
 function atualizaPicareta(){
     const c = PICARETA_COR[up('picareta')] || 0x9e9e9e;
-    if (picaretaCabeca) {
-        picaretaCabeca.material.color.setHex(c);
-        const g = 1 + up('picareta') * 0.06;
-        picaretaCabeca.scale.set(g, g, g);
-    }
+    const gm = 1 + up('picareta') * 0.05;
+    metaisPicareta.forEach(m => {
+        if (m && m.material && m.material.color) m.material.color.setHex(c);
+        if (m && m.scale) m.scale.setScalar(gm);      // picareta melhor = cabeça maior
+    });
+    const g = 1 + up('picareta') * 0.06;
+    if (picaretaCabeca) { picaretaCabeca.material.color.setHex(c); picaretaCabeca.scale.set(g,g,g); }
+    if (picaretaFPS)    { picaretaFPS.material.color.setHex(c);    picaretaFPS.scale.set(g,g,g); }
 }
 
 // ==================== CENA / LUZES / LOJINHA ====================
+const sombraLigada = !('ontouchstart' in window);   // sombra de verdade só no computador
 let lojinha, sol, maxPixelRatio = Math.min(2, window.devicePixelRatio || 1);
 
 function criaLojinha(){
@@ -639,8 +757,18 @@ function iniciaCena(){
     matriz  = new THREE.Matrix4();
     corTmp   = new THREE.Color();
     corFundo = new THREE.Color();
-    renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias:false });
+    renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias:sombraLigada });
     renderer.setPixelRatio(maxPixelRatio);
+    // cores e luz do jeito certo: deixa tudo com cara de foto em vez de desenho chapado
+    if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
+    if (THREE.ACESFilmicToneMapping) {
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.15;
+    }
+    if (sombraLigada) {
+        renderer.shadowMap.enabled = true;
+        if (THREE.PCFSoftShadowMap) renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    }
     scene = new THREE.Scene();
     scene.fog = new THREE.Fog(0x87ceeb, 12, 34);
     scene.background = new THREE.Color(0x87ceeb);
@@ -650,9 +778,25 @@ function iniciaCena(){
 
     luzAmbiente = new THREE.AmbientLight(0xffffff, 0.85);
     scene.add(luzAmbiente);
-    luzSol = new THREE.DirectionalLight(0xfff2cc, 0.7);
-    luzSol.position.set(0.6, 1, 0.4);
+    // luzinha em volta do mineiro pra você SEMPRE ver ele, mesmo no escuro do fundo
+    luzMineiro = new THREE.PointLight(0xffe9b0, 0, 7, 1.4);
+    scene.add(luzMineiro);
+    // luz do céu: azulado em cima, cor de terra embaixo — some quando você desce
+    luzCeu = new THREE.HemisphereLight(0x9fd4ff, 0x6b4a2a, 0.55);
+    scene.add(luzCeu);
+    luzSol = new THREE.DirectionalLight(0xfff2cc, 1.15);
+    luzSol.position.set(14, 26, 10);
+    if (sombraLigada) {
+        luzSol.castShadow = true;
+        luzSol.shadow.mapSize.set(1024, 1024);
+        const sc = luzSol.shadow.camera;
+        sc.near = 1; sc.far = 70;
+        sc.left = -16; sc.right = 16; sc.top = 16; sc.bottom = -16;
+        luzSol.shadow.bias = -0.0006;
+        luzSol.shadow.normalBias = 0.03;
+    }
     scene.add(luzSol);
+    scene.add(luzSol.target);
 
     // lanterna do capacete
     lanterna = new THREE.SpotLight(0xfff0c0, 1.5, luzDist(), luzAng(), 0.45, 1.1);
@@ -669,7 +813,9 @@ function iniciaCena(){
     contorno.visible = false;
     scene.add(contorno);
 
-    criaMineiro();
+    criaMineiro();          // 3ª pessoa: o mineiro humano que você vê na tela 🧑‍🔧
+    scene.add(camera);      // a câmera entra na cena pro braço da 1ª pessoa aparecer
+    criaBracoFPS();         // 1ª pessoa: o braço com a picareta na frente da tela
     atualizaPicareta();
     criaLojinha();
     criaSol();
@@ -691,6 +837,15 @@ window.addEventListener('resize', redimensiona);
 window.addEventListener('orientationchange', ()=> setTimeout(redimensiona, 250));
 
 // ==================== COLISÃO ====================
+// tem cubo firme logo embaixo do pé? (cubo na altura do peito NÃO conta — era isso que fazia o mineiro "voar")
+function temChaoEmbaixo(){
+    const gy = Math.floor(-(p.y - 0.06));
+    if (gy < 0) return false;
+    for (let gx = Math.floor(p.x - PW/2); gx <= Math.floor(p.x + PW/2); gx++)
+        for (let gz = Math.floor(p.z - PW/2); gz <= Math.floor(p.z + PW/2); gz++)
+            if (solido(bloco(gx, gy, gz))) return true;
+    return false;
+}
 function ocupado(x, y, z){
     const x0 = Math.floor(x - PW/2), x1 = Math.floor(x + PW/2);
     const z0 = Math.floor(z - PW/2), z1 = Math.floor(z + PW/2);
@@ -810,10 +965,26 @@ function atualizaFaiscas(dt){
 function frenteX(){ return Math.sin(p.yaw); }
 function frenteZ(){ return Math.cos(p.yaw); }
 
+// o cubo que está bem embaixo do pé — se o do centro já virou buraco,
+// pega o vizinho que ainda segura o mineiro (senão ele fica preso na beirada)
+function alvoAbaixo(){
+    const gy = Math.floor(-p.y);
+    if (gy < 0) return null;
+    const cx = Math.floor(p.x), cz = Math.floor(p.z);
+    if (solido(bloco(cx,gy,cz))) return { x:cx, y:gy, z:cz };
+    for (let gx = Math.floor(p.x - PW/2); gx <= Math.floor(p.x + PW/2); gx++)
+        for (let gz = Math.floor(p.z - PW/2); gz <= Math.floor(p.z + PW/2); gz++)
+            if (solido(bloco(gx,gy,gz))) return { x:gx, y:gy, z:gz };
+    return null;
+}
 function achaAlvo(querFrente, querBaixo){
+    if (querFrente && camPitch < -0.6) {    // olhando pro chão = cava o chão
+        const ab = alvoAbaixo();
+        if (ab) return ab;
+    }
     if (querBaixo) {
-        const gx = Math.floor(p.x), gy = Math.floor(-p.y), gz = Math.floor(p.z);
-        if (solido(bloco(gx,gy,gz))) return { x:gx, y:gy, z:gz };
+        const ab = alvoAbaixo();
+        if (ab) return ab;
     }
     if (querFrente) {
         const fx = p.x + frenteX() * 0.72, fz = p.z + frenteZ() * 0.72;
@@ -824,9 +995,8 @@ function achaAlvo(querFrente, querBaixo){
             if (solido(bloco(gx,gy,gz))) return { x:gx, y:gy, z:gz };
         }
         // se não achou nada na frente, cava embaixo (ajuda a criança a descer)
-        const gy2 = Math.floor(-p.y);
-        const bx = Math.floor(p.x), bz = Math.floor(p.z);
-        if (solido(bloco(bx,gy2,bz))) return { x:bx, y:gy2, z:bz };
+        const ab = alvoAbaixo();
+        if (ab) return ab;
     }
     return null;
 }
@@ -957,19 +1127,8 @@ function atualiza(dt){
     const andando = Math.hypot(dx,dz) > 0.05;
     andandoAgora = andando;
 
-    if (andando) {
-        const alvoYaw = Math.atan2(dx, dz);
-        let dif = alvoYaw - p.yaw;
-        while (dif >  Math.PI) dif -= Math.PI*2;
-        while (dif < -Math.PI) dif += Math.PI*2;
-        p.yaw += dif * Math.min(1, dt*14);
-        passo += dt * 9;
-    } else {
-        let dif = camYaw - p.yaw;
-        while (dif >  Math.PI) dif -= Math.PI*2;
-        while (dif < -Math.PI) dif += Math.PI*2;
-        p.yaw += dif * Math.min(1, dt*6);
-    }
+    p.yaw = camYaw;                 // primeira pessoa: você olha pra onde vai
+    if (andando) passo += dt * 9;
 
     // ---- movimento com colisão ----
     const VEL = 3.6;
@@ -993,7 +1152,18 @@ function atualiza(dt){
         p.vy = 0;
     }
     if (p.y > 8) { p.y = 8; p.vy = 0; }
-    p.chao = ocupado(p.x, p.y - 0.06, p.z);
+    p.chao = temChaoEmbaixo();
+    // cavou o chão debaixo do pé? escorrega pro buraco em vez de ficar preso na beirada
+    if (p.chao) {
+        const gyPe = Math.floor(-p.y);
+        if (gyPe >= 0 && !solido(bloco(Math.floor(p.x), gyPe, Math.floor(p.z)))) {
+            const mx = Math.floor(p.x) + 0.5, mz = Math.floor(p.z) + 0.5;
+            const px2 = p.x + Math.sign(mx - p.x) * Math.min(Math.abs(mx - p.x), 2.4 * dt);
+            const pz2 = p.z + Math.sign(mz - p.z) * Math.min(Math.abs(mz - p.z), 2.4 * dt);
+            if (!ocupado(px2, p.y, p.z)) p.x = px2;
+            if (!ocupado(p.x, p.y, pz2)) p.z = pz2;
+        }
+    }
     p.x = Math.max(0.4, Math.min(MUNDO_W - 0.4, p.x));
     p.z = Math.max(0.4, Math.min(MUNDO_W - 0.4, p.z));
 
@@ -1109,23 +1279,31 @@ const COR_CEU = 0x87ceeb;
 let corTmp, corFundo;
 let mouseCavando = false;
 let andandoAgora = false;
+let apertado = false;   // true quando o buraco é estreito demais pra 3ª pessoa
 
+// 3ª pessoa: você VÊ o mineiro humano andando, e ele martela quando cava
 function animaBoneco(dt){
+    const pri = (visao === 'primeira') || apertado;
+    if (bracoFPS) bracoFPS.visible = pri;          // 1ª pessoa: só o braço com a picareta
     if (!boneco) return;
+    if (pri) { boneco.visible = false; return; }   // 1ª pessoa: o corpo nunca aparece
+    boneco.visible = !(invuln > 0 && Math.sin(tGlobal * 28) > 0);   // pisca quando toma dano
     boneco.position.set(p.x, p.y, p.z);
     boneco.rotation.y = p.yaw;
-    boneco.visible = !(invuln > 0 && Math.sin(tGlobal*28) > 0);
 
-    const balanco = andandoAgora ? Math.sin(passo) * 0.75 : 0;
+    // pernas e braços balançando ao andar
+    const balanco = (andandoAgora && p.chao) ? Math.sin(passo) * 0.7 : 0;
     if (pernaE) pernaE.rotation.x =  balanco;
     if (pernaD) pernaD.rotation.x = -balanco;
+    if (bracoE) bracoE.rotation.x = -balanco * 0.6;
 
+    // braço da picareta: martelada de verdade enquanto cava
     const cavando = !!(alvo && prog > 0);
     if (bracoD) {
-        // martelada da picareta: braço direito girando forte enquanto cava
-        bracoD.rotation.x = cavando ? (-1.5 + Math.abs(Math.sin(martelada)) * 1.7) : -balanco * 0.7;
+        bracoD.rotation.x = cavando
+            ? (-1.15 - Math.abs(Math.sin(martelada)) * 0.95)
+            : (balanco * 0.6);
     }
-    if (bracoE) bracoE.rotation.x = cavando ? -0.5 : balanco * 0.7;
 }
 
 function atualizaLuzes(){
@@ -1133,8 +1311,18 @@ function atualizaLuzes(){
     const cam = camadaDe(prof);
     const escuro = Math.min(1, Math.max(0, (prof - 4) / 40));
 
-    if (luzAmbiente) luzAmbiente.intensity = 0.92 - 0.84 * escuro;
-    if (luzSol) luzSol.intensity = 0.75 * (1 - escuro);
+    if (luzAmbiente) luzAmbiente.intensity = 0.92 - 0.72 * escuro;
+    if (luzMineiro) {
+        luzMineiro.position.set(p.x, p.y + 1.5, p.z);
+        luzMineiro.intensity = 0.35 + 1.15 * escuro;   // no fundo ela fica forte
+    }
+    if (luzSol) {
+        luzSol.intensity = 1.15 * (1 - escuro);
+        luzSol.position.set(p.x + 14, p.y + 26, p.z + 10);
+        luzSol.target.position.set(p.x, p.y, p.z);
+        if (sombraLigada) luzSol.castShadow = escuro < 0.7;   // no fundo escuro não precisa
+    }
+    if (luzCeu) luzCeu.intensity = 0.55 * (1 - escuro) + 0.05;
     if (sol) sol.visible = escuro < 0.85;
     if (lojinha) lojinha.visible = prof < 40;
 
@@ -1148,8 +1336,13 @@ function atualizaLuzes(){
 
     if (lanterna) {
         const fpx = Math.sin(p.yaw), fpz = Math.cos(p.yaw);
-        lanterna.position.set(p.x + fpx*0.22, p.y + 1.66, p.z + fpz*0.22);
-        alvoLanterna.position.set(p.x + fpx*luzDist(), p.y + 1.1, p.z + fpz*luzDist());
+        lanterna.position.set(p.x + fpx*0.18, p.y + 1.6, p.z + fpz*0.18);
+        const alc = luzDist();
+        alvoLanterna.position.set(
+            p.x + fpx*alc,
+            p.y + 1.6 + Math.tan(camPitch) * alc,
+            p.z + fpz*alc
+        );
         lanterna.distance = luzDist() + 3;
         lanterna.angle = luzAng();
         const forca = 0.55 + 0.75 * Math.max(0.3, energia / energiaMax());
@@ -1158,21 +1351,68 @@ function atualizaLuzes(){
 }
 
 function atualizaCamera(dt){
+    if (visao === 'primeira') return cameraPrimeiraPessoa(dt);
+    // 3ª pessoa: a câmera fica ATRÁS e um pouco acima do mineiro, pra você ver ele todo
+    const olhoY = p.y + 1.15;
     const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
-    const olhoY = p.y + 1.35;
-    let dist = camDist;
-    for (let t = 0.5; t <= camDist; t += 0.4) {
-        const px = p.x - fx*t, pz = p.z - fz*t, py = olhoY + 1.9 * (t / camDist);
-        if (pontoSolido(px, py, pz)) { dist = Math.max(1.4, t - 0.45); break; }
+    const alturaPitch = -Math.tan(camPitch);
+    let dist = 0;
+
+    // vai andando de pouquinho em pouquinho pra trás e para no primeiro pedaço de pedra
+    // (checar só o ponto final não serve: no meio do caminho pode ter parede)
+    for (let d = 0.4; d <= 4.6; d += 0.2) {
+        const cx = p.x - fx * d, cz = p.z - fz * d;
+        const cy = olhoY + 1.1 + alturaPitch * d * 0.6;
+        if (pontoSolido(cx, cy, cz)) break;
+        dist = d;
     }
-    const tx = p.x - fx*dist, tz = p.z - fz*dist, ty = olhoY + 1.9 * (dist / camDist);
-    const k = Math.min(1, dt * 11);
-    camera.position.x += (tx - camera.position.x) * k;
-    camera.position.y += (ty - camera.position.y) * k;
-    camera.position.z += (tz - camera.position.z) * k;
-    camera.lookAt(p.x, olhoY, p.z);
+
+    // buraco apertado demais: a câmera entra nos olhos do mineiro (senão só dava close no capacete)
+    if (dist < 1.6) { apertado = true; return cameraPrimeiraPessoa(dt); }
+    apertado = false;
+
+    let alvoX, alvoY, alvoZ;
+    if (dist >= 2.0) {
+        // tem espaço: câmera atrás e um pouco acima 🙂
+        alvoX = p.x - fx * dist;
+        alvoZ = p.z - fz * dist;
+        alvoY = olhoY + 1.1 + alturaPitch * dist * 0.6;
+    } else {
+        // buraco estreito: a câmera sobe pelo poço que você acabou de cavar
+        // (assim você continua vendo o mineiro de cima, sem ficar dentro da pedra)
+        // sobe pelo poço de pouquinho em pouquinho, até onde ainda for buraco
+        let alt = 1.4;
+        for (let a = 1.4; a <= 3.4; a += 0.2) {
+            if (pontoSolido(p.x, p.y + a, p.z)) break;
+            alt = a;
+        }
+        alvoX = p.x - fx * 0.35;
+        alvoZ = p.z - fz * 0.35;
+        alvoY = p.y + alt;
+    }
+
+    // segue com suavidade (nada de câmera dura)
+    const suave = Math.min(1, dt * 9);
+    camera.position.x += (alvoX - camera.position.x) * suave;
+    camera.position.y += (alvoY - camera.position.y) * suave;
+    camera.position.z += (alvoZ - camera.position.z) * suave;
+    // olha pro corpo do mineiro (no poço estreito ele fica bem no meio da tela)
+    camera.lookAt(p.x, p.y + (dist >= 2.0 ? 1.4 : 0.85), p.z);
 }
 
+// 1ª pessoa: a câmera é o olho do mineiro, dentro do capacete
+function cameraPrimeiraPessoa(dt){
+    const olhoY = p.y + 1.55;
+    const bal = (andandoAgora && p.chao) ? Math.sin(passo * 2) * 0.03 : 0;
+    camera.position.set(p.x, olhoY + bal, p.z);
+    const fx = Math.sin(camYaw), fz = Math.cos(camYaw), alc = 6;
+    camera.lookAt(p.x + fx*alc, olhoY + bal + Math.tan(camPitch)*alc, p.z + fz*alc);
+    if (bracoFPS) {
+        const cavando = !!(alvo && prog > 0);
+        bracoFPS.rotation.x = cavando ? (-0.35 - Math.abs(Math.sin(martelada)) * 0.9) : -0.35;
+        bracoFPS.position.y = -0.34 + ((andandoAgora && p.chao) ? Math.sin(passo) * 0.025 : 0);
+    }
+}
 function atualizaMira(){
     const barra = el('barraCavar'), dentro = el('barraCavarIn');
     if (!jogando) { alvo = null; prog = 0; }
@@ -1192,6 +1432,9 @@ function atualizaMira(){
             barra.style.display = 'none';
         }
     }
+    const mira = el('mira');
+    // a cruzinha serve na 1ª pessoa; na 3ª quem marca o cubo é o contorno branco
+    if (mira) mira.style.display = (jogando && (visao === 'primeira' || apertado)) ? 'block' : 'none';
     const ct = el('camadaTxt');
     if (ct) ct.textContent = camadaDe(profundidade()).nome + ' · ' + profundidade() + 'm · 🏆 ' + recorde + 'm';
 }
@@ -1364,24 +1607,28 @@ addEventListener('mouseup', ()=>{ arrastando = false; mouseCavando = false; });
 addEventListener('mousemove', e=>{
     if (!arrastando) return;
     const dx = e.clientX - ultimoMX;
-    ultimoMX = e.clientX; ultimoMY = e.clientY;
-    if (Math.abs(dx) > 1) mouseCavando = false;   // se arrastou, é pra girar
-    camYaw -= dx * 0.006;
+    ultimoMX = e.clientX;
+    const dy = e.clientY - ultimoMY;
+    ultimoMY = e.clientY;
+    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) mouseCavando = false;   // se arrastou, é pra olhar
+    camYaw -= dx * 0.011;
+    camPitch = Math.max(-1.2, Math.min(1.0, camPitch - dy * 0.009));
 });
 
 // --- toque: um dedo na tela (fora dos controles) gira a câmera ---
 let toqueCam = null;
 canvas.addEventListener('touchstart', e=>{
     const t = e.changedTouches[0];
-    toqueCam = { id:t.identifier, x:t.clientX };
+    toqueCam = { id:t.identifier, x:t.clientX, y:t.clientY };
 }, {passive:true});
 canvas.addEventListener('touchmove', e=>{
     if (!toqueCam) return;
     for (let i=0;i<e.changedTouches.length;i++){
         const t = e.changedTouches[i];
         if (t.identifier !== toqueCam.id) continue;
-        camYaw -= (t.clientX - toqueCam.x) * 0.008;
-        toqueCam.x = t.clientX;
+        camYaw -= (t.clientX - toqueCam.x) * 0.013;
+        camPitch = Math.max(-1.2, Math.min(1.0, camPitch - (t.clientY - toqueCam.y) * 0.010));
+        toqueCam.x = t.clientX; toqueCam.y = t.clientY;
     }
 }, {passive:true});
 canvas.addEventListener('touchend', ()=>{ toqueCam = null; }, {passive:true});
@@ -1439,6 +1686,17 @@ ligaBtn('btnCavar','cavar');
 ligaBtn('btnBaixo','baixo');
 ligaBtn('btnPulo','pulo');
 
+function nomeVisao(){ return visao === 'primeira' ? '👁️ 1ª PESSOA' : '🧍 3ª PESSOA'; }
+function trocaVisao(){
+    visao = (visao === 'primeira') ? 'terceira' : 'primeira';
+    salvaTudo();
+    const b = el('btnVisao');
+    if (b) b.textContent = nomeVisao();
+    mostraMsg(visao === 'primeira'
+        ? '👁️ PRIMEIRA PESSOA!\nVocê vê pelos olhos do mineiro'
+        : '🧍 TERCEIRA PESSOA!\nVocê vê o mineiro de costas', '#7fe0ff', 1800);
+    som(600, 0.09); setTimeout(()=>som(820, 0.12), 90);
+}
 function ligaClique(id, fn){
     const e = el(id);
     if (e) e.addEventListener('click', fn);
@@ -1449,6 +1707,8 @@ ligaClique('btnLivroMenu', abreLivro);
 ligaClique('btnConqMenu', abreConquistas);
 ligaClique('btnLojaTopo', abreLoja);
 ligaClique('btnMenuTopo', abreMenu);
+ligaClique('btnVisao', trocaVisao);
+ligaClique('btnVisaoMenu', trocaVisao);
 ligaClique('btnElevador', usaElevador);
 ligaClique('btnFechaLoja', comecaJogo);
 ligaClique('btnFechaLivro', abreMenu);
@@ -1467,6 +1727,8 @@ function comeca(){
         const ctl = el('controles');
         if (ctl) ctl.style.display = 'block';
     }
+    const bv = el('btnVisao');
+    if (bv) bv.textContent = nomeVisao();
     vaiPraSuperficie();
     jogando = false;
     presenteDoDia();
@@ -1475,6 +1737,7 @@ function comeca(){
     montaMundo();
     requestAnimationFrame(loop);
 }
+window.__dbg=function(){return {pX:+p.x.toFixed(2),pZ:+p.z.toFixed(2),vis:visao,bv:boneco?boneco.visible:null,invuln:+invuln.toFixed(2),camY:+camera.position.y.toFixed(2),pY:+p.y.toFixed(2),bonY:boneco?+boneco.position.y.toFixed(2):null,tG:+tGlobal.toFixed(1)};};
 comeca();
 </script>
 </body>
