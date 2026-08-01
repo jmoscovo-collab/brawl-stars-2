@@ -1,5 +1,16 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.6.0 (2026-08-01)
+- Cavando Fundo agora e 3D voxel (Three.js): mineiro HUMANO de blocos com capacete/lanterna,
+  bracos e pernas balancando, picareta martelando; mapa 200x200; texturas de pedra, materiais PBR,
+  sombra no PC; WASD **e** setas equivalentes; E/clique cava, Shift cava pra baixo; joystick no celular
+- Botao de visao 1a/3a pessoa (escolha salva em cavando_visao), padrao 3a pessoa
+- Camera de 3a pessoa: marcha o caminho passo a passo pra nao entrar na pedra; em buraco estreito
+  entra automaticamente nos olhos do mineiro (antes dava close no capacete)
+- Luz que segue o mineiro pra ele nunca ficar invisivel no escuro do fundo
+- Blindagem: requestAnimationFrame comeca ANTES de montar o mundo (se montar falhar, o jogo nao congela)
+- Save antigo intacto (moedas, melhorias, recorde, livro, conquistas)
+
 ## v3.5.1 (2026-08-01)
 - Album de Figurinhas MUITO mais legal (pedido do Davi):
   - Abrir pacote virou show: embalagem que SACODE e RASGA (dedo/mouse ou botao),
