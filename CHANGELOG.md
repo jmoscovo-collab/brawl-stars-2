@@ -1,5 +1,14 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.5.0 (2026-08-01)
+- JOGO NOVO: Album de Figurinhas (/figurinhas/) — 500 figurinhas em 10 colecoes, 6 raridades
+  (SECRETA 0,1%), 4 tipos de pacotinho, abertura carta por carta, venda/troca de repetidas,
+  premio por colecao completa, presente diario e desafios que renovam
+- JOGO NOVO: Cavando Fundo (/cavando/) — mineracao 2D ate 1800m+, camadas com minerios proprios,
+  lava/gas/morcegos/desabamento, lanterna com raio de luz, mochila com limite, elevador,
+  loja com 4 trilhas de melhoria (picareta/mochila/bota/lanterna), Livro do Minerador e conquistas
+- Home: os dois jogos novos no comeco da lista
+
 ## v3.4.0 (2026-07-31)
 - JOGO NOVO: Desenha e Adivinha (online com amigos, estilo Gartic)
 - JOGO NOVO: Estacionamento Maluco (3D, 30 niveis, loja de carros)

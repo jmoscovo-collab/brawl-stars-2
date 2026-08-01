@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Cavando Fundo — cave a terra, ache carvão, ouro, diamante e o Cogumelo Lendário! Melhore a picareta e desça cada vez mais fundo. Cogumelo Games.">
+<title>⛏️ Cavando Fundo — Cogumelo Games</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    background:#08060f; font-family:Arial, sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+    min-height:100vh; overflow:hidden; touch-action:none;
+}
+#hud {
+    color:#fff; padding:6px 8px; width:100%; max-width:900px;
+    background:rgba(0,0,0,0.55); font-size:15px; font-weight:bold;
+    display:flex; justify-content:space-around; align-items:center; gap:6px; flex-wrap:wrap;
+}
+#moedasHud { color:#ffd700; }
+#profHud { color:#7fe0ff; }
+#vidaHud { color:#ff6b6b; }
+#energiaHud { color:#ffe066; }
+#mochilaHud { color:#b0ff9d; }
+canvas#c { background:#000; border-radius:10px; max-width:100vw; max-height:calc(100vh - 66px); }
+#msg {
+    position:fixed; top:32%; left:50%; transform:translate(-50%,-50%);
+    font-size:34px; font-weight:900; color:#fff; text-shadow:0 0 18px #000, 0 0 6px #000;
+    pointer-events:none; opacity:0; transition:opacity .2s; text-align:center; z-index:10; width:100%;
+}
+.painel {
+    position:fixed; top:0; left:0; width:100vw; height:100vh; height:100dvh;
+    background:rgba(6,4,16,0.97); z-index:20; display:none;
+    flex-direction:column; align-items:center; color:#fff; text-align:center; padding:14px;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+}
+.painel h1 { font-size:30px; margin:6px 0;
+    background:linear-gradient(to right,#ffd700,#ff8a00,#00e5ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.painel .sub { color:#aab; margin:4px 0 10px; font-size:15px; max-width:520px; line-height:1.4; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:10px; max-width:780px; width:100%; padding-bottom:16px; }
+.item { background:rgba(28,24,56,0.9); border:2px solid #3b3b66; border-radius:14px; padding:10px; color:#fff; }
+.item .inome { font-size:15px; font-weight:bold; margin:3px 0; }
+.item .idesc { font-size:12px; color:#99a; margin-bottom:4px; }
+.item button {
+    margin-top:5px; font-size:13px; font-weight:bold; padding:8px 14px; border:none; border-radius:10px; cursor:pointer;
+    background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200; width:100%;
+}
+.item button:disabled { opacity:0.4; }
+.item.maximo { border-color:#00ff88; }
+.livroItem { background:rgba(28,24,56,0.9); border:2px solid #3b3b66; border-radius:12px; padding:8px; font-size:13px; }
+.livroItem.achado { border-color:#ffd700; }
+.livroItem.segredo { color:#667; }
+.conq { background:rgba(28,24,56,0.9); border:2px solid #3b3b66; border-radius:12px; padding:8px; font-size:13px; }
+.conq.ok { border-color:#00ff88; color:#b6ffdc; }
+.fechar {
+    margin:12px 0 26px; font-size:17px; font-weight:bold; padding:12px 26px; border:none; border-radius:12px;
+    background:#3a3a5c; color:#fff; cursor:pointer;
+}
+.btnTopo {
+    font-size:13px; font-weight:bold; padding:6px 12px; border:none; border-radius:10px;
+    background:#3a3a5c; color:#fff; cursor:pointer;
+}
+.btnLoja { background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200; }
+.btnSubir { background:linear-gradient(135deg,#00e5ff,#0088ff); color:#04283a; }
+#controles {
+    position:fixed; bottom:8px; left:0; right:0; z-index:15;
+    display:none; justify-content:space-between; align-items:flex-end; padding:0 12px; pointer-events:none;
+}
+.ctl { display:flex; gap:10px; align-items:flex-end; }
+.ctl div {
+    width:62px; height:62px; border-radius:50%; background:rgba(255,255,255,0.16);
+    border:2px solid rgba(255,255,255,0.5); color:#fff; font-size:26px;
+    display:flex; align-items:center; justify-content:center; pointer-events:auto; user-select:none; -webkit-user-select:none;
+}
+.ctl div.apertado { background:rgba(255,170,0,0.55); }
+a.voltar { position:fixed; top:6px; left:10px; color:#8a8aa0; text-decoration:none; z-index:40; font-size:14px; }
+@media (max-width:700px){
+    #hud { font-size:12px; padding:5px; }
+    canvas#c { max-height:calc(100vh - 108px); }
+    #msg { font-size:24px; }
+    .painel h1 { font-size:23px; }
+    .grid { grid-template-columns:repeat(auto-fill, minmax(140px,1fr)); gap:8px; }
+    .ctl div { width:56px; height:56px; font-size:23px; }
+}
+</style>
+</head>
+<body>
+<a class="voltar" href="/">← Cogumelo Games</a>
+
+<div id="hud">
+    <span id="moedasHud">🪙 0</span>
+    <span id="vidaHud">❤️❤️❤️</span>
+    <span id="energiaHud">🔋 100%</span>
+    <span id="mochilaHud">🎒 0/6</span>
+    <span id="profHud">📏 0m</span>
+    <button class="btnTopo btnSubir" id="btnElevador">🛗 SUBIR</button>
+    <button class="btnTopo btnLoja" id="btnLojaTopo">🛒 LOJA</button>
+    <button class="btnTopo" id="btnMenuTopo">📋 MENU</button>
+</div>
+
+<canvas id="c" width="768" height="512"></canvas>
+<div id="msg"></div>
+
+<div id="controles">
+    <div class="ctl"><div id="btnEsq">◀</div><div id="btnBaixo">🔽</div><div id="btnDir">▶</div></div>
+    <div class="ctl"><div id="btnPulo">⬆️</div></div>
+</div>
+
+<div class="painel" id="menu" style="display:flex;">
+    <h1>⛏️ Cavando Fundo</h1>
+    <div class="sub">Você é um cogumelo mineiro! 🍄 Cave pra baixo, ache minérios brilhantes, volte pra superfície pra vender e melhore o equipamento pra cavar AINDA mais fundo!</div>
+    <div class="sub" id="recordeTxt">🏆 Recorde de profundidade: 0m</div>
+    <div class="sub">💻 Setas/WASD pra andar e cavar · ESPAÇO pula<br>📱 botões grandes na tela</div>
+    <div style="display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap; justify-content:center;">
+        <button class="fechar" style="margin:0; background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a;" id="btnJogar">⛏️ CAVAR!</button>
+        <button class="fechar" style="margin:0; background:linear-gradient(135deg,#ffd700,#ffaa00); color:#332200;" id="btnLojaMenu">🛒 LOJA</button>
+        <button class="fechar" style="margin:0;" id="btnLivroMenu">📖 LIVRO</button>
+        <button class="fechar" style="margin:0;" id="btnConqMenu">🏅 CONQUISTAS</button>
+    </div>
+</div>
+
+<div class="painel" id="loja">
+    <h1>🛒 Loja do Mineiro</h1>
+    <div class="sub" id="lojaMoedas">🪙 0</div>
+    <div class="grid" id="lojaGrid"></div>
+    <button class="fechar" id="btnFechaLoja">✅ PRONTO, VOLTAR</button>
+</div>
+
+<div class="painel" id="livro">
+    <h1>📖 Livro do Minerador</h1>
+    <div class="sub" id="livroSub">Todo minério que você já achou fica anotado aqui!</div>
+    <div class="grid" id="livroGrid" style="grid-template-columns:repeat(auto-fill, minmax(150px,1fr));"></div>
+    <button class="fechar" id="btnFechaLivro">⬅️ VOLTAR</button>
+</div>
+
+<div class="painel" id="conquistas">
+    <h1>🏅 Conquistas</h1>
+    <div class="sub" id="conqSub"></div>
+    <div class="grid" id="conqGrid" style="grid-template-columns:repeat(auto-fill, minmax(180px,1fr));"></div>
+    <button class="fechar" id="btnFechaConq">⬅️ VOLTAR</button>
+</div>
+
+<script src="/stats.js"></script>
+<script src="/avisos.js?v=6"></script>
+<script>
+if (window.initStats) initStats('cavando');
+
+// ==================== SAVE SEGURO ====================
+function leSave(chave, padrao){
+    try {
+        const v = localStorage.getItem('cavando_' + chave);
+        if (v === null || v === undefined) return padrao;
+        return JSON.parse(v);
+    } catch(e) { return padrao; }
+}
+function gravaSave(chave, valor){
+    try { localStorage.setItem('cavando_' + chave, JSON.stringify(valor)); } catch(e){}
+}
+
+let moedas       = leSave('moedas', 0);
+let totalMoedas  = leSave('totalMoedas', 0);
+let recorde      = leSave('recorde', 0);
+let livro        = leSave('livro', {});          // { idMinerio: quantidade }
+let conqFeitas   = leSave('conquistas', []);
+let ultimoDia    = leSave('dia', '');
+let melhorias    = leSave('melhorias', { picareta:0, mochila:0, bota:0, lanterna:0 });
+if (typeof melhorias !== 'object' || melhorias === null) melhorias = { picareta:0, mochila:0, bota:0, lanterna:0 };
+['picareta','mochila','bota','lanterna'].forEach(k=>{
+    if (typeof melhorias[k] !== 'number' || melhorias[k] < 0) melhorias[k] = 0;
+});
+if (typeof livro !== 'object' || livro === null) livro = {};
+if (!Array.isArray(conqFeitas)) conqFeitas = [];
+if (typeof moedas !== 'number') moedas = 0;
+if (typeof recorde !== 'number') recorde = 0;
+if (typeof totalMoedas !== 'number') totalMoedas = 0;
+
+function salvaTudo(){
+    gravaSave('moedas', moedas);
+    gravaSave('totalMoedas', totalMoedas);
+    gravaSave('recorde', recorde);
+    gravaSave('livro', livro);
+    gravaSave('conquistas', conqFeitas);
+    gravaSave('melhorias', melhorias);
+    gravaSave('dia', ultimoDia);
+}
+
+// ==================== MELHORIAS ====================
+const TRILHAS = [
+    { id:'picareta', emoji:'⛏️', titulo:'Picareta', desc:'Cava mais rápido e quebra pedra mais dura',
+      nomes:['Picareta de Pau','Picareta de Pedra','Picareta de Cobre','Picareta de Ferro','Picareta de Prata','Picareta de Ouro','Picareta de Diamante','Picareta Turbo','Picareta Lendária'],
+      precos:[35,110,280,650,1500,3600,8500,20000] },
+    { id:'mochila', emoji:'🎒', titulo:'Mochila', desc:'Guarda mais minério antes de encher',
+      nomes:['Bolsinho','Mochila Pequena','Mochila Média','Mochila Grande','Mochilão','Mochila Mágica','Mochila Sem Fundo','Mochila Dimensional','Mochila Lendária'],
+      precos:[30,95,240,560,1300,3200,7500,17000] },
+    { id:'bota', emoji:'🔋', titulo:'Bota de Pilha', desc:'Aumenta a energia pra cavar mais tempo',
+      nomes:['Chinelo Furado','Tênis Velho','Tênis Bom','Bota de Couro','Bota Turbo','Bota com Mola','Bota Foguete','Bota Alada','Bota Lendária'],
+      precos:[40,120,300,700,1650,3900,9000,21000] },
+    { id:'lanterna', emoji:'🔦', titulo:'Lanterna', desc:'Ilumina mais longe lá no fundo escuro',
+      nomes:['Vela Tremida','Lanterna Fraca','Lanterna Boa','Farol de Mineiro','Farol Duplo','Capacete Brilhante','Sol de Bolso','Olho de Cristal','Lanterna Lendária'],
+      precos:[45,130,320,760,1800,4200,9800,23000] }
+];
+const PICARETA_FORCA = [1,2,3,4,5,6,7,8,9];
+const PICARETA_VEL   = [1.0,1.45,1.95,2.5,3.2,4.0,5.0,6.3,8.0];
+const MOCHILA_SLOTS  = [6,9,13,18,24,32,42,56,80];
+const ENERGIA_MAX    = [100,135,180,235,300,390,510,690,999];
+const LUZ_RAIO       = [95,118,142,170,205,245,292,348,420];
+
+const up = id => melhorias[id] || 0;
+const forcaPicareta = () => PICARETA_FORCA[up('picareta')];
+const velPicareta   = () => PICARETA_VEL[up('picareta')];
+const slotsMochila  = () => MOCHILA_SLOTS[up('mochila')];
+const energiaMax    = () => ENERGIA_MAX[up('bota')];
+const raioLuz       = () => LUZ_RAIO[up('lanterna')];
+
+// ==================== CAMADAS ====================
+const CAMADAS = [
+    { ate:50,    nome:'Terra Fofa',       cor:'#7b4a24', cor2:'#8f5a2c', fundo:'#3a2213', dur:1 },
+    { ate:150,   nome:'Pedra Cinza',      cor:'#7d7d85', cor2:'#8d8d96', fundo:'#26262c', dur:2 },
+    { ate:300,   nome:'Pedra Gelada',     cor:'#68798a', cor2:'#78899a', fundo:'#1c242e', dur:3 },
+    { ate:500,   nome:'Rocha Dourada',    cor:'#8a7a48', cor2:'#9c8b56', fundo:'#2a2413', dur:4 },
+    { ate:800,   nome:'Caverna das Joias',cor:'#6b4a7d', cor2:'#7d5890', fundo:'#241033', dur:5 },
+    { ate:1200,  nome:'Fundo Congelado',  cor:'#456a8c', cor2:'#537a9c', fundo:'#0d1a2b', dur:6 },
+    { ate:1800,  nome:'Obsidiana Negra',  cor:'#2f2937', cor2:'#3c3547', fundo:'#120f18', dur:7 },
+    { ate:999999,nome:'Fundo do Mundo',   cor:'#40182c', cor2:'#521f38', fundo:'#190510', dur:8 }
+];
+function camadaDe(prof){
+    for (let i=0;i<CAMADAS.length;i++) if (prof < CAMADAS[i].ate) return CAMADAS[i];
+    return CAMADAS[CAMADAS.length-1];
+}
+
+// ==================== MINÉRIOS ====================
+const MINERIOS = [
+    { id:'carvao',    nome:'Carvão',            emoji:'🖤', cor:'#2b2b2b', brilho:'#555555', valor:5,    dur:2, de:20,   ate:400,    chance:0.048 },
+    { id:'cobre',     nome:'Cobre',             emoji:'🟠', cor:'#c1691f', brilho:'#ff9d4d', valor:10,   dur:2, de:45,   ate:400,    chance:0.038 },
+    { id:'ferro',     nome:'Ferro',             emoji:'⚙️', cor:'#b0a9a0', brilho:'#e8e2d8', valor:20,   dur:3, de:130,  ate:700,    chance:0.030 },
+    { id:'prata',     nome:'Prata',             emoji:'⚪', cor:'#d6dde4', brilho:'#ffffff', valor:40,   dur:3, de:160,  ate:900,    chance:0.022 },
+    { id:'ouro',      nome:'Ouro',              emoji:'🥇', cor:'#ffcc22', brilho:'#fff6a8', valor:85,   dur:4, de:290,  ate:1200,   chance:0.017 },
+    { id:'rubi',      nome:'Rubi',              emoji:'❤️', cor:'#e01a3c', brilho:'#ff7a95', valor:170,  dur:5, de:480,  ate:1500,   chance:0.011 },
+    { id:'esmeralda', nome:'Esmeralda',         emoji:'💚', cor:'#12b76a', brilho:'#7dffc0', valor:230,  dur:5, de:500,  ate:1600,   chance:0.010 },
+    { id:'diamante',  nome:'Diamante',          emoji:'💎', cor:'#7fe9ff', brilho:'#e6feff', valor:500,  dur:6, de:790,  ate:2400,   chance:0.007 },
+    { id:'cristal',   nome:'Cristal Mágico',    emoji:'🔮', cor:'#b06cff', brilho:'#e6ccff', valor:1100, dur:7, de:1210, ate:999999, chance:0.005 },
+    { id:'estrela',   nome:'Poeira de Estrela', emoji:'✨', cor:'#ffe66d', brilho:'#ffffff', valor:2200, dur:8, de:1600, ate:999999, chance:0.003 },
+    { id:'lendario',  nome:'Cogumelo Lendário', emoji:'🍄', cor:'#ff3ea5', brilho:'#ffd9f0', valor:9000, dur:8, de:1800, ate:999999, chance:0.0012 }
+];
+const MINERIO_POR_ID = {};
+MINERIOS.forEach(m => { MINERIO_POR_ID[m.id] = m; });
+
+// ==================== CONQUISTAS ====================
+const CONQUISTAS = [
+    { id:'primeiro',  nome:'⛏️ Primeira Cavada',      dica:'Quebre o seu primeiro bloco' },
+    { id:'minerio1',  nome:'💰 Primeiro Minério',     dica:'Ache qualquer minério' },
+    { id:'m100',      nome:'📏 100 metros',           dica:'Desça até 100m' },
+    { id:'m500',      nome:'📏 500 metros',           dica:'Desça até 500m' },
+    { id:'m1000',     nome:'📏 1000 metros!',         dica:'Desça até 1000m' },
+    { id:'m1800',     nome:'🌑 Fundo do Mundo',       dica:'Desça até 1800m' },
+    { id:'diamante',  nome:'💎 Caçador de Diamante',  dica:'Ache o primeiro diamante' },
+    { id:'lendario',  nome:'🍄 O LENDÁRIO!',          dica:'Ache o Cogumelo Lendário' },
+    { id:'rico1k',    nome:'🪙 Mil moedas',           dica:'Junte 1.000 moedas no total' },
+    { id:'rico50k',   nome:'👑 Mineiro Rico',         dica:'Junte 50.000 moedas no total' },
+    { id:'cheia',     nome:'🎒 Mochila Estourando',   dica:'Encha a mochila até o topo' },
+    { id:'tudomax',   nome:'🏆 Equipamento Lendário', dica:'Deixe as 4 melhorias no máximo' },
+    { id:'livro',     nome:'📖 Livro Completo',       dica:'Ache todos os minérios' }
+];
+function ganhaConquista(id){
+    if (conqFeitas.includes(id)) return;
+    const c = CONQUISTAS.find(x=>x.id===id);
+    if (!c) return;
+    conqFeitas.push(id);
+    salvaTudo();
+    mostraMsg('🏅 CONQUISTA!\n' + c.nome, '#ffd700', 2200);
+    som(700,0.1); setTimeout(()=>som(950,0.18),110);
+}
+
+// ==================== MUNDO ====================
+const T = 32;              // tamanho do bloco
+const MUNDO_W = 46;        // colunas
+const blocos = new Map();  // só o que já foi visitado
+
+function hash(c,r,s){
+    let h = Math.imul(c|0, 374761393) + Math.imul(r|0, 668265263) + Math.imul(s|0, 362437) + 1013904223;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+// bloco: 0 = ar, ou { tipo:'terra'|'pedra'|'lava'|'gas'|'minerio', ore:id|null, dur:n }
+function geraBloco(c,r){
+    if (r < 0) return 0;
+    const prof = r;
+    const cam = camadaDe(prof);
+    const h1 = hash(c,r,1), h2 = hash(c,r,2), h3 = hash(c,r,3);
+    if (r >= 4 && h1 < 0.055) return 0;                       // caverninha vazia
+    if (prof >= 70) {
+        const chLava = 0.007 + Math.min(0.028, prof/45000);
+        const chGas  = prof >= 130 ? 0.006 + Math.min(0.02, prof/70000) : 0;
+        if (h2 < chLava) return { tipo:'lava', ore:null, dur:99 };
+        if (h2 < chLava + chGas) return { tipo:'gas', ore:null, dur:1 };
+    }
+    let acc = 0;
+    for (const m of MINERIOS) {
+        if (prof < m.de || prof > m.ate) continue;
+        acc += m.chance;
+        if (h3 < acc) return { tipo:'minerio', ore:m.id, dur:m.dur };
+    }
+    return { tipo: prof < 50 ? 'terra' : 'pedra', ore:null, dur:cam.dur };
+}
+function bloco(c,r){
+    if (c < 0 || c >= MUNDO_W) return { tipo:'borda', ore:null, dur:999 };
+    if (r < 0) return 0;
+    const k = c + ',' + r;
+    if (blocos.has(k)) return blocos.get(k);
+    const b = geraBloco(c,r);
+    blocos.set(k, b);
+    return b;
+}
+function limpaBloco(c,r){ blocos.set(c + ',' + r, 0); }
+function solido(b){ return b !== 0; }
+
+// ==================== ESTADO DO JOGADOR ====================
+const VIDA_MAX = 5;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+
+const p = { x:0, y:0, vx:0, vy:0, w:22, h:26, chao:false, olhando:1 };
+let vida = VIDA_MAX, energia = 100, mochila = [], jogando = false;
+let camX = 0, camY = 0, tGlobal = 0, invuln = 0, cansado = 0;
+let alvo = null, prog = 0, avisoFraca = 0;
+let morcegos = [], pedrasCaindo = [], nuvensGas = [], particulas = [];
+let elevProximo = 0, profMax = 0, ultimoDano = 0;
+const teclas = {};
+const btnEstado = { esq:false, dir:false, baixo:false, pulo:false };
+
+const profundidade = () => Math.max(0, Math.floor((p.y + p.h) / T));
+
+// ==================== SOM ====================
+let audio;
+function som(freq, dur, tipo='square', vol=0.1){
+    try {
+        audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = tipo; o.frequency.value = freq; g.gain.value = vol;
+        g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + dur);
+        o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime + dur);
+    } catch(e){}
+}
+
+// ==================== MENSAGEM / HUD ====================
+let msgTimer = 0;
+function mostraMsg(txt, cor='#fff', tempo=1400){
+    const m = document.getElementById('msg');
+    if (!m) return;
+    m.textContent = txt; m.style.color = cor; m.style.opacity = 1;
+    m.style.whiteSpace = 'pre-line';
+    clearTimeout(msgTimer);
+    msgTimer = setTimeout(()=>{ m.style.opacity = 0; }, tempo);
+}
+function atualizaHud(){
+    const el = id => document.getElementById(id);
+    if (el('moedasHud'))  el('moedasHud').textContent  = '🪙 ' + moedas;
+    if (el('vidaHud'))    el('vidaHud').textContent    = '❤️'.repeat(Math.max(0,vida)) + '🖤'.repeat(Math.max(0, VIDA_MAX - vida));
+    if (el('energiaHud')) el('energiaHud').textContent = '🔋 ' + Math.round(Math.max(0, energia) / energiaMax() * 100) + '%';
+    if (el('mochilaHud')) el('mochilaHud').textContent = '🎒 ' + mochila.length + '/' + slotsMochila();
+    if (el('profHud'))    el('profHud').textContent    = '📏 ' + profundidade() + 'm';
+}
+
+// ==================== SUPERFÍCIE / VENDER ====================
+function vaiPraSuperficie(){
+    p.x = 6 * T + 5; p.y = -p.h - 2; p.vx = 0; p.vy = 0;
+    alvo = null; prog = 0;
+    morcegos = []; pedrasCaindo = []; nuvensGas = [];
+    vida = VIDA_MAX;
+    energia = energiaMax();
+    vendeTudo();
+    atualizaHud();
+}
+function vendeTudo(){
+    if (!mochila.length) return;
+    let total = 0;
+    mochila.forEach(id => { const m = MINERIO_POR_ID[id]; if (m) total += m.valor; });
+    moedas += total; totalMoedas += total;
+    const qtd = mochila.length;
+    mochila = [];
+    if (totalMoedas >= 1000)  ganhaConquista('rico1k');
+    if (totalMoedas >= 50000) ganhaConquista('rico50k');
+    salvaTudo(); atualizaHud();
+    mostraMsg('💰 Vendeu ' + qtd + ' minério' + (qtd>1?'s':'') + '!\n+🪙 ' + total, '#ffd700', 2000);
+    som(600,0.09); setTimeout(()=>som(800,0.09),90); setTimeout(()=>som(1000,0.16),180);
+}
+
+// ==================== DANO / MORTE ====================
+function levaDano(qtd, texto){
+    if (invuln > 0 || !jogando) return;
+    vida -= qtd; invuln = 1.1; ultimoDano = tGlobal;
+    som(160, 0.3, 'sawtooth');
+    atualizaHud();
+    if (vida <= 0) return morre();
+    mostraMsg(texto || 'AI! 💥', '#ff6666', 900);
+}
+function morre(){
+    const perdidos = Math.floor(mochila.length / 2);
+    for (let i=0;i<perdidos;i++) mochila.pop();
+    som(120,0.5,'sawtooth'); setTimeout(()=>som(90,0.5,'sawtooth'),160);
+    mostraMsg('😵 VOCÊ APAGOU!\nPerdeu metade do minério...\nMas o equipamento é seu pra sempre! 💪', '#ff8866', 2800);
+    vaiPraSuperficie();
+}
+function voltaCansado(){
+    mostraMsg('🔋 Acabou a energia!\nVoltou cansado pra superfície 😴', '#ffe066', 2400);
+    som(300,0.25,'triangle'); setTimeout(()=>som(200,0.35,'triangle'),200);
+    vaiPraSuperficie();
+}
+
+// ==================== ELEVADOR ====================
+const ELEV_ESPERA = 25, ELEV_PRECO = 40;
+function usaElevador(){
+    if (!jogando) { comecaJogo(); return; }
+    if (profundidade() <= 0) { mostraMsg('Você já está na superfície! ☀️', '#7fe0ff', 1200); return; }
+    if (tGlobal < elevProximo) {
+        const falta = Math.ceil(elevProximo - tGlobal);
+        if (moedas >= ELEV_PRECO) {
+            moedas -= ELEV_PRECO; salvaTudo();
+            mostraMsg('🛗 Elevador expresso! -🪙 ' + ELEV_PRECO, '#00e5ff', 1500);
+        } else {
+            mostraMsg('🛗 Elevador cansado!\nEspere ' + falta + 's ou tenha 🪙 ' + ELEV_PRECO, '#ff9966', 1800);
+            return;
+        }
+    } else {
+        mostraMsg('🛗 Subindo...', '#00e5ff', 1200);
+    }
+    elevProximo = tGlobal + ELEV_ESPERA;
+    som(400,0.12); setTimeout(()=>som(600,0.12),100); setTimeout(()=>som(800,0.2),200);
+    vaiPraSuperficie();
+}
+
+// ==================== CAVAR ====================
+function achaAlvo(esq, dir, baixo){
+    const cCentro = Math.floor((p.x + p.w/2) / T);
+    const rPe     = Math.floor((p.y + p.h - 4) / T);
+    if (baixo) {
+        const r = Math.floor((p.y + p.h + 3) / T);
+        if (solido(bloco(cCentro, r))) return { c:cCentro, r:r };
+    }
+    if (dir) {
+        const c = Math.floor((p.x + p.w + 3) / T);
+        if (solido(bloco(c, rPe))) return { c:c, r:rPe };
+    }
+    if (esq) {
+        const c = Math.floor((p.x - 3) / T);
+        if (solido(bloco(c, rPe))) return { c:c, r:rPe };
+    }
+    return null;
+}
+function quebra(c,r){
+    const b = bloco(c,r);
+    if (!b || b === 0) return;
+    limpaBloco(c,r);
+    ganhaConquista('primeiro');
+    som(240 + Math.random()*80, 0.06, 'triangle', 0.07);
+    for (let i=0;i<6;i++) particulas.push({
+        x:c*T + T/2, y:r*T + T/2,
+        vx:(Math.random()-0.5)*3, vy:(Math.random()-0.7)*3,
+        vida:0.5, cor: b.tipo==='minerio' ? (MINERIO_POR_ID[b.ore]||{}).cor || '#fff' : camadaDe(r).cor
+    });
+    if (b.tipo === 'gas') {
+        nuvensGas.push({ x:c*T + T/2, y:r*T + T/2, vida:4, raio:26 });
+        mostraMsg('💨 GÁS! Sai de perto!', '#aaff88', 1200);
+        return;
+    }
+    if (b.tipo === 'minerio') {
+        const m = MINERIO_POR_ID[b.ore];
+        if (!m) return;
+        if (mochila.length >= slotsMochila()) {
+            ganhaConquista('cheia');
+            mostraMsg('🎒 MOCHILA CHEIA!\nVolte e venda! 🛗', '#ff9966', 1600);
+        } else {
+            mochila.push(m.id);
+            livro[m.id] = (livro[m.id] || 0) + 1;
+            ganhaConquista('minerio1');
+            if (m.id === 'diamante') ganhaConquista('diamante');
+            if (m.id === 'lendario') {
+                ganhaConquista('lendario');
+                mostraMsg('🍄✨ COGUMELO LENDÁRIO!!!\nO tesouro mais raro do mundo!', '#ff3ea5', 3200);
+            } else {
+                mostraMsg(m.emoji + ' ' + m.nome + '! 🪙 ' + m.valor, m.brilho, 1100);
+            }
+            if (MINERIOS.every(x => livro[x.id] > 0)) ganhaConquista('livro');
+            if (mochila.length >= slotsMochila()) ganhaConquista('cheia');
+            salvaTudo();
+            som(760,0.09); setTimeout(()=>som(1000,0.12),80);
+        }
+        atualizaHud();
+    }
+    // desmoronamento: o bloco de cima às vezes cai na sua cabeça
+    const acima = bloco(c, r-1);
+    if (solido(acima) && acima.tipo !== 'borda' && r > 30) {
+        const chance = Math.min(0.28, 0.05 + r/9000);
+        if (Math.random() < chance) {
+            limpaBloco(c, r-1);
+            pedrasCaindo.push({ x:c*T, y:(r-1)*T, vy:0, cor: camadaDe(r).cor2 });
+        }
+    }
+}
+
+// ==================== BICHOS E PERIGOS ====================
+let proxMorcego = 0;
+function spawnaMorcego(){
+    const prof = profundidade();
+    if (prof < 150 || morcegos.length >= 4) return;
+    const cJog = Math.floor((p.x + p.w/2) / T), rJog = Math.floor((p.y + p.h/2) / T);
+    for (let tent=0; tent<20; tent++){
+        const c = cJog + Math.floor((Math.random()-0.5)*16);
+        const r = rJog + Math.floor((Math.random()-0.5)*10);
+        if (c < 0 || c >= MUNDO_W || r < 3) continue;
+        const d = Math.hypot((c-cJog)*T, (r-rJog)*T);
+        if (d < 140 || d > 420) continue;
+        if (bloco(c,r) === 0) { morcegos.push({ x:c*T+T/2, y:r*T+T/2, vx:0, vy:0, fase:Math.random()*7 }); return; }
+    }
+}
+
+// ==================== FÍSICA + LÓGICA ====================
+function atualiza(dt){
+    if (!jogando) return;
+    const esq   = teclas['ArrowLeft']  || teclas['KeyA'] || btnEstado.esq;
+    const dir   = teclas['ArrowRight'] || teclas['KeyD'] || btnEstado.dir;
+    const baixo = teclas['ArrowDown']  || teclas['KeyS'] || btnEstado.baixo;
+    const pulo  = teclas['Space'] || teclas['ArrowUp'] || teclas['KeyW'] || btnEstado.pulo;
+
+    if (esq) p.olhando = -1;
+    if (dir) p.olhando = 1;
+
+    // ---- cavar ----
+    const novoAlvo = achaAlvo(esq, dir, baixo);
+    if (!novoAlvo || !alvo || novoAlvo.c !== alvo.c || novoAlvo.r !== alvo.r) prog = 0;
+    alvo = novoAlvo;
+    if (alvo) {
+        const b = bloco(alvo.c, alvo.r);
+        if (b && b.tipo === 'borda') {
+            if (avisoFraca <= 0) { mostraMsg('🧱 A parede do mundo é dura demais!', '#ffcc66', 1200); avisoFraca = 2; }
+            prog = 0;
+        } else if (b && b.tipo === 'lava') {
+            if (avisoFraca <= 0) { mostraMsg('🔥 Não dá pra cavar LAVA!', '#ff8844', 1200); avisoFraca = 2; }
+            prog = 0;
+        } else if (b && b.dur > forcaPicareta()) {
+            if (avisoFraca <= 0) { mostraMsg('⛏️ Picareta fraca pra essa pedra!\nMelhore na loja 🛒', '#ffcc66', 1600); avisoFraca = 2.5; }
+            prog = 0;
+        } else if (b) {
+            prog += dt * velPicareta() / (b.dur * 0.5);
+            energia -= dt * 3.5;
+            if (prog >= 1) { quebra(alvo.c, alvo.r); prog = 0; alvo = null; }
+        }
+    }
+    avisoFraca -= dt;
+
+    // ---- energia ----
+    if (profundidade() > 0) energia -= dt * 0.9;
+    if (energia <= 0 && cansado <= 0) { cansado = 1; energia = 0; voltaCansado(); return; }
+    cansado -= dt;
+
+    // ---- movimento ----
+    p.vx = (dir ? 3.1 : 0) - (esq ? 3.1 : 0);
+    if (p.chao && pulo) { p.vy = -8.2; p.chao = false; som(420,0.07,'triangle',0.06); }
+    p.vy = Math.min(p.vy + 0.52, 12);
+
+    p.x += p.vx;
+    for (const ry of [p.y+2, p.y+p.h/2, p.y+p.h-2]) {
+        const r = Math.floor(ry / T);
+        if (p.vx > 0 && solido(bloco(Math.floor((p.x+p.w)/T), r))) p.x = Math.floor((p.x+p.w)/T)*T - p.w - 0.01;
+        if (p.vx < 0 && solido(bloco(Math.floor(p.x/T), r)))       p.x = (Math.floor(p.x/T)+1)*T + 0.01;
+    }
+    p.y += p.vy;
+    p.chao = false;
+    for (const rx of [p.x+2, p.x+p.w-2]) {
+        const c = Math.floor(rx / T);
+        if (p.vy > 0 && solido(bloco(Math.floor((p.y+p.h)/T), c))) {
+            p.y = Math.floor((p.y+p.h)/T)*T - p.h - 0.01; p.vy = 0; p.chao = true;
+        }
+        if (p.vy < 0 && solido(bloco(Math.floor(p.y/T), c))) {
+            p.y = (Math.floor(p.y/T)+1)*T + 0.01; p.vy = 0;
+        }
+    }
+    if (p.y < -8*T) { p.y = -8*T; p.vy = 0; }
+
+    // ---- recorde ----
+    const prof = profundidade();
+    if (prof > profMax) profMax = prof;
+    if (prof > recorde) {
+        recorde = prof;
+        if (recorde % 50 === 0) mostraMsg('🏆 NOVO RECORDE: ' + recorde + 'm!', '#7fe0ff', 1400);
+        salvaTudo();
+    }
+    if (prof >= 100)  ganhaConquista('m100');
+    if (prof >= 500)  ganhaConquista('m500');
+    if (prof >= 1000) ganhaConquista('m1000');
+    if (prof >= 1800) ganhaConquista('m1800');
+
+    // ---- chegou na superfície: vende ----
+    if (prof <= 0 && mochila.length > 0) vendeTudo();
+
+    // ---- lava encostando ----
+    invuln -= dt;
+    const c1 = Math.floor(p.x/T), c2 = Math.floor((p.x+p.w)/T);
+    const r1 = Math.floor(p.y/T), r2 = Math.floor((p.y+p.h)/T);
+    for (let c=c1;c<=c2;c++) for (let r=r1;r<=r2;r++) {
+        const b = bloco(c,r);
+        if (b !== 0 && b.tipo === 'lava') levaDano(1, '🔥 QUEIMOU! Cuidado com a lava!');
+    }
+
+    // ---- gás ----
+    for (let i=nuvensGas.length-1;i>=0;i--) {
+        const g = nuvensGas[i];
+        g.vida -= dt; g.raio = Math.min(46, g.raio + dt*10);
+        if (g.vida <= 0) { nuvensGas.splice(i,1); continue; }
+        if (Math.hypot(g.x - (p.x+p.w/2), g.y - (p.y+p.h/2)) < g.raio) levaDano(1, '💨 O gás te tonteou!');
+    }
+
+    // ---- pedras caindo ----
+    for (let i=pedrasCaindo.length-1;i>=0;i--) {
+        const pe = pedrasCaindo[i];
+        pe.vy = Math.min(pe.vy + 0.7, 14);
+        pe.y += pe.vy;
+        const cc = Math.floor((pe.x + T/2)/T), rr = Math.floor((pe.y + T)/T);
+        if (pe.x < p.x + p.w && pe.x + T > p.x && pe.y < p.y + p.h && pe.y + T > p.y) {
+            levaDano(1, '🪨 Pedra na cabeça!');
+            pedrasCaindo.splice(i,1); continue;
+        }
+        if (solido(bloco(cc, rr))) {
+            blocos.set(cc + ',' + (rr-1), { tipo:'pedra', ore:null, dur:Math.max(1, camadaDe(rr).dur - 1) });
+            pedrasCaindo.splice(i,1);
+            som(180,0.1,'triangle',0.06);
+            continue;
+        }
+        if (pe.y > (profundidade() + 40) * T) pedrasCaindo.splice(i,1);
+    }
+
+    // ---- morcegos ----
+    proxMorcego -= dt;
+    if (proxMorcego <= 0) { spawnaMorcego(); proxMorcego = 3 + Math.random()*4; }
+    for (let i=morcegos.length-1;i>=0;i--) {
+        const mo = morcegos[i];
+        mo.fase += dt*8;
+        const dx = (p.x + p.w/2) - mo.x, dy = (p.y + p.h/2) - mo.y;
+        const d = Math.hypot(dx,dy) || 1;
+        if (d > 700) { morcegos.splice(i,1); continue; }
+        const vel = 62 + Math.min(60, profundidade()/25);
+        mo.x += (dx/d) * vel * dt;
+        mo.y += (dy/d) * vel * dt + Math.sin(mo.fase) * 26 * dt;
+        if (d < 20) levaDano(1, '🦇 Morcego! Corre!');
+    }
+
+    // ---- partículas ----
+    for (let i=particulas.length-1;i>=0;i--) {
+        const pa = particulas[i];
+        pa.vida -= dt; pa.x += pa.vx; pa.y += pa.vy; pa.vy += 0.25;
+        if (pa.vida <= 0) particulas.splice(i,1);
+    }
+
+    // ---- câmera ----
+    camX = Math.max(0, Math.min(p.x + p.w/2 - W/2, MUNDO_W*T - W));
+    camY = p.y + p.h/2 - H/2;
+    if (camY < -7*T) camY = -7*T;
+
+    if (MINERIOS.every(x => livro[x.id] > 0)) ganhaConquista('livro');
+    atualizaHud();
+}
+
+// ==================== DESENHO ====================
+function desenhaMineiro(x, y){
+    ctx.save();
+    ctx.translate(x, y);
+    if (invuln > 0 && Math.sin(tGlobal*30) > 0) ctx.globalAlpha = 0.45;
+    // corpo
+    ctx.fillStyle = '#ffe0b2'; ctx.fillRect(3, 12, 16, 14);
+    // olhos
+    ctx.fillStyle = '#222'; ctx.fillRect(6, 15, 3, 5); ctx.fillRect(13, 15, 3, 5);
+    // chapéu de cogumelo (com capacete amarelo)
+    ctx.fillStyle = '#c62828';
+    ctx.beginPath(); ctx.arc(11, 12, 12, Math.PI, 0); ctx.fill();
+    ctx.fillRect(-1, 9, 24, 4);
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(5, 6, 2.4, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(16, 4.5, 2.8, 0, 7); ctx.fill();
+    // lanterninha do capacete
+    ctx.fillStyle = '#ffe066';
+    ctx.beginPath(); ctx.arc(11 + p.olhando*8, 8, 3, 0, 7); ctx.fill();
+    // pés
+    ctx.fillStyle = '#5d4037';
+    const bal = (p.chao && Math.abs(p.vx) > 0.1) ? Math.sin(tGlobal*14)*2.5 : 0;
+    ctx.fillRect(3+bal, 26, 7, 3); ctx.fillRect(12-bal, 26, 7, 3);
+    // picareta
+    ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(11 + p.olhando*4, 20); ctx.lineTo(11 + p.olhando*16, 12);
+    ctx.stroke();
+    ctx.strokeStyle = ['#9e9e9e','#bdbdbd','#c1691f','#cfd8dc','#eceff1','#ffd700','#7fe9ff','#ff8a65','#ff3ea5'][up('picareta')] || '#9e9e9e';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(11 + p.olhando*11, 8); ctx.lineTo(11 + p.olhando*19, 15);
+    ctx.stroke();
+    ctx.restore();
+}
+
+function desenhaBloco(b, x, y, r){
+    const cam = camadaDe(r);
+    if (b.tipo === 'borda') {
+        ctx.fillStyle = '#15121c'; ctx.fillRect(x, y, T, T);
+        ctx.fillStyle = '#231d30'; ctx.fillRect(x+3, y+3, T-6, T-6);
+        return;
+    }
+    if (b.tipo === 'lava') {
+        const g = ctx.createLinearGradient(x, y, x, y+T);
+        g.addColorStop(0, '#ffdd00'); g.addColorStop(0.5, '#ff6600'); g.addColorStop(1, '#cc1100');
+        ctx.fillStyle = g; ctx.fillRect(x, y, T, T);
+        ctx.fillStyle = 'rgba(255,220,120,0.8)';
+        for (let i=0;i<3;i++) {
+            const bx = x + 6 + ((i*11 + tGlobal*22) % (T-10));
+            ctx.beginPath(); ctx.arc(bx, y + 8 + (i%3)*8, 2.5, 0, 7); ctx.fill();
+        }
+        return;
+    }
+    if (b.tipo === 'gas') {
+        ctx.fillStyle = 'rgba(140,255,140,0.28)'; ctx.fillRect(x, y, T, T);
+        ctx.fillStyle = 'rgba(190,255,190,0.5)';
+        ctx.beginPath(); ctx.arc(x+T/2, y+T/2 + Math.sin(tGlobal*3)*3, 8, 0, 7); ctx.fill();
+        ctx.font = '13px Arial'; ctx.fillStyle = '#dfffdf'; ctx.textAlign = 'center';
+        ctx.fillText('💨', x+T/2, y+T/2+5); ctx.textAlign = 'start';
+        return;
+    }
+    // rocha de fundo
+    ctx.fillStyle = cam.cor; ctx.fillRect(x, y, T, T);
+    ctx.fillStyle = cam.cor2; ctx.fillRect(x+2, y+2, T-4, T-4);
+    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    ctx.fillRect(x+5, y+7, 5, 4); ctx.fillRect(x+18, y+16, 6, 5);
+    if (b.tipo === 'minerio') {
+        const m = MINERIO_POR_ID[b.ore];
+        if (m) {
+            ctx.fillStyle = m.cor;
+            ctx.beginPath();
+            ctx.moveTo(x+T/2, y+5); ctx.lineTo(x+T-6, y+T/2); ctx.lineTo(x+T/2, y+T-5); ctx.lineTo(x+6, y+T/2);
+            ctx.closePath(); ctx.fill();
+            ctx.fillStyle = m.brilho;
+            ctx.beginPath(); ctx.arc(x+T/2-3, y+T/2-4, 3.2, 0, 7); ctx.fill();
+            if (m.id === 'lendario' || m.id === 'estrela') {
+                ctx.globalAlpha = 0.55 + Math.sin(tGlobal*6)*0.35;
+                ctx.fillStyle = m.brilho;
+                ctx.beginPath(); ctx.arc(x+T/2, y+T/2, 11, 0, 7); ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+    }
+}
+
+function desenhaSuperficie(){
+    // céu
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#1a2a55'); g.addColorStop(1, '#6fa8d0');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    // sol
+    ctx.fillStyle = '#ffe066';
+    ctx.beginPath(); ctx.arc(W-70, 60, 26, 0, 7); ctx.fill();
+    // nuvens
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    for (let i=0;i<4;i++) {
+        const nx = ((i*260 - camX*0.25) % (W+220) + W+220) % (W+220) - 110;
+        const ny = 50 + i*32 - camY*0.1;
+        if (ny < -60 || ny > H) continue;
+        ctx.beginPath(); ctx.arc(nx, ny, 18, 0, 7); ctx.arc(nx+22, ny-7, 24, 0, 7); ctx.arc(nx+46, ny, 17, 0, 7); ctx.fill();
+    }
+}
+
+function desenhaLojinha(){
+    // casinha da loja na superfície, em cima das colunas 3..7
+    const x = 3*T - camX, y = -3*T - camY;
+    ctx.fillStyle = '#6d4c41'; ctx.fillRect(x, y+30, 5*T, 66);
+    ctx.fillStyle = '#c62828';
+    ctx.beginPath(); ctx.moveTo(x-8, y+32); ctx.lineTo(x + 2.5*T, y-6); ctx.lineTo(x + 5*T + 8, y+32); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffe082'; ctx.fillRect(x+18, y+52, 30, 26);
+    ctx.fillStyle = '#3e2723'; ctx.fillRect(x+3*T, y+56, 26, 40);
+    ctx.font = 'bold 18px Arial'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    ctx.fillText('🛒 LOJA', x + 2.5*T, y+22);
+    ctx.textAlign = 'start';
+}
+
+function desenha(){
+    const prof = profundidade();
+    const cam = camadaDe(prof);
+    // fundo
+    if (camY < 0) desenhaSuperficie();
+    ctx.fillStyle = cam.fundo;
+    const chaoY = -camY;
+    if (chaoY < H) ctx.fillRect(0, Math.max(0, chaoY), W, H - Math.max(0, chaoY));
+    if (camY >= 0) { ctx.fillStyle = cam.fundo; ctx.fillRect(0, 0, W, H); }
+
+    // grama da superfície
+    if (camY < 20) {
+        ctx.fillStyle = '#3ea34a';
+        ctx.fillRect(0, -camY - 6, W, 8);
+    }
+    if (camY - (-6*T) < H) desenhaLojinha();
+
+    // blocos visíveis
+    const c0 = Math.max(0, Math.floor(camX / T)), c1 = Math.min(MUNDO_W-1, Math.ceil((camX + W)/T));
+    const r0 = Math.max(0, Math.floor(camY / T)), r1 = Math.floor((camY + H)/T);
+    for (let r=r0;r<=r1;r++) for (let c=c0;c<=c1;c++) {
+        const b = bloco(c,r);
+        if (b === 0) continue;
+        desenhaBloco(b, c*T - camX, r*T - camY, r);
+    }
+    // paredes do mundo (fora do grid)
+    ctx.fillStyle = '#15121c';
+    if (camX < 0) ctx.fillRect(0, Math.max(0,-camY), -camX, H);
+    const fimX = MUNDO_W*T - camX;
+    if (fimX < W) ctx.fillRect(fimX, Math.max(0,-camY), W - fimX, H);
+
+    // gás
+    nuvensGas.forEach(g=>{
+        ctx.fillStyle = 'rgba(150,255,150,0.32)';
+        ctx.beginPath(); ctx.arc(g.x - camX, g.y - camY, g.raio, 0, 7); ctx.fill();
+    });
+    // pedras caindo
+    pedrasCaindo.forEach(pe=>{
+        ctx.fillStyle = pe.cor || '#8d8d96';
+        ctx.fillRect(pe.x - camX + 2, pe.y - camY + 2, T-4, T-4);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fillRect(pe.x - camX + 8, pe.y - camY + 10, 8, 6);
+    });
+    // partículas
+    particulas.forEach(pa=>{
+        ctx.globalAlpha = Math.max(0, pa.vida*2);
+        ctx.fillStyle = pa.cor;
+        ctx.fillRect(pa.x - camX - 2, pa.y - camY - 2, 4, 4);
+        ctx.globalAlpha = 1;
+    });
+    // morcegos
+    morcegos.forEach(mo=>{
+        const mx = mo.x - camX, my = mo.y - camY;
+        ctx.fillStyle = '#4a2c5a';
+        const asa = Math.sin(mo.fase)*6;
+        ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx-14, my-asa); ctx.lineTo(mx-6, my+5); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx+14, my-asa); ctx.lineTo(mx+6, my+5); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#2e1b38';
+        ctx.beginPath(); ctx.arc(mx, my, 6, 0, 7); ctx.fill();
+        ctx.fillStyle = '#ff5252';
+        ctx.fillRect(mx-3, my-2, 2, 2); ctx.fillRect(mx+1, my-2, 2, 2);
+    });
+
+    // jogador
+    desenhaMineiro(p.x - camX, p.y - camY);
+
+    // barra de cavar
+    if (alvo && prog > 0.02) {
+        const bx = p.x - camX - 4, by = p.y - camY - 14;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(bx, by, 30, 7);
+        ctx.fillStyle = '#ffd700'; ctx.fillRect(bx+1, by+1, 28*Math.min(1,prog), 5);
+    }
+
+    // escuridão + luz da lanterna
+    const escuro = Math.min(0.93, Math.max(0, (prof - 6) / 90));
+    if (escuro > 0.02) {
+        const lx = p.x - camX + p.w/2, ly = p.y - camY + p.h/2;
+        const raio = raioLuz() * (0.55 + 0.45 * Math.max(0.25, energia/energiaMax()));
+        const g = ctx.createRadialGradient(lx, ly, raio*0.32, lx, ly, raio);
+        g.addColorStop(0, 'rgba(0,0,0,0)');
+        g.addColorStop(0.65, 'rgba(0,0,0,' + (escuro*0.55) + ')');
+        g.addColorStop(1, 'rgba(0,0,0,' + escuro + ')');
+        ctx.fillStyle = g;
+        ctx.fillRect(lx-raio, ly-raio, raio*2, raio*2);
+        ctx.fillStyle = 'rgba(0,0,0,' + escuro + ')';
+        ctx.fillRect(0, 0, W, Math.max(0, ly-raio));
+        ctx.fillRect(0, Math.min(H, ly+raio), W, H);
+        ctx.fillRect(0, Math.max(0, ly-raio), Math.max(0, lx-raio), Math.min(H, raio*2));
+        ctx.fillRect(Math.min(W, lx+raio), Math.max(0, ly-raio), W, Math.min(H, raio*2));
+    }
+
+    // etiqueta da camada + tela vermelha ao levar dano
+    ctx.font = 'bold 14px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.fillText(cam.nome + ' · ' + prof + 'm', 10, H-12);
+    ctx.fillText('🏆 ' + recorde + 'm', 10, 22);
+    if (tGlobal - ultimoDano < 0.3) {
+        ctx.fillStyle = 'rgba(255,0,0,0.22)'; ctx.fillRect(0,0,W,H);
+    }
+    if (!jogando) {
+        ctx.fillStyle = 'rgba(0,0,10,0.55)'; ctx.fillRect(0,0,W,H);
+    }
+}
+
+// ==================== LOOP (nunca morre!) ====================
+let ultimoT = 0;
+function loop(agora){
+    try {
+        const dt = Math.min(0.05, ultimoT ? (agora - ultimoT)/1000 : 0.016);
+        ultimoT = agora;
+        tGlobal += dt;
+        atualiza(dt);
+        desenha();
+    } catch(e) {
+        // nunca deixa o jogo travar na tela preta
+        if (window.console) console.error(e);
+    }
+    requestAnimationFrame(loop);
+}
+
+// ==================== PAINÉIS ====================
+function escondeTodos(){
+    ['menu','loja','livro','conquistas'].forEach(id=>{
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+}
+function abreMenu(){
+    jogando = false;
+    escondeTodos();
+    const el = document.getElementById('menu');
+    if (el) el.style.display = 'flex';
+    const rt = document.getElementById('recordeTxt');
+    if (rt) rt.textContent = '🏆 Recorde de profundidade: ' + recorde + 'm  ·  🪙 ' + moedas;
+}
+function comecaJogo(){
+    escondeTodos();
+    if (p.y === 0 && p.x === 0) vaiPraSuperficie();
+    jogando = true;
+    atualizaHud();
+    if (profundidade() <= 0) mostraMsg('⛏️ Cave pra baixo! 🔽', '#fff', 1500);
+}
+function abreLoja(){
+    jogando = false;
+    escondeTodos();
+    const painel = document.getElementById('loja');
+    if (painel) painel.style.display = 'flex';
+    const mo = document.getElementById('lojaMoedas');
+    if (mo) mo.textContent = '🪙 ' + moedas;
+    const grid = document.getElementById('lojaGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    TRILHAS.forEach(tr=>{
+        const nivel = up(tr.id);
+        const maxNivel = tr.nomes.length - 1;
+        const d = document.createElement('div');
+        d.className = 'item' + (nivel >= maxNivel ? ' maximo' : '');
+        const t = document.createElement('div');
+        t.className = 'inome';
+        t.textContent = tr.emoji + ' ' + tr.nomes[nivel];
+        d.appendChild(t);
+        const ds = document.createElement('div');
+        ds.className = 'idesc';
+        ds.textContent = tr.desc + ' (nível ' + (nivel+1) + '/' + (maxNivel+1) + ')';
+        d.appendChild(ds);
+        const btn = document.createElement('button');
+        if (nivel >= maxNivel) {
+            btn.textContent = '👑 NO MÁXIMO!';
+            btn.disabled = true;
+        } else {
+            const preco = tr.precos[nivel];
+            btn.textContent = '🪙 ' + preco + ' → ' + tr.nomes[nivel+1];
+            btn.disabled = moedas < preco;
+            btn.onclick = ()=>{
+                if (moedas < preco) return;
+                moedas -= preco;
+                melhorias[tr.id] = nivel + 1;
+                if (tr.id === 'bota') energia = energiaMax();
+                salvaTudo(); atualizaHud();
+                som(620,0.09); setTimeout(()=>som(880,0.16),90);
+                if (TRILHAS.every(x => up(x.id) >= x.nomes.length-1)) ganhaConquista('tudomax');
+                abreLoja();
+            };
+        }
+        d.appendChild(btn);
+        grid.appendChild(d);
+    });
+}
+function abreLivro(){
+    jogando = false;
+    escondeTodos();
+    const painel = document.getElementById('livro');
+    if (painel) painel.style.display = 'flex';
+    const achados = MINERIOS.filter(m => livro[m.id] > 0).length;
+    const sub = document.getElementById('livroSub');
+    if (sub) sub.textContent = 'Você já achou ' + achados + ' de ' + MINERIOS.length + ' minérios!';
+    const grid = document.getElementById('livroGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    MINERIOS.forEach(m=>{
+        const qtd = livro[m.id] || 0;
+        const d = document.createElement('div');
+        d.className = 'livroItem ' + (qtd > 0 ? 'achado' : 'segredo');
+        if (qtd > 0) {
+            d.innerHTML = '<div style="font-size:26px">' + m.emoji + '</div><b>' + m.nome + '</b><br>🪙 ' + m.valor +
+                          '<br>achou ' + qtd + 'x<br><span style="color:#889">a partir de ' + m.de + 'm</span>';
+        } else {
+            d.innerHTML = '<div style="font-size:26px">❓</div><b>???</b><br><span style="color:#667">Ainda não achado<br>procure fundo!</span>';
+        }
+        grid.appendChild(d);
+    });
+}
+function abreConquistas(){
+    jogando = false;
+    escondeTodos();
+    const painel = document.getElementById('conquistas');
+    if (painel) painel.style.display = 'flex';
+    const sub = document.getElementById('conqSub');
+    if (sub) sub.textContent = conqFeitas.length + ' de ' + CONQUISTAS.length + ' conquistas · 🏆 recorde ' + recorde + 'm · 🪙 ' + totalMoedas + ' no total';
+    const grid = document.getElementById('conqGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    CONQUISTAS.forEach(c=>{
+        const ok = conqFeitas.includes(c.id);
+        const d = document.createElement('div');
+        d.className = 'conq' + (ok ? ' ok' : '');
+        d.innerHTML = '<b>' + (ok ? '✅ ' : '🔒 ') + c.nome + '</b><br>' + c.dica;
+        grid.appendChild(d);
+    });
+}
+
+// ==================== PRESENTE DIÁRIO ====================
+function presenteDoDia(){
+    const hoje = new Date().toISOString().slice(0,10);
+    if (ultimoDia === hoje) return;
+    ultimoDia = hoje;
+    const bonus = 60 + Math.min(500, recorde);
+    moedas += bonus; totalMoedas += bonus;
+    salvaTudo();
+    setTimeout(()=> mostraMsg('🎁 PRESENTE DO DIA!\n+🪙 ' + bonus, '#ffd700', 2600), 600);
+}
+
+// ==================== CONTROLES ====================
+addEventListener('keydown', e=>{
+    teclas[e.code] = true;
+    if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD'].includes(e.code)) e.preventDefault();
+});
+addEventListener('keyup', e=>{ teclas[e.code] = false; });
+addEventListener('blur', ()=>{ for (const k in teclas) teclas[k] = false; });
+
+function ligaBtn(id, prop){
+    const el = document.getElementById(id);
+    if (!el) return;
+    const on  = e=>{ e.preventDefault(); btnEstado[prop] = true;  el.classList.add('apertado'); };
+    const off = e=>{ e.preventDefault(); btnEstado[prop] = false; el.classList.remove('apertado'); };
+    el.addEventListener('touchstart', on, {passive:false});
+    el.addEventListener('touchend', off, {passive:false});
+    el.addEventListener('touchcancel', off, {passive:false});
+    el.addEventListener('mousedown', on);
+    el.addEventListener('mouseup', off);
+    el.addEventListener('mouseleave', off);
+}
+ligaBtn('btnEsq','esq'); ligaBtn('btnDir','dir'); ligaBtn('btnBaixo','baixo'); ligaBtn('btnPulo','pulo');
+
+function ligaClique(id, fn){
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', fn);
+}
+ligaClique('btnJogar', comecaJogo);
+ligaClique('btnLojaMenu', abreLoja);
+ligaClique('btnLivroMenu', abreLivro);
+ligaClique('btnConqMenu', abreConquistas);
+ligaClique('btnLojaTopo', abreLoja);
+ligaClique('btnMenuTopo', abreMenu);
+ligaClique('btnElevador', usaElevador);
+ligaClique('btnFechaLoja', comecaJogo);
+ligaClique('btnFechaLivro', abreMenu);
+ligaClique('btnFechaConq', abreMenu);
+
+// ==================== START ====================
+if ('ontouchstart' in window) {
+    const ctl = document.getElementById('controles');
+    if (ctl) ctl.style.display = 'flex';
+}
+vaiPraSuperficie();
+jogando = false;
+presenteDoDia();
+atualizaHud();
+abreMenu();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
