@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.7.0 (2026-08-02)
+- LANCAMENTO: cards de Album de Figurinhas e Cavando Fundo aparecem na home (Davi liberou)
+
 ## v3.6.0 (2026-08-01)
 - Cavando Fundo agora e 3D voxel (Three.js): mineiro HUMANO de blocos com capacete/lanterna,
   bracos e pernas balancando, picareta martelando; mapa 200x200; texturas de pedra, materiais PBR,
