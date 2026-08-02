@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.9.0 (2026-08-02)
+- Botao MASCOTE na conta: escolha entre 7 mascotes (Cogu e Capi livres; Bolao/Peixao/Turbinho/Zoom/Sombra por missao)
+- Missoes: 1000 moedas Penaltis, R$50k Pescaria, 10 vitorias Aviao, 500 moedas Turbo Racing, 200 moedas Parkour 2D
+- Home: jogos novos (Figurinhas e Cavando) agora ficam no FINAL da lista (regra: lancamento entra embaixo)
+
 ## v3.8.0 (2026-08-02)
 - MASCOTE 🍄 em todos os jogos (mascote.js): 1a vez no jogo da dicas; se ja jogou, fica torcendo ("Boa!", "Voce e fera!")
 

@@ -4,6 +4,31 @@
     try {
         var jogo = location.pathname.split('/').filter(Boolean)[0] || 'home';
 
+        // ===== MASCOTES (o escolhido aparece nos jogos; troque na pagina /conta/) =====
+        function lsInt(k) { try { return parseInt(localStorage.getItem(k) || '0', 10) || 0; } catch (e) { return 0; } }
+        window.MASCOTES = [
+            { id: 'cogumelo', emoji: '🍄', nome: 'Cogu', missao: null },
+            { id: 'capivara', emoji: '🦫', nome: 'Capi', missao: null },
+            { id: 'bola', emoji: '⚽', nome: 'Bolão', missao: { texto: 'Consiga 1000 moedas no Pênaltis', chave: 'penaltis_moedas', meta: 1000, jogo: 'Pênaltis' } },
+            { id: 'peixe', emoji: '🐟', nome: 'Peixão', missao: { texto: 'Junte R$ 50.000 na Pescaria Maluca', chave: 'pescaria_dinheiro', meta: 50000, jogo: 'Pescaria' } },
+            { id: 'aviao', emoji: '✈️', nome: 'Turbinho', missao: { texto: 'Vença 10 corridas na Corrida no Céu', chave: 'avc_vitorias', meta: 10, jogo: 'Corrida no Céu' } },
+            { id: 'carro', emoji: '🏎️', nome: 'Zoom', missao: { texto: 'Consiga 500 moedas no Turbo Racing', chave: 'corrida_coins', meta: 500, jogo: 'Turbo Racing' } },
+            { id: 'ninja', emoji: '🥷', nome: 'Sombra', missao: { texto: 'Pegue 200 moedas no Cogumelo Parkour', chave: 'parkour2d_moedas', meta: 200, jogo: 'Cogumelo Parkour' } }
+        ];
+        window.mascoteProgresso = function (m) { return m.missao ? lsInt(m.missao.chave) : 0; };
+        window.mascoteLiberado = function (m) { return !m.missao || lsInt(m.missao.chave) >= m.missao.meta; };
+        function mascoteAtual() {
+            var id = '';
+            try { id = localStorage.getItem('mascote_escolhido') || 'cogumelo'; } catch (e) { id = 'cogumelo'; }
+            for (var i = 0; i < window.MASCOTES.length; i++) {
+                var m = window.MASCOTES[i];
+                if (m.id === id && window.mascoteLiberado(m)) return m;
+            }
+            return window.MASCOTES[0];
+        }
+        var meuMascote = mascoteAtual();
+        if (jogo === 'conta') return; // na pagina de conta so usamos os dados (sem balao)
+
         var DICAS = {
             aviao: ['Bem-vindo à Corrida no Céu! ✈️ Use as setas ou WASD pra voar!', 'Aperta ESPAÇO pra usar o TURBO! 🔥', 'Cuidado com as montanhas e os outros aviões!', 'Ganhe corridas pra comprar aviões novos na loja! 🛒'],
             brawl: ['Bem-vindo à Arena Cogumelo! ⚔️ Mova com WASD e ataque com o mouse!', 'No modo ONLINE você luta contra jogadores de verdade! 🌐'],
@@ -47,7 +72,7 @@
 
         var box = document.createElement('div');
         box.id = 'mascoteCogu';
-        box.innerHTML = '<span class="cara">🍄</span><span class="fala" id="mascoteCoguFala">Oi!</span>';
+        box.innerHTML = '<span class="cara">' + meuMascote.emoji + '</span><span class="fala" id="mascoteCoguFala">Oi!</span>';
         var fala = null, timer = null;
 
         function monta() {

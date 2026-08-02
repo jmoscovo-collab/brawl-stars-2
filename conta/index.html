@@ -69,6 +69,7 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
         </div>
     </div>
     <button class="roxo" onclick="abreTrocaFoto()">🖼️ Trocar foto</button>
+    <button style="background:linear-gradient(135deg,#ff8800,#ffcc44); color:#3a2200" onclick="abreMascotes()">🍄 Mascote</button>
     <button class="cinza" onclick="abreTrocaNome()">✏️ Mudar meu nome</button>
     <div id="painelNome" style="display:none; margin-top:6px">
         <input id="novoNomeConta" placeholder="Novo nome (2 a 20 letras)" maxlength="20">
@@ -97,6 +98,15 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
     <div id="listaAmigos"></div>
     <div class="tituloLista">🚫 Bloqueados:</div>
     <div id="listaBloqueados"></div>
+</div>
+
+<div id="overlayMascotes" style="position:fixed; inset:0; background:rgba(0,0,10,0.85); display:none; align-items:center; justify-content:center; z-index:60; padding:16px" onclick="if(event.target===this)fechaMascotes()">
+    <div class="card" style="margin:0; max-height:85vh; overflow:auto">
+        <h2>🍄 Meus Mascotes</h2>
+        <p style="color:#889; font-size:13px; margin-bottom:10px">O mascote escolhido aparece nos jogos te dando dicas e torcendo por você! Complete missões pra desbloquear os outros.</p>
+        <div id="listaMascotes"></div>
+        <button class="cinza" onclick="fechaMascotes()">Fechar</button>
+    </div>
 </div>
 
 <div id="overlayPerfil" onclick="if(event.target===this)fechaPerfil()">
@@ -134,6 +144,7 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
 
 <script src="/stats.js"></script>
 <script src="/avisos.js?v=6"></script>
+<script src="/mascote.js"></script>
 <script>
 if (window.initStats) initStats('conta');
 
@@ -546,6 +557,54 @@ async function trocaNome(){
     } catch(e){ aviso('😕 '+e.message); }
 }
 window.abreTrocaNome = abreTrocaNome; window.trocaNome = trocaNome;
+
+// ============ MASCOTES ============
+function abreMascotes(){
+    montaMascotes();
+    document.getElementById('overlayMascotes').style.display = 'flex';
+}
+function fechaMascotes(){ document.getElementById('overlayMascotes').style.display = 'none'; }
+function escolheMascote(id){
+    localStorage.setItem('mascote_escolhido', id);
+    montaMascotes();
+    aviso('🎉 Mascote escolhido! Ele vai aparecer nos jogos!', true);
+    if(typeof salvarProgresso==='function') salvarProgresso(false);
+}
+function montaMascotes(){
+    const box = document.getElementById('listaMascotes');
+    box.innerHTML = '';
+    if(!window.MASCOTES){ box.innerHTML = '<span style="color:#f66">😕 Não carregou, atualiza a página!</span>'; return; }
+    const atual = localStorage.getItem('mascote_escolhido') || 'cogumelo';
+    window.MASCOTES.forEach(m=>{
+        const livre = window.mascoteLiberado(m);
+        const div = document.createElement('div');
+        div.className = 'linhaItem';
+        if(!livre) div.style.opacity = '0.75';
+        const mini = document.createElement('div');
+        mini.className = 'miniFoto';
+        mini.textContent = livre ? m.emoji : '🔒';
+        const info = document.createElement('div');
+        info.style.flex = '1'; info.style.textAlign = 'left'; info.style.overflow = 'hidden';
+        let sub;
+        if(m.missao){
+            const tem = window.mascoteProgresso(m);
+            sub = livre
+                ? '✅ Missão completa!'
+                : '🎯 ' + m.missao.texto + '<br><b style="color:#ffcc44">' + Math.min(tem, m.missao.meta).toLocaleString('pt-BR') + ' / ' + m.missao.meta.toLocaleString('pt-BR') + '</b>';
+        } else {
+            sub = '⭐ Mascote principal — sempre liberado!';
+        }
+        info.innerHTML = '<b>' + m.emoji + ' ' + m.nome + '</b><br><span style="font-size:12px; color:#99a">' + sub + '</span>';
+        div.appendChild(mini); div.appendChild(info);
+        const b = document.createElement('button');
+        if(m.id === atual && livre){ b.textContent = '✅ Em uso'; b.className = 'cinza'; b.disabled = true; }
+        else if(livre){ b.textContent = 'Usar'; b.onclick = ()=>escolheMascote(m.id); }
+        else { b.textContent = '🔒'; b.className = 'cinza'; b.disabled = true; b.title = m.missao.texto; }
+        div.appendChild(b);
+        box.appendChild(div);
+    });
+}
+window.abreMascotes = abreMascotes; window.fechaMascotes = fechaMascotes;
 </script>
 </body>
 </html>
