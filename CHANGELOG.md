@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.8.0 (2026-08-02)
+- MASCOTE 🍄 em todos os jogos (mascote.js): 1a vez no jogo da dicas; se ja jogou, fica torcendo ("Boa!", "Voce e fera!")
+
 ## v3.7.0 (2026-08-02)
 - LANCAMENTO: cards de Album de Figurinhas e Cavando Fundo aparecem na home (Davi liberou)
 
