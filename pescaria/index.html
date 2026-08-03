@@ -834,24 +834,18 @@ if(!localStorage.getItem('pescaria_promopeixes')){
             }
         }).catch(()=>{});
 }
-// 🎁 PROMOÇÃO 4: as 3 PRÓXIMAS pessoas entram no MODO EXCLUSIVO — 1 minuto onde TODO peixe é EXCLUSIVO!
+// 🎁 SEGREDO DO DEV: ?exclusivo=davi liga o MODO EXCLUSIVO — 1 minuto onde TODO peixe é EXCLUSIVO! (1x por aparelho)
 var promoExclusivoAte = 0; // var de propósito: sorteiaRaridade usa antes do bloco rodar
-if(!localStorage.getItem('pescaria_promoexclusivo')){
-    localStorage.setItem('pescaria_promoexclusivo','tentou');
-    fetch('https://api.counterapi.dev/v1/cogumelogames-br/promoexclusivo/up')
-        .then(r=>r.json())
-        .then(d=>{
-            if(d.count && d.count <= 3){
-                promoExclusivoAte = Date.now() + 60000;
-                mostraMsg(`❗❗ Você foi a ${d.count}ª pessoa! MODO EXCLUSIVO: por 1 MINUTO todo peixe é EXCLUSIVO!!! PESCA AGORA!!! ❗❗`,'#ff0044',7000);
-                soltaConfete(300);
-                const fimPromo = setInterval(()=>{
-                    const resta = Math.ceil((promoExclusivoAte - Date.now())/1000);
-                    if(resta <= 0){ clearInterval(fimPromo); mostraMsg('⏰ O MODO EXCLUSIVO acabou! Valeu quem pescou!','#ff8888',4000); }
-                    else if(resta === 30 || resta === 10) mostraMsg(`⏰ MODO EXCLUSIVO: só mais ${resta} segundos!!!`,'#ff0044',3000);
-                }, 1000);
-            }
-        }).catch(()=>{});
+if(new URLSearchParams(location.search).get('exclusivo') === 'davi' && !localStorage.getItem('pescaria_exclusivodavi')){
+    localStorage.setItem('pescaria_exclusivodavi','usado');
+    promoExclusivoAte = Date.now() + 60000;
+    mostraMsg('❗❗ MODO EXCLUSIVO LIGADO: por 1 MINUTO todo peixe é EXCLUSIVO!!! PESCA AGORA!!! ❗❗','#ff0044',7000);
+    soltaConfete(300);
+    const fimPromo = setInterval(()=>{
+        const resta = Math.ceil((promoExclusivoAte - Date.now())/1000);
+        if(resta <= 0){ clearInterval(fimPromo); mostraMsg('⏰ O MODO EXCLUSIVO acabou!','#ff8888',4000); }
+        else if(resta === 30 || resta === 10) mostraMsg(`⏰ MODO EXCLUSIVO: só mais ${resta} segundos!!!`,'#ff0044',3000);
+    }, 1000);
 }
 // 🎁 PROMOÇÃO 3: as 3 PRÓXIMAS pessoas ganham a VARA SUPREMA! (contador global)
 if(!localStorage.getItem('pescaria_promovara')){
