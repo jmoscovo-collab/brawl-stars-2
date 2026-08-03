@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.16.0 (2026-08-02)
+- Cavando Fundo: olhar LIVRE pra todos os lados (quase reto pra cima/baixo); no celular o CAVAR
+  quebra SO o bloco que a MIRA da tela aponta (raio do olho), e a mira aparece sempre
+- Cozinha: botao "Caminho" tambem aparece DENTRO do jogo (do lado do Sair)
+
 ## v3.15.0 (2026-08-02)
 - Cozinha: CAMINHO DE FASES (12 fases/restaurantes, cadeado, ✅ nas feitas, escolhe qual jogar)
 - Fase completa → botoes "IR A PROXIMA FASE" e "VOLTAR AO INICIO (caminho)"

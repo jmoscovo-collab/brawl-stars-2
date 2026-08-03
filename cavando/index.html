@@ -965,6 +965,21 @@ function atualizaFaiscas(dt){
 function frenteX(){ return Math.sin(p.yaw); }
 function frenteZ(){ return Math.cos(p.yaw); }
 
+// celular: o CAVAR quebra SO o bloco que a MIRA da tela aponta (raio do olho)
+const EH_CEL = 'ontouchstart' in window;
+function alvoNaMira(){
+    const cosP = Math.cos(camPitch);
+    const dx = Math.sin(camYaw) * cosP, dy = Math.sin(camPitch), dz = Math.cos(camYaw) * cosP;
+    const ox = p.x, oy = p.y + 1.55, oz = p.z;
+    for (let t = 0.35; t <= 3.6; t += 0.12) {
+        const wx = ox + dx*t, wy = oy + dy*t, wz = oz + dz*t;
+        const gx = Math.floor(wx), gy = Math.floor(-wy), gz = Math.floor(wz);
+        if (gy < 0) continue;
+        if (solido(bloco(gx,gy,gz))) return { x:gx, y:gy, z:gz };
+    }
+    return null;
+}
+
 // o cubo que está bem embaixo do pé — se o do centro já virou buraco,
 // pega o vizinho que ainda segura o mineiro (senão ele fica preso na beirada)
 function alvoAbaixo(){
@@ -1168,7 +1183,9 @@ function atualiza(dt){
     p.z = Math.max(0.4, Math.min(MUNDO_W - 0.4, p.z));
 
     // ---- cavar ----
-    const novo = achaAlvo(cavaFrente, cavaBaixo);
+    const novo = (EH_CEL && cavaFrente && !cavaBaixo)
+        ? (alvoNaMira() || achaAlvo(true, false))
+        : achaAlvo(cavaFrente, cavaBaixo);
     if (!novo || !alvo || novo.x !== alvo.x || novo.y !== alvo.y || novo.z !== alvo.z) prog = 0;
     alvo = novo;
     if (alvo) {
@@ -1434,7 +1451,7 @@ function atualizaMira(){
     }
     const mira = el('mira');
     // a cruzinha serve na 1ª pessoa; na 3ª quem marca o cubo é o contorno branco
-    if (mira) mira.style.display = (jogando && (visao === 'primeira' || apertado)) ? 'block' : 'none';
+    if (mira) mira.style.display = (jogando && (visao === 'primeira' || apertado || EH_CEL)) ? 'block' : 'none';
     const ct = el('camadaTxt');
     if (ct) ct.textContent = camadaDe(profundidade()).nome + ' · ' + profundidade() + 'm · 🏆 ' + recorde + 'm';
 }
@@ -1612,7 +1629,7 @@ addEventListener('mousemove', e=>{
     ultimoMY = e.clientY;
     if (Math.abs(dx) > 1 || Math.abs(dy) > 1) mouseCavando = false;   // se arrastou, é pra olhar
     camYaw -= dx * 0.011;
-    camPitch = Math.max(-1.2, Math.min(1.0, camPitch - dy * 0.009));
+    camPitch = Math.max(-1.5, Math.min(1.5, camPitch - dy * 0.009));
 });
 
 // --- toque: um dedo na tela (fora dos controles) gira a câmera ---
@@ -1627,7 +1644,7 @@ canvas.addEventListener('touchmove', e=>{
         const t = e.changedTouches[i];
         if (t.identifier !== toqueCam.id) continue;
         camYaw -= (t.clientX - toqueCam.x) * 0.013;
-        camPitch = Math.max(-1.2, Math.min(1.0, camPitch - (t.clientY - toqueCam.y) * 0.010));
+        camPitch = Math.max(-1.5, Math.min(1.5, camPitch - (t.clientY - toqueCam.y) * 0.010));
         toqueCam.x = t.clientX; toqueCam.y = t.clientY;
     }
 }, {passive:true});

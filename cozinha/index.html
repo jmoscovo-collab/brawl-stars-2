@@ -80,6 +80,9 @@ a.voltar { color:#987; text-decoration:none; margin-top:12px; display:inline-blo
 <div id="maoHud">🫳 mãos vazias</div>
 <div id="msg"></div>
 <button id="btnSairJogo" onclick="sairDoJogo()">🚪 Sair</button>
+<button id="btnCaminhoJogo" onclick="voltaAoInicio()" style="position:fixed; top:8px; right:70px; z-index:25; border-radius:10px;
+    background:rgba(20,10,0,0.6); color:#fff; font-size:13px; font-weight:bold; padding:6px 10px; display:none;
+    border:1px solid rgba(255,255,255,0.3)">🗺️ Caminho</button>
 
 <div id="joyBase"><div id="joyBola"></div></div>
 <button id="btnAcao">✋ PEGAR</button>
@@ -526,6 +529,7 @@ function iniciaFase(){
     montaChef();
     desenhaPedidos(); atualizaHud(); atualizaMaoHud();
     el('btnSairJogo').style.display = 'block';
+    el('btnCaminhoJogo').style.display = online ? 'none' : 'block';
     jogando = true;
     novoClienteDentro();
     setTimeout(novoCarro, 4000);
@@ -539,7 +543,7 @@ function atualizaHud(){
 function faseCompleta(){
     jogando = false;
     if(fase >= faseMax && fase < TOTAL_FASES){ faseMax = fase + 1; lsSet('faseMax', faseMax); }
-    el('btnSairJogo').style.display = 'none';
+    el('btnSairJogo').style.display = 'none'; el('btnCaminhoJogo').style.display = 'none';
     var ultima = fase >= TOTAL_FASES;
     el('faseTitulo').textContent = ultima ? '👑 VOCÊ ZEROU O JOGO!!!' : '🎉 Fase ' + fase + ' completa!';
     el('faseTexto').innerHTML = 'Você atendeu ' + atendidos + ' clientes! 🪙 ' + moedas +
@@ -555,7 +559,7 @@ function proximaFase(){
 function voltaAoInicio(){
     saiOnline();
     jogando = false;
-    el('btnSairJogo').style.display = 'none';
+    el('btnSairJogo').style.display = 'none'; el('btnCaminhoJogo').style.display = 'none';
     ['telaFase','telaFim'].forEach(function(t){ el(t).style.display='none'; });
     abreCaminho();
 }
@@ -567,12 +571,12 @@ function tentaDeNovo(){
 function sairDoJogo(){
     saiOnline();
     jogando = false;
-    el('btnSairJogo').style.display = 'none';
+    el('btnSairJogo').style.display = 'none'; el('btnCaminhoJogo').style.display = 'none';
     fechaTelas();
 }
 function fimDeJogo(motivo){
     jogando = false;
-    el('btnSairJogo').style.display = 'none';
+    el('btnSairJogo').style.display = 'none'; el('btnCaminhoJogo').style.display = 'none';
     el('fimTexto').innerHTML = motivo + '<br><br>Você estava na <b>Fase ' + fase + '</b> (destrancadas: ' + faseMax + ')<br>🪙 ' + moedas + ' moedas guardadas!';
     el('telaFim').style.display = 'flex';
 }
