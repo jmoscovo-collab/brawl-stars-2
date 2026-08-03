@@ -1,5 +1,13 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.15.0 (2026-08-02)
+- Cozinha: CAMINHO DE FASES (12 fases/restaurantes, cadeado, ✅ nas feitas, escolhe qual jogar)
+- Fase completa → botoes "IR A PROXIMA FASE" e "VOLTAR AO INICIO (caminho)"
+- MODO ONLINE ate 4 amigos (relay wss ?jogo=cozinha): ve os amigos como capivaras com nome,
+  placar de entregas, aviso quando amigo entrega; vidas nao acabam no online
+- Loja de SKINS da capivara (7 cores, ate a DOURADA) separada da loja de chapeus
+- Botao Sair durante o jogo
+
 ## v3.14.0 (2026-08-02)
 - Cozinha 3D repaginada: chao xadrez, estacoes coloridas, gramado em volta, plantas, luminarias,
   mesinhas redondas, capivara mais fofa (olhos, bochechas, coracao no avental, andadinha)

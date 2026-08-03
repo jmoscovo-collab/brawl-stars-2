@@ -11,7 +11,7 @@ html,body { width:100%; height:100%; overflow:hidden; background:#87ceeb; font-f
 canvas { display:block; }
 
 /* HUD */
-#hudTopo { position:fixed; top:8px; left:8px; right:8px; display:flex; gap:6px; flex-wrap:wrap; z-index:10; pointer-events:none; }
+#hudTopo { position:fixed; top:8px; left:8px; right:70px; display:flex; gap:6px; flex-wrap:wrap; z-index:10; pointer-events:none; }
 #hudTopo span { background:rgba(20,10,0,0.6); border-radius:12px; padding:5px 11px; font-size:13px; font-weight:bold; border:1px solid rgba(255,255,255,0.25); }
 #pedidos { position:fixed; top:44px; left:8px; display:flex; flex-direction:column; gap:6px; z-index:10; pointer-events:none; max-width:235px; }
 .ticket { background:rgba(255,255,255,0.96); color:#222; border-radius:12px; padding:6px 9px; font-weight:bold; box-shadow:0 4px 12px rgba(0,0,0,0.35); border-left:5px solid #ffaa33; }
@@ -22,6 +22,9 @@ canvas { display:block; }
 .ticket .barra div { height:100%; background:linear-gradient(90deg,#00cc66,#ffcc00); }
 #maoHud { position:fixed; bottom:124px; left:50%; transform:translateX(-50%); background:rgba(20,10,0,0.65); border:2px solid #ffcc44;
     border-radius:14px; padding:5px 14px; font-size:15px; font-weight:bold; z-index:10; text-align:center; pointer-events:none; }
+#placarOnline { position:fixed; top:44px; right:8px; z-index:10; background:rgba(20,10,0,0.65); border:2px solid #66ccff;
+    border-radius:12px; padding:6px 10px; font-size:12px; font-weight:bold; display:none; pointer-events:none; min-width:120px; }
+#placarOnline div { margin:2px 0; }
 #msg { position:fixed; top:32%; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.87); border:2px solid #ffcc44;
     color:#ffcc44; padding:11px 20px; border-radius:16px; font-weight:bold; font-size:16px; z-index:40; display:none; text-align:center; max-width:92vw; }
 
@@ -32,6 +35,8 @@ canvas { display:block; }
 #btnAcao { position:fixed; right:20px; bottom:30px; width:88px; height:88px; border-radius:50%; z-index:20; border:3px solid #fff;
     background:linear-gradient(135deg,#ffcc44,#ff8844); color:#3a2200; font-size:14px; font-weight:bold; touch-action:none; box-shadow:0 5px 16px rgba(0,0,0,0.4); }
 #btnAcao:active { transform:scale(0.92); }
+#btnSairJogo { position:fixed; top:8px; right:8px; z-index:25; border-radius:10px; background:rgba(20,10,0,0.6);
+    color:#fff; font-size:13px; font-weight:bold; padding:6px 10px; display:none; border:1px solid rgba(255,255,255,0.3); }
 
 /* telas */
 .tela { position:fixed; inset:0; background:linear-gradient(180deg,rgba(20,8,0,0.94),rgba(40,20,5,0.94)); z-index:60; display:flex; flex-direction:column;
@@ -39,14 +44,26 @@ canvas { display:block; }
 .tela h2 { font-size:28px; margin-bottom:8px;
     background:linear-gradient(to right,#ffcc44,#ff8844); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 .tela p { color:#dcb; margin:5px 0; font-size:14px; max-width:430px; }
-.tela button { margin-top:12px; font-size:18px; font-weight:bold; padding:13px 32px; border:none; border-radius:16px;
+.tela button { margin-top:12px; font-size:17px; font-weight:bold; padding:12px 28px; border:none; border-radius:16px;
     background:linear-gradient(135deg,#ffcc44,#ff8844); color:#3a2200; cursor:pointer; box-shadow:0 4px 14px rgba(255,150,50,0.35); }
 .tela button.secundario { background:#554433; color:#fff; font-size:14px; padding:9px 20px; box-shadow:none; }
-#lojaLista { display:grid; grid-template-columns:repeat(auto-fit,minmax(115px,1fr)); gap:9px; max-width:470px; width:92vw; margin-top:8px; }
+.tela button.online { background:linear-gradient(135deg,#44aaff,#66ccff); color:#002244; }
+#lojaLista, #skinLista { display:grid; grid-template-columns:repeat(auto-fit,minmax(115px,1fr)); gap:9px; max-width:470px; width:92vw; margin-top:8px; }
 .itemLoja { background:rgba(60,40,15,0.9); border:2px solid #8a6a3a; border-radius:14px; padding:9px; }
 .itemLoja .ic { font-size:32px; }
+.itemLoja .bolinha { width:34px; height:34px; border-radius:50%; margin:0 auto 4px; border:3px solid #fff; }
 .itemLoja button { margin-top:5px; font-size:12px; padding:7px 10px; width:100%; }
 a.voltar { color:#987; text-decoration:none; margin-top:12px; display:inline-block; }
+
+/* caminho de fases */
+#caminhoBox { display:flex; flex-wrap:wrap; justify-content:center; gap:14px; max-width:460px; margin-top:10px; }
+.faseNo { width:76px; height:76px; border-radius:50%; border:4px solid #ffcc44; background:rgba(60,40,15,0.95);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; cursor:pointer; position:relative; }
+.faseNo .num { font-size:22px; }
+.faseNo .nomezinho { font-size:8px; color:#dcb; max-width:70px; }
+.faseNo.trancada { border-color:#555; filter:grayscale(1); opacity:0.6; cursor:default; }
+.faseNo.feita { border-color:#00cc66; }
+.faseNo.atual { box-shadow:0 0 18px #ffcc44; transform:scale(1.08); }
 </style>
 </head>
 <body>
@@ -59,41 +76,58 @@ a.voltar { color:#987; text-decoration:none; margin-top:12px; display:inline-blo
     <span id="hudVidas">❤️❤️❤️</span>
 </div>
 <div id="pedidos"></div>
+<div id="placarOnline"></div>
 <div id="maoHud">🫳 mãos vazias</div>
 <div id="msg"></div>
+<button id="btnSairJogo" onclick="sairDoJogo()">🚪 Sair</button>
 
 <div id="joyBase"><div id="joyBola"></div></div>
 <button id="btnAcao">✋ PEGAR</button>
 
 <div class="tela" id="telaInicio">
     <h2>🦫🍳 Cozinha da Capivara 3D</h2>
-    <p>Você é a capivara chef! Ande com as setas/WASD (ou bolinha no celular).</p>
-    <p>🍽️ Pegue a BANDEJA, coloque as comidas nela NA ORDEM do pedido e leve pro cliente!</p>
-    <p>⌨️ Tecla <b>E</b> pega tudo • 📱 no celular é só chegar perto e TOCAR na comida (ou no botão ✋)</p>
-    <p>🚪 Clientes entram pela porta • 🚗 Carros pedem no DRIVE-THRU • 🏪 Cada fase é um restaurante novo!</p>
-    <button onclick="comecaJogo()">🍳 COMEÇAR</button>
+    <p>Pegue a BANDEJA, monte o pedido NA ORDEM e entregue no balcão 🚪 ou no drive-thru 🚗!</p>
+    <p>⌨️ Tecla <b>E</b> • 📱 chegue perto e TOQUE na comida (ou botão ✋)</p>
+    <button onclick="abreCaminho()">🗺️ CAMINHO DE FASES</button>
+    <button class="online" onclick="entraOnline()">🌐 JOGAR ONLINE (até 4 amigos)</button>
+    <button class="secundario" onclick="abreSkins()">🦫 Skins da Capivara</button>
     <button class="secundario" onclick="abreLoja()">🎩 Loja de Chapéus</button>
     <a class="voltar" href="/">← Voltar pros jogos</a>
+</div>
+
+<div class="tela" id="telaCaminho" style="display:none">
+    <h2>🗺️ Caminho de Fases</h2>
+    <p>Complete uma fase pra destrancar a próxima! Cada fase é um restaurante.</p>
+    <div id="caminhoBox"></div>
+    <button class="secundario" onclick="fechaCaminho()">← Voltar</button>
 </div>
 
 <div class="tela" id="telaFase" style="display:none">
     <h2 id="faseTitulo">🎉 Fase completa!</h2>
     <p id="faseTexto"></p>
-    <button onclick="proximaFase()">➡️ PRÓXIMO RESTAURANTE</button>
+    <button onclick="proximaFase()">➡️ IR À PRÓXIMA FASE</button>
+    <button class="secundario" onclick="voltaAoInicio()">🗺️ VOLTAR AO INÍCIO (caminho de fases)</button>
 </div>
 
 <div class="tela" id="telaFim" style="display:none">
     <h2>😴 Fim do expediente!</h2>
     <p id="fimTexto"></p>
-    <button onclick="comecaJogo()">🔁 Jogar de novo</button>
-    <button class="secundario" onclick="abreLoja()">🎩 Loja de Chapéus</button>
+    <button onclick="tentaDeNovo()">🔁 Tentar de novo</button>
+    <button class="secundario" onclick="voltaAoInicio()">🗺️ Caminho de fases</button>
 </div>
 
 <div class="tela" id="telaLoja" style="display:none">
     <h2>🎩 Loja de Chapéus</h2>
     <p>Chapéus pra capivara chef! <b id="lojaMoedas">🪙 0</b></p>
     <div id="lojaLista"></div>
-    <button class="secundario" onclick="fechaLoja()">← Voltar</button>
+    <button class="secundario" onclick="fechaTelas()">← Voltar</button>
+</div>
+
+<div class="tela" id="telaSkins" style="display:none">
+    <h2>🦫 Skins da Capivara</h2>
+    <p>Capivaras de todas as cores! <b id="skinMoedas">🪙 0</b></p>
+    <div id="skinLista"></div>
+    <button class="secundario" onclick="fechaTelas()">← Voltar</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -106,9 +140,11 @@ if (window.initStats) initStats('cozinha');
 function lsGet(k, d){ try { const v = localStorage.getItem('cozinha_'+k); return v===null?d:JSON.parse(v); } catch(e){ return d; } }
 function lsSet(k, v){ try { localStorage.setItem('cozinha_'+k, JSON.stringify(v)); } catch(e){} }
 var moedas = lsGet('moedas', 0);
-var recordeFase = lsGet('recordeFase', 0);
+var faseMax = Math.max(1, lsGet('faseMax', 1), lsGet('recordeFase', 0));
 var chapeus = lsGet('chapeus', ['nenhum']);
 var chapeuEq = lsGet('chapeuEq', 'nenhum');
+var skins = lsGet('skins', ['marrom']);
+var skinEq = lsGet('skinEq', 'marrom');
 
 // ============ DADOS ============
 var INGREDIENTES = [['🍞','pão',0xf5d9a8],['🥩','carne',0xe8a0a0],['🧀','queijo',0xffe28a],['🥬','alface',0xb8e6a0],
@@ -123,14 +159,31 @@ var CHAPEUS = [
     { id:'coroa',   nome:'Coroa Real', emoji:'👑', preco:1500 },
     { id:'mago',    nome:'Chapéu de Mago', emoji:'🪄', preco:3000 }
 ];
+var SKINS = [
+    { id:'marrom',    nome:'Capivara Clássica', corpo:0x9a6a3a, cabeca:0xaa7a48, preco:0 },
+    { id:'chocolate', nome:'Chocolate', corpo:0x5f3a1a, cabeca:0x6f4a26, preco:200 },
+    { id:'preta',     nome:'Noturna', corpo:0x333333, cabeca:0x454545, preco:400 },
+    { id:'branca',    nome:'Nevada', corpo:0xe8e0d0, cabeca:0xf5efe5, preco:700 },
+    { id:'rosa',      nome:'Algodão-Doce', corpo:0xdd7799, cabeca:0xee88aa, preco:1000 },
+    { id:'azul',      nome:'Azulzinha', corpo:0x5577cc, cabeca:0x6688dd, preco:1500 },
+    { id:'dourada',   nome:'DOURADA ✨', corpo:0xd4a017, cabeca:0xe6b830, preco:3000 }
+];
+var TOTAL_FASES = 12;
 var RESTAURANTES = [
     { nome:'Lanchonete da Capivara', chao1:0xf0d8a8, chao2:0xe0c088, parede:0xcc7744, ceu:0x87ceeb, meta:6 },
     { nome:'Pizzaria Capi', chao1:0xf0f0e8, chao2:0xcc4444, parede:0xaa3333, ceu:0xffd9a0, meta:8 },
     { nome:'Restaurante da Praia', chao1:0xf8ecc0, chao2:0xe8d8a0, parede:0x44aadd, ceu:0x66ccee, meta:10 },
     { nome:'Lanche Espacial', chao1:0x8888aa, chao2:0x666688, parede:0x444466, ceu:0x111133, meta:12 },
     { nome:'Castelo do Hambúrguer', chao1:0xbbbbbb, chao2:0x999999, parede:0x777788, ceu:0xaabbdd, meta:14 },
-    { nome:'Cozinha Vulcânica', chao1:0xaa5533, chao2:0x884422, parede:0x552211, ceu:0xff6633, meta:16 }
+    { nome:'Cozinha Vulcânica', chao1:0xaa5533, chao2:0x884422, parede:0x552211, ceu:0xff6633, meta:16 },
+    { nome:'Café da Floresta', chao1:0xa8d8a0, chao2:0x88b880, parede:0x336633, ceu:0x99dd88, meta:18 },
+    { nome:'Lanche Subaquático', chao1:0x88ccdd, chao2:0x66aacc, parede:0x114466, ceu:0x2266aa, meta:20 },
+    { nome:'Doceria das Nuvens', chao1:0xffe0f0, chao2:0xffc8e0, parede:0xdd88bb, ceu:0xffddee, meta:22 },
+    { nome:'Hamburgueria Neon', chao1:0x333344, chao2:0x222233, parede:0x8844ff, ceu:0x110022, meta:24 },
+    { nome:'Restaurante do Deserto', chao1:0xf0dca0, chao2:0xe0c880, parede:0xcc8833, ceu:0xffcc66, meta:26 },
+    { nome:'COZINHA REAL 👑', chao1:0xffe8a0, chao2:0xffd870, parede:0xaa8811, ceu:0xffeeaa, meta:30 }
 ];
+function restauranteDa(f){ return RESTAURANTES[Math.min(f-1, RESTAURANTES.length-1)]; }
 
 // ============ THREE ============
 var scene, camera, renderer, relogio, raycaster, mouseV;
@@ -157,6 +210,18 @@ function spriteEmoji(emoji, tam){
     var tx = new THREE.CanvasTexture(cv);
     var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tx, transparent:true }));
     sp.scale.set(tam||1.2, tam||1.2, 1);
+    return sp;
+}
+function spriteTexto(txt, cor){
+    var cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
+    var cx = cv.getContext('2d');
+    cx.font = 'bold 34px Arial'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillStyle = 'rgba(0,0,0,0.55)'; cx.fillRect(0,0,256,64);
+    cx.fillStyle = cor || '#ffffff';
+    cx.fillText(String(txt).slice(0,13), 128, 34);
+    var tx = new THREE.CanvasTexture(cv);
+    var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tx, transparent:true }));
+    sp.scale.set(2.4, 0.6, 1);
     return sp;
 }
 function caixa(w,h,d,cor,x,y,z,pai){
@@ -202,6 +267,7 @@ function initThree(){
         camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
         renderer.setSize(innerWidth, innerHeight);
     });
+    renderer.domElement.addEventListener('pointerdown', function(e){ cliqueNaTela(e.clientX, e.clientY); });
 }
 
 // ============ MUNDO ============
@@ -210,20 +276,17 @@ function montaMundo(){
     mundoG = new THREE.Group();
     scene.add(mundoG);
     estacoes = [];
-    var R = RESTAURANTES[Math.min(fase-1, RESTAURANTES.length-1)];
+    var R = restauranteDa(fase);
     scene.background = new THREE.Color(R.ceu);
 
-    // chão xadrez bonito
     var chao = new THREE.Mesh(new THREE.BoxGeometry(21, 0.3, 15),
         new THREE.MeshLambertMaterial({ map: texturaXadrez(R.chao1, R.chao2) }));
     chao.position.set(0, -0.15, 0);
     mundoG.add(chao);
-    // gramado em volta + rua do drive
     caixa(40, 0.26, 30, 0x7abf5a, 3, -0.18, 0);
     caixa(6, 0.28, 30, 0x3a3a3a, 13.5, -0.16, 0);
     for(var i=0;i<9;i++) caixa(0.5, 0.29, 1.6, 0xffdd44, 13.5, -0.15, -13+i*3.2);
 
-    // paredes
     caixa(21, 2.4, 0.5, R.parede, 0, 1.2, -7.25);
     caixa(0.5, 2.4, 15, R.parede, -10.25, 1.2, 0);
     caixa(0.5, 2.4, 5.4, R.parede, 10.25, 1.2, -4.3);
@@ -231,29 +294,23 @@ function montaMundo(){
     caixa(0.5, 0.7, 2.2, R.parede, 10.25, 2.05, 0);
     caixa(13.4, 2.4, 0.5, R.parede, 3.3, 1.2, 7.25);
     caixa(2.6, 2.4, 0.5, R.parede, -9, 1.2, 7.25);
-    // rodapé decorativo
     caixa(21, 0.25, 0.56, 0xffffff, 0, 0.12, -7.25);
     caixa(0.56, 0.25, 15, 0xffffff, -10.25, 0.12, 0);
 
-    // PORTA de entrada: tapete + placa + batentes
     caixa(2.6, 0.02, 1.6, 0xcc2222, -6.4, 0.16, 6.6);
     caixa(0.3, 2.4, 0.56, 0xffffff, -7.8, 1.2, 7.25);
     caixa(0.3, 2.4, 0.56, 0xffffff, -5.0, 1.2, 7.25);
     caixa(3.1, 0.3, 0.56, 0xffffff, -6.4, 2.55, 7.25);
     var placa = spriteEmoji('🚪', 1.4); placa.position.set(-6.4, 3.2, 7.2); mundoG.add(placa);
-    // JANELA drive
     caixa(1.4, 1.0, 2.2, 0x8a5a2a, 9.9, 0.5, 0);
     caixa(1.5, 0.1, 2.4, 0xc99a5b, 9.9, 1.06, 0);
     var placaD = spriteEmoji('🚗', 1.4); placaD.position.set(10.1, 3.1, 0); mundoG.add(placaD);
-    // letreiro do restaurante
     var letreiro = spriteEmoji('🦫', 2.2); letreiro.position.set(0, 3.6, -7.2); mundoG.add(letreiro);
 
-    // BALCÃO do salão
     caixa(7, 1.0, 1.2, 0x9a6234, -2.5, 0.5, 2.5);
     caixa(7.3, 0.14, 1.5, 0xd9aa6b, -2.5, 1.07, 2.5);
-    caixa(7, 0.35, 0.08, 0xffffff, -2.5, 0.62, 3.12); // friso branco na frente
+    caixa(7, 0.35, 0.08, 0xffffff, -2.5, 0.62, 3.12);
 
-    // COZINHA: estações coloridas
     for(var i=0;i<INGREDIENTES.length;i++){
         var ex = -8.6 + i*2.45;
         caixa(1.9, 1.0, 1.6, INGREDIENTES[i][2], ex, 0.5, -6);
@@ -261,18 +318,15 @@ function montaMundo(){
         var sp = spriteEmoji(INGREDIENTES[i][0], 1.5);
         sp.position.set(ex, 2.15, -6);
         mundoG.add(sp);
-        estacoes.push({ tipo:'ingrediente', emoji:INGREDIENTES[i][0], x:ex, z:-4.8, sprite:sp });
+        estacoes.push({ tipo:'ingrediente', emoji:INGREDIENTES[i][0], x:ex, z:-4.8 });
     }
-    // LIXEIRA
     caixa(1.1, 1.2, 1.1, 0x3d7a3d, -8.8, 0.6, 2.5);
     caixa(1.3, 0.12, 1.3, 0x2d5a2d, -8.8, 1.25, 2.5);
     var spL = spriteEmoji('🗑️', 1.1); spL.position.set(-8.8, 2.0, 2.5); mundoG.add(spL);
-    estacoes.push({ tipo:'lixo', x:-8.8, z:1.2, sprite:spL });
-    // pontos de ENTREGA
+    estacoes.push({ tipo:'lixo', x:-8.8, z:1.2 });
     estacoes.push({ tipo:'entrega-balcao', x:-2.5, z:1.5 });
     estacoes.push({ tipo:'entrega-drive', x:9.0, z:0 });
 
-    // mesinhas redondas com toalha + plantas + luminárias
     [[3.5,5.2],[7,4.2],[0.2,5.6]].forEach(function(m){
         var pe = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.16,0.8,10), new THREE.MeshLambertMaterial({ color:0x6a4a2a }));
         pe.position.set(m[0], 0.4, m[1]); mundoG.add(pe);
@@ -289,13 +343,13 @@ function montaMundo(){
         var lamp = spriteEmoji('💡', 0.8); lamp.position.set(p[0], 3.1, p[1]); mundoG.add(lamp);
     });
 
-    el('hudFase').textContent = '🏪 Fase ' + fase + ' — ' + R.nome;
+    el('hudFase').textContent = online ? '🌐 ONLINE — ' + R.nome : '🏪 Fase ' + fase + ' — ' + R.nome;
 }
 
-// ============ BANDEJA (objeto de verdade!) ============
-var BANDEJA_SPOT = { x:-2.5, z:2.5, y:1.14 }; // em cima do balcão
+// ============ BANDEJA ============
+var BANDEJA_SPOT = { x:-2.5, z:2.5, y:1.14 };
 function montaBandeja(){
-    if(bandejaG) scene.remove(bandejaG);
+    if(bandejaG && bandejaG.parent) bandejaG.parent.remove(bandejaG);
     bandejaG = new THREE.Group();
     caixa(1.5, 0.1, 1.05, 0xb87333, 0, 0, 0, bandejaG);
     caixa(1.5, 0.16, 0.1, 0x8a5424, 0, 0.06, 0.5, bandejaG);
@@ -309,7 +363,6 @@ function montaBandeja(){
     desenhaItensBandeja();
 }
 function desenhaItensBandeja(){
-    // tira sprites antigos (filhos além das 5 caixas)
     while(bandejaG.children.length > 5) bandejaG.remove(bandejaG.children[5]);
     itensBandeja.forEach(function(e, i){
         var sp = spriteEmoji(e, 0.62);
@@ -319,7 +372,7 @@ function desenhaItensBandeja(){
     atualizaMaoHud();
 }
 function pegaBandeja(){
-    if(maoItem){ mostraMsg('✋ Solta a comida na bandeja primeiro! (chega perto e aperta de novo)', '#ffaa66'); return; }
+    if(maoItem){ mostraMsg('✋ Solta a comida na bandeja primeiro!', '#ffaa66'); return; }
     scene.remove(bandejaG);
     chefG.add(bandejaG);
     bandejaG.position.set(0, 1.05, -1.25);
@@ -331,10 +384,8 @@ function pegaBandeja(){
 function soltaBandeja(){
     chefG.remove(bandejaG);
     scene.add(bandejaG);
-    // solta na frente do chef
     var ang = chefG.rotation.y;
     bandejaG.position.set(chefG.position.x - Math.sin(ang)*1.3, 0.2, chefG.position.z - Math.cos(ang)*1.3);
-    // se soltou perto do balcão/mesa, sobe pra cima dele
     if(Math.hypot(bandejaG.position.x-BANDEJA_SPOT.x, bandejaG.position.z-BANDEJA_SPOT.z) < 3.2){
         bandejaG.position.set(BANDEJA_SPOT.x, BANDEJA_SPOT.y, BANDEJA_SPOT.z);
     }
@@ -350,32 +401,37 @@ function atualizaMaoHud(){
     el('maoHud').textContent = t.length ? t.join('  •  ') : '🫳 mãos vazias';
 }
 
-// ============ CAPIVARA CHEF (fofa!) ============
+// ============ CAPIVARA (minha e dos amigos) ============
+function montaCapivara(skinId, chapeuId){
+    var s = SKINS.find(function(x){ return x.id===skinId; }) || SKINS[0];
+    var g = new THREE.Group();
+    caixa(1.1, 0.75, 1.5, s.corpo, 0, 0.55, 0, g);
+    caixa(0.85, 0.62, 0.72, s.cabeca, 0, 0.98, -0.85, g);
+    caixa(0.2, 0.22, 0.14, 0x7a4a24, -0.28, 1.36, -0.8, g);
+    caixa(0.2, 0.22, 0.14, 0x7a4a24, 0.28, 1.36, -0.8, g);
+    caixa(0.34, 0.2, 0.22, 0x6a4020, 0, 0.8, -1.26, g);
+    caixa(0.13, 0.15, 0.04, 0xffffff, -0.2, 1.1, -1.22, g);
+    caixa(0.13, 0.15, 0.04, 0xffffff, 0.2, 1.1, -1.22, g);
+    caixa(0.07, 0.09, 0.05, 0x111111, -0.2, 1.09, -1.23, g);
+    caixa(0.07, 0.09, 0.05, 0x111111, 0.2, 1.09, -1.23, g);
+    caixa(0.1, 0.06, 0.04, 0xdd8888, -0.34, 0.95, -1.21, g);
+    caixa(0.1, 0.06, 0.04, 0xdd8888, 0.34, 0.95, -1.21, g);
+    [-0.4, 0.4].forEach(function(px){
+        caixa(0.24, 0.4, 0.24, 0x7a5028, px, 0.2, 0.5, g);
+        caixa(0.24, 0.4, 0.24, 0x7a5028, px, 0.2, -0.5, g);
+    });
+    caixa(1.14, 0.52, 0.1, 0xffffff, 0, 0.55, -0.78, g);
+    caixa(0.5, 0.3, 0.12, 0xff6666, 0, 0.62, -0.8, g);
+    var c = CHAPEUS.find(function(x){ return x.id===chapeuId; });
+    if(c && c.emoji){ var sp = spriteEmoji(c.emoji, 1.0); sp.position.set(0, 1.9, -0.85); g.add(sp); }
+    return g;
+}
 function montaChef(){
     var pos = chefG ? chefG.position.clone() : new THREE.Vector3(-2.5, 0, 0);
     var rot = chefG ? chefG.rotation.y : 0;
     var tinhaBandeja = bandejaComigo;
     if(chefG){ if(bandejaComigo) chefG.remove(bandejaG); scene.remove(chefG); }
-    chefG = new THREE.Group();
-    caixa(1.1, 0.75, 1.5, 0x9a6a3a, 0, 0.55, 0, chefG);                 // corpo
-    caixa(0.85, 0.62, 0.72, 0xaa7a48, 0, 0.98, -0.85, chefG);           // cabeça
-    caixa(0.2, 0.22, 0.14, 0x7a4a24, -0.28, 1.36, -0.8, chefG);         // orelhas
-    caixa(0.2, 0.22, 0.14, 0x7a4a24, 0.28, 1.36, -0.8, chefG);
-    caixa(0.34, 0.2, 0.22, 0x6a4020, 0, 0.8, -1.26, chefG);             // focinho
-    caixa(0.13, 0.15, 0.04, 0xffffff, -0.2, 1.1, -1.22, chefG);         // olhos brancos
-    caixa(0.13, 0.15, 0.04, 0xffffff, 0.2, 1.1, -1.22, chefG);
-    caixa(0.07, 0.09, 0.05, 0x111111, -0.2, 1.09, -1.23, chefG);        // pupilas
-    caixa(0.07, 0.09, 0.05, 0x111111, 0.2, 1.09, -1.23, chefG);
-    caixa(0.1, 0.06, 0.04, 0xdd8888, -0.34, 0.95, -1.21, chefG);        // bochechas rosa
-    caixa(0.1, 0.06, 0.04, 0xdd8888, 0.34, 0.95, -1.21, chefG);
-    [-0.4, 0.4].forEach(function(px){
-        caixa(0.24, 0.4, 0.24, 0x7a5028, px, 0.2, 0.5, chefG);
-        caixa(0.24, 0.4, 0.24, 0x7a5028, px, 0.2, -0.5, chefG);
-    });
-    caixa(1.14, 0.52, 0.1, 0xffffff, 0, 0.55, -0.78, chefG);            // avental
-    caixa(0.5, 0.3, 0.12, 0xff6666, 0, 0.62, -0.8, chefG);              // coração no avental
-    var c = CHAPEUS.find(function(x){ return x.id===chapeuEq; });
-    if(c && c.emoji){ var sp = spriteEmoji(c.emoji, 1.0); sp.position.set(0, 1.9, -0.85); chefG.add(sp); }
+    chefG = montaCapivara(skinEq, chapeuEq);
     chefG.position.copy(pos);
     chefG.rotation.y = rot;
     scene.add(chefG);
@@ -399,7 +455,7 @@ function fazPedido(origem, ref){
     var itens = ['🍞'];
     for(var i=0;i<meio;i++) itens.push(INGREDIENTES[1+Math.floor(Math.random()*(INGREDIENTES.length-1))][0]);
     itens.push('🍞');
-    var tempo = 50000 + itens.length*8000; // BEM folgado
+    var tempo = 50000 + itens.length*8000;
     var p = { origem:origem, ref:ref, itens:itens, resta:tempo, total:tempo };
     pedidos.push(p);
     return p;
@@ -450,9 +506,13 @@ function novoCarro(){
 }
 
 // ============ FLUXO ============
-function comecaJogo(){
-    ['telaInicio','telaFim','telaLoja','telaFase'].forEach(function(t){ el(t).style.display='none'; });
-    fase = 1; vidas = 3;
+function fechaTelas(){
+    ['telaInicio','telaFim','telaLoja','telaFase','telaSkins','telaCaminho'].forEach(function(t){ el(t).style.display='none'; });
+    if(!jogando) el('telaInicio').style.display = 'flex';
+}
+function jogaFase(f){
+    ['telaInicio','telaFim','telaLoja','telaFase','telaSkins','telaCaminho'].forEach(function(t){ el(t).style.display='none'; });
+    fase = f; vidas = 3;
     iniciaFase();
 }
 function iniciaFase(){
@@ -465,40 +525,182 @@ function iniciaFase(){
     montaBandeja();
     montaChef();
     desenhaPedidos(); atualizaHud(); atualizaMaoHud();
+    el('btnSairJogo').style.display = 'block';
     jogando = true;
     novoClienteDentro();
     setTimeout(novoCarro, 4000);
 }
-function metaDaFase(){ return RESTAURANTES[Math.min(fase-1, RESTAURANTES.length-1)].meta; }
+function metaDaFase(){ return restauranteDa(fase).meta; }
 function atualizaHud(){
     el('hudMoedas').textContent = '🪙 ' + moedas;
-    el('hudMeta').textContent = '😋 ' + atendidos + '/' + metaDaFase();
+    el('hudMeta').textContent = online ? '🍔 ' + minhasEntregas + ' entregas' : '😋 ' + atendidos + '/' + metaDaFase();
     el('hudVidas').textContent = '❤️'.repeat(vidas) + '🖤'.repeat(Math.max(0,3-vidas));
 }
 function faseCompleta(){
     jogando = false;
-    if(fase > recordeFase){ recordeFase = fase; lsSet('recordeFase', recordeFase); }
-    var prox = RESTAURANTES[Math.min(fase, RESTAURANTES.length-1)];
-    el('faseTitulo').textContent = '🎉 Fase ' + fase + ' completa!';
-    el('faseTexto').innerHTML = 'Você atendeu ' + atendidos + ' clientes! 🪙 ' + moedas + '<br><br>Próxima parada: <b>' + prox.nome + '</b> 🏪';
+    if(fase >= faseMax && fase < TOTAL_FASES){ faseMax = fase + 1; lsSet('faseMax', faseMax); }
+    el('btnSairJogo').style.display = 'none';
+    var ultima = fase >= TOTAL_FASES;
+    el('faseTitulo').textContent = ultima ? '👑 VOCÊ ZEROU O JOGO!!!' : '🎉 Fase ' + fase + ' completa!';
+    el('faseTexto').innerHTML = 'Você atendeu ' + atendidos + ' clientes! 🪙 ' + moedas +
+        (ultima ? '<br><br>🏆 Você é a MAIOR CHEF CAPIVARA DO MUNDO!' : '<br><br>Próxima parada: <b>' + restauranteDa(fase+1).nome + '</b> 🏪');
     el('telaFase').style.display = 'flex';
 }
 function proximaFase(){
-    fase++;
+    if(fase < TOTAL_FASES) fase++;
     el('telaFase').style.display = 'none';
     vidas = Math.min(3, vidas+1);
     iniciaFase();
 }
+function voltaAoInicio(){
+    saiOnline();
+    jogando = false;
+    el('btnSairJogo').style.display = 'none';
+    ['telaFase','telaFim'].forEach(function(t){ el(t).style.display='none'; });
+    abreCaminho();
+}
+function tentaDeNovo(){
+    el('telaFim').style.display = 'none';
+    vidas = 3;
+    iniciaFase();
+}
+function sairDoJogo(){
+    saiOnline();
+    jogando = false;
+    el('btnSairJogo').style.display = 'none';
+    fechaTelas();
+}
 function fimDeJogo(motivo){
     jogando = false;
-    el('fimTexto').innerHTML = motivo + '<br><br>Você chegou na <b>Fase ' + fase + '</b> (recorde: Fase ' + recordeFase + ')<br>🪙 ' + moedas + ' moedas guardadas!';
+    el('btnSairJogo').style.display = 'none';
+    el('fimTexto').innerHTML = motivo + '<br><br>Você estava na <b>Fase ' + fase + '</b> (destrancadas: ' + faseMax + ')<br>🪙 ' + moedas + ' moedas guardadas!';
     el('telaFim').style.display = 'flex';
 }
 function perdeVida(txt){
     vidas--;
     atualizaHud();
-    if(vidas <= 0){ mostraMsg(txt, '#ff5555', 1600); setTimeout(function(){ fimDeJogo('😡 3 clientes foram embora bravos!'); }, 1000); }
+    if(vidas <= 0){
+        if(online){ vidas = 3; atualizaHud(); mostraMsg(txt + ' — no ONLINE você continua! ❤️❤️❤️', '#ff8888', 2200); return; }
+        mostraMsg(txt, '#ff5555', 1600);
+        setTimeout(function(){ fimDeJogo('😡 3 clientes foram embora bravos!'); }, 1000);
+    }
     else mostraMsg(txt + ' (❤️ ' + vidas + ')', '#ff5555', 2000);
+}
+
+// ============ CAMINHO DE FASES ============
+function abreCaminho(){
+    ['telaInicio','telaFase','telaFim'].forEach(function(t){ el(t).style.display='none'; });
+    var box = el('caminhoBox');
+    box.innerHTML = '';
+    for(var f=1; f<=TOTAL_FASES; f++){
+        (function(f){
+            var d = document.createElement('div');
+            var aberta = f <= faseMax;
+            d.className = 'faseNo' + (aberta ? '' : ' trancada') + (f < faseMax ? ' feita' : '') + (f === faseMax ? ' atual' : '');
+            d.innerHTML = '<div class="num">' + (aberta ? (f < faseMax ? '✅' : f) : '🔒') + '</div>' +
+                '<div class="nomezinho">' + restauranteDa(f).nome + '</div>';
+            if(aberta) d.onclick = function(){ jogaFase(f); };
+            box.appendChild(d);
+        })(f);
+    }
+    el('telaCaminho').style.display = 'flex';
+}
+function fechaCaminho(){
+    el('telaCaminho').style.display = 'none';
+    if(!jogando) el('telaInicio').style.display = 'flex';
+}
+
+// ============ ONLINE (até 4 amigos!) ============
+var WS_URL = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=cozinha';
+var online = false, ws = null, peers = {}, enviaTimer = null, minhasEntregas = 0, meuNome = 'Capi';
+function nomeOnline(){
+    var u = null;
+    try { u = localStorage.getItem('cg_usuario'); } catch(e){}
+    if(u){
+        try { var o = JSON.parse(u); if(typeof o === 'string' && o) return o; } catch(e){ return u; }
+    }
+    return 'Capi' + Math.floor(100 + Math.random()*900);
+}
+function entraOnline(){
+    meuNome = nomeOnline();
+    mostraMsg('🌐 Conectando na cozinha online...', '#66ccff', 2500);
+    try { ws = new WebSocket(WS_URL); } catch(e){ mostraMsg('😕 Não deu pra conectar!', '#ff6666'); return; }
+    ws.onopen = function(){
+        online = true;
+        minhasEntregas = 0;
+        peers = {};
+        fase = 1;
+        ['telaInicio','telaFim','telaLoja','telaFase','telaSkins','telaCaminho'].forEach(function(t){ el(t).style.display='none'; });
+        vidas = 3;
+        iniciaFase();
+        el('placarOnline').style.display = 'block';
+        desenhaPlacar();
+        enviaTimer = setInterval(enviaEstado, 143);
+        mostraMsg('🌐 Você entrou na cozinha ONLINE! Chame até 3 amigos!', '#66ccff', 3000);
+    };
+    ws.onmessage = function(ev){
+        var m; try { m = JSON.parse(ev.data); } catch(e){ return; }
+        if(!online || !m || !m.quem) return;
+        if(m.t === 'estado'){
+            var p = peers[m.quem];
+            if(!p){
+                if(Object.keys(peers).length >= 3) return; // máximo 4 na cozinha (eu + 3)
+                var g = montaCapivara(m.skin || 'marrom', m.chapeu || 'nenhum');
+                scene.add(g);
+                var lb = spriteTexto(m.nome || '???', '#7dff4d');
+                lb.position.y = 2.5;
+                g.add(lb);
+                p = { g:g, nome:m.nome||'???', tx:m.x||0, tz:m.z||0, try_:m.ry||0, ent:0, skin:m.skin, chapeu:m.chapeu, last:Date.now() };
+                peers[m.quem] = p;
+                mostraMsg('👋 ' + p.nome + ' entrou na cozinha!', '#7dff4d', 2000);
+                desenhaPlacar();
+            }
+            p.tx = m.x; p.tz = m.z; p.try_ = m.ry || 0;
+            p.ent = m.ent || 0;
+            p.nome = m.nome || p.nome;
+            p.last = Date.now();
+            if(m.skin !== p.skin || m.chapeu !== p.chapeu){
+                p.skin = m.skin; p.chapeu = m.chapeu;
+                var pos = p.g.position.clone(), rot = p.g.rotation.y;
+                scene.remove(p.g);
+                p.g = montaCapivara(m.skin || 'marrom', m.chapeu || 'nenhum');
+                var lb2 = spriteTexto(p.nome, '#7dff4d'); lb2.position.y = 2.5; p.g.add(lb2);
+                p.g.position.copy(pos); p.g.rotation.y = rot;
+                scene.add(p.g);
+            }
+        } else if(m.t === 'entregou'){
+            mostraMsg('🍔 ' + (m.nome||'Amigo') + ' entregou um pedido! (+' + (m.pts||0) + ')', '#7dff4d', 1600);
+        }
+    };
+    ws.onclose = function(){ if(online){ mostraMsg('🔌 Caiu a conexão do online!', '#ff8866'); saiOnline(); } };
+    ws.onerror = function(){ try { ws.close(); } catch(e){} };
+}
+function enviaEstado(){
+    if(!ws || ws.readyState !== 1 || !jogando || !chefG) return;
+    try {
+        ws.send(JSON.stringify({ acao:'estado', t:'estado', nome:meuNome,
+            x: Math.round(chefG.position.x*10)/10, z: Math.round(chefG.position.z*10)/10,
+            ry: Math.round(chefG.rotation.y*100)/100,
+            skin: skinEq, chapeu: chapeuEq, ent: minhasEntregas }));
+    } catch(e){}
+}
+function saiOnline(){
+    if(!online && !ws) return;
+    online = false;
+    if(enviaTimer) clearInterval(enviaTimer);
+    enviaTimer = null;
+    try { if(ws) ws.close(); } catch(e){}
+    ws = null;
+    Object.keys(peers).forEach(function(k){ scene.remove(peers[k].g); });
+    peers = {};
+    el('placarOnline').style.display = 'none';
+}
+function desenhaPlacar(){
+    var linhas = [{ nome: meuNome + ' (você)', ent: minhasEntregas }];
+    Object.keys(peers).forEach(function(k){ linhas.push({ nome: peers[k].nome, ent: peers[k].ent }); });
+    linhas.sort(function(a,b){ return b.ent - a.ent; });
+    el('placarOnline').innerHTML = '<div style="color:#66ccff">🌐 COZINHA ONLINE</div>' +
+        linhas.map(function(l){ return '<div>🍔 ' + l.ent + ' — ' + l.nome + '</div>'; }).join('');
 }
 
 // ============ INTERAÇÃO ============
@@ -545,14 +747,10 @@ function acao(alvoEscolhido){
         else if(bandejaComigo && itensBandeja.length){ itensBandeja = []; desenhaItensBandeja(); mostraMsg('🗑️ Bandeja limpa!', '#99ff99', 1000); }
         else mostraMsg('🗑️ Nada pra jogar fora!', '#ffaa66', 1000);
     } else if(perto.tipo === 'entrega-balcao' || perto.tipo === 'entrega-drive'){
-        if(!bandejaComigo){
-            // sem bandeja na mão: se ela tá aqui perto, deixa pousar
-            return mostraMsg('🍽️ Você precisa estar SEGURANDO a bandeja com o pedido!', '#ffaa66', 1800);
-        }
+        if(!bandejaComigo) return mostraMsg('🍽️ Você precisa estar SEGURANDO a bandeja com o pedido!', '#ffaa66', 1800);
         entrega(perto.tipo === 'entrega-drive' ? 'drive' : 'balcao');
     }
 }
-// soltar bandeja: tecla Q ou segurar... simples: apertar E de novo longe de tudo solta a bandeja
 function acaoSoltar(){
     if(!jogando || !bandejaComigo) return false;
     var px = chefG.position.x, pz = chefG.position.z;
@@ -571,12 +769,17 @@ function entrega(origem){
     if(rapido) g *= 2;
     moedas += g; lsSet('moedas', moedas);
     atendidos++;
+    if(online){
+        minhasEntregas++;
+        desenhaPlacar();
+        try { if(ws && ws.readyState===1) ws.send(JSON.stringify({ acao:'evento', t:'entregou', nome:meuNome, pts:g })); } catch(e){}
+    }
     removePedido(achou);
     itensBandeja = [];
     desenhaItensBandeja();
     mostraMsg(rapido ? '🌟 RÁPIDO! Gorjeta em DOBRO: +' + g + ' 🪙' : '✅ Entregue! +' + g + ' 🪙', '#00ff88', 1700);
     atualizaHud();
-    if(atendidos >= metaDaFase()) setTimeout(faseCompleta, 900);
+    if(!online && atendidos >= metaDaFase()) setTimeout(faseCompleta, 900);
 }
 function removePedido(p){
     pedidos = pedidos.filter(function(x){ return x !== p; });
@@ -620,7 +823,6 @@ var joy = { ativo:false, dx:0, dz:0 };
 el('btnAcao').addEventListener('touchstart', function(e){ e.preventDefault(); if(!acaoSoltar()) acao(); }, { passive:false });
 el('btnAcao').addEventListener('mousedown', function(e){ e.preventDefault(); if(!acaoSoltar()) acao(); });
 
-// TOCAR na comida/bandeja/lixeira direto (celular e mouse)
 function cliqueNaTela(clientX, clientY){
     if(!jogando || !chefG) return;
     mouseV.x = (clientX/innerWidth)*2 - 1;
@@ -629,7 +831,6 @@ function cliqueNaTela(clientX, clientY){
     var hits = raycaster.intersectObjects(scene.children, true);
     if(!hits.length) return;
     var ponto = hits[0].point;
-    // qual interativo tá mais perto do lugar clicado?
     var alvo = null, melhor = 1.8;
     interativos().forEach(function(e){
         var d = Math.hypot(e.x-ponto.x, e.z-ponto.z);
@@ -637,10 +838,9 @@ function cliqueNaTela(clientX, clientY){
     });
     if(alvo) acao(alvo);
 }
-renderer && renderer.domElement && renderer.domElement.addEventListener('pointerdown', function(e){ cliqueNaTela(e.clientX, e.clientY); });
 
 // ============ LOOP ============
-var proximoClienteEm = 3000, proximoCarroEm = 9000, hudPedidosEm = 0;
+var proximoClienteEm = 3000, proximoCarroEm = 9000, hudPedidosEm = 0, placarEm = 1000;
 function passo(dt){
     if(!jogando || !chefG) return;
     var vx = 0, vz = 0, V = 6.5;
@@ -655,13 +855,27 @@ function passo(dt){
         chefG.position.x = Math.max(-9.6, Math.min(9.6, chefG.position.x + vx*V*dt));
         chefG.position.z = Math.max(-6.6, Math.min(6.6, chefG.position.z + vz*V*dt));
         chefG.rotation.y = Math.atan2(-vx, -vz);
-        chefG.position.y = Math.abs(Math.sin(relogio.elapsedTime*10))*0.06; // andadinha fofa
+        chefG.position.y = Math.abs(Math.sin(relogio.elapsedTime*10))*0.06;
     } else chefG.position.y = 0;
 
     camera.position.x += ((chefG.position.x*0.35) - camera.position.x) * 0.06;
     camera.position.y += (16 - camera.position.y) * 0.06;
     camera.position.z += ((chefG.position.z*0.3 + 9.5) - camera.position.z) * 0.06;
     camera.lookAt(chefG.position.x*0.3, 0, chefG.position.z*0.2);
+
+    // amigos online (andam suave até a última posição recebida)
+    var agora = Date.now();
+    Object.keys(peers).forEach(function(k){
+        var p = peers[k];
+        p.g.position.x += (p.tx - p.g.position.x) * Math.min(1, dt*8);
+        p.g.position.z += (p.tz - p.g.position.z) * Math.min(1, dt*8);
+        p.g.rotation.y = p.try_;
+        if(agora - p.last > 8000){ scene.remove(p.g); delete peers[k]; desenhaPlacar(); }
+    });
+    if(online){
+        placarEm -= dt*1000;
+        if(placarEm <= 0){ placarEm = 1000; desenhaPlacar(); }
+    }
 
     clientes.forEach(function(c){
         if(c.fila && c.fila.length){
@@ -722,17 +936,16 @@ function anima(){
     requestAnimationFrame(anima);
     try {
         var ehCel = 'ontouchstart' in window;
-        if(ehCel){ pulaFrame = !pulaFrame; if(pulaFrame) return; } // 30fps no celular = sem lag
+        if(ehCel){ pulaFrame = !pulaFrame; if(pulaFrame) return; } // 30fps no celular
         var dt = Math.min(relogio.getDelta(), 0.12);
         passo(dt);
         renderer.render(scene, camera);
     } catch(e) {}
 }
 
-// ============ LOJA ============
+// ============ LOJAS ============
 function abreLoja(){
-    el('telaInicio').style.display='none';
-    el('telaFim').style.display='none';
+    ['telaInicio','telaFim','telaSkins','telaCaminho'].forEach(function(t){ el(t).style.display='none'; });
     el('telaLoja').style.display='flex';
     el('lojaMoedas').textContent = '🪙 ' + moedas;
     var box = el('lojaLista');
@@ -756,12 +969,37 @@ function abreLoja(){
         box.appendChild(div);
     });
 }
-function fechaLoja(){
-    el('telaLoja').style.display = 'none';
-    if(!jogando) el('telaInicio').style.display = 'flex';
+function abreSkins(){
+    ['telaInicio','telaFim','telaLoja','telaCaminho'].forEach(function(t){ el(t).style.display='none'; });
+    el('telaSkins').style.display='flex';
+    el('skinMoedas').textContent = '🪙 ' + moedas;
+    var box = el('skinLista');
+    box.innerHTML = '';
+    SKINS.forEach(function(s){
+        var tem = skins.indexOf(s.id) >= 0;
+        var div = document.createElement('div');
+        div.className = 'itemLoja';
+        div.innerHTML = '<div class="bolinha" style="background:#' + ('000000'+s.corpo.toString(16)).slice(-6) + '"></div>' +
+            '<div style="font-size:12px; font-weight:bold">🦫 ' + s.nome + '</div>';
+        var b = document.createElement('button');
+        if(skinEq === s.id){ b.textContent = '✅ Usando'; b.disabled = true; b.style.background='#333'; b.style.color='#aaa'; }
+        else if(tem){ b.textContent = 'Usar'; b.onclick = function(){ skinEq = s.id; lsSet('skinEq', skinEq); if(chefG) montaChef(); abreSkins(); }; }
+        else { b.textContent = '🪙 ' + s.preco; b.onclick = function(){
+            if(moedas < s.preco) return mostraMsg('😕 Faltam ' + (s.preco-moedas) + ' moedas!', '#ff9966');
+            moedas -= s.preco; skins.push(s.id); skinEq = s.id;
+            lsSet('moedas', moedas); lsSet('skins', skins); lsSet('skinEq', skinEq);
+            if(chefG) montaChef(); abreSkins();
+            mostraMsg('🎉 Capivara ' + s.nome + ' é sua!', '#00ff88');
+        }; }
+        div.appendChild(b);
+        box.appendChild(div);
+    });
 }
-window.comecaJogo = comecaJogo; window.proximaFase = proximaFase;
-window.abreLoja = abreLoja; window.fechaLoja = fechaLoja;
+window.abreCaminho = abreCaminho; window.fechaCaminho = fechaCaminho;
+window.proximaFase = proximaFase; window.voltaAoInicio = voltaAoInicio;
+window.tentaDeNovo = tentaDeNovo; window.sairDoJogo = sairDoJogo;
+window.entraOnline = entraOnline; window.abreLoja = abreLoja; window.abreSkins = abreSkins;
+window.fechaTelas = fechaTelas;
 
 // ============ START ============
 initThree();
@@ -770,6 +1008,7 @@ camera.position.set(0, 16, 9.5);
 montaMundo();
 montaBandeja();
 montaChef();
+addEventListener('beforeunload', saiOnline);
 </script>
 <script src="/mascote.js"></script>
 </body>
