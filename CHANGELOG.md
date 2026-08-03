@@ -1,5 +1,12 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.13.0 (2026-08-02)
+- Cozinha da Capivara virou 3D visao de cima (Three.js): capivara chef de blocos andando pela cozinha,
+  porta de entrada com tapete, DRIVE-THRU com fila de carros, balcao pra pedidos de dentro,
+  varios pedidos ao mesmo tempo (cartoezinhos com barra de tempo BEM folgada 54-75s),
+  fases que trocam de restaurante (Lanchonete → Pizzaria → Praia → Espacial → Castelo → Vulcanica)
+- Continua SEM card na home (regra do Davi: so lanca quando ele liberar)
+
 ## v3.12.0 (2026-08-02)
 - JOGO NOVO (NAO LANCADO, so por URL /cozinha/): Cozinha da Capivara — monte lanches na ordem
   do pedido antes do tempo; gorjeta em dobro no perfeito; 3 vidas; loja de chapeus pra capivara
