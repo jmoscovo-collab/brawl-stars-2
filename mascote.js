@@ -44,6 +44,7 @@
             cavando: ['Bem-vindo ao Cavando Fundo! ⛏️ Clique nos blocos pra minerar!', 'Quanto mais fundo, mais raros os minérios! 💎', 'Cuidado com a lava e o gás lá embaixo! 🌋', 'Use o elevador pra voltar rapidinho e vender na loja!'],
             chuva: ['Chuva de Cogumelos! 🍄 Pegue os cogumelos bons que caem do céu!', 'Desvie dos ruins... eles tiram pontos!'],
             clicker: ['Clique no cogumelo pra ganhar pontos! 🍄', 'Compre melhorias pra clicar sozinho!'],
+            cozinha: ['Bem-vindo à Cozinha da Capivara! 🦫🍳', 'Aperte os ingredientes NA ORDEM do pedido, de baixo pra cima!', 'Entregou rápido e sem erro = gorjeta EM DOBRO! 💰', 'Junte moedas pra comprar chapéus pra capivara! 🎩'],
             corrida: ['Bem-vindo ao Turbo Racing! 🏎️ Setas ou WASD pra dirigir!', 'Ganhe corridas e gire a roleta a cada 1 hora! 🎰', 'Carros mais raros são mais rápidos!'],
             desenha: ['Desenha e Adivinha! 🎨 Um desenha, os outros adivinham!', 'No modo online você joga com amigos de verdade!'],
             dino: ['Fuja do T-Rex! 🦖 Desvie dos obstáculos correndo!', 'Não olha pra trás... ele tá vindo! 😱'],

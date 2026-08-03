@@ -1,5 +1,11 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.12.0 (2026-08-02)
+- JOGO NOVO (NAO LANCADO, so por URL /cozinha/): Cozinha da Capivara — monte lanches na ordem
+  do pedido antes do tempo; gorjeta em dobro no perfeito; 3 vidas; loja de chapeus pra capivara
+- REGRA NOVA do Davi: NAO postar direto na home — jogo novo fica por URL ate ele liberar
+- Mascote: dicas da Cozinha
+
 ## v3.11.1 (2026-08-02)
 - Pescaria: segredo ?peixes=davi — 10.000 peixes exclusivos de 1 milhao cada (10 bilhoes, 1x por aparelho)
 - Pescaria: segredo do Davi (?exclusivo=davi, 1x por aparelho) — VARA SUPREMA equipada + 3 minutos onde TODO peixe e EXCLUSIVO

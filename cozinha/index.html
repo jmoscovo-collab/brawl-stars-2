@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Cozinha da Capivara — Cogumelo Games</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body {
+    background:linear-gradient(180deg,#2a1a0a 0%, #3a2510 60%, #241505 100%);
+    min-height:100vh; font-family:Arial,sans-serif; color:#fff; overflow-x:hidden;
+    display:flex; flex-direction:column; align-items:center; user-select:none;
+}
+h1 { font-size:26px; margin:12px 6px 2px; text-align:center;
+    background:linear-gradient(to right,#ffcc44,#ff8844); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.sub { color:#b89; color:#a98; font-size:13px; margin-bottom:8px; text-align:center; }
+#hud { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; font-weight:bold; font-size:14px; margin-bottom:6px; }
+#hud span { background:rgba(0,0,0,0.4); border-radius:12px; padding:5px 12px; }
+
+#palco { position:relative; width:min(96vw,520px); height:300px; background:linear-gradient(180deg,#6a4a2a,#4a3015);
+    border:3px solid #8a6a3a; border-radius:18px; overflow:hidden; }
+#balcao { position:absolute; left:0; right:0; bottom:0; height:64px; background:linear-gradient(180deg,#a97b3f,#7a5424); border-top:4px solid #c99a5b; }
+#cliente { position:absolute; left:18px; bottom:56px; font-size:56px; transition:left .5s; filter:drop-shadow(0 4px 6px #000); }
+#pedidoBalao { position:absolute; left:86px; bottom:150px; background:#fff; color:#222; border-radius:14px; padding:8px 10px;
+    font-size:24px; letter-spacing:2px; box-shadow:0 4px 12px rgba(0,0,0,0.5); min-width:60px; text-align:center; }
+#pedidoBalao::after { content:''; position:absolute; left:-8px; bottom:12px; border:8px solid transparent; border-right-color:#fff; }
+#chef { position:absolute; right:30px; bottom:48px; font-size:64px; transform:scaleX(-1); animation:chefBalanca 2s ease-in-out infinite; filter:drop-shadow(0 4px 6px #000); }
+#chapeu { position:absolute; right:44px; bottom:104px; font-size:30px; z-index:2; pointer-events:none; }
+@keyframes chefBalanca { 0%,100%{transform:scaleX(-1) rotate(-2deg);} 50%{transform:scaleX(-1) rotate(2deg) translateY(-3px);} }
+#montagem { position:absolute; right:110px; bottom:64px; display:flex; flex-direction:column-reverse; align-items:center; font-size:26px; line-height:0.85; }
+#timerBox { position:absolute; top:8px; left:8px; right:8px; height:14px; background:rgba(0,0,0,0.5); border-radius:8px; overflow:hidden; }
+#timerBar { height:100%; width:100%; background:linear-gradient(90deg,#00ff88,#ffcc00); transition:width .2s linear; }
+#humor { position:absolute; top:28px; left:12px; font-size:22px; }
+#vidas { position:absolute; top:8px; right:12px; font-size:18px; background:rgba(0,0,0,0.45); border-radius:10px; padding:3px 8px; }
+
+#ingredientes { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; width:min(96vw,520px); margin-top:10px; }
+#ingredientes button {
+    font-size:30px; padding:12px 0 8px; border:none; border-radius:14px; cursor:pointer;
+    background:linear-gradient(180deg,#5a4020,#3a2810); border:2px solid #8a6a3a; color:#fff;
+}
+#ingredientes button:active { transform:scale(0.92); background:#7a5a30; }
+#ingredientes button small { display:block; font-size:10px; color:#cb9; }
+#acoes { display:flex; gap:8px; width:min(96vw,520px); margin-top:8px; }
+#acoes button { flex:1; font-size:16px; font-weight:bold; padding:12px; border:none; border-radius:14px; cursor:pointer; }
+#btnEntregar { background:linear-gradient(135deg,#00cc66,#00ff88); color:#04300f; }
+#btnLixo { background:linear-gradient(135deg,#883333,#bb4444); color:#fff; }
+
+#msg { position:fixed; top:18%; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.85); border:2px solid #ffcc44;
+    color:#ffcc44; padding:12px 22px; border-radius:16px; font-weight:bold; font-size:17px; z-index:50; display:none;
+    text-align:center; max-width:92vw; }
+.tela { position:fixed; inset:0; background:rgba(10,5,0,0.92); z-index:60; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; padding:20px; }
+.tela h2 { font-size:30px; margin-bottom:10px; color:#ffcc44; }
+.tela p { color:#cba; margin:6px 0; font-size:15px; max-width:420px; }
+.tela button { margin-top:14px; font-size:19px; font-weight:bold; padding:14px 34px; border:none; border-radius:16px;
+    background:linear-gradient(135deg,#ffcc44,#ff8844); color:#3a2200; cursor:pointer; }
+.tela button.secundario { background:#554433; color:#fff; font-size:15px; padding:10px 22px; }
+#lojaLista { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; max-width:480px; width:92vw; margin-top:10px; }
+.itemLoja { background:rgba(60,40,15,0.9); border:2px solid #8a6a3a; border-radius:14px; padding:10px; }
+.itemLoja .ic { font-size:36px; }
+.itemLoja button { margin-top:6px; font-size:13px; padding:8px 12px; width:100%; }
+a.voltar { color:#987; text-decoration:none; margin:14px 0 30px; display:inline-block; }
+</style>
+</head>
+<body>
+<h1>🦫🍳 Cozinha da Capivara</h1>
+<div class="sub">Monte o lanche IGUAL ao pedido antes do tempo acabar!</div>
+<div id="hud">
+    <span id="hudMoedas">🪙 0</span>
+    <span id="hudClientes">😋 0 clientes</span>
+    <span id="hudRecorde">🏆 recorde 0</span>
+    <span id="hudNivel">🔥 nível 1</span>
+</div>
+
+<div id="palco">
+    <div id="timerBox"><div id="timerBar"></div></div>
+    <div id="humor"></div>
+    <div id="vidas">❤️❤️❤️</div>
+    <div id="cliente">🐶</div>
+    <div id="pedidoBalao">…</div>
+    <div id="montagem"></div>
+    <div id="chapeu"></div>
+    <div id="chef">🦫</div>
+    <div id="balcao"></div>
+</div>
+
+<div id="ingredientes"></div>
+<div id="acoes">
+    <button id="btnLixo">🗑️ Jogar fora</button>
+    <button id="btnEntregar">✅ ENTREGAR</button>
+</div>
+<div id="msg"></div>
+
+<div class="tela" id="telaInicio">
+    <h2>🦫 Cozinha da Capivara</h2>
+    <p>Os clientes chegam com fome! Aperte os ingredientes NA ORDEM do pedido (de baixo pra cima) e ENTREGUE antes do tempo acabar.</p>
+    <p>Lanche perfeito = gorjeta EM DOBRO! 💰 Errou ou demorou 3 vezes? Fim de expediente!</p>
+    <button onclick="comecaJogo()">🍳 COMEÇAR O TURNO</button>
+    <button class="secundario" onclick="abreLoja()">🎩 Loja de Chapéus</button>
+    <a class="voltar" href="/">← Voltar pros jogos</a>
+</div>
+
+<div class="tela" id="telaFim" style="display:none">
+    <h2>😴 Fim do expediente!</h2>
+    <p id="fimTexto"></p>
+    <button onclick="comecaJogo()">🔁 Trabalhar de novo</button>
+    <button class="secundario" onclick="abreLoja()">🎩 Loja de Chapéus</button>
+    <button class="secundario" onclick="telaInicial()">🏠 Menu</button>
+</div>
+
+<div class="tela" id="telaLoja" style="display:none">
+    <h2>🎩 Loja de Chapéus</h2>
+    <p>Chapéus pra capivara chef ficar estilosa! <b id="lojaMoedas">🪙 0</b></p>
+    <div id="lojaLista"></div>
+    <button class="secundario" onclick="fechaLoja()">← Voltar</button>
+</div>
+
+<script src="/stats.js"></script>
+<script src="/avisos.js?v=6"></script>
+<script>
+if (window.initStats) initStats('cozinha');
+
+// ============ SAVE ============
+function lsGet(k, d){ try { const v = localStorage.getItem('cozinha_'+k); return v===null?d:JSON.parse(v); } catch(e){ return d; } }
+function lsSet(k, v){ try { localStorage.setItem('cozinha_'+k, JSON.stringify(v)); } catch(e){} }
+var moedas = lsGet('moedas', 0);
+var recorde = lsGet('recorde', 0);
+var chapeus = lsGet('chapeus', ['nenhum']);
+var chapeuEq = lsGet('chapeuEq', 'nenhum');
+
+// ============ DADOS ============
+var INGREDIENTES = [
+    ['🍞','pão'], ['🥩','carne'], ['🧀','queijo'], ['🥬','alface'],
+    ['🍅','tomate'], ['🥓','bacon'], ['🍳','ovo'], ['🧅','cebola']
+];
+var CLIENTES = ['🐶','🐱','🐰','🦊','🐸','🐷','🐨','🦁','🐼','🐵','🦝','🐹'];
+var CHAPEUS = [
+    { id:'nenhum',  nome:'Sem chapéu', emoji:'', preco:0 },
+    { id:'chef',    nome:'Chapéu de Chef', emoji:'👨‍🍳'.replace('👨‍🍳','🧢'), preco:100 },
+    { id:'cartola', nome:'Cartola Chique', emoji:'🎩', preco:300 },
+    { id:'festa',   nome:'Chapéu de Festa', emoji:'🥳'.replace('🥳','🎉'), preco:600 },
+    { id:'coroa',   nome:'Coroa Real', emoji:'👑', preco:1500 },
+    { id:'mago',    nome:'Chapéu de Mago', emoji:'🧙'.replace('🧙','🪄'), preco:3000 }
+];
+
+// ============ ESTADO DA PARTIDA ============
+var jogando = false;
+var clientesAtendidos = 0, nivel = 1, vidas = 3;
+var pedido = [], montado = [], errou = false;
+var tempoTotal = 0, tempoResta = 0, timerId = null;
+
+function el(id){ return document.getElementById(id); }
+function atualizaHud(){
+    el('hudMoedas').textContent = '🪙 ' + moedas;
+    el('hudClientes').textContent = '😋 ' + clientesAtendidos + ' clientes';
+    el('hudRecorde').textContent = '🏆 recorde ' + recorde;
+    el('hudNivel').textContent = '🔥 nível ' + nivel;
+    var c = CHAPEUS.find(function(x){ return x.id===chapeuEq; });
+    el('chapeu').textContent = c ? c.emoji : '';
+}
+var msgTimer = null;
+function mostraMsg(txt, cor, ms){
+    var m = el('msg');
+    m.textContent = txt; m.style.color = cor||'#ffcc44'; m.style.borderColor = cor||'#ffcc44';
+    m.style.display = 'block';
+    if(msgTimer) clearTimeout(msgTimer);
+    msgTimer = setTimeout(function(){ m.style.display='none'; }, ms||2200);
+}
+
+// ============ BOTÕES DE INGREDIENTE ============
+(function(){
+    var box = el('ingredientes');
+    INGREDIENTES.forEach(function(ing){
+        var b = document.createElement('button');
+        b.innerHTML = ing[0] + '<small>' + ing[1] + '</small>';
+        b.onclick = function(){ poeIngrediente(ing[0]); };
+        box.appendChild(b);
+    });
+})();
+
+// ============ JOGO ============
+function comecaJogo(){
+    el('telaInicio').style.display = 'none';
+    el('telaFim').style.display = 'none';
+    el('telaLoja').style.display = 'none';
+    jogando = true; clientesAtendidos = 0; nivel = 1; vidas = 3;
+    atualizaVidas(); atualizaHud();
+    novoCliente();
+}
+function telaInicial(){
+    jogando = false;
+    if(timerId) clearInterval(timerId);
+    el('telaFim').style.display = 'none';
+    el('telaLoja').style.display = 'none';
+    el('telaInicio').style.display = 'flex';
+}
+function atualizaVidas(){ el('vidas').textContent = '❤️'.repeat(vidas) + '🖤'.repeat(3-vidas); }
+
+function novoCliente(){
+    if(!jogando) return;
+    montado = []; errou = false;
+    desenhaMontagem();
+    nivel = 1 + Math.floor(clientesAtendidos/4);
+    // pedido: cresce com o nível (3 a 7 itens), sempre começa e termina com pão
+    var meio = Math.min(1 + Math.floor(clientesAtendidos/3), 5);
+    pedido = ['🍞'];
+    for(var i=0;i<meio;i++) pedido.push(INGREDIENTES[1+Math.floor(Math.random()*(INGREDIENTES.length-1))][0]);
+    pedido.push('🍞');
+    // cliente anda até o balcão
+    var cli = el('cliente');
+    cli.textContent = CLIENTES[Math.floor(Math.random()*CLIENTES.length)];
+    cli.style.left = '-70px';
+    setTimeout(function(){ cli.style.left = '18px'; }, 60);
+    el('humor').textContent = '😋';
+    el('pedidoBalao').textContent = pedido.join('');
+    // tempo: começa folgado, aperta com o nível (mínimo 4.5s)
+    tempoTotal = Math.max(4500, 11000 - nivel*800 - pedido.length*200);
+    tempoResta = tempoTotal;
+    if(timerId) clearInterval(timerId);
+    timerId = setInterval(tick, 100);
+    atualizaHud();
+}
+function tick(){
+    tempoResta -= 100;
+    var pct = Math.max(0, tempoResta/tempoTotal*100);
+    el('timerBar').style.width = pct + '%';
+    el('timerBar').style.background = pct > 40 ? 'linear-gradient(90deg,#00ff88,#ffcc00)' : 'linear-gradient(90deg,#ff8800,#ff3333)';
+    el('humor').textContent = pct > 60 ? '😋' : pct > 30 ? '😐' : '😠';
+    if(tempoResta <= 0){ clearInterval(timerId); clienteBravo('⏰ Demorou demais! O cliente foi embora bravo!'); }
+}
+function poeIngrediente(emoji){
+    if(!jogando || tempoResta<=0) return;
+    montado.push(emoji);
+    if(pedido[montado.length-1] !== emoji) errou = true;
+    desenhaMontagem();
+}
+function desenhaMontagem(){
+    el('montagem').innerHTML = montado.map(function(e){ return '<span>'+e+'</span>'; }).join('');
+}
+function jogaFora(){
+    if(!jogando) return;
+    montado = []; errou = false;
+    desenhaMontagem();
+    mostraMsg('🗑️ Jogou fora! Monta de novo, rápido!', '#ff9966', 1400);
+}
+function entregar(){
+    if(!jogando || tempoResta<=0) return;
+    clearInterval(timerId);
+    var certo = !errou && montado.length === pedido.length;
+    if(certo){
+        var rapido = tempoResta > tempoTotal*0.5;
+        var gorjeta = 10 + nivel*2 + (rapido ? 10 : 0);
+        var perfeito = rapido;
+        if(perfeito) gorjeta *= 2;
+        moedas += gorjeta; lsSet('moedas', moedas);
+        clientesAtendidos++;
+        if(clientesAtendidos > recorde){ recorde = clientesAtendidos; lsSet('recorde', recorde); }
+        el('humor').textContent = '🤩';
+        mostraMsg(perfeito ? '🌟 PERFEITO E RÁPIDO! Gorjeta em DOBRO: +'+gorjeta+' 🪙' : '✅ Pedido certo! +'+gorjeta+' 🪙', '#00ff88', 1800);
+        var cli = el('cliente');
+        cli.style.left = '-70px';
+        setTimeout(novoCliente, 900);
+    } else {
+        clienteBravo(montado.length !== pedido.length ? '❌ Faltou coisa no lanche!' : '❌ Lanche errado! Olha o pedido direitinho!');
+    }
+    atualizaHud();
+}
+function clienteBravo(txt){
+    vidas--;
+    atualizaVidas();
+    el('humor').textContent = '🤬';
+    el('cliente').style.left = '-70px';
+    if(vidas <= 0){
+        jogando = false;
+        mostraMsg(txt, '#ff5555', 1500);
+        setTimeout(fimDeJogo, 1200);
+    } else {
+        mostraMsg(txt + ' (❤️ ' + vidas + ')', '#ff5555', 1800);
+        setTimeout(novoCliente, 1300);
+    }
+}
+function fimDeJogo(){
+    if(timerId) clearInterval(timerId);
+    el('fimTexto').innerHTML = 'Você atendeu <b>' + clientesAtendidos + '</b> cliente(s) e o recorde é <b>' + recorde + '</b>!<br>Moedas no bolso: <b>🪙 ' + moedas + '</b>';
+    el('telaFim').style.display = 'flex';
+}
+el('btnEntregar').onclick = entregar;
+el('btnLixo').onclick = jogaFora;
+
+// ============ LOJA ============
+function abreLoja(){
+    el('telaInicio').style.display = 'none';
+    el('telaFim').style.display = 'none';
+    el('telaLoja').style.display = 'flex';
+    el('lojaMoedas').textContent = '🪙 ' + moedas;
+    var box = el('lojaLista');
+    box.innerHTML = '';
+    CHAPEUS.forEach(function(c){
+        var tem = chapeus.indexOf(c.id) >= 0;
+        var div = document.createElement('div');
+        div.className = 'itemLoja';
+        var b = document.createElement('button');
+        if(chapeuEq === c.id){ b.textContent = '✅ Usando'; b.disabled = true; b.style.background = '#333'; b.style.color='#aaa'; }
+        else if(tem){ b.textContent = 'Usar'; b.onclick = function(){ chapeuEq = c.id; lsSet('chapeuEq', chapeuEq); abreLoja(); atualizaHud(); }; }
+        else { b.textContent = '🪙 ' + c.preco; b.onclick = function(){
+            if(moedas < c.preco) return mostraMsg('😕 Faltam ' + (c.preco-moedas) + ' moedas! Atende mais clientes!', '#ff9966');
+            moedas -= c.preco; chapeus.push(c.id); chapeuEq = c.id;
+            lsSet('moedas', moedas); lsSet('chapeus', chapeus); lsSet('chapeuEq', chapeuEq);
+            abreLoja(); atualizaHud();
+            mostraMsg('🎉 Comprou ' + c.nome + '!', '#00ff88');
+        }; }
+        div.innerHTML = '<div class="ic">' + (c.emoji||'🦫') + '</div><div style="font-size:13px; font-weight:bold">' + c.nome + '</div>';
+        div.appendChild(b);
+        box.appendChild(div);
+    });
+}
+function fechaLoja(){
+    el('telaLoja').style.display = 'none';
+    (jogando ? el('telaFim') : el('telaInicio')).style.display = jogando ? 'none' : 'flex';
+    if(!jogando && el('telaInicio').style.display !== 'flex') el('telaInicio').style.display = 'flex';
+}
+window.comecaJogo = comecaJogo; window.abreLoja = abreLoja; window.fechaLoja = fechaLoja; window.telaInicial = telaInicial;
+
+atualizaHud();
+atualizaVidas();
+</script>
+<script src="/mascote.js"></script>
+</body>
+</html>
