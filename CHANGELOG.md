@@ -1,7 +1,7 @@
 # Changelog - Cogumelo Games (site)
 
 ## v3.11.1 (2026-08-02)
-- Pescaria: MODO EXCLUSIVO secreto so do Davi (?exclusivo=davi, 1x por aparelho) — 1 minuto onde TODO peixe pescado e EXCLUSIVO
+- Pescaria: segredo do Davi (?exclusivo=davi, 1x por aparelho) — VARA SUPREMA equipada + 3 minutos onde TODO peixe e EXCLUSIVO
 
 ## v3.11.0 (2026-08-02)
 - "Conta criada em (dia) de (mes) de (ano)" embaixo da foto em TODO lugar: meu perfil, listas de amigos/pedidos, busca e perfil dos outros
