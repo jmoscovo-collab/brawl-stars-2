@@ -43,6 +43,7 @@
             capivara: ['Ajude a capivara! 🦫 Toque ou use as setas pra desviar!', 'Quanto mais longe você vai, mais pontos ganha!'],
             cavando: ['Bem-vindo ao Cavando Fundo! ⛏️ Clique nos blocos pra minerar!', 'Quanto mais fundo, mais raros os minérios! 💎', 'Cuidado com a lava e o gás lá embaixo! 🌋', 'Use o elevador pra voltar rapidinho e vender na loja!'],
             chuva: ['Chuva de Cogumelos! 🍄 Pegue os cogumelos bons que caem do céu!', 'Desvie dos ruins... eles tiram pontos!'],
+            cidade: ['Bem-vindo à Cidade Cogumelo! 🏗️ Toque num terreno vazio pra construir!', 'Casa dá moedas mas COME 🌽 — sempre tenha fazendas!', 'O Parque 🎡 aumenta as moedas da cidade inteira!', 'A cidade produz até com o jogo FECHADO... volta amanhã! 😴'],
             clicker: ['Clique no cogumelo pra ganhar pontos! 🍄', 'Compre melhorias pra clicar sozinho!'],
             cozinha: ['Bem-vindo à Cozinha da Capivara! 🦫🍳', 'Aperte os ingredientes NA ORDEM do pedido, de baixo pra cima!', 'Entregou rápido e sem erro = gorjeta EM DOBRO! 💰', 'Junte moedas pra comprar chapéus pra capivara! 🎩'],
             corrida: ['Bem-vindo ao Turbo Racing! 🏎️ Setas ou WASD pra dirigir!', 'Ganhe corridas e gire a roleta a cada 1 hora! 🎰', 'Carros mais raros são mais rápidos!'],

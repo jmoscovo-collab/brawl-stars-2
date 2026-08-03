@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.21.0 (2026-08-02)
+- JOGO NOVO (NAO LANCADO, so /cidade/): Cidade Cogumelo — construtor estrategico/idle:
+  6 predios (casa/fazenda/mercado/parque/fabrica/castelo), moedas x comida x felicidade,
+  sem comida a cidade PARA, terrenos trancados, melhorar/demolir, producao OFFLINE ate 8h
+
 ## v3.20.0 (2026-08-02)
 - LANCAMENTO: Merge Cogumelo na home (Davi liberou), card no final
 
