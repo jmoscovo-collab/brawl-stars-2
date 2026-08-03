@@ -144,17 +144,23 @@
         }
         function vigiaDerrota() {
             try {
+                var IGNORA = /^(joyBola|joyBase|pedidos|hudTopo|maoHud|bandeja|timerBar|mascoteCogu)$/;
+                function ignorado(t) {
+                    for (var n = t; n && n.getAttribute; n = n.parentNode) {
+                        if (IGNORA.test(n.id || '')) return true;
+                        if (n === box) return true;
+                    }
+                    return false;
+                }
                 new MutationObserver(function (muts) {
                     for (var i = 0; i < muts.length; i++) {
                         var m = muts[i];
+                        if (ignorado(m.target)) continue;
                         if (m.type === 'characterData') { talvezConsola(m.target.data); continue; }
-                        for (var j = 0; j < m.addedNodes.length; j++) {
-                            var n = m.addedNodes[j];
-                            talvezConsola(n.textContent);
-                        }
-                        if (m.type === 'attributes' && m.target !== box && !box.contains(m.target)) talvezConsola(m.target.textContent);
+                        if (m.type === 'attributes') { talvezConsola(m.target.textContent); continue; }
+                        for (var j = 0; j < m.addedNodes.length; j++) talvezConsola(m.addedNodes[j].textContent);
                     }
-                }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style', 'class'] });
+                }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style'] });
             } catch (e) {}
         }
 

@@ -186,7 +186,7 @@ function initThree(){
     var ehCelular = 'ontouchstart' in window;
     renderer = new THREE.WebGLRenderer({ antialias: !ehCelular, powerPreference:'high-performance' });
     renderer.setSize(innerWidth, innerHeight);
-    renderer.setPixelRatio(Math.min(devicePixelRatio, ehCelular ? 1.3 : 1.8));
+    renderer.setPixelRatio(ehCelular ? 1.0 : Math.min(devicePixelRatio, 1.8));
     el('tela3d').appendChild(renderer.domElement);
     scene.add(new THREE.AmbientLight(0xffffff, 1.0));
     var sol = new THREE.DirectionalLight(0xfff8ee, 0.95);
@@ -717,10 +717,13 @@ function passo(dt){
     }
 }
 
+var pulaFrame = false;
 function anima(){
     requestAnimationFrame(anima);
     try {
-        var dt = Math.min(relogio.getDelta(), 0.1);
+        var ehCel = 'ontouchstart' in window;
+        if(ehCel){ pulaFrame = !pulaFrame; if(pulaFrame) return; } // 30fps no celular = sem lag
+        var dt = Math.min(relogio.getDelta(), 0.12);
         passo(dt);
         renderer.render(scene, camera);
     } catch(e) {}
