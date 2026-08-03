@@ -1,6 +1,7 @@
 # Changelog - Cogumelo Games (site)
 
 ## v3.11.1 (2026-08-02)
+- Pescaria: segredo ?peixes=davi — 10.000 peixes exclusivos de 1 milhao cada (10 bilhoes, 1x por aparelho)
 - Pescaria: segredo do Davi (?exclusivo=davi, 1x por aparelho) — VARA SUPREMA equipada + 3 minutos onde TODO peixe e EXCLUSIVO
 
 ## v3.11.0 (2026-08-02)
