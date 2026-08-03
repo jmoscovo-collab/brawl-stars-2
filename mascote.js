@@ -53,6 +53,7 @@
             labirinto: ['Ache a saída do labirinto! 🌀', 'Alguns caminhos são enganação... explore tudo!'],
             ladrao: ['Polícia VS Ladrão! 🚓 Aperte o botão vermelho na hora certa!', 'São 250 níveis... será que você chega no final?'],
             luta: ['Luta de Capivara! 🦫🥊 Pule e dê golpes pra vencer!', 'São 100 níveis e 14 skins pra desbloquear!'],
+            merge: ['Merge Cogumelo! 🍄 Deslize pra juntar 2 iguais!', 'Cada fusão vira um cogumelo mais raro... até o nível 25 LENDÁRIO! 🏆', 'Pense antes de deslizar — o tabuleiro enche rápido!'],
             ninja: ['Vire um ninja! 🥷 Pule entre as plataformas!', 'O tempo é seu inimigo... seja rápido!'],
             parkour: ['Parkour 3D! 🏃 Pule de plataforma em plataforma!', 'Se cair, começa de novo... calma e precisão!'],
             parkour2d: ['Cogumelo Parkour! 🍄 Pule com ESPAÇO — tem PULO DUPLO!', 'Cuidado com a lava e os espinhos! 🌋', 'Pegue as moedas pra comprar skins na loja!'],

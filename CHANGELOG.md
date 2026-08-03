@@ -1,5 +1,11 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.19.0 (2026-08-02)
+- PACOTINHO DIARIO na home: presente 🎁 pulando 1x por dia — abre e ganha moedas de um jogo
+  aleatorio (50 a 10.000, premio raro 1%%); volta amanha!
+- JOGO NOVO (NAO LANCADO, so /merge/): Merge Cogumelo — junte 2 iguais estilo 2048,
+  25 niveis de cogumelo ate o LENDARIO, deslize/setas, save automatico, recorde
+
 ## v3.18.0 (2026-08-02)
 - LANCAMENTO: Cozinha da Capivara na home (Davi liberou), card no final da lista
 

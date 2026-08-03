@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Merge Cogumelo — Cogumelo Games</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body {
+    background:linear-gradient(135deg,#0a0a2a 0%, #1a0533 50%, #0d1b2a 100%);
+    min-height:100vh; font-family:Arial,sans-serif; color:#fff;
+    display:flex; flex-direction:column; align-items:center; padding:16px; user-select:none; touch-action:none;
+}
+h1 { font-size:28px; margin-bottom:4px;
+    background:linear-gradient(to right,#00ff88,#ffcc00); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.sub { color:#889; font-size:13px; margin-bottom:10px; text-align:center; }
+#hud { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; justify-content:center; }
+#hud span { background:rgba(20,20,50,0.9); border:2px solid #333; border-radius:12px; padding:6px 14px; font-weight:bold; font-size:14px; }
+#tabuleiro {
+    position:relative; background:rgba(20,20,50,0.9); border:3px solid #444; border-radius:16px;
+    width:min(92vw, 420px); height:min(92vw, 420px); padding:8px;
+    display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(4,1fr); gap:8px;
+}
+.celula { background:rgba(255,255,255,0.06); border-radius:12px; }
+.peca {
+    position:absolute; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    border-radius:12px; font-weight:bold; transition:left .12s, top .12s;
+    box-shadow:0 3px 10px rgba(0,0,0,0.4);
+}
+.peca .emo { font-size:34px; line-height:1; filter:drop-shadow(0 2px 3px rgba(0,0,0,0.5)); }
+.peca .lvl { font-size:11px; color:rgba(255,255,255,0.85); font-weight:bold; margin-top:2px; }
+.peca.nova { animation:aparece .18s; }
+.peca.fundiu { animation:pulo .22s; }
+@keyframes aparece { from{ transform:scale(0.3); } to{ transform:scale(1); } }
+@keyframes pulo { 0%{ transform:scale(1);} 50%{ transform:scale(1.25);} 100%{ transform:scale(1);} }
+#botoes { display:flex; gap:8px; margin-top:14px; }
+#botoes button {
+    font-size:15px; font-weight:bold; padding:10px 18px; border:none; border-radius:12px; cursor:pointer;
+    background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a;
+}
+#botoes button.cinza { background:#445; color:#fff; }
+#msgFim {
+    position:fixed; inset:0; background:rgba(5,5,15,0.9); z-index:50; display:none;
+    flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px;
+}
+#msgFim h2 { font-size:32px; color:#ffcc00; margin-bottom:10px; }
+#msgFim p { color:#ccd; margin:6px 0; }
+#msgFim button { margin-top:14px; font-size:18px; font-weight:bold; padding:13px 30px; border:none; border-radius:14px;
+    background:linear-gradient(135deg,#00ff88,#00ccff); color:#08281a; cursor:pointer; }
+a.voltar { color:#888; text-decoration:none; margin-top:14px; }
+#novoNivel { position:fixed; top:26%; left:50%; transform:translateX(-50%); z-index:40; background:rgba(0,0,0,0.9);
+    border:3px solid #ffcc00; border-radius:18px; padding:14px 26px; text-align:center; display:none; }
+#novoNivel .g { font-size:52px; }
+#novoNivel .t { font-weight:bold; color:#ffcc00; margin-top:4px; }
+</style>
+</head>
+<body>
+<h1>🍄 Merge Cogumelo</h1>
+<div class="sub">Junte 2 iguais! Deslize com o dedo ou use as setas. Ninguém NUNCA viu o nível 25...</div>
+<div id="hud">
+    <span id="hudPontos">⭐ 0</span>
+    <span id="hudRecorde">🏆 0</span>
+    <span id="hudMaior">🥇 nível 1</span>
+</div>
+<div id="tabuleiro"></div>
+<div id="botoes">
+    <button class="cinza" onclick="novoJogo()">🔁 Recomeçar</button>
+</div>
+<a class="voltar" href="/">← Voltar pros jogos</a>
+
+<div id="novoNivel"><div class="g" id="nnEmo">🍄</div><div class="t" id="nnTxt">NÍVEL NOVO!</div></div>
+
+<div id="msgFim">
+    <h2>😵 Travou tudo!</h2>
+    <p id="fimTexto"></p>
+    <button onclick="novoJogo()">🔁 Jogar de novo</button>
+</div>
+
+<script src="/stats.js"></script>
+<script src="/avisos.js?v=6"></script>
+<script>
+if (window.initStats) initStats('merge');
+
+// 25 níveis de cogumelo — cada merge sobe 1
+var NIVEIS = [
+    ['🌱','Brotinho'],['🍄','Cogumelo'],['🍄','Cogumelão'],['🌿','Cogu-Folha'],['🍀','Cogu-Sorte'],
+    ['🌸','Cogu-Flor'],['🌻','Cogu-Sol'],['🍎','Cogu-Maçã'],['🍇','Cogu-Uva'],['🍉','Cogu-Melancia'],
+    ['⭐','Cogu-Estrela'],['🌙','Cogu-Lua'],['☀️','Cogu-Solar'],['🌈','Cogu-Arco-Íris'],['💎','Cogu-Diamante'],
+    ['👑','Cogu-Rei'],['🔥','Cogu-Fogo'],['⚡','Cogu-Raio'],['🌋','Cogu-Vulcão'],['🌊','Cogu-Tsunami'],
+    ['🌌','Cogu-Galáxia'],['🐉','Cogu-Dragão'],['🦄','Cogu-Unicórnio'],['🛸','Cogu-Alien'],['🏆','COGUMELO LENDÁRIO']
+];
+var CORES = ['#3a5f3a','#5a4a2a','#6a4a1a','#2a6a3a','#1a7a4a','#aa5577','#aa8833','#aa3333','#7733aa','#33aa77',
+    '#8888ff','#5555cc','#ddaa22','#cc44cc','#22ccee','#ddbb00','#ee5522','#eecc00','#cc3300','#0077cc',
+    '#443388','#22aa44','#ee66cc','#33ddaa','#ffaa00'];
+
+function lsGet(k,d){ try{ var v=localStorage.getItem('merge_'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }
+function lsSet(k,v){ try{ localStorage.setItem('merge_'+k, JSON.stringify(v)); }catch(e){} }
+
+var grade, pontos, recorde = lsGet('recorde',0), maiorNivel = lsGet('maior',1), pecas = {}, idSeq = 1, animando = false;
+var tab = document.getElementById('tabuleiro');
+for(var i=0;i<16;i++){ var c=document.createElement('div'); c.className='celula'; tab.appendChild(c); }
+
+function tamCel(){ return (tab.clientWidth - 16 - 24) / 4; }
+function posPx(i){ return 8 + i * (tamCel() + 8); }
+
+function novoJogo(){
+    grade = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+    Object.keys(pecas).forEach(function(k){ pecas[k].el.remove(); });
+    pecas = {}; pontos = 0;
+    document.getElementById('msgFim').style.display='none';
+    poeNova(); poeNova();
+    salva(); desenhaHud();
+}
+function salva(){
+    lsSet('estado', { g: grade.map(function(l){ return l.map(function(c){ return c ? c.n : 0; }); }), p: pontos });
+    lsSet('recorde', recorde); lsSet('maior', maiorNivel);
+}
+function carrega(){
+    var e = lsGet('estado', null);
+    if(!e || !e.g) return false;
+    grade = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+    pontos = e.p || 0;
+    var tem = false;
+    for(var r=0;r<4;r++) for(var c=0;c<4;c++) if(e.g[r][c] > 0){ criaPeca(r, c, e.g[r][c], false); tem = true; }
+    return tem;
+}
+function criaPeca(r, c, n, anima){
+    var el = document.createElement('div');
+    el.className = 'peca' + (anima ? ' nova' : '');
+    var t = tamCel();
+    el.style.width = t+'px'; el.style.height = t+'px';
+    el.style.left = posPx(c)+'px'; el.style.top = posPx(r)+'px';
+    el.style.background = CORES[Math.min(n-1, CORES.length-1)];
+    el.innerHTML = '<div class="emo">'+NIVEIS[Math.min(n-1,NIVEIS.length-1)][0]+'</div><div class="lvl">nv '+n+'</div>';
+    tab.appendChild(el);
+    var p = { id:idSeq++, r:r, c:c, n:n, el:el };
+    pecas[p.id] = p;
+    grade[r][c] = p;
+    return p;
+}
+function poeNova(){
+    var livres = [];
+    for(var r=0;r<4;r++) for(var c=0;c<4;c++) if(!grade[r][c]) livres.push([r,c]);
+    if(!livres.length) return;
+    var pos = livres[Math.floor(Math.random()*livres.length)];
+    criaPeca(pos[0], pos[1], Math.random() < 0.85 ? 1 : 2, true);
+}
+function desenhaHud(){
+    document.getElementById('hudPontos').textContent = '⭐ ' + pontos;
+    document.getElementById('hudRecorde').textContent = '🏆 ' + recorde;
+    document.getElementById('hudMaior').textContent = '🥇 nível ' + maiorNivel;
+}
+var nnTimer=null;
+function mostraNivelNovo(n){
+    var d=document.getElementById('novoNivel');
+    document.getElementById('nnEmo').textContent = NIVEIS[Math.min(n-1,NIVEIS.length-1)][0];
+    document.getElementById('nnTxt').textContent = 'NÍVEL '+n+': '+NIVEIS[Math.min(n-1,NIVEIS.length-1)][1]+'!';
+    d.style.display='block';
+    if(nnTimer) clearTimeout(nnTimer);
+    nnTimer=setTimeout(function(){ d.style.display='none'; }, 1800);
+}
+
+function move(dr, dc){
+    if(animando) return;
+    var mexeu = false, fundiu = [];
+    // ordem de varredura conforme a direção
+    var rs=[0,1,2,3], cs=[0,1,2,3];
+    if(dr===1) rs=[3,2,1,0];
+    if(dc===1) cs=[3,2,1,0];
+    var travou = {}; // peça que já fundiu nesse movimento não funde de novo
+    rs.forEach(function(r){ cs.forEach(function(c){
+        var p = grade[r][c];
+        if(!p) return;
+        var nr=r, nc=c;
+        while(true){
+            var tr=nr+dr, tc=nc+dc;
+            if(tr<0||tr>3||tc<0||tc>3) break;
+            var alvo = grade[tr][tc];
+            if(!alvo){ nr=tr; nc=tc; continue; }
+            if(alvo.n===p.n && !travou[alvo.id] && !travou[p.id]){ nr=tr; nc=tc; }
+            break;
+        }
+        if(nr===r && nc===c) return;
+        mexeu = true;
+        grade[r][c] = 0;
+        var alvo2 = grade[nr][nc];
+        if(alvo2 && alvo2.n===p.n){
+            // FUSÃO!
+            travou[alvo2.id]=1;
+            grade[nr][nc] = alvo2;
+            p.el.style.left = posPx(nc)+'px'; p.el.style.top = posPx(nr)+'px';
+            fundiu.push({ some:p, fica:alvo2 });
+        } else {
+            grade[nr][nc] = p;
+            p.r=nr; p.c=nc;
+            p.el.style.left = posPx(nc)+'px'; p.el.style.top = posPx(nr)+'px';
+        }
+    }); });
+    if(!mexeu) return;
+    animando = true;
+    setTimeout(function(){
+        fundiu.forEach(function(f){
+            f.some.el.remove(); delete pecas[f.some.id];
+            f.fica.n++;
+            pontos += Math.pow(2, f.fica.n);
+            f.fica.el.style.background = CORES[Math.min(f.fica.n-1, CORES.length-1)];
+            f.fica.el.innerHTML = '<div class="emo">'+NIVEIS[Math.min(f.fica.n-1,NIVEIS.length-1)][0]+'</div><div class="lvl">nv '+f.fica.n+'</div>';
+            f.fica.el.classList.remove('fundiu'); void f.fica.el.offsetWidth; f.fica.el.classList.add('fundiu');
+            if(f.fica.n > maiorNivel){ maiorNivel = f.fica.n; mostraNivelNovo(maiorNivel); }
+        });
+        if(pontos > recorde) recorde = pontos;
+        poeNova();
+        desenhaHud(); salva();
+        animando = false;
+        if(semJogada()){
+            document.getElementById('fimTexto').innerHTML = '⭐ '+pontos+' pontos — maior cogumelo: nível <b>'+maiorNivel+'</b> ('+NIVEIS[Math.min(maiorNivel-1,NIVEIS.length-1)][1]+')';
+            document.getElementById('msgFim').style.display='flex';
+        }
+    }, 130);
+}
+function semJogada(){
+    for(var r=0;r<4;r++) for(var c=0;c<4;c++){
+        var p=grade[r][c];
+        if(!p) return false;
+        if(r<3 && grade[r+1][c] && grade[r+1][c].n===p.n) return false;
+        if(c<3 && grade[r][c+1] && grade[r][c+1].n===p.n) return false;
+    }
+    return true;
+}
+
+addEventListener('keydown', function(e){
+    var k=e.key;
+    if(k==='ArrowUp'||k==='w'||k==='W'){ e.preventDefault(); move(-1,0); }
+    else if(k==='ArrowDown'||k==='s'||k==='S'){ e.preventDefault(); move(1,0); }
+    else if(k==='ArrowLeft'||k==='a'||k==='A'){ e.preventDefault(); move(0,-1); }
+    else if(k==='ArrowRight'||k==='d'||k==='D'){ e.preventDefault(); move(0,1); }
+});
+var t0=null;
+addEventListener('touchstart', function(e){ t0={x:e.touches[0].clientX, y:e.touches[0].clientY}; }, {passive:true});
+addEventListener('touchend', function(e){
+    if(!t0) return;
+    var dx=e.changedTouches[0].clientX-t0.x, dy=e.changedTouches[0].clientY-t0.y;
+    t0=null;
+    if(Math.hypot(dx,dy) < 24) return;
+    if(Math.abs(dx) > Math.abs(dy)) move(0, dx>0?1:-1);
+    else move(dy>0?1:-1, 0);
+}, {passive:true});
+addEventListener('resize', function(){
+    Object.keys(pecas).forEach(function(k){
+        var p=pecas[k], t=tamCel();
+        p.el.style.width=t+'px'; p.el.style.height=t+'px';
+        p.el.style.left=posPx(p.c)+'px'; p.el.style.top=posPx(p.r)+'px';
+    });
+});
+window.novoJogo = novoJogo;
+
+if(!carrega()) novoJogo();
+else desenhaHud();
+</script>
+<script src="/mascote.js"></script>
+</body>
+</html>
