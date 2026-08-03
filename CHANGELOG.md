@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.11.0 (2026-08-02)
+- "Conta criada em (dia) de (mes) de (ano)" embaixo da foto em TODO lugar: meu perfil, listas de amigos/pedidos, busca e perfil dos outros
+- Lambda cogumelo-contas: acoes fotos/buscar agora devolvem a data de criacao (deploy feito)
+- Engrenagem (Opcoes) virou botao fixo no canto ESQUERDO da pagina da conta
+
 ## v3.10.0 (2026-08-02)
 - +7 mascotes novos (Rex, Zumbao, Mineirinho, Campeao, Xerife, Soquinho, Asinha) — total 14
 - Missoes mais faceis (ex: Penaltis 1000→300 moedas, Aviao 10→3 vitorias)

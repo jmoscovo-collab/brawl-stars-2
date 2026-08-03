@@ -55,6 +55,14 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
 </style>
 </head>
 <body>
+<button id="btnEngrenagem" onclick="abreOpcoes()" title="Opções"
+    style="position:fixed; top:14px; left:16px; z-index:80; width:auto; margin:0; padding:8px 12px; font-size:22px;
+           background:rgba(20,20,50,0.9); border:2px solid #444; border-radius:14px; color:#fff;">⚙️</button>
+<div id="painelOpcoes" style="display:none; position:fixed; top:62px; left:16px; z-index:80; background:rgba(20,20,50,0.97);
+        border:2px solid #444; border-radius:14px; padding:14px; width:250px">
+    <button class="cinza" id="btnEsconderMascote" onclick="alternaMascote()" style="margin-top:0">🙈 Esconder mascote</button>
+    <div class="dica">O mascote é o bichinho que dá dicas e torce por você nos jogos.</div>
+</div>
 <h1>👤 Minha Conta</h1>
 <div class="sub">Crie uma conta NA NUVEM ☁️ — entre com nome e senha em QUALQUER aparelho e continue de onde parou! Ou jogue como visitante.</div>
 <div id="aviso"></div>
@@ -70,11 +78,6 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
     </div>
     <button class="roxo" onclick="abreTrocaFoto()">🖼️ Trocar foto</button>
     <button style="background:linear-gradient(135deg,#ff8800,#ffcc44); color:#3a2200" onclick="abreMascotes()">🍄 Mascote</button>
-    <button class="cinza" onclick="abreOpcoes()">⚙️ Opções</button>
-    <div id="painelOpcoes" style="display:none; margin-top:6px">
-        <button class="cinza" id="btnEsconderMascote" onclick="alternaMascote()">🙈 Esconder mascote</button>
-        <div class="dica">O mascote é o bichinho que dá dicas e torce por você nos jogos.</div>
-    </div>
     <button class="cinza" onclick="abreTrocaNome()">✏️ Mudar meu nome</button>
     <div id="painelNome" style="display:none; margin-top:6px">
         <input id="novoNomeConta" placeholder="Novo nome (2 a 20 letras)" maxlength="20">
@@ -337,7 +340,7 @@ function mostraMeuPerfil(){
     mf.innerHTML = fotoHTML(localStorage.getItem('cg_foto')||'', 'fotoEmoji', 'fotoAvatar');
     if(mf.firstChild) mf.firstChild.style.borderColor = ehOperador(usuario()) ? '#ff2222' : '';
     const d = fmtData(localStorage.getItem('cg_criado'));
-    document.getElementById('jogandoDesde').textContent = d ? '🕹️ Jogando desde '+d : '';
+    document.getElementById('jogandoDesde').textContent = d ? '🗓️ Conta criada em '+d : '';
 }
 const EMOJIS_FOTO = ['🦫','🍄','⚽','🎮','🐉','😎','🦄','🤖','👻','🐱','🔥','⭐'];
 function abreTrocaFoto(){
@@ -391,7 +394,7 @@ document.getElementById('arquivoFoto').addEventListener('change', function(){
 });
 
 // ---- Listas sociais ----
-function linhaJogador(nome, foto, botoes){
+function linhaJogador(nome, foto, botoes, criado){
     const div = document.createElement('div');
     div.className = 'linhaItem';
     const mini = document.createElement('div');
@@ -407,7 +410,19 @@ function linhaJogador(nome, foto, botoes){
     sp.className = 'nomeItem';
     sp.textContent = nome;
     estiloNome(sp, nome);
-    div.appendChild(mini); div.appendChild(sp);
+    const dataCriada = fmtData(criado || criadosCache[nome]);
+    if(dataCriada){
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'flex:1; overflow:hidden; text-align:left';
+        sp.style.display = 'block';
+        const dt = document.createElement('div');
+        dt.style.cssText = 'font-size:11px; color:#778';
+        dt.textContent = '🗓️ Conta criada em ' + dataCriada;
+        wrap.appendChild(sp); wrap.appendChild(dt);
+        div.appendChild(mini); div.appendChild(wrap);
+    } else {
+        div.appendChild(mini); div.appendChild(sp);
+    }
     botoes.forEach(([rotulo, titulo, fn])=>{
         const b = document.createElement('button');
         b.textContent = rotulo; b.title = titulo;
@@ -431,11 +446,12 @@ function enche(id, nomes, botoesDe, vazio){
 }
 // cache de fotos dos outros jogadores (pra listas mostrarem avatar sem clicar no perfil)
 var fotosCache = JSON.parse(localStorage.getItem('cg_fotosCache')||'{}');
+var criadosCache = JSON.parse(localStorage.getItem('cg_criadosCache')||'{}');
 var buscandoFotos = false;
 function buscaFotosFaltando(){
     if(buscandoFotos || !usuario()) return;
     var todos = [].concat(social.amigos||[], social.pedidosEnviados||[], social.pedidosRecebidos||[], social.bloqueados||[]);
-    var faltam = todos.filter(function(n){ return n && !(n in fotosCache); });
+    var faltam = todos.filter(function(n){ return n && (!(n in fotosCache) || !(n in criadosCache)); });
     if(!faltam.length) return;
     buscandoFotos = true;
     chamaAPI({acao:'fotos', nome:usuario(), senhaHash:localStorage.getItem('cg_senhaHash'), nomes:faltam.slice(0,100)})
@@ -443,7 +459,9 @@ function buscaFotosFaltando(){
             buscandoFotos = false;
             if(!r || !r.fotos) return;
             Object.keys(r.fotos).forEach(function(k){ fotosCache[k] = r.fotos[k]; });
+            Object.keys(r.criados||{}).forEach(function(k){ criadosCache[k] = r.criados[k]; });
             try { localStorage.setItem('cg_fotosCache', JSON.stringify(fotosCache)); } catch(e){}
+            try { localStorage.setItem('cg_criadosCache', JSON.stringify(criadosCache)); } catch(e){}
             mostraAmigos();
         })
         .catch(function(){ buscandoFotos = false; });
@@ -491,7 +509,7 @@ async function verPerfil(alvo){
         pn.style.color=''; pn.style.textShadow='';
         estiloNome(pn, r.nome || alvo);
         const d = fmtData(r.criado);
-        document.getElementById('perfilDesde').textContent = d ? '🕹️ Jogando desde '+d : '';
+        document.getElementById('perfilDesde').textContent = d ? '🗓️ Conta criada em '+d : '';
         document.getElementById('overlayPerfil').style.display = 'flex';
     } catch(e){ aviso('😕 '+e.message); }
 }
@@ -514,6 +532,7 @@ document.getElementById('buscaAmigo').addEventListener('input', function(){
             }
             r.resultados.forEach(p=>{
                 if(p.nome === usuario()) return; // eu mesmo, não!
+                if(p.criado) criadosCache[p.nome] = p.criado;
                 box.appendChild(linhaJogador(p.nome, p.foto||'', [
                     ['🤝','Solicitar amizade', ()=>acaoSocial('solicitar', p.nome, '🤝 Pedido enviado pra '+p.nome+'!')],
                     ['🚫','Bloquear', ()=>acaoSocial('bloquear', p.nome, '🚫 '+p.nome+' foi bloqueado.')],
