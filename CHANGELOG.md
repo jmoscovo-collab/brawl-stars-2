@@ -1,5 +1,13 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.14.0 (2026-08-02)
+- Cozinha 3D repaginada: chao xadrez, estacoes coloridas, gramado em volta, plantas, luminarias,
+  mesinhas redondas, capivara mais fofa (olhos, bochechas, coracao no avental, andadinha)
+- BANDEJA de verdade: objeto 3D que fica no balcao — pega com E, poe comida nela, solta na mesa
+- Pode carregar 1 comida na pata e depositar na bandeja
+- Interacao: tecla E pega tudo; no celular/mouse e so chegar perto e TOCAR na comida/bandeja/lixeira
+  (ou usar o botao PEGAR)
+
 ## v3.13.0 (2026-08-02)
 - Cozinha da Capivara virou 3D visao de cima (Three.js): capivara chef de blocos andando pela cozinha,
   porta de entrada com tapete, DRIVE-THRU com fila de carros, balcao pra pedidos de dentro,
