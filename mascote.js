@@ -9,11 +9,18 @@
         window.MASCOTES = [
             { id: 'cogumelo', emoji: '🍄', nome: 'Cogu', missao: null },
             { id: 'capivara', emoji: '🦫', nome: 'Capi', missao: null },
-            { id: 'bola', emoji: '⚽', nome: 'Bolão', missao: { texto: 'Consiga 1000 moedas no Pênaltis', chave: 'penaltis_moedas', meta: 1000, jogo: 'Pênaltis' } },
-            { id: 'peixe', emoji: '🐟', nome: 'Peixão', missao: { texto: 'Junte R$ 50.000 na Pescaria Maluca', chave: 'pescaria_dinheiro', meta: 50000, jogo: 'Pescaria' } },
-            { id: 'aviao', emoji: '✈️', nome: 'Turbinho', missao: { texto: 'Vença 10 corridas na Corrida no Céu', chave: 'avc_vitorias', meta: 10, jogo: 'Corrida no Céu' } },
-            { id: 'carro', emoji: '🏎️', nome: 'Zoom', missao: { texto: 'Consiga 500 moedas no Turbo Racing', chave: 'corrida_coins', meta: 500, jogo: 'Turbo Racing' } },
-            { id: 'ninja', emoji: '🥷', nome: 'Sombra', missao: { texto: 'Pegue 200 moedas no Cogumelo Parkour', chave: 'parkour2d_moedas', meta: 200, jogo: 'Cogumelo Parkour' } }
+            { id: 'bola', emoji: '⚽', nome: 'Bolão', missao: { texto: 'Consiga 300 moedas no Pênaltis', chave: 'penaltis_moedas', meta: 300, jogo: 'Pênaltis' } },
+            { id: 'peixe', emoji: '🐟', nome: 'Peixão', missao: { texto: 'Junte R$ 10.000 na Pescaria Maluca', chave: 'pescaria_dinheiro', meta: 10000, jogo: 'Pescaria' } },
+            { id: 'aviao', emoji: '✈️', nome: 'Turbinho', missao: { texto: 'Vença 3 corridas na Corrida no Céu', chave: 'avc_vitorias', meta: 3, jogo: 'Corrida no Céu' } },
+            { id: 'carro', emoji: '🏎️', nome: 'Zoom', missao: { texto: 'Consiga 150 moedas no Turbo Racing', chave: 'corrida_coins', meta: 150, jogo: 'Turbo Racing' } },
+            { id: 'ninja', emoji: '🥷', nome: 'Sombra', missao: { texto: 'Pegue 60 moedas no Cogumelo Parkour', chave: 'parkour2d_moedas', meta: 60, jogo: 'Cogumelo Parkour' } },
+            { id: 'dino', emoji: '🦖', nome: 'Rex', missao: { texto: 'Pegue 100 moedas na Fuga do Dino', chave: 'dino_moedas', meta: 100, jogo: 'Fuga do Dino' } },
+            { id: 'zumbi', emoji: '🧟', nome: 'Zumbão', missao: { texto: 'Consiga 150 moedas no jogo de Zumbi', chave: 'zombie_coins', meta: 150, jogo: 'Zumbi' } },
+            { id: 'mineiro', emoji: '⛏️', nome: 'Mineirinho', missao: { texto: 'Junte 300 moedas no total no Cavando Fundo', chave: 'cavando_totalMoedas', meta: 300, jogo: 'Cavando Fundo' } },
+            { id: 'campeao', emoji: '🏆', nome: 'Campeão', missao: { texto: 'Junte 600 moedas no Álbum de Figurinhas', chave: 'figurinhas_moedas', meta: 600, jogo: 'Figurinhas' } },
+            { id: 'policia', emoji: '🚓', nome: 'Xerife', missao: { texto: 'Consiga 150 moedas no Polícia VS Ladrão', chave: 'ladrao_coins', meta: 150, jogo: 'Polícia VS Ladrão' } },
+            { id: 'lutador', emoji: '🥊', nome: 'Soquinho', missao: { texto: 'Chegue no nível 8 da Luta de Capivara', chave: 'luta_desbloqueado', meta: 8, jogo: 'Luta de Capivara' } },
+            { id: 'anjo', emoji: '🪽', nome: 'Asinha', missao: { texto: 'Faça 10 pontos no Cogumelo Voador', chave: 'voador_recorde', meta: 10, jogo: 'Cogumelo Voador' } }
         ];
         window.mascoteProgresso = function (m) { return m.missao ? lsInt(m.missao.chave) : 0; };
         window.mascoteLiberado = function (m) { return !m.missao || lsInt(m.missao.chave) >= m.missao.meta; };
@@ -28,6 +35,7 @@
         }
         var meuMascote = mascoteAtual();
         if (jogo === 'conta') return; // na pagina de conta so usamos os dados (sem balao)
+        try { if (localStorage.getItem('mascote_escondido') === '1') return; } catch (e) {} // escondido nas opcoes ⚙️
 
         var DICAS = {
             aviao: ['Bem-vindo à Corrida no Céu! ✈️ Use as setas ou WASD pra voar!', 'Aperta ESPAÇO pra usar o TURBO! 🔥', 'Cuidado com as montanhas e os outros aviões!', 'Ganhe corridas pra comprar aviões novos na loja! 🛒'],
@@ -58,6 +66,7 @@
         };
         var dicas = DICAS[jogo] || ['Divirta-se! 🍄', 'Qualquer coisa, eu tô aqui torcendo por você!'];
 
+        var CONSOLO = ['Você consegue! 💪', 'Não desiste! 🍄', 'Quase! Tenta de novo! 🔁', 'Errar faz parte, bora de novo! 💚', 'Na próxima você ganha! ⭐', 'Respira fundo... e VAI! 🚀', 'Tô com você, tenta mais uma vez! 🤗', 'Você tá quase lá, eu vi! 👀'];
         var APOIO = ['Boa! 🔥', 'Você é fera! 💪', 'Mandou bem! ⭐', 'Uau, tá jogando muito! 😎', 'Continue assim! 🚀', 'Tô torcendo por você! 🍄', 'Que jogada! 👏', 'Você consegue! 💚', 'Incrível! ✨', 'Ninguém te segura! 🏆'];
 
         // CSS + HTML do mascote
@@ -80,6 +89,7 @@
             document.body.appendChild(box);
             fala = document.getElementById('mascoteCoguFala');
             comeca();
+            vigiaDerrota();
         }
 
         function diz(frase, ms) {
@@ -119,6 +129,32 @@
                 }, espera);
             };
             loop();
+        }
+
+        // Detecta derrota na tela (ex: "game over", "você perdeu") e consola o jogador
+        var RE_DERROTA = /game ?over|voc[eê] perdeu|perdeu!|derrota|fim de jogo|tente (de novo|novamente)|voc[eê] (caiu|morreu|bateu)|n[aã]o foi dessa vez/i;
+        var ultimoConsolo = 0;
+        function talvezConsola(txt) {
+            if (!txt || txt.length > 400 || !RE_DERROTA.test(txt)) return;
+            var agora = new Date().getTime();
+            if (agora - ultimoConsolo < 20000) return; // no maximo 1 consolo a cada 20s
+            ultimoConsolo = agora;
+            setTimeout(function () { diz(CONSOLO[Math.floor(Math.random() * CONSOLO.length)], 4500); }, 900);
+        }
+        function vigiaDerrota() {
+            try {
+                new MutationObserver(function (muts) {
+                    for (var i = 0; i < muts.length; i++) {
+                        var m = muts[i];
+                        if (m.type === 'characterData') { talvezConsola(m.target.data); continue; }
+                        for (var j = 0; j < m.addedNodes.length; j++) {
+                            var n = m.addedNodes[j];
+                            talvezConsola(n.textContent);
+                        }
+                        if (m.type === 'attributes' && m.target !== box && !box.contains(m.target)) talvezConsola(m.target.textContent);
+                    }
+                }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style', 'class'] });
+            } catch (e) {}
         }
 
         if (document.body) monta();

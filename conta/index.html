@@ -70,6 +70,11 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
     </div>
     <button class="roxo" onclick="abreTrocaFoto()">🖼️ Trocar foto</button>
     <button style="background:linear-gradient(135deg,#ff8800,#ffcc44); color:#3a2200" onclick="abreMascotes()">🍄 Mascote</button>
+    <button class="cinza" onclick="abreOpcoes()">⚙️ Opções</button>
+    <div id="painelOpcoes" style="display:none; margin-top:6px">
+        <button class="cinza" id="btnEsconderMascote" onclick="alternaMascote()">🙈 Esconder mascote</button>
+        <div class="dica">O mascote é o bichinho que dá dicas e torce por você nos jogos.</div>
+    </div>
     <button class="cinza" onclick="abreTrocaNome()">✏️ Mudar meu nome</button>
     <div id="painelNome" style="display:none; margin-top:6px">
         <input id="novoNomeConta" placeholder="Novo nome (2 a 20 letras)" maxlength="20">
@@ -605,6 +610,30 @@ function montaMascotes(){
     });
 }
 window.abreMascotes = abreMascotes; window.fechaMascotes = fechaMascotes;
+
+// ============ OPÇÕES (⚙️) ============
+function mascoteEstaEscondido(){ return localStorage.getItem('mascote_escondido') === '1'; }
+function atualizaBtnMascote(){
+    document.getElementById('btnEsconderMascote').textContent =
+        mascoteEstaEscondido() ? '🍄 Mostrar mascote de novo' : '🙈 Esconder mascote';
+}
+function abreOpcoes(){
+    const p = document.getElementById('painelOpcoes');
+    p.style.display = (p.style.display==='block') ? 'none' : 'block';
+    atualizaBtnMascote();
+}
+function alternaMascote(){
+    if(mascoteEstaEscondido()){
+        localStorage.removeItem('mascote_escondido');
+        aviso('🍄 O mascote voltou! Ele aparece nos jogos.', true);
+    } else {
+        localStorage.setItem('mascote_escondido', '1');
+        aviso('🙈 Mascote escondido — ele some de TODOS os jogos.', true);
+    }
+    atualizaBtnMascote();
+    if(typeof salvarProgresso==='function') salvarProgresso(false);
+}
+window.abreOpcoes = abreOpcoes; window.alternaMascote = alternaMascote;
 </script>
 </body>
 </html>

@@ -1,5 +1,11 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.10.0 (2026-08-02)
+- +7 mascotes novos (Rex, Zumbao, Mineirinho, Campeao, Xerife, Soquinho, Asinha) — total 14
+- Missoes mais faceis (ex: Penaltis 1000→300 moedas, Aviao 10→3 vitorias)
+- Botao OPCOES (engrenagem) na conta com "Esconder mascote" (some de todos os jogos)
+- Mascote consola quando voce perde: "Voce consegue!", "Nao desiste!" etc.
+
 ## v3.9.0 (2026-08-02)
 - Botao MASCOTE na conta: escolha entre 7 mascotes (Cogu e Capi livres; Bolao/Peixao/Turbinho/Zoom/Sombra por missao)
 - Missoes: 1000 moedas Penaltis, R$50k Pescaria, 10 vitorias Aviao, 500 moedas Turbo Racing, 200 moedas Parkour 2D
