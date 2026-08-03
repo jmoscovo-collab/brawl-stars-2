@@ -183,9 +183,10 @@ function initThree(){
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
     camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 200);
-    renderer = new THREE.WebGLRenderer({ antialias:true });
+    var ehCelular = 'ontouchstart' in window;
+    renderer = new THREE.WebGLRenderer({ antialias: !ehCelular, powerPreference:'high-performance' });
     renderer.setSize(innerWidth, innerHeight);
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(devicePixelRatio, ehCelular ? 1.3 : 1.8));
     el('tela3d').appendChild(renderer.domElement);
     scene.add(new THREE.AmbientLight(0xffffff, 1.0));
     var sol = new THREE.DirectionalLight(0xfff8ee, 0.95);
@@ -639,7 +640,7 @@ function cliqueNaTela(clientX, clientY){
 renderer && renderer.domElement && renderer.domElement.addEventListener('pointerdown', function(e){ cliqueNaTela(e.clientX, e.clientY); });
 
 // ============ LOOP ============
-var proximoClienteEm = 3000, proximoCarroEm = 9000;
+var proximoClienteEm = 3000, proximoCarroEm = 9000, hudPedidosEm = 0;
 function passo(dt){
     if(!jogando || !chefG) return;
     var vx = 0, vz = 0, V = 6.5;
@@ -700,7 +701,8 @@ function passo(dt){
         acabou.forEach(function(p){ removePedido(p); });
         perdeVida('⏰ Um cliente cansou de esperar!');
     }
-    if(pedidos.length) desenhaPedidos();
+    hudPedidosEm -= dt*1000;
+    if(pedidos.length && hudPedidosEm <= 0){ hudPedidosEm = 250; desenhaPedidos(); }
 
     proximoClienteEm -= dt*1000;
     proximoCarroEm -= dt*1000;
