@@ -1,5 +1,13 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.22.0 (2026-08-02)
+- Cidade Capivara GIGANTE: mapa 12x12 (144 terrenos, era 36), preco do terreno cresce pro
+  longe do centro, migracao automatica do save antigo pro centro da cidade nova
+- Mais realista: predios EVOLUEM de aparencia com o nivel (casa→vila, fazenda→trator,
+  mercado→shopping), nuvens passando, capivara passeando, arvores nos terrenos trancados
+- +2 predios: Praca 🌳 (+5%% felicidade) e Banco 🏦
+- LANCAMENTO: card da Cidade Capivara na home (final da lista)
+
 ## v3.21.0 (2026-08-02)
 - JOGO NOVO (NAO LANCADO, so /cidade/): Cidade Cogumelo — construtor estrategico/idle:
   6 predios (casa/fazenda/mercado/parque/fabrica/castelo), moedas x comida x felicidade,

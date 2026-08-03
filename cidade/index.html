@@ -17,20 +17,21 @@ h1 { font-size:26px; margin-bottom:2px; color:#1a5c2a; text-shadow:0 2px 0 rgba(
 #hud span { background:rgba(255,255,255,0.85); border:2px solid #4a8c5a; border-radius:12px; padding:5px 12px; font-weight:bold; font-size:14px; }
 #hud small { display:block; font-size:10px; color:#567; font-weight:normal; }
 #mapa {
-    display:grid; grid-template-columns:repeat(6,1fr); gap:6px;
-    width:min(94vw, 440px); background:rgba(255,255,255,0.35); border:3px solid #4a8c5a; border-radius:16px; padding:8px;
+    display:grid; grid-template-columns:repeat(12,1fr); gap:3px;
+    width:min(96vw, 680px); background:rgba(255,255,255,0.35); border:3px solid #4a8c5a; border-radius:16px; padding:6px;
+    position:relative;
 }
 .lote {
     aspect-ratio:1; border-radius:10px; background:#8fce7a; border:2px solid rgba(0,0,0,0.12);
     display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; position:relative;
 }
 .lote:active { transform:scale(0.94); }
-.lote .emo { font-size:min(7.5vw,34px); line-height:1; filter:drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
-.lote .nv { font-size:9px; font-weight:bold; color:#fff; background:rgba(0,0,0,0.45); border-radius:8px; padding:1px 5px; margin-top:2px; }
+.lote .emo { font-size:min(4.2vw,26px); line-height:1; filter:drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
+.lote .nv { font-size:8px; font-weight:bold; color:#fff; background:rgba(0,0,0,0.45); border-radius:8px; padding:1px 5px; margin-top:2px; }
 .lote.vazio { background:#a5d98f; }
-.lote.vazio::after { content:'➕'; opacity:0.35; font-size:20px; }
+.lote.vazio::after { content:'➕'; opacity:0.3; font-size:13px; }
 .lote.trancado { background:#6a8a5a; }
-.lote.trancado::after { content:'🔒'; font-size:20px; opacity:0.8; }
+.lote.trancado::after { content:'🌲'; font-size:min(4vw,22px); opacity:0.9; }
 .lote.parado::before { content:'💤'; position:absolute; top:2px; right:3px; font-size:13px; }
 
 #painel {
@@ -63,6 +64,12 @@ a.voltar { color:#2a5c3a; text-decoration:none; margin-top:12px; font-weight:bol
 #voltouBox p { color:#456; margin:8px 0; font-size:15px; }
 #voltouBox button { font-size:17px; font-weight:bold; padding:12px 28px; border:none; border-radius:14px;
     background:linear-gradient(135deg,#2fae4d,#5dd97a); color:#fff; cursor:pointer; margin-top:6px; }
+
+.nuvem { position:fixed; font-size:46px; opacity:0.8; z-index:1; pointer-events:none; animation:nuvemVai linear infinite; }
+@keyframes nuvemVai { from{ left:-80px; } to{ left:105vw; } }
+#capiPasseio { position:fixed; bottom:8px; font-size:34px; z-index:2; pointer-events:none;
+    animation:capiAnda 26s linear infinite; filter:drop-shadow(0 2px 3px rgba(0,0,0,0.4)); }
+@keyframes capiAnda { 0%{ left:-50px; transform:scaleX(1);} 49%{ left:calc(100vw + 10px); transform:scaleX(1);} 50%{ left:calc(100vw + 10px); transform:scaleX(-1);} 100%{ left:-50px; transform:scaleX(-1);} }
 </style>
 </head>
 <body>
@@ -74,6 +81,9 @@ a.voltar { color:#2a5c3a; text-decoration:none; margin-top:12px; font-weight:bol
     <span>😊 <b id="hFelic">x1.0</b><small>felicidade</small></span>
 </div>
 <div id="mapa"></div>
+<div class="nuvem" style="top:6%; animation-duration:55s">☁️</div>
+<div class="nuvem" style="top:13%; animation-duration:80s; animation-delay:-30s; font-size:32px">☁️</div>
+<div id="capiPasseio">🦫</div>
 <a class="voltar" href="/">← Voltar pros jogos</a>
 
 <div id="msg"></div>
@@ -103,9 +113,29 @@ var PREDIOS = {
     mercado: { emoji:'🏪', nome:'Mercadinho',  custo:300,   moedas:6,   comida:-1.5, desc:'Muita moeda, mas come bastante' },
     parque:  { emoji:'🎡', nome:'Parque',      custo:500,   moedas:0,   comida:0,    desc:'+15% de moedas na cidade toda (felicidade!)' },
     fabrica: { emoji:'🏭', nome:'Fábrica',     custo:2500,  moedas:30,  comida:-6,   desc:'Produção GIGANTE... e fome gigante' },
+    praca:   { emoji:'🌳', nome:'Praça',       custo:100,   moedas:0,   comida:0,    desc:'+5% de moedas (arzinho puro!)' },
+    banco:   { emoji:'🏦', nome:'Banco',       custo:12000, moedas:80,  comida:-10,  desc:'Dinheiro chama dinheiro!' },
     castelo: { emoji:'🏰', nome:'Castelo',     custo:50000, moedas:200, comida:-20,  desc:'A glória da cidade! (símbolo de rei)' }
 };
-var CUSTO_LOTE = [0,0,0,0,0,0, 0,0,0,0,0,0, 200,200,200,400,400,400, 800,800,800,1500,1500,1500, 3000,3000,5000,5000,8000,8000, 12000,12000,20000,20000,35000,50000];
+// o prédio EVOLUI de aparência conforme o nível (mais realista!)
+function emojiDe(l){
+    var t=l.t, n=l.nv;
+    if(t==='casa')    return n>=10?'🏘️':n>=5?'🏡':'🏠';
+    if(t==='fazenda') return n>=10?'🏞️':n>=5?'🚜':'🌾';
+    if(t==='mercado') return n>=8?'🏬':'🏪';
+    if(t==='fabrica') return n>=8?'🏗️':'🏭';
+    return PREDIOS[t].emoji;
+}
+var LADO = 12, TOTAL = LADO*LADO;
+// preço do terreno cresce conforme se afasta do centro da cidade
+function custoLote(i){
+    var r = Math.floor(i/LADO), c = i%LADO;
+    var anel = Math.max(Math.abs(r-5.5), Math.abs(c-5.5)); // 1.5=centro ... 5.5=beirada
+    if(anel <= 2.5) return 150;
+    if(anel <= 3.5) return 600;
+    if(anel <= 4.5) return 2500;
+    return 9000;
+}
 
 function lsGet(k,d){ try{ var v=localStorage.getItem('cidade_'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }
 function lsSet(k,v){ try{ localStorage.setItem('cidade_'+k, JSON.stringify(v)); }catch(e){} }
@@ -113,22 +143,36 @@ function lsSet(k,v){ try{ localStorage.setItem('cidade_'+k, JSON.stringify(v)); 
 var lotes = lsGet('lotes', null);   // [{t:'casa', nv:1} | null | 'trancado']
 var moedas = lsGet('moedas', 120);
 var comida = lsGet('comida', 30);
+function loteNovoPadrao(i){
+    var r = Math.floor(i/LADO), c = i%LADO;
+    return (Math.max(Math.abs(r-5.5), Math.abs(c-5.5)) <= 1.5) ? null : 'trancado'; // centro 4x4 livre
+}
 if(!lotes){
     lotes = [];
-    for(var i=0;i<36;i++) lotes.push(i < 12 ? null : 'trancado');
+    for(var i=0;i<TOTAL;i++) lotes.push(loteNovoPadrao(i));
+} else if(lotes.length === 36){
+    // MIGRAÇÃO: cidade antiga 6x6 vira o centro da cidade GIGANTE 12x12
+    var novo = [];
+    for(var i=0;i<TOTAL;i++) novo.push(loteNovoPadrao(i));
+    for(var r=0;r<6;r++) for(var c=0;c<6;c++){
+        var velho = lotes[r*6+c];
+        if(velho !== 'trancado') novo[(r+3)*LADO + (c+3)] = velho; // prédio ou vazio comprado
+    }
+    lotes = novo;
 }
 
 // ============ PRODUÇÃO ============
 function taxa(){
-    var m = 0, c = 0, parques = 0;
+    var m = 0, c = 0, felic = 0;
     lotes.forEach(function(l){
         if(!l || l === 'trancado') return;
         var p = PREDIOS[l.t];
-        if(l.t === 'parque'){ parques += l.nv; return; }
+        if(l.t === 'parque'){ felic += l.nv * 0.15; return; }
+        if(l.t === 'praca'){ felic += l.nv * 0.05; return; }
         m += p.moedas * l.nv;
         c += p.comida * l.nv;
     });
-    var mult = 1 + parques * 0.15;
+    var mult = 1 + felic;
     var fome = comida <= 0 && c < 0; // sem comida = cidade PARA de gerar moedas!
     return { moedas: fome ? 0 : m * mult, comida: c, mult: mult, fome: fome };
 }
@@ -181,7 +225,7 @@ function desenhaMapa(){
         else if(!l){ d.className = 'lote vazio'; d.onclick = function(){ abreConstruir(i); }; }
         else {
             d.className = 'lote' + (t.fome && PREDIOS[l.t].moedas > 0 ? ' parado' : '');
-            d.innerHTML = '<div class="emo">' + PREDIOS[l.t].emoji + '</div><div class="nv">nv ' + l.nv + '</div>';
+            d.innerHTML = '<div class="emo">' + emojiDe(l) + '</div><div class="nv">nv ' + l.nv + '</div>';
             d.onclick = function(){ abrePredio(i); };
         }
         mapaEl.appendChild(d);
@@ -248,7 +292,7 @@ function demole(i){
     mostraMsg('💥 Demolido!');
 }
 function abreDestrancar(i){
-    var c = CUSTO_LOTE[i] || 50000;
+    var c = custoLote(i);
     painelIn.innerHTML = '<h2>🔒 Terreno trancado</h2><p>Compre pra sua cidade crescer!</p>' +
         '<button ' + (moedas < c ? 'disabled' : '') + ' onclick="destranca(' + i + ',' + c + ')">🔓 Comprar terreno (🪙 ' + c.toLocaleString('pt-BR') + ')</button>' +
         '<button class="cinza" onclick="fechaPainel()">Fechar</button>';
