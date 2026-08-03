@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.20.0 (2026-08-02)
+- LANCAMENTO: Merge Cogumelo na home (Davi liberou), card no final
+
 ## v3.19.0 (2026-08-02)
 - PACOTINHO DIARIO na home: presente 🎁 pulando 1x por dia — abre e ganha moedas de um jogo
   aleatorio (50 a 10.000, premio raro 1%%); volta amanha!
