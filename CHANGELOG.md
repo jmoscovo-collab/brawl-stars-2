@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.16.1 (2026-08-02)
+- ANTI-LAG no computador em 12 jogos 3D: resolucao interna limitada a 1.5x (era 2x ou sem limite
+  — em tela retina a GPU desenhava ate 78%% mais pixels), sombra do Brawl 2048→1024,
+  sombra suave do Cavando trocada por sombra simples
+
 ## v3.16.0 (2026-08-02)
 - Cavando Fundo: olhar LIVRE pra todos os lados (quase reto pra cima/baixo); no celular o CAVAR
   quebra SO o bloco que a MIRA da tela aponta (raio do olho), e a mira aparece sempre
