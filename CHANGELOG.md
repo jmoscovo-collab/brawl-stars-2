@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.18.0 (2026-08-02)
+- LANCAMENTO: Cozinha da Capivara na home (Davi liberou), card no final da lista
+
 ## v3.17.0 (2026-08-02)
 - Fuga da Prisao: holofote dos guardas encurtado (13→9) e mais estreito — fase 2 era impossivel;
   guarda da fase 2 afastado do unico corredor da porta
