@@ -1,5 +1,12 @@
 # Changelog - Cogumelo Games (site)
 
+## v3.17.0 (2026-08-02)
+- Fuga da Prisao: holofote dos guardas encurtado (13→9) e mais estreito — fase 2 era impossivel;
+  guarda da fase 2 afastado do unico corredor da porta
+- Cavando: loja virou BARRAQUINHA de feira com o Ze dos Upgrades (vendedor de blocos, toldo
+  listrado, picareta no balcao) — chegou perto, abre os upgrades sozinho; botoes LOJA removidos
+- Cavando: botao CAVAR PRA BAIXO removido do celular (mira ja resolve)
+
 ## v3.16.1 (2026-08-02)
 - ANTI-LAG no computador em 12 jogos 3D: resolucao interna limitada a 1.5x (era 2x ou sem limite
   — em tela retina a GPU desenhava ate 78%% mais pixels), sombra do Brawl 2048→1024,
