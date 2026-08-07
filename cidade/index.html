@@ -455,9 +455,37 @@ function abrePredio(i){
         (l.t==='parque' ? '😊 +' + (l.nv*15) + '% de moedas' : '') +
         (l.t==='escola' ? '😊 +' + (l.nv*10) + '% de moedas' : '') + '</p>' +
         '<button ' + (moedas < cu ? 'disabled' : '') + ' onclick="melhora(' + i + ')">⬆️ Melhorar (🪙 ' + cu.toLocaleString('pt-BR') + ')</button>' +
+        '<button class="azul" onclick="mostraMulti(' + i + ')">⬆️⬆️ Evoluir VÁRIAS vezes</button>' +
+        '<div id="multiBox" style="display:none; margin-top:8px">' +
+            '<input id="multiN" type="number" inputmode="numeric" pattern="[0-9]*" min="1" placeholder="escreva um número aqui" ' +
+                'style="width:100%; padding:12px; font-size:16px; font-weight:bold; text-align:center; border:3px solid #2a6acc; border-radius:14px; outline:none">' +
+            '<button class="azul" onclick="melhoraVarias(' + i + ')">🚀 EVOLUIR!</button>' +
+        '</div>' +
         '<button class="vermelho" onclick="demole(' + i + ')">💥 Demolir (devolve metade)</button>' +
         '<button class="cinza" onclick="fechaPainel()">Fechar</button>';
     painel.style.display = 'flex';
+}
+function mostraMulti(i){
+    var box = document.getElementById('multiBox');
+    box.style.display = 'block';
+    var inp = document.getElementById('multiN');
+    inp.focus(); // no celular isso abre o teclado numérico
+    inp.onkeydown = function(e){ if(e.key === 'Enter') melhoraVarias(i); };
+}
+function melhoraVarias(i){
+    var n = parseInt(document.getElementById('multiN').value, 10);
+    if(!n || n < 1){ mostraMsg('✏️ Escreve um número primeiro!'); return; }
+    var l = lotes()[i], subiu = 0, gasto = 0;
+    for(var k=0; k<n; k++){
+        var cu = custoUp(l);
+        if(moedas < cu) break;
+        moedas -= cu; gasto += cu;
+        l.nv++; subiu++;
+    }
+    fechaPainel(); desenhaMapa(); desenhaHud(); salva();
+    if(subiu === 0) mostraMsg('😢 Moedas não deram nem pra 1 nível!');
+    else if(subiu < n) mostraMsg('⬆️ Subiu ' + subiu + ' níveis (as moedas acabaram!) — nível ' + l.nv + '! Gastou 🪙 ' + gasto.toLocaleString('pt-BR'), 3500);
+    else mostraMsg('🚀 ' + PREDIOS[l.t].nome + ' subiu ' + subiu + ' níveis de uma vez! Agora é nível ' + l.nv + '!', 3000);
 }
 function melhora(i){
     var l = lotes()[i], cu = custoUp(l);
@@ -526,6 +554,7 @@ function vaiMundo(k){
     mostraMsg(MUNDOS[k].emoji + ' Você viajou pra ' + MUNDOS[k].nome + '! ✈️');
 }
 window.constroi=constroi; window.melhora=melhora; window.demole=demole;
+window.mostraMulti=mostraMulti; window.melhoraVarias=melhoraVarias;
 window.destranca=destranca; window.fechaPainel=fechaPainel;
 window.abreMundos=abreMundos; window.compraMundo=compraMundo; window.vaiMundo=vaiMundo;
 
