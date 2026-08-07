@@ -10,11 +10,18 @@ body {
     background:linear-gradient(180deg,#7ec8e3 0%, #a8e6a0 55%, #7abf5a 100%);
     min-height:100vh; font-family:Arial,sans-serif; color:#234;
     display:flex; flex-direction:column; align-items:center; padding:12px; user-select:none;
+    transition:background 0.6s;
 }
+body.mundo-praia { background:linear-gradient(180deg,#6ec6ff 0%, #ffe9a8 55%, #f5d789 100%); }
+body.mundo-neve  { background:linear-gradient(180deg,#a8c8e8 0%, #e8f2fa 55%, #d0e4f2 100%); }
+body.mundo-espaco{ background:linear-gradient(180deg,#0b0b2a 0%, #1a1a4a 55%, #2a2a5a 100%); color:#dde; }
+body.mundo-espaco h1 { color:#aaf; text-shadow:0 2px 0 rgba(0,0,0,0.5); }
+body.mundo-espaco .sub { color:#99b; }
+body.mundo-espaco a.voltar { color:#aaf; }
 h1 { font-size:26px; margin-bottom:2px; color:#1a5c2a; text-shadow:0 2px 0 rgba(255,255,255,0.5); }
 .sub { color:#3a6c4a; font-size:12px; margin-bottom:8px; text-align:center; }
 #hud { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; justify-content:center; }
-#hud span { background:rgba(255,255,255,0.85); border:2px solid #4a8c5a; border-radius:12px; padding:5px 12px; font-weight:bold; font-size:14px; }
+#hud span { background:rgba(255,255,255,0.85); border:2px solid #4a8c5a; border-radius:12px; padding:5px 12px; font-weight:bold; font-size:14px; color:#234; }
 #hud small { display:block; font-size:10px; color:#567; font-weight:normal; }
 #mapa {
     display:grid; grid-template-columns:repeat(12,1fr); gap:3px;
@@ -25,14 +32,31 @@ h1 { font-size:26px; margin-bottom:2px; color:#1a5c2a; text-shadow:0 2px 0 rgba(
     aspect-ratio:1; border-radius:10px; background:#8fce7a; border:2px solid rgba(0,0,0,0.12);
     display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; position:relative;
 }
+body.mundo-praia .lote { background:#f0d998; }
+body.mundo-praia .lote.vazio { background:#f7e6b0; }
+body.mundo-praia .lote.trancado { background:#c9b478; }
+body.mundo-neve .lote { background:#dceaf5; }
+body.mundo-neve .lote.vazio { background:#eef6fc; }
+body.mundo-neve .lote.trancado { background:#a8bfd0; }
+body.mundo-espaco .lote { background:#3a3a6a; }
+body.mundo-espaco .lote.vazio { background:#4a4a7a; }
+body.mundo-espaco .lote.trancado { background:#252548; }
 .lote:active { transform:scale(0.94); }
 .lote .emo { font-size:min(4.2vw,26px); line-height:1; filter:drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
 .lote .nv { font-size:8px; font-weight:bold; color:#fff; background:rgba(0,0,0,0.45); border-radius:8px; padding:1px 5px; margin-top:2px; }
 .lote.vazio { background:#a5d98f; }
 .lote.vazio::after { content:'➕'; opacity:0.3; font-size:13px; }
 .lote.trancado { background:#6a8a5a; }
-.lote.trancado::after { content:'🌲'; font-size:min(4vw,22px); opacity:0.9; }
+.lote.trancado::after { content:attr(data-arvore); font-size:min(4vw,22px); opacity:0.9; }
 .lote.parado::before { content:'💤'; position:absolute; top:2px; right:3px; font-size:13px; }
+
+#btnMundos {
+    position:fixed; top:10px; left:10px; z-index:40; font-size:26px; width:52px; height:52px;
+    border:3px solid #4a8c5a; border-radius:16px; background:rgba(255,255,255,0.92); cursor:pointer;
+    box-shadow:0 3px 8px rgba(0,0,0,0.25);
+}
+#btnMundos:active { transform:scale(0.92); }
+#btnMundos small { display:block; font-size:8px; font-weight:bold; color:#2a5c3a; }
 
 #painel {
     position:fixed; inset:0; background:rgba(10,20,10,0.75); z-index:50; display:none;
@@ -40,7 +64,7 @@ h1 { font-size:26px; margin-bottom:2px; color:#1a5c2a; text-shadow:0 2px 0 rgba(
 }
 #painel .cartao {
     background:#fffef2; border-radius:22px 22px 0 0; width:min(100vw,480px); padding:18px; text-align:center;
-    max-height:80vh; overflow:auto;
+    max-height:80vh; overflow:auto; color:#234;
 }
 #painel h2 { font-size:20px; color:#1a5c2a; }
 #painel p { font-size:13px; color:#567; margin:6px 0; }
@@ -50,6 +74,7 @@ h1 { font-size:26px; margin-bottom:2px; color:#1a5c2a; text-shadow:0 2px 0 rgba(
 }
 #painel button.cinza { background:#98a; }
 #painel button.vermelho { background:linear-gradient(135deg,#cc4433,#ee6655); }
+#painel button.azul { background:linear-gradient(135deg,#2a6acc,#5a9aee); }
 #painel button:disabled { background:#bbb; color:#888; }
 .opcoes { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:8px; }
 .opcoes button { margin-top:0 !important; font-size:14px !important; padding:10px 6px !important; }
@@ -59,7 +84,7 @@ h1 { font-size:26px; margin-bottom:2px; color:#1a5c2a; text-shadow:0 2px 0 rgba(
 a.voltar { color:#2a5c3a; text-decoration:none; margin-top:12px; font-weight:bold; }
 #voltouBox { position:fixed; inset:0; background:rgba(10,20,10,0.85); z-index:70; display:none;
     flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px; }
-#voltouBox .c { background:#fffef2; border-radius:20px; padding:24px; max-width:380px; }
+#voltouBox .c { background:#fffef2; border-radius:20px; padding:24px; max-width:380px; color:#234; }
 #voltouBox h2 { color:#1a5c2a; }
 #voltouBox p { color:#456; margin:8px 0; font-size:15px; }
 #voltouBox button { font-size:17px; font-weight:bold; padding:12px 28px; border:none; border-radius:14px;
@@ -73,11 +98,13 @@ a.voltar { color:#2a5c3a; text-decoration:none; margin-top:12px; font-weight:bol
 </style>
 </head>
 <body>
-<h1>🦫🏗️ Cidade Capivara</h1>
-<div class="sub">Construa e pense bem: casas dão moedas mas comem 🌽 — fazendas alimentam tudo! A cidade produz até você DORMINDO 😴</div>
+<button id="btnMundos" onclick="abreMundos()">🏠<small id="btnMundosTx">MUNDOS</small></button>
+<h1 id="titulo">🦫🏗️ Cidade Capivara</h1>
+<div class="sub">Construa e pense bem: casas dão moedas mas comem 🌽 — e cada morador 👥 multiplica seu dinheiro! Produz até DORMINDO 😴</div>
 <div id="hud">
     <span>🪙 <b id="hMoedas">0</b><small id="hMoedasTx">+0/s</small></span>
     <span>🌽 <b id="hComida">0</b><small id="hComidaTx">+0/s</small></span>
+    <span>👥 <b id="hPop">0</b><small id="hPopTx">moradores</small></span>
     <span>😊 <b id="hFelic">x1.0</b><small>felicidade</small></span>
 </div>
 <div id="mapa"></div>
@@ -106,16 +133,20 @@ a.voltar { color:#2a5c3a; text-decoration:none; margin-top:12px; font-weight:bol
 if (window.initStats) initStats('cidade');
 
 // ============ DADOS ============
-// estratégia: moedas x comida x felicidade. Casa gera moeda mas COME. Fazenda alimenta. Parque multiplica.
+// estratégia: moedas x comida x moradores x felicidade.
+// Casa gera moeda mas COME. Fazenda alimenta. Parque deixa feliz. MORADOR multiplica o dinheiro!
 var PREDIOS = {
-    casa:    { emoji:'🏠', nome:'Casa',        custo:50,    moedas:1,   comida:-0.4, desc:'Gera 🪙 mas os moradores comem 🌽' },
-    fazenda: { emoji:'🌾', nome:'Fazenda',     custo:40,    moedas:0,   comida:1.2,  desc:'Produz 🌽 pra alimentar a cidade' },
-    mercado: { emoji:'🏪', nome:'Mercadinho',  custo:300,   moedas:6,   comida:-1.5, desc:'Muita moeda, mas come bastante' },
-    parque:  { emoji:'🎡', nome:'Parque',      custo:500,   moedas:0,   comida:0,    desc:'+15% de moedas na cidade toda (felicidade!)' },
-    fabrica: { emoji:'🏭', nome:'Fábrica',     custo:2500,  moedas:30,  comida:-6,   desc:'Produção GIGANTE... e fome gigante' },
-    praca:   { emoji:'🌳', nome:'Praça',       custo:100,   moedas:0,   comida:0,    desc:'+5% de moedas (arzinho puro!)' },
-    banco:   { emoji:'🏦', nome:'Banco',       custo:12000, moedas:80,  comida:-10,  desc:'Dinheiro chama dinheiro!' },
-    castelo: { emoji:'🏰', nome:'Castelo',     custo:50000, moedas:200, comida:-20,  desc:'A glória da cidade! (símbolo de rei)' }
+    casa:     { emoji:'🏠', nome:'Casa',        custo:50,     moedas:1,   comida:-0.4, pop:1,  desc:'Gera 🪙 e mora 1 pessoa 👥' },
+    fazenda:  { emoji:'🌾', nome:'Fazenda',     custo:40,     moedas:0,   comida:1.2,  pop:0,  desc:'Produz 🌽 pra alimentar a cidade' },
+    mercado:  { emoji:'🏪', nome:'Mercadinho',  custo:300,    moedas:6,   comida:-1.5, pop:0,  desc:'Muita moeda, mas come bastante' },
+    parque:   { emoji:'🎡', nome:'Parque',      custo:500,    moedas:0,   comida:0,    pop:0,  desc:'+15% de moedas na cidade toda (felicidade!)' },
+    escola:   { emoji:'🏫', nome:'Escola',      custo:900,    moedas:0,   comida:-0.5, pop:0,  desc:'+10% de moedas — moradores estudados rendem mais!' },
+    predio:   { emoji:'🏢', nome:'Prédio',      custo:1500,   moedas:8,   comida:-4,   pop:40, desc:'Moram 40 pessoas! 👥 Mas comem MUITO' },
+    fabrica:  { emoji:'🏭', nome:'Fábrica',     custo:2500,   moedas:30,  comida:-6,   pop:0,  desc:'Produção GIGANTE... e fome gigante' },
+    praca:    { emoji:'🌳', nome:'Praça',       custo:100,    moedas:0,   comida:0,    pop:0,  desc:'+5% de moedas (arzinho puro!)' },
+    banco:    { emoji:'🏦', nome:'Banco',       custo:12000,  moedas:80,  comida:-10,  pop:0,  desc:'Dinheiro chama dinheiro!' },
+    aeroporto:{ emoji:'🛫', nome:'Aeroporto',   custo:20000,  moedas:40,  comida:-8,   pop:0,  desc:'DESBLOQUEIA viajar pra outros MUNDOS! 🌍' },
+    castelo:  { emoji:'🏰', nome:'Castelo',     custo:50000,  moedas:200, comida:-20,  pop:10, desc:'A glória da cidade! (símbolo de rei)' }
 };
 // o prédio EVOLUI de aparência conforme o nível (mais realista!)
 function emojiDe(l){
@@ -124,6 +155,7 @@ function emojiDe(l){
     if(t==='fazenda') return n>=10?'🏞️':n>=5?'🚜':'🌾';
     if(t==='mercado') return n>=8?'🏬':'🏪';
     if(t==='fabrica') return n>=8?'🏗️':'🏭';
+    if(t==='predio')  return n>=8?'🌆':'🏢';
     return PREDIOS[t].emoji;
 }
 var LADO = 12, TOTAL = LADO*LADO;
@@ -137,44 +169,85 @@ function custoLote(i){
     return 9000;
 }
 
+// ============ MUNDOS ============
+var MUNDOS = {
+    cidade: { nome:'Cidade',  emoji:'🏙️', custo:0,      arvore:'🌲', titulo:'🦫🏗️ Cidade Capivara' },
+    praia:  { nome:'Praia',   emoji:'🏖️', custo:30000,  arvore:'🌴', titulo:'🦫🏖️ Praia Capivara' },
+    neve:   { nome:'Neve',    emoji:'⛄',  custo:150000, arvore:'🎄', titulo:'🦫⛄ Neve Capivara' },
+    espaco: { nome:'Espaço',  emoji:'🚀',  custo:800000, arvore:'☄️', titulo:'🦫🚀 Espaço Capivara' }
+};
+
 function lsGet(k,d){ try{ var v=localStorage.getItem('cidade_'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }
 function lsSet(k,v){ try{ localStorage.setItem('cidade_'+k, JSON.stringify(v)); }catch(e){} }
 
-var lotes = lsGet('lotes', null);   // [{t:'casa', nv:1} | null | 'trancado']
 var moedas = lsGet('moedas', 120);
 var comida = lsGet('comida', 30);
+var mundosComprados = lsGet('mundos', ['cidade']);
+var mundoAtual = lsGet('mundoAtual', 'cidade');
+if(mundosComprados.indexOf(mundoAtual) < 0) mundoAtual = 'cidade';
+
 function loteNovoPadrao(i){
     var r = Math.floor(i/LADO), c = i%LADO;
     return (Math.max(Math.abs(r-5.5), Math.abs(c-5.5)) <= 1.5) ? null : 'trancado'; // centro 4x4 livre
 }
-if(!lotes){
-    lotes = [];
-    for(var i=0;i<TOTAL;i++) lotes.push(loteNovoPadrao(i));
-} else if(lotes.length === 36){
-    // MIGRAÇÃO: cidade antiga 6x6 vira o centro da cidade GIGANTE 12x12
-    var novo = [];
-    for(var i=0;i<TOTAL;i++) novo.push(loteNovoPadrao(i));
-    for(var r=0;r<6;r++) for(var c=0;c<6;c++){
-        var velho = lotes[r*6+c];
-        if(velho !== 'trancado') novo[(r+3)*LADO + (c+3)] = velho; // prédio ou vazio comprado
-    }
-    lotes = novo;
+function mapaNovo(){
+    var v = [];
+    for(var i=0;i<TOTAL;i++) v.push(loteNovoPadrao(i));
+    return v;
 }
 
-// ============ PRODUÇÃO ============
-function taxa(){
-    var m = 0, c = 0, felic = 0;
-    lotes.forEach(function(l){
-        if(!l || l === 'trancado') return;
-        var p = PREDIOS[l.t];
-        if(l.t === 'parque'){ felic += l.nv * 0.15; return; }
-        if(l.t === 'praca'){ felic += l.nv * 0.05; return; }
-        m += p.moedas * l.nv;
-        c += p.comida * l.nv;
+// lotes de TODOS os mundos comprados ficam na memória (todos produzem juntos!)
+var lotesPor = {};
+mundosComprados.forEach(function(m){
+    lotesPor[m] = lsGet('lotes_'+m, null);
+});
+// MIGRAÇÃO: cidade antiga salva em 'lotes' vira o mundo 'cidade'
+if(!lotesPor.cidade){
+    var antigo = lsGet('lotes', null);
+    if(antigo && antigo.length === 36){
+        var novo = mapaNovo();
+        for(var r=0;r<6;r++) for(var c=0;c<6;c++){
+            var velho = antigo[r*6+c];
+            if(velho !== 'trancado') novo[(r+3)*LADO + (c+3)] = velho;
+        }
+        lotesPor.cidade = novo;
+    } else if(antigo && antigo.length === TOTAL){
+        lotesPor.cidade = antigo;
+    } else {
+        lotesPor.cidade = mapaNovo();
+    }
+}
+mundosComprados.forEach(function(m){ if(!lotesPor[m]) lotesPor[m] = mapaNovo(); });
+
+function lotes(){ return lotesPor[mundoAtual]; }
+
+function temAeroporto(){
+    var tem = false;
+    mundosComprados.forEach(function(m){
+        lotesPor[m].forEach(function(l){ if(l && l !== 'trancado' && l.t === 'aeroporto') tem = true; });
     });
-    var mult = 1 + felic;
+    return tem;
+}
+
+// ============ PRODUÇÃO (soma TODOS os mundos!) ============
+function taxa(){
+    var m = 0, c = 0, felic = 0, pop = 0;
+    mundosComprados.forEach(function(mu){
+        lotesPor[mu].forEach(function(l){
+            if(!l || l === 'trancado') return;
+            var p = PREDIOS[l.t];
+            pop += (p.pop || 0) * l.nv;
+            if(l.t === 'parque'){ felic += l.nv * 0.15; return; }
+            if(l.t === 'praca'){ felic += l.nv * 0.05; return; }
+            if(l.t === 'escola'){ felic += l.nv * 0.10; c += p.comida * l.nv; return; }
+            m += p.moedas * l.nv;
+            c += p.comida * l.nv;
+        });
+    });
+    var multPop = 1 + pop * 0.01; // cada morador = +1% de moedas!
+    var mult = (1 + felic) * multPop;
     var fome = comida <= 0 && c < 0; // sem comida = cidade PARA de gerar moedas!
-    return { moedas: fome ? 0 : m * mult, comida: c, mult: mult, fome: fome };
+    return { moedas: fome ? 0 : m * mult, comida: c, mult: 1 + felic, pop: pop, multPop: multPop, fome: fome };
 }
 function produz(seg){
     var t = taxa();
@@ -211,17 +284,26 @@ function produz(seg){
 })();
 
 function salva(){
-    lsSet('lotes', lotes); lsSet('moedas', moedas); lsSet('comida', comida); lsSet('quando', Date.now());
+    mundosComprados.forEach(function(m){ lsSet('lotes_'+m, lotesPor[m]); });
+    lsSet('moedas', moedas); lsSet('comida', comida);
+    lsSet('mundos', mundosComprados); lsSet('mundoAtual', mundoAtual);
+    lsSet('quando', Date.now());
 }
 
 // ============ MAPA ============
 var mapaEl = document.getElementById('mapa');
+function aplicaTema(){
+    document.body.className = mundoAtual === 'cidade' ? '' : 'mundo-' + mundoAtual;
+    document.getElementById('titulo').textContent = MUNDOS[mundoAtual].titulo;
+    document.getElementById('btnMundos').firstChild.textContent = MUNDOS[mundoAtual].emoji;
+}
 function desenhaMapa(){
     mapaEl.innerHTML = '';
     var t = taxa();
-    lotes.forEach(function(l, i){
+    var arv = MUNDOS[mundoAtual].arvore;
+    lotes().forEach(function(l, i){
         var d = document.createElement('div');
-        if(l === 'trancado'){ d.className = 'lote trancado'; d.onclick = function(){ abreDestrancar(i); }; }
+        if(l === 'trancado'){ d.className = 'lote trancado'; d.setAttribute('data-arvore', arv); d.onclick = function(){ abreDestrancar(i); }; }
         else if(!l){ d.className = 'lote vazio'; d.onclick = function(){ abreConstruir(i); }; }
         else {
             d.className = 'lote' + (t.fome && PREDIOS[l.t].moedas > 0 ? ' parado' : '');
@@ -247,7 +329,7 @@ function abreConstruir(i){
     Object.keys(PREDIOS).forEach(function(k){
         var p = PREDIOS[k];
         html += '<button ' + (moedas < p.custo ? 'disabled' : '') + ' onclick="constroi(' + i + ',\'' + k + '\')">' +
-            '<b>' + p.emoji + '</b>' + p.nome + '<br>🪙 ' + p.custo.toLocaleString('pt-BR') +
+            '<b>' + p.emoji + '</b>' + p.nome + (p.pop ? ' 👥' + p.pop : '') + '<br>🪙 ' + p.custo.toLocaleString('pt-BR') +
             '<br><span style="font-size:10px; font-weight:normal">' + p.desc + '</span></button>';
     });
     html += '</div><button class="cinza" onclick="fechaPainel()">Fechar</button>';
@@ -258,26 +340,29 @@ function constroi(i, k){
     var p = PREDIOS[k];
     if(moedas < p.custo) return;
     moedas -= p.custo;
-    lotes[i] = { t:k, nv:1 };
+    lotes()[i] = { t:k, nv:1 };
     fechaPainel(); desenhaMapa(); salva();
-    mostraMsg(p.emoji + ' ' + p.nome + ' construído!');
+    if(k === 'aeroporto') mostraMsg('🛫 Aeroporto pronto! Agora você pode VIAJAR pra outros mundos! Clica no botão do canto! 🌍', 4000);
+    else mostraMsg(p.emoji + ' ' + p.nome + ' construído!' + (p.pop ? ' +' + p.pop + ' moradores 👥' : ''));
 }
 function custoUp(l){ return Math.floor(PREDIOS[l.t].custo * 0.8 * Math.pow(1.7, l.nv)); }
 function abrePredio(i){
-    var l = lotes[i], p = PREDIOS[l.t];
+    var l = lotes()[i], p = PREDIOS[l.t];
     var cu = custoUp(l);
     painelIn.innerHTML = '<h2>' + p.emoji + ' ' + p.nome + ' — nível ' + l.nv + '</h2>' +
         '<p>' + p.desc + '</p>' +
         '<p><b>Agora:</b> ' + (p.moedas ? '🪙 ' + (p.moedas*l.nv).toFixed(1) + '/s ' : '') +
-        (p.comida ? '🌽 ' + (p.comida*l.nv).toFixed(1) + '/s' : '') +
-        (l.t==='parque' ? '😊 +' + (l.nv*15) + '% de moedas' : '') + '</p>' +
+        (p.comida ? '🌽 ' + (p.comida*l.nv).toFixed(1) + '/s ' : '') +
+        (p.pop ? '👥 ' + (p.pop*l.nv) + ' moradores ' : '') +
+        (l.t==='parque' ? '😊 +' + (l.nv*15) + '% de moedas' : '') +
+        (l.t==='escola' ? '😊 +' + (l.nv*10) + '% de moedas' : '') + '</p>' +
         '<button ' + (moedas < cu ? 'disabled' : '') + ' onclick="melhora(' + i + ')">⬆️ Melhorar (🪙 ' + cu.toLocaleString('pt-BR') + ')</button>' +
         '<button class="vermelho" onclick="demole(' + i + ')">💥 Demolir (devolve metade)</button>' +
         '<button class="cinza" onclick="fechaPainel()">Fechar</button>';
     painel.style.display = 'flex';
 }
 function melhora(i){
-    var l = lotes[i], cu = custoUp(l);
+    var l = lotes()[i], cu = custoUp(l);
     if(moedas < cu) return;
     moedas -= cu;
     l.nv++;
@@ -285,9 +370,9 @@ function melhora(i){
     mostraMsg('⬆️ ' + PREDIOS[l.t].nome + ' nível ' + l.nv + '!');
 }
 function demole(i){
-    var l = lotes[i];
+    var l = lotes()[i];
     moedas += Math.floor(PREDIOS[l.t].custo/2);
-    lotes[i] = null;
+    lotes()[i] = null;
     fechaPainel(); desenhaMapa(); salva();
     mostraMsg('💥 Demolido!');
 }
@@ -301,12 +386,50 @@ function abreDestrancar(i){
 function destranca(i, c){
     if(moedas < c) return;
     moedas -= c;
-    lotes[i] = null;
+    lotes()[i] = null;
     fechaPainel(); desenhaMapa(); salva();
     mostraMsg('🔓 Terreno novo!');
 }
+
+// ============ TROCAR DE MUNDO ============
+function abreMundos(){
+    var aero = temAeroporto();
+    var html = '<h2>🌍 Mundos</h2>';
+    if(!aero) html += '<p>⚠️ Construa um <b>🛫 Aeroporto</b> pra poder viajar e comprar mundos novos!</p>';
+    else html += '<p>Cada mundo tem seu próprio mapa — e TODOS produzem juntos, até os que você não tá vendo! 🤑</p>';
+    Object.keys(MUNDOS).forEach(function(k){
+        var m = MUNDOS[k];
+        if(mundosComprados.indexOf(k) >= 0){
+            html += '<button class="azul" ' + (k === mundoAtual ? 'disabled' : '') + ' onclick="vaiMundo(\'' + k + '\')">' +
+                m.emoji + ' ' + m.nome + (k === mundoAtual ? ' (você tá aqui!)' : ' — VIAJAR ✈️') + '</button>';
+        } else {
+            html += '<button ' + (!aero || moedas < m.custo ? 'disabled' : '') + ' onclick="compraMundo(\'' + k + '\')">' +
+                m.emoji + ' ' + m.nome + ' — 🔓 comprar 🪙 ' + m.custo.toLocaleString('pt-BR') +
+                (!aero ? ' (precisa de 🛫)' : '') + '</button>';
+        }
+    });
+    html += '<button class="cinza" onclick="fechaPainel()">Fechar</button>';
+    painelIn.innerHTML = html;
+    painel.style.display = 'flex';
+}
+function compraMundo(k){
+    var m = MUNDOS[k];
+    if(!temAeroporto() || moedas < m.custo) return;
+    moedas -= m.custo;
+    mundosComprados.push(k);
+    lotesPor[k] = mapaNovo();
+    mundoAtual = k;
+    fechaPainel(); aplicaTema(); desenhaMapa(); salva();
+    mostraMsg(m.emoji + ' Bem-vindo ao mundo ' + m.nome + '! Construa tudo de novo aqui! 🎉', 3500);
+}
+function vaiMundo(k){
+    mundoAtual = k;
+    fechaPainel(); aplicaTema(); desenhaMapa(); salva();
+    mostraMsg(MUNDOS[k].emoji + ' Você viajou pra ' + MUNDOS[k].nome + '! ✈️');
+}
 window.constroi=constroi; window.melhora=melhora; window.demole=demole;
 window.destranca=destranca; window.fechaPainel=fechaPainel;
+window.abreMundos=abreMundos; window.compraMundo=compraMundo; window.vaiMundo=vaiMundo;
 
 // ============ RELÓGIO ============
 function desenhaHud(){
@@ -315,6 +438,8 @@ function desenhaHud(){
     document.getElementById('hComida').textContent = Math.floor(comida).toLocaleString('pt-BR');
     document.getElementById('hMoedasTx').textContent = (t.fome ? '⚠️ SEM COMIDA!' : '+' + t.moedas.toFixed(1) + '/s');
     document.getElementById('hComidaTx').textContent = (t.comida>=0?'+':'') + t.comida.toFixed(1) + '/s';
+    document.getElementById('hPop').textContent = t.pop.toLocaleString('pt-BR');
+    document.getElementById('hPopTx').textContent = 'x' + t.multPop.toFixed(2) + ' no 🪙';
     document.getElementById('hFelic').textContent = 'x' + t.mult.toFixed(2);
 }
 var avisouFome = false;
@@ -328,6 +453,7 @@ setInterval(function(){
 setInterval(salva, 5000);
 addEventListener('beforeunload', salva);
 
+aplicaTema();
 desenhaMapa();
 desenhaHud();
 </script>
