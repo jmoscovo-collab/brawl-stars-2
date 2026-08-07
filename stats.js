@@ -62,6 +62,13 @@ function cgAutoSave() {
             fetch('https://y67msybrr8.execute-api.sa-east-1.amazonaws.com', {
                 method: 'POST', headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({ acao: 'salvar', nome: u, senhaHash: h, dados: dados })
+            }).then(function(r){
+                // conta desativada/senha trocada = desloga NA HORA
+                if (r.status === 401) {
+                    localStorage.removeItem('cg_usuario');
+                    localStorage.removeItem('cg_senhaHash');
+                    alert('🚪 Sua conta foi desconectada. Faça login de novo em cogumelogames.com.br/conta/');
+                }
             }).catch(function(){});
         }
     } catch (e) {}
