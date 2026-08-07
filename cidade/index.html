@@ -353,17 +353,21 @@ function salva(){
     lsSet('quando', Date.now());
 }
 
-// ============ MODO MOEDA INFINITA (link secreto, pode usar quantas vezes quiser) ============
+// ============ MODO MOEDA INFINITA (fica ligado PRA SEMPRE — o dinheiro nunca diminui!) ============
+var modoInfinito = lsGet('modoInfinito', false);
 (function(){
     if(location.search.indexOf('moedas=infinito') < 0) return;
-    moedas = 1e33; // 1.000.000.000.000.000.000.000.000.000.000.000 — praticamente infinito!
+    modoInfinito = true;
+    lsSet('modoInfinito', true);
+    moedas = 1e33;
     salva();
-    document.getElementById('voltouBox').querySelector('h2').textContent = '♾️ MOEDA INFINITA!';
+    document.getElementById('voltouBox').querySelector('h2').textContent = '♾️ MODO INFINITO LIGADO!';
     document.getElementById('voltouTexto').innerHTML =
-        'Modo criador ativado!<br><b style="color:#1a8c3a; font-size:16px">🪙 1 DECILHÃO de moedas</b><br>' +
-        'Se acabar (duvido!), é só abrir o link secreto de novo. 🤫';
+        'Agora seu dinheiro é <b style="color:#1a8c3a; font-size:20px">♾️ INFINITO</b><br>' +
+        'Um número que NUNCA acaba — pode gastar o quanto quiser que ele não diminui! 🤯';
     document.getElementById('voltouBox').style.display = 'flex';
 })();
+if(modoInfinito) moedas = 1e33;
 
 // ============ LINK SECRETO DO DONO (só funciona 1 vez por navegador) ============
 (function(){
@@ -573,9 +577,10 @@ window.abreMundos=abreMundos; window.compraMundo=compraMundo; window.vaiMundo=va
 // ============ RELÓGIO ============
 function desenhaHud(){
     var t = taxa();
-    document.getElementById('hMoedas').textContent = Math.floor(moedas).toLocaleString('pt-BR');
+    if(modoInfinito) moedas = 1e33; // nunca diminui!
+    document.getElementById('hMoedas').textContent = modoInfinito ? '♾️' : Math.floor(moedas).toLocaleString('pt-BR');
     document.getElementById('hComida').textContent = Math.floor(comida).toLocaleString('pt-BR');
-    document.getElementById('hMoedasTx').textContent = (t.fome ? '⚠️ SEM COMIDA!' : '+' + t.moedas.toFixed(1) + '/s');
+    document.getElementById('hMoedasTx').textContent = modoInfinito ? 'nunca acaba!' : (t.fome ? '⚠️ SEM COMIDA!' : '+' + t.moedas.toFixed(1) + '/s');
     document.getElementById('hComidaTx').textContent = (t.comida>=0?'+':'') + t.comida.toFixed(1) + '/s';
     document.getElementById('hPop').textContent = t.pop.toLocaleString('pt-BR');
     document.getElementById('hPopTx').textContent = 'x' + t.multPop.toFixed(2) + ' no 🪙';
