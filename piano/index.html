@@ -72,7 +72,9 @@ a.voltar { position:fixed; bottom:10px; left:0; right:0; text-align:center; colo
     <div class="sub">Toque nas teclas pretas no ritmo da música!<br>Errou uma... ACABOU! 😱 Toque até o FIM pra vencer 🏆</div>
     <input id="busca" type="search" placeholder="🔍 pesquisar música..."
         style="width:min(90vw,380px); padding:12px 16px; font-size:16px; border:2px solid rgba(255,255,255,0.4); border-radius:16px; background:rgba(255,255,255,0.12); color:#fff; outline:none; margin-bottom:10px">
-    <div id="listaMusicas" style="max-height:52vh; overflow:auto; width:min(92vw,400px)"></div>
+    <div id="listaMusicas" style="max-height:44vh; overflow:auto; width:min(92vw,400px)"></div>
+    <button class="musica" id="btnNet" onclick="buscaNet()" style="justify-content:center; background:linear-gradient(135deg,#1db954,#12833a); border-color:#1db954">
+        🌐 Procurar essa música na INTERNET</button>
 </div>
 
 <div class="tela" id="fimBox">
@@ -231,9 +233,70 @@ function montaMenu(){
     if(!achou) el.innerHTML = '<p style="color:#ffd6ec; padding:16px">😢 Nenhuma música com esse nome...<br>Pede pro Davi adicionar!</p>';
 }
 document.getElementById('busca').addEventListener('input', montaMenu);
+document.getElementById('busca').addEventListener('keydown', function(e){ if(e.key==='Enter') buscaNet(); });
 montaMenu();
 
+// ============ MODO INTERNET (busca músicas de verdade via iTunes/Apple) ============
+var modoNet = false, netAudio = null, netNome = '', netUrl = '', recKey = '';
+function buscaNet(){
+    var q = document.getElementById('busca').value.trim();
+    if(!q){ document.getElementById('btnNet').innerHTML = '✏️ Primeiro escreve o nome da música na barra!'; return; }
+    document.getElementById('btnNet').innerHTML = '🔄 Procurando "' + q + '"...';
+    window.itunesCB = function(d){
+        var el = document.getElementById('listaMusicas');
+        el.innerHTML = '';
+        var r = (d.results || []).filter(function(x){ return x.previewUrl; });
+        if(!r.length){ el.innerHTML = '<p style="color:#ffd6ec; padding:16px">😢 Não achei essa... tenta escrever diferente!</p>'; }
+        r.forEach(function(x){
+            var b = document.createElement('button');
+            b.className = 'musica';
+            b.innerHTML = '<span>🌐 ' + x.trackName + '</span><small>' + x.artistName + '</small>';
+            b.onclick = function(){ jogarNet(x.previewUrl, x.trackName); };
+            el.appendChild(b);
+        });
+        document.getElementById('btnNet').innerHTML = '🌐 Procurar essa música na INTERNET';
+    };
+    var s = document.createElement('script');
+    s.src = 'https://itunes.apple.com/search?term=' + encodeURIComponent(q) + '&media=music&limit=15&country=BR&callback=itunesCB';
+    s.onerror = function(){ document.getElementById('btnNet').innerHTML = '😢 Deu erro — tenta de novo!'; };
+    document.body.appendChild(s);
+}
+function jogarNet(url, nome){
+    modoNet = true; netNome = nome; netUrl = url; recKey = 'recnet_' + nome;
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('fimBox').style.display = 'none';
+    document.getElementById('topo').style.display = 'flex';
+    tiles = []; particulas = []; batida = 0; idxNota = 0; bpm = 125;
+    pontos = 0; combo = 0; flashErro = 0;
+    ALTURA_BATIDA = H / 4.5;
+    document.getElementById('score').textContent = '0';
+    document.getElementById('combo').textContent = '';
+    document.getElementById('nivel').textContent = '🎵 0%';
+    if(netAudio){ netAudio.pause(); }
+    netAudio = new Audio(url);
+    netAudio.play().catch(function(){});
+    rodando = true; ultimoT = performance.now();
+    agendaProximas();
+    requestAnimationFrame(loop);
+}
+window.buscaNet = buscaNet; window.jogarNet = jogarNet;
+
+var RITMO_NET = [1, 0.5, 0.5, 1, 1, 0.5, 0.5, 2, 1, 1, 0.5, 0.5, 1];
 function agendaProximas(){
+    if(modoNet){
+        // no modo internet as teclas seguem um ritmo enquanto a música de verdade toca
+        if(!netAudio || netAudio.ended) return;
+        while(true){
+            var prox = tiles.length ? tiles[tiles.length-1].b + tiles[tiles.length-1].dur : batida + 3;
+            if(prox > batida + 9) break;
+            var laneAnt = tiles.length ? tiles[tiles.length-1].lane : -1;
+            var lane2;
+            do { lane2 = Math.floor(Math.random()*LANES); } while(lane2 === laneAnt && Math.random() < 0.6);
+            tiles.push({ b:prox, dur:RITMO_NET[idxNota % RITMO_NET.length], nota:null, lane:lane2, hit:false, morto:false });
+            idxNota++;
+        }
+        return;
+    }
     // agenda tiles até 8 batidas à frente — a música tem FIM!
     var m = MUSICAS[musicaAtual];
     while(idxNota < m.notas.length){
@@ -249,6 +312,8 @@ function agendaProximas(){
 }
 
 function jogar(i){
+    modoNet = false; recKey = 'rec_' + i;
+    if(netAudio){ netAudio.pause(); netAudio = null; }
     musicaAtual = i;
     var m = MUSICAS[i];
     document.getElementById('menu').style.display = 'none';
@@ -264,6 +329,8 @@ function jogar(i){
     if(actx && actx.state === 'suspended') actx.resume();
 }
 function voltaMenu(){
+    if(netAudio){ netAudio.pause(); netAudio = null; }
+    modoNet = false;
     document.getElementById('fimBox').style.display = 'none';
     document.getElementById('topo').style.display = 'none';
     montaMenu();
@@ -273,16 +340,18 @@ window.jogar = jogar; window.voltaMenu = voltaMenu;
 
 function fimDeJogo(venceu){
     rodando = false;
-    var rec = lsGet('rec_'+musicaAtual, 0);
+    if(modoNet && netAudio && !venceu) netAudio.pause(); // errou = a música PARA!
+    var rec = lsGet(recKey, 0);
     var novoRec = pontos > rec;
-    if(novoRec) lsSet('rec_'+musicaAtual, pontos);
-    if(venceu) lsSet('venceu_'+musicaAtual, true);
+    if(novoRec) lsSet(recKey, pontos);
+    if(venceu && !modoNet) lsSet('venceu_'+musicaAtual, true);
     setTimeout(function(){
         document.getElementById('topo').style.display = 'none';
         document.getElementById('fimPontos').textContent = pontos;
         document.getElementById('fimRec').textContent = (novoRec ? '🏆 NOVO RECORDE!!! ' : '🏆 Recorde: ' + Math.max(rec, pontos)) +
             (venceu ? ' • ⭐ música completa!' : '');
         document.getElementById('fimTitulo').textContent = venceu ? '⭐ VOCÊ TOCOU A MÚSICA INTEIRA!' : (novoRec ? '🌟 INCRÍVEL!' : '💥 Errou!');
+        document.querySelector('#fimBox button').onclick = modoNet ? function(){ jogarNet(netUrl, netNome); } : function(){ jogar(musicaAtual); };
         document.getElementById('fimBox').style.display = 'flex';
     }, venceu ? 900 : 550);
 }
@@ -313,7 +382,7 @@ function toque(x, y){
             alvo.hit = true;
             combo++;
             pontos += (combo >= 10 ? 2 : 1);
-            tocaNota(alvo.nota, alvo.dur * 60/bpm);
+            if(!modoNet) tocaNota(alvo.nota, alvo.dur * 60/bpm); // no modo internet a música já toca sozinha
             for(var p=0;p<10;p++) particulas.push({ x:lane*laneW+laneW/2, y:ty-th/2, vx:(Math.random()-0.5)*7, vy:(Math.random()-0.7)*7, vida:1 });
             document.getElementById('score').textContent = pontos;
             document.getElementById('combo').textContent = combo >= 5 ? '🔥 combo x' + combo + (combo>=10?' (2x pontos!)':'') : '';
@@ -359,13 +428,19 @@ function loop(agora){
     }
     // tocou a música INTEIRA = vitória!
     var m = MUSICAS[musicaAtual];
-    if(idxNota >= m.notas.length && tiles.every(function(t){ return t.hit; })){
+    var acabou = modoNet
+        ? (netAudio && netAudio.ended)
+        : idxNota >= m.notas.length;
+    if(acabou && tiles.every(function(t){ return t.hit; })){
         fanfarra(); fimDeJogo(true);
         (function anim(){ desenha(); if(particulas.length) requestAnimationFrame(anim); })();
         return;
     }
     tiles = tiles.filter(function(t){ return yDo(t) < H + 300; });
-    document.getElementById('nivel').textContent = '🎵 ' + Math.min(100, Math.floor(idxNota / m.notas.length * 100)) + '%';
+    var prog = modoNet
+        ? (netAudio && netAudio.duration ? netAudio.currentTime / netAudio.duration : 0)
+        : idxNota / m.notas.length;
+    document.getElementById('nivel').textContent = '🎵 ' + Math.min(100, Math.floor(prog * 100)) + '%';
     desenha();
     requestAnimationFrame(loop);
 }
