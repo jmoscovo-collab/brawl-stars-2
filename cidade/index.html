@@ -76,9 +76,9 @@ body.mundo-espaco .lote.trancado { background:#252548; }
 #painel button.vermelho { background:linear-gradient(135deg,#cc4433,#ee6655); }
 #painel button.azul { background:linear-gradient(135deg,#2a6acc,#5a9aee); }
 #painel button:disabled { background:#bbb; color:#888; }
-.opcoes { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:8px; }
-.opcoes button { margin-top:0 !important; font-size:14px !important; padding:10px 6px !important; }
-.opcoes button b { font-size:20px; display:block; }
+.opcoes { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px; }
+.opcoes button { margin-top:0 !important; font-size:12px !important; padding:8px 4px !important; }
+.opcoes button b { font-size:19px; display:block; }
 #msg { position:fixed; top:16%; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.85); border:2px solid #5dd97a;
     color:#aaffbb; padding:10px 18px; border-radius:14px; font-weight:bold; font-size:15px; z-index:60; display:none; text-align:center; max-width:92vw; }
 a.voltar { color:#2a5c3a; text-decoration:none; margin-top:12px; font-weight:bold; }
@@ -136,17 +136,77 @@ if (window.initStats) initStats('cidade');
 // estratégia: moedas x comida x moradores x felicidade.
 // Casa gera moeda mas COME. Fazenda alimenta. Parque deixa feliz. MORADOR multiplica o dinheiro!
 var PREDIOS = {
-    casa:     { emoji:'🏠', nome:'Casa',        custo:50,     moedas:1,   comida:-0.4, pop:1,  desc:'Gera 🪙 e mora 1 pessoa 👥' },
-    fazenda:  { emoji:'🌾', nome:'Fazenda',     custo:40,     moedas:0,   comida:1.2,  pop:0,  desc:'Produz 🌽 pra alimentar a cidade' },
-    mercado:  { emoji:'🏪', nome:'Mercadinho',  custo:300,    moedas:6,   comida:-1.5, pop:0,  desc:'Muita moeda, mas come bastante' },
-    parque:   { emoji:'🎡', nome:'Parque',      custo:500,    moedas:0,   comida:0,    pop:0,  desc:'+15% de moedas na cidade toda (felicidade!)' },
-    escola:   { emoji:'🏫', nome:'Escola',      custo:900,    moedas:0,   comida:-0.5, pop:0,  desc:'+10% de moedas — moradores estudados rendem mais!' },
-    predio:   { emoji:'🏢', nome:'Prédio',      custo:1500,   moedas:8,   comida:-4,   pop:40, desc:'Moram 40 pessoas! 👥 Mas comem MUITO' },
-    fabrica:  { emoji:'🏭', nome:'Fábrica',     custo:2500,   moedas:30,  comida:-6,   pop:0,  desc:'Produção GIGANTE... e fome gigante' },
-    praca:    { emoji:'🌳', nome:'Praça',       custo:100,    moedas:0,   comida:0,    pop:0,  desc:'+5% de moedas (arzinho puro!)' },
-    banco:    { emoji:'🏦', nome:'Banco',       custo:12000,  moedas:80,  comida:-10,  pop:0,  desc:'Dinheiro chama dinheiro!' },
-    aeroporto:{ emoji:'🛫', nome:'Aeroporto',   custo:20000,  moedas:40,  comida:-8,   pop:0,  desc:'DESBLOQUEIA viajar pra outros MUNDOS! 🌍' },
-    castelo:  { emoji:'🏰', nome:'Castelo',     custo:50000,  moedas:200, comida:-20,  pop:10, desc:'A glória da cidade! (símbolo de rei)' }
+    tenda:        { emoji:'⛺', nome:'Tenda',            custo:25,      moedas:0.5,  comida:-0.2, pop:1,   desc:'Comecinho de tudo — mora 1 aventureiro' },
+    fazenda:      { emoji:'🌾', nome:'Fazenda',          custo:40,      moedas:0,    comida:1.2,  pop:1,   desc:'Produz 🌽 pra alimentar a cidade' },
+    casa:         { emoji:'🏠', nome:'Casa',             custo:50,      moedas:1,    comida:-0.4, pop:1,   desc:'Gera 🪙 e mora 1 pessoa 👥' },
+    cabana:       { emoji:'🛖', nome:'Cabana',           custo:60,      moedas:1,    comida:-0.4, pop:2,   desc:'Casinha rústica pra 2 pessoas' },
+    praca:        { emoji:'🌳', nome:'Praça',            custo:100,     moedas:0,    comida:0,    pop:1,   desc:'+5% de moedas (arzinho puro!)' },
+    padaria:      { emoji:'🥐', nome:'Padaria',          custo:120,     moedas:2,    comida:-0.6, pop:2,   desc:'Cheirinho de pão quentinho' },
+    quiosque:     { emoji:'🍹', nome:'Quiosque',         custo:150,     moedas:2.5,  comida:-0.5, pop:2,   desc:'Suco gelado dá lucro!' },
+    sorveteria:   { emoji:'🍦', nome:'Sorveteria',       custo:200,     moedas:3,    comida:-0.8, pop:2,   desc:'Todo mundo ama sorvete' },
+    lanchonete:   { emoji:'🍔', nome:'Lanchonete',       custo:250,     moedas:4,    comida:-1,   pop:3,   desc:'X-burguer da capivara' },
+    mercado:      { emoji:'🏪', nome:'Mercadinho',       custo:300,     moedas:6,    comida:-1.5, pop:3,   desc:'Muita moeda, mas come bastante' },
+    barbearia:    { emoji:'💈', nome:'Barbearia',        custo:350,     moedas:4,    comida:-0.8, pop:3,   desc:'Corte estiloso pros moradores' },
+    pizzaria:     { emoji:'🍕', nome:'Pizzaria',         custo:400,     moedas:6,    comida:-1.2, pop:3,   desc:'Pizza gigante de queijo' },
+    parque:       { emoji:'🎡', nome:'Parque',           custo:500,     moedas:0,    comida:0,    pop:2,   desc:'+15% de moedas na cidade toda (felicidade!)' },
+    granja:       { emoji:'🐔', nome:'Granja',           custo:550,     moedas:0,    comida:2.5,  pop:1,   desc:'Galinhas produzindo 🌽 sem parar' },
+    farmacia:     { emoji:'💊', nome:'Farmácia',         custo:600,     moedas:7,    comida:-1.5, pop:4,   desc:'Remedinho pra cidade toda' },
+    posto:        { emoji:'⛽', nome:'Posto',            custo:700,     moedas:8,    comida:-2,   pop:3,   desc:'Enche o tanque, enche o bolso' },
+    oficina:      { emoji:'🔧', nome:'Oficina',          custo:800,     moedas:9,    comida:-2,   pop:4,   desc:'Conserta tudo na cidade' },
+    escola:       { emoji:'🏫', nome:'Escola',           custo:900,     moedas:0,    comida:-0.5, pop:5,   desc:'+10% de moedas — moradores estudados rendem mais!' },
+    pomar:        { emoji:'🍎', nome:'Pomar',            custo:950,     moedas:0,    comida:3.5,  pop:1,   desc:'Árvores cheias de fruta = mais 🌽' },
+    academia:     { emoji:'🏋️', nome:'Academia',         custo:1000,    moedas:10,   comida:-3,   pop:5,   desc:'Moradores fortões' },
+    igreja:       { emoji:'⛪', nome:'Igreja',           custo:1100,    moedas:8,    comida:-1,   pop:6,   desc:'Reúne a vizinhança' },
+    correios:     { emoji:'📮', nome:'Correios',         custo:1200,    moedas:10,   comida:-2,   pop:4,   desc:'Entrega encomendas (e moedas!)' },
+    pesqueiro:    { emoji:'🎣', nome:'Pesqueiro',        custo:1300,    moedas:0,    comida:4.5,  pop:2,   desc:'Peixe fresquinho vira 🌽' },
+    predio:       { emoji:'🏢', nome:'Prédio',           custo:1500,    moedas:8,    comida:-4,   pop:40,  desc:'Moram 40 pessoas! 👥 Mas comem MUITO' },
+    restaurante:  { emoji:'🍽️', nome:'Restaurante',      custo:1700,    moedas:14,   comida:-4,   pop:5,   desc:'Comida chique, preço chique' },
+    cinema:       { emoji:'🎬', nome:'Cinema',           custo:2000,    moedas:16,   comida:-3,   pop:8,   desc:'Sessão pipoca lota todo dia' },
+    sitio:        { emoji:'🐄', nome:'Sítio',            custo:2200,    moedas:0,    comida:7,    pop:2,   desc:'Vaquinhas felizes = montão de 🌽' },
+    fabrica:      { emoji:'🏭', nome:'Fábrica',          custo:2500,    moedas:30,   comida:-6,   pop:10,  desc:'Produção GIGANTE... e fome gigante' },
+    biblioteca:   { emoji:'📚', nome:'Biblioteca',       custo:2800,    moedas:12,   comida:-2,   pop:8,   desc:'Silêncio... tem gente lendo' },
+    delegacia:    { emoji:'🚓', nome:'Delegacia',        custo:3000,    moedas:20,   comida:-4,   pop:8,   desc:'Cidade segura, bolso cheio' },
+    bombeiros:    { emoji:'🚒', nome:'Bombeiros',        custo:3200,    moedas:20,   comida:-4,   pop:8,   desc:'Heróis de plantão' },
+    teatro:       { emoji:'🎭', nome:'Teatro',           custo:3500,    moedas:22,   comida:-4,   pop:10,  desc:'Espetáculo toda noite' },
+    piscina:      { emoji:'🏊', nome:'Piscinão',         custo:4000,    moedas:24,   comida:-5,   pop:10,  desc:'Mergulho radical' },
+    hotel:        { emoji:'🏨', nome:'Hotel',            custo:4500,    moedas:28,   comida:-6,   pop:25,  desc:'Turistas viram moradores!' },
+    mercadao:     { emoji:'🏬', nome:'Mercadão',         custo:5000,    moedas:35,   comida:-8,   pop:10,  desc:'O mercadinho cresceu!' },
+    museu:        { emoji:'🏛️', nome:'Museu',            custo:5500,    moedas:30,   comida:-5,   pop:12,  desc:'Tesouros antigos da capivara' },
+    zoologico:    { emoji:'🦁', nome:'Zoológico',        custo:6000,    moedas:40,   comida:-10,  pop:10,  desc:'Leões, girafas e... capivaras!' },
+    aquario:      { emoji:'🐠', nome:'Aquário',          custo:7000,    moedas:45,   comida:-10,  pop:10,  desc:'Tubarão atrás do vidro' },
+    estacao:      { emoji:'🚉', nome:'Estação de Trem',  custo:8000,    moedas:50,   comida:-8,   pop:15,  desc:'Piuí! Chegou gente nova' },
+    hidroponia:   { emoji:'🥬', nome:'Hidroponia',       custo:8500,    moedas:0,    comida:16,   pop:3,   desc:'Fazenda futurista de 🌽' },
+    circo:        { emoji:'🎪', nome:'Circo',            custo:9000,    moedas:55,   comida:-10,  pop:12,  desc:'Respeitável público!' },
+    fliperama:    { emoji:'🕹️', nome:'Fliperama',        custo:10000,   moedas:60,   comida:-8,   pop:12,  desc:'Fichinhas viram moedas' },
+    banco:        { emoji:'🏦', nome:'Banco',            custo:12000,   moedas:80,   comida:-10,  pop:10,  desc:'Dinheiro chama dinheiro!' },
+    universidade: { emoji:'🎓', nome:'Universidade',     custo:15000,   moedas:70,   comida:-10,  pop:30,  desc:'A escola dos crânios' },
+    shopping:     { emoji:'🛍️', nome:'Shopping',         custo:18000,   moedas:100,  comida:-15,  pop:20,  desc:'Lojas até onde a vista alcança' },
+    aeroporto:    { emoji:'🛫', nome:'Aeroporto',        custo:20000,   moedas:40,   comida:-8,   pop:15,  desc:'DESBLOQUEIA viajar pra outros MUNDOS! 🌍' },
+    estadio:      { emoji:'🏟️', nome:'Estádio',          custo:25000,   moedas:130,  comida:-20,  pop:25,  desc:'GOOOOL da capivara!' },
+    hospital:     { emoji:'🏥', nome:'Hospital',         custo:28000,   moedas:90,   comida:-12,  pop:30,  desc:'Cuida de todo mundo' },
+    porto:        { emoji:'⚓', nome:'Porto',            custo:32000,   moedas:150,  comida:-25,  pop:20,  desc:'Navios cheios de riqueza' },
+    usina:        { emoji:'⚡', nome:'Usina Elétrica',   custo:40000,   moedas:180,  comida:-30,  pop:15,  desc:'Energia pra cidade toda' },
+    solar:        { emoji:'☀️', nome:'Usina Solar',      custo:45000,   moedas:150,  comida:-10,  pop:15,  desc:'O sol trabalhando pra você' },
+    castelo:      { emoji:'🏰', nome:'Castelo',          custo:50000,   moedas:200,  comida:-20,  pop:50,  desc:'A glória da cidade! (símbolo de rei)' },
+    agrorobo:     { emoji:'🌻', nome:'Agro-Robô',        custo:55000,   moedas:0,    comida:80,   pop:5,   desc:'Robôs plantando 🌽 dia e noite' },
+    torre:        { emoji:'🗼', nome:'Torre',            custo:60000,   moedas:170,  comida:-20,  pop:30,  desc:'Dá pra ver a cidade inteira lá de cima' },
+    condominio:   { emoji:'🏘️', nome:'Condomínio',       custo:65000,   moedas:220,  comida:-40,  pop:120, desc:'MUITAS casas juntas = 120 moradores!' },
+    resort:       { emoji:'🏝️', nome:'Resort',           custo:75000,   moedas:250,  comida:-35,  pop:60,  desc:'Férias que nunca acabam' },
+    laboratorio:  { emoji:'🧪', nome:'Laboratório',      custo:85000,   moedas:300,  comida:-30,  pop:25,  desc:'Cientistas inventando riqueza' },
+    hidreletrica: { emoji:'🌊', nome:'Hidrelétrica',     custo:95000,   moedas:320,  comida:-40,  pop:20,  desc:'A força do rio' },
+    arranhaceu:   { emoji:'🌇', nome:'Arranha-céu',      custo:110000,  moedas:350,  comida:-60,  pop:200, desc:'200 moradores tocando o céu!' },
+    mina:         { emoji:'⛏️', nome:'Mina de Ouro',     custo:130000,  moedas:450,  comida:-50,  pop:30,  desc:'Ouro de verdade!' },
+    fazendavert:  { emoji:'🌿', nome:'Fazenda Vertical', custo:150000,  moedas:0,    comida:220,  pop:10,  desc:'Um prédio INTEIRO de plantação' },
+    metro:        { emoji:'🚇', nome:'Metrô',            custo:170000,  moedas:500,  comida:-40,  pop:60,  desc:'A cidade embaixo da cidade' },
+    montanharussa:{ emoji:'🎢', nome:'Montanha-Russa',   custo:200000,  moedas:550,  comida:-60,  pop:50,  desc:'AAAAAAH! Que emoção!' },
+    robofabrica:  { emoji:'🤖', nome:'Fábrica de Robôs', custo:300000,  moedas:900,  comida:-100, pop:50,  desc:'Robôs construindo robôs' },
+    heliporto:    { emoji:'🚁', nome:'Heliporto',        custo:350000,  moedas:1000, comida:-90,  pop:40,  desc:'Só gente chique de helicóptero' },
+    estatua:      { emoji:'🗿', nome:'Estátua Gigante',  custo:420000,  moedas:800,  comida:-50,  pop:80,  desc:'Monumento lendário da capivara' },
+    satelite:     { emoji:'🛰️', nome:'Satélite',         custo:550000,  moedas:1500, comida:-120, pop:60,  desc:'Internet do espaço = dinheiro do espaço' },
+    discovoador:  { emoji:'🛸', nome:'Disco Voador',     custo:850000,  moedas:2500, comida:-200, pop:100, desc:'Os aliens vieram MORAR aqui!' },
+    baselunar:    { emoji:'🌙', nome:'Base Lunar',       custo:1300000, moedas:3500, comida:-250, pop:150, desc:'Moradores na Lua!' },
+    vulcao:       { emoji:'🌋', nome:'Usina de Vulcão',  custo:2200000, moedas:5000, comida:-400, pop:200, desc:'Energia de LAVA pura' },
+    cidadedourada:{ emoji:'👑', nome:'Cidade Dourada',   custo:5500000, moedas:12000,comida:-800, pop:500, desc:'A construção FINAL — 500 moradores de ouro!' }
 };
 // o prédio EVOLUI de aparência conforme o nível (mais realista!)
 function emojiDe(l){
