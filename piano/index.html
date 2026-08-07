@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Piano Mágico — Cogumelo Games</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+html,body { height:100%; overflow:hidden; }
+body {
+    background:linear-gradient(160deg,#2a0845 0%, #6441a5 45%, #ff5fa2 130%);
+    font-family:Arial,sans-serif; color:#fff; user-select:none;
+}
+#jogo { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; }
+canvas { display:block; border-radius:0; touch-action:none; }
+#topo {
+    position:fixed; top:0; left:0; right:0; z-index:5; display:flex; justify-content:space-between;
+    padding:10px 14px; pointer-events:none; align-items:flex-start;
+}
+#score { font-size:44px; font-weight:bold; text-shadow:0 0 18px #ff5fa2, 0 2px 4px rgba(0,0,0,0.6); }
+#combo { font-size:15px; color:#ffd6ec; text-shadow:0 0 8px #ff5fa2; min-height:20px; }
+#nivel { font-size:14px; background:rgba(0,0,0,0.4); border:1px solid #ff5fa2; border-radius:12px; padding:4px 12px; font-weight:bold; }
+
+.tela {
+    position:fixed; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:linear-gradient(160deg,#2a0845 0%, #6441a5 45%, #ff5fa2 130%); text-align:center; padding:20px;
+}
+.tela h1 {
+    font-size:42px; font-weight:900; font-style:italic; letter-spacing:1px;
+    background:linear-gradient(180deg,#fff,#ffb3dd 55%,#c86bff);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 0 14px rgba(255,95,162,0.8)); margin-bottom:4px;
+}
+.tela .sub { color:#ffd6ec; font-size:14px; margin-bottom:22px; }
+.musica {
+    width:min(90vw,380px); margin:6px 0; padding:14px 18px; border:none; border-radius:16px; cursor:pointer;
+    background:rgba(255,255,255,0.1); border:2px solid rgba(255,255,255,0.35); color:#fff; font-size:17px; font-weight:bold;
+    display:flex; justify-content:space-between; align-items:center; backdrop-filter:blur(4px);
+    box-shadow:0 0 14px rgba(255,95,162,0.35);
+}
+.musica:active { transform:scale(0.96); background:rgba(255,255,255,0.25); }
+.musica small { font-weight:normal; font-size:12px; color:#ffd6ec; }
+.nota-flutua { position:fixed; font-size:26px; opacity:0.5; pointer-events:none; animation:sobe linear infinite; z-index:1; }
+@keyframes sobe { from{ transform:translateY(105vh) rotate(-10deg);} to{ transform:translateY(-10vh) rotate(15deg);} }
+
+#fimBox { display:none; }
+#fimBox h2 { font-size:34px; margin-bottom:6px; text-shadow:0 0 16px #ff5fa2; }
+#fimBox .pontos { font-size:64px; font-weight:900; text-shadow:0 0 22px #ff5fa2; }
+#fimBox .rec { color:#ffe066; font-size:16px; margin:8px 0 20px; }
+#fimBox button {
+    width:min(80vw,300px); margin:6px 0; padding:14px; border:none; border-radius:16px; cursor:pointer;
+    font-size:18px; font-weight:bold; color:#fff;
+    background:linear-gradient(135deg,#ff3d9a,#c86bff); box-shadow:0 0 18px rgba(255,95,162,0.6);
+}
+#fimBox button.cinza { background:rgba(255,255,255,0.15); border:2px solid rgba(255,255,255,0.4); box-shadow:none; }
+a.voltar { position:fixed; bottom:10px; left:0; right:0; text-align:center; color:#ffd6ec; text-decoration:none; font-weight:bold; font-size:13px; z-index:11; }
+</style>
+</head>
+<body>
+<div id="topo" style="display:none">
+    <div><div id="score">0</div><div id="combo"></div></div>
+    <div id="nivel">⚡ Nível 1</div>
+</div>
+<canvas id="cv"></canvas>
+
+<div class="tela" id="menu">
+    <div class="nota-flutua" style="left:8%; animation-duration:9s">🎵</div>
+    <div class="nota-flutua" style="left:22%; animation-duration:13s; animation-delay:-4s">🎶</div>
+    <div class="nota-flutua" style="left:78%; animation-duration:11s; animation-delay:-7s">🎵</div>
+    <div class="nota-flutua" style="left:90%; animation-duration:15s; animation-delay:-2s">🎹</div>
+    <h1>Piano Mágico</h1>
+    <div class="sub">Toque nas teclas pretas no ritmo da música!<br>Errou uma... ACABOU! 😱 Cada volta fica MAIS RÁPIDA ⚡</div>
+    <div id="listaMusicas"></div>
+</div>
+
+<div class="tela" id="fimBox">
+    <h2 id="fimTitulo">💥 Errou!</h2>
+    <div class="pontos" id="fimPontos">0</div>
+    <div class="rec" id="fimRec"></div>
+    <button onclick="jogar(musicaAtual)">🔁 JOGAR DE NOVO</button>
+    <button class="cinza" onclick="voltaMenu()">🎵 Escolher música</button>
+</div>
+<a class="voltar" href="/">← Voltar pros jogos</a>
+
+<script src="/stats.js"></script>
+<script src="/avisos.js?v=6"></script>
+<script>
+if (window.initStats) initStats('piano');
+
+// ============ MÚSICAS (nota + duração em batidas) ============
+var MUSICAS = [
+    { nome:'Brilha Brilha Estrelinha', emoji:'⭐', bpm:100, notas:[
+        ['C4',1],['C4',1],['G4',1],['G4',1],['A4',1],['A4',1],['G4',2],
+        ['F4',1],['F4',1],['E4',1],['E4',1],['D4',1],['D4',1],['C4',2],
+        ['G4',1],['G4',1],['F4',1],['F4',1],['E4',1],['E4',1],['D4',2],
+        ['G4',1],['G4',1],['F4',1],['F4',1],['E4',1],['E4',1],['D4',2],
+        ['C4',1],['C4',1],['G4',1],['G4',1],['A4',1],['A4',1],['G4',2],
+        ['F4',1],['F4',1],['E4',1],['E4',1],['D4',1],['D4',1],['C4',2] ]},
+    { nome:'Parabéns pra Você', emoji:'🎂', bpm:110, notas:[
+        ['C4',0.75],['C4',0.25],['D4',1],['C4',1],['F4',1],['E4',2],
+        ['C4',0.75],['C4',0.25],['D4',1],['C4',1],['G4',1],['F4',2],
+        ['C4',0.75],['C4',0.25],['C5',1],['A4',1],['F4',1],['E4',1],['D4',2],
+        ['A#4',0.75],['A#4',0.25],['A4',1],['F4',1],['G4',1],['F4',2] ]},
+    { nome:'Ode à Alegria', emoji:'🎻', bpm:120, notas:[
+        ['E4',1],['E4',1],['F4',1],['G4',1],['G4',1],['F4',1],['E4',1],['D4',1],
+        ['C4',1],['C4',1],['D4',1],['E4',1],['E4',1.5],['D4',0.5],['D4',2],
+        ['E4',1],['E4',1],['F4',1],['G4',1],['G4',1],['F4',1],['E4',1],['D4',1],
+        ['C4',1],['C4',1],['D4',1],['E4',1],['D4',1.5],['C4',0.5],['C4',2] ]},
+    { nome:'Jingle Bells', emoji:'🔔', bpm:130, notas:[
+        ['E4',1],['E4',1],['E4',2],['E4',1],['E4',1],['E4',2],
+        ['E4',1],['G4',1],['C4',1],['D4',1],['E4',4],
+        ['F4',1],['F4',1],['F4',1],['F4',1],['F4',1],['E4',1],['E4',1],['E4',0.5],['E4',0.5],
+        ['E4',1],['D4',1],['D4',1],['E4',1],['D4',2],['G4',2] ]},
+    { nome:'Für Elise', emoji:'🎹', bpm:140, notas:[
+        ['E5',0.5],['D#5',0.5],['E5',0.5],['D#5',0.5],['E5',0.5],['B4',0.5],['D5',0.5],['C5',0.5],['A4',1.5],
+        ['C4',0.5],['E4',0.5],['A4',0.5],['B4',1.5],
+        ['E4',0.5],['G#4',0.5],['B4',0.5],['C5',1.5],
+        ['E4',0.5],['E5',0.5],['D#5',0.5],['E5',0.5],['D#5',0.5],['E5',0.5],['B4',0.5],['D5',0.5],['C5',0.5],['A4',1.5],
+        ['C4',0.5],['E4',0.5],['A4',0.5],['B4',1.5],
+        ['E4',0.5],['C5',0.5],['B4',0.5],['A4',2] ]},
+    { nome:'Escala Turbo', emoji:'🚀', bpm:150, notas:[
+        ['C4',0.5],['D4',0.5],['E4',0.5],['F4',0.5],['G4',0.5],['A4',0.5],['B4',0.5],['C5',0.5],
+        ['C5',0.5],['B4',0.5],['A4',0.5],['G4',0.5],['F4',0.5],['E4',0.5],['D4',0.5],['C4',0.5],
+        ['C4',0.5],['E4',0.5],['G4',0.5],['C5',0.5],['G4',0.5],['E4',0.5],['C4',1],
+        ['D4',0.5],['F4',0.5],['A4',0.5],['D5',0.5],['A4',0.5],['F4',0.5],['D4',1] ]}
+];
+
+// ============ ÁUDIO (piano sintetizado) ============
+var actx = null;
+var FREQ = {};
+(function(){
+    var nomes = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    for(var oit=2; oit<=6; oit++) for(var i=0;i<12;i++){
+        var semitons = (oit-4)*12 + i - 9; // distância do A4
+        FREQ[nomes[i]+oit] = 440 * Math.pow(2, semitons/12);
+    }
+})();
+function tocaNota(nome, dur){
+    if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return; } }
+    var f = FREQ[nome] || 440, t = actx.currentTime;
+    var g = actx.createGain();
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.exponentialRampToValueAtTime(0.5, t+0.015);
+    g.gain.exponentialRampToValueAtTime(0.001, t + Math.max(0.4, dur*0.9));
+    g.connect(actx.destination);
+    [[1,0.6,'triangle'],[2,0.25,'sine'],[3,0.08,'sine']].forEach(function(h){
+        var o = actx.createOscillator();
+        o.type = h[2]; o.frequency.value = f*h[0];
+        var og = actx.createGain(); og.gain.value = h[1];
+        o.connect(og); og.connect(g);
+        o.start(t); o.stop(t + Math.max(0.5, dur));
+    });
+}
+
+// ============ JOGO ============
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+var W, H, LANES = 4, laneW;
+function redimensiona(){
+    W = Math.min(innerWidth, 560); H = innerHeight;
+    cv.width = W * devicePixelRatio; cv.height = H * devicePixelRatio;
+    cv.style.width = W+'px'; cv.style.height = H+'px';
+    cv.style.marginLeft = 'auto'; cv.style.marginRight = 'auto';
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    laneW = W / LANES;
+}
+addEventListener('resize', redimensiona); redimensiona();
+document.body.style.display='flex'; document.body.style.justifyContent='center';
+
+var musicaAtual = 0, rodando = false, tiles = [], batida = 0, bpm = 100, nivel = 1;
+var pontos = 0, combo = 0, ultimoT = 0, idxNota = 0, flashErro = 0, particulas = [];
+var ALTURA_BATIDA; // pixels por batida
+
+function lsGet(k,d){ try{ var v=localStorage.getItem('piano_'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }
+function lsSet(k,v){ try{ localStorage.setItem('piano_'+k, JSON.stringify(v)); }catch(e){} }
+
+function montaMenu(){
+    var el = document.getElementById('listaMusicas');
+    el.innerHTML = '';
+    MUSICAS.forEach(function(m, i){
+        var b = document.createElement('button');
+        b.className = 'musica';
+        var rec = lsGet('rec_'+i, 0);
+        b.innerHTML = '<span>' + m.emoji + ' ' + m.nome + '</span><small>🏆 ' + rec + '</small>';
+        b.onclick = function(){ jogar(i); };
+        el.appendChild(b);
+    });
+}
+montaMenu();
+
+function agendaProximas(){
+    // agenda tiles até 8 batidas à frente
+    var m = MUSICAS[musicaAtual];
+    while(true){
+        var totalDur = 0;
+        var proxBatida = tiles.length ? tiles[tiles.length-1].b + tiles[tiles.length-1].dur : batida + 3;
+        if(proxBatida > batida + 9) break;
+        var nota = m.notas[idxNota % m.notas.length];
+        if(idxNota > 0 && idxNota % m.notas.length === 0){ nivel++; bpm *= 1.12; }
+        var laneAnterior = tiles.length ? tiles[tiles.length-1].lane : -1;
+        var lane;
+        do { lane = Math.floor(Math.random()*LANES); } while(lane === laneAnterior && Math.random() < 0.6);
+        tiles.push({ b:proxBatida, dur:nota[1], nota:nota[0], lane:lane, hit:false, morto:false });
+        idxNota++;
+    }
+}
+
+function jogar(i){
+    musicaAtual = i;
+    var m = MUSICAS[i];
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('fimBox').style.display = 'none';
+    document.getElementById('topo').style.display = 'flex';
+    tiles = []; particulas = []; batida = 0; idxNota = 0; nivel = 1; bpm = m.bpm;
+    pontos = 0; combo = 0; flashErro = 0;
+    ALTURA_BATIDA = H / 4.5;
+    document.getElementById('nivel').textContent = '⚡ Nível 1';
+    rodando = true; ultimoT = performance.now();
+    agendaProximas();
+    requestAnimationFrame(loop);
+    if(actx && actx.state === 'suspended') actx.resume();
+}
+function voltaMenu(){
+    document.getElementById('fimBox').style.display = 'none';
+    document.getElementById('topo').style.display = 'none';
+    montaMenu();
+    document.getElementById('menu').style.display = 'flex';
+}
+window.jogar = jogar; window.voltaMenu = voltaMenu;
+
+function fimDeJogo(){
+    rodando = false;
+    var rec = lsGet('rec_'+musicaAtual, 0);
+    var novoRec = pontos > rec;
+    if(novoRec) lsSet('rec_'+musicaAtual, pontos);
+    setTimeout(function(){
+        document.getElementById('topo').style.display = 'none';
+        document.getElementById('fimPontos').textContent = pontos;
+        document.getElementById('fimRec').textContent = novoRec ? '🏆 NOVO RECORDE!!!' : '🏆 Recorde: ' + Math.max(rec, pontos);
+        document.getElementById('fimTitulo').textContent = novoRec ? '🌟 INCRÍVEL!' : '💥 Errou!';
+        document.getElementById('fimBox').style.display = 'flex';
+    }, 550);
+}
+
+function yDo(t){ return H - 130 - (t.b - batida) * ALTURA_BATIDA; }
+
+function toque(x, y){
+    if(!rodando) return;
+    var lane = Math.floor(x / laneW);
+    // procura o tile mais baixo NÃO tocado dessa lane que esteja na tela
+    var alvo = null;
+    for(var i=0;i<tiles.length;i++){
+        var t = tiles[i];
+        if(t.hit || t.lane !== lane) continue;
+        var ty = yDo(t), th = t.dur * ALTURA_BATIDA;
+        if(ty > -th && ty - th < H){ alvo = t; break; }
+    }
+    if(alvo){
+        var ty = yDo(alvo), th = alvo.dur * ALTURA_BATIDA;
+        if(y >= ty - th - 18 && y <= ty + 24){
+            alvo.hit = true;
+            combo++;
+            pontos += (combo >= 10 ? 2 : 1);
+            tocaNota(alvo.nota, alvo.dur * 60/bpm);
+            for(var p=0;p<10;p++) particulas.push({ x:lane*laneW+laneW/2, y:ty-th/2, vx:(Math.random()-0.5)*7, vy:(Math.random()-0.7)*7, vida:1 });
+            document.getElementById('score').textContent = pontos;
+            document.getElementById('combo').textContent = combo >= 5 ? '🔥 combo x' + combo + (combo>=10?' (2x pontos!)':'') : '';
+            return;
+        }
+    }
+    // tocou no lugar errado!
+    flashErro = 1; combo = 0;
+    tocaNota('C3', 0.3);
+    fimDeJogo();
+}
+cv.addEventListener('pointerdown', function(e){
+    var r = cv.getBoundingClientRect();
+    toque(e.clientX - r.left, e.clientY - r.top);
+});
+// teclado no computador: D F J K
+var TECLAS = { d:0, f:1, j:2, k:3 };
+addEventListener('keydown', function(e){
+    var l = TECLAS[e.key.toLowerCase()];
+    if(l === undefined || !rodando) return;
+    // simula toque no tile mais baixo da lane
+    for(var i=0;i<tiles.length;i++){
+        var t = tiles[i];
+        if(!t.hit && t.lane === l){ toque(l*laneW + laneW/2, yDo(t) - 4); return; }
+    }
+    toque(l*laneW + laneW/2, H-60);
+});
+
+function loop(agora){
+    if(!rodando) { desenha(); return; }
+    var dt = Math.min((agora - ultimoT)/1000, 0.05);
+    ultimoT = agora;
+    batida += dt * bpm/60;
+    agendaProximas();
+    // tile passou da linha sem ser tocado = fim!
+    for(var i=0;i<tiles.length;i++){
+        var t = tiles[i];
+        if(!t.hit && yDo(t) > H - 40){
+            t.morto = true; flashErro = 1;
+            tocaNota('C3', 0.3);
+            desenha(); fimDeJogo(); return;
+        }
+    }
+    tiles = tiles.filter(function(t){ return yDo(t) < H + 300; });
+    document.getElementById('nivel').textContent = '⚡ Nível ' + nivel;
+    desenha();
+    requestAnimationFrame(loop);
+}
+
+function desenha(){
+    // fundo
+    var grad = ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,'#1a0533'); grad.addColorStop(0.6,'#3d1a6e'); grad.addColorStop(1,'#7a2a8a');
+    ctx.fillStyle = grad; ctx.fillRect(0,0,W,H);
+    // divisórias das lanes
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+    for(var l=1;l<LANES;l++){ ctx.beginPath(); ctx.moveTo(l*laneW,0); ctx.lineTo(l*laneW,H); ctx.stroke(); }
+    // linha de acerto
+    ctx.strokeStyle = 'rgba(255,95,162,0.9)'; ctx.lineWidth = 3;
+    ctx.shadowColor = '#ff5fa2'; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.moveTo(0,H-130); ctx.lineTo(W,H-130); ctx.stroke();
+    ctx.shadowBlur = 0;
+    // tiles
+    tiles.forEach(function(t){
+        var y = yDo(t), h = t.dur * ALTURA_BATIDA - 6;
+        var x = t.lane*laneW + 3, w = laneW - 6;
+        if(t.hit){
+            ctx.fillStyle = 'rgba(255,95,162,0.25)';
+            ctx.strokeStyle = 'rgba(255,95,162,0.5)';
+        } else if(t.morto){
+            ctx.fillStyle = '#cc2222'; ctx.strokeStyle = '#ff6666';
+        } else {
+            var g2 = ctx.createLinearGradient(0,y-h,0,y);
+            g2.addColorStop(0,'#0a0a1e'); g2.addColorStop(1,'#20204a');
+            ctx.fillStyle = g2; ctx.strokeStyle = '#5fd0ff';
+        }
+        ctx.lineWidth = 2;
+        arredondado(x, y-h, w, h, 10);
+        ctx.fill(); ctx.stroke();
+        if(!t.hit && !t.morto){
+            ctx.fillStyle = 'rgba(95,208,255,0.85)';
+            ctx.beginPath(); ctx.arc(x+w/2, y-14, 5, 0, 7); ctx.fill();
+        }
+    });
+    // partículas
+    particulas.forEach(function(p){
+        p.x += p.vx; p.y += p.vy; p.vy += 0.25; p.vida -= 0.035;
+        ctx.globalAlpha = Math.max(p.vida,0);
+        ctx.fillStyle = '#ffb3dd';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 3.5, 0, 7); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    particulas = particulas.filter(function(p){ return p.vida > 0; });
+    // flash de erro
+    if(flashErro > 0){
+        ctx.fillStyle = 'rgba(255,0,40,' + flashErro*0.45 + ')';
+        ctx.fillRect(0,0,W,H);
+        flashErro -= 0.06;
+    }
+    // dica de teclado (só desktop)
+    if(matchMedia('(pointer:fine)').matches){
+        ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
+        ['D','F','J','K'].forEach(function(k,i){ ctx.fillText(k, i*laneW+laneW/2, H-18); });
+    }
+}
+function arredondado(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+desenha();
+</script>
+<script src="/mascote.js"></script>
+</body>
+</html>
