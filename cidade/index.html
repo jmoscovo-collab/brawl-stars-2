@@ -240,6 +240,9 @@ var MUNDOS = {
 function lsGet(k,d){ try{ var v=localStorage.getItem('cidade_'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }
 function lsSet(k,v){ try{ localStorage.setItem('cidade_'+k, JSON.stringify(v)); }catch(e){} }
 
+// jogador NOVO = nunca salvou nada da cidade neste navegador (checar ANTES de qualquer salva!)
+var jogadorNovo = localStorage.getItem('cidade_moedas') === null;
+
 var moedas = lsGet('moedas', 120);
 var comida = lsGet('comida', 30);
 var mundosComprados = lsGet('mundos', ['cidade']);
@@ -349,6 +352,27 @@ function salva(){
     lsSet('mundos', mundosComprados); lsSet('mundoAtual', mundoAtual);
     lsSet('quando', Date.now());
 }
+
+// ============ PRESENTE DO DAVI (só pros 2 PRIMEIROS jogadores novos!) ============
+(function(){
+    if(lsGet('presenteVip', false) || lsGet('presenteChecado', false)) return;
+    if(!jogadorNovo){ lsSet('presenteChecado', true); return; }
+    fetch('https://api.counterapi.dev/v1/cogumelogames-br/cidade-presente-davi/up')
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            lsSet('presenteChecado', true);
+            if(d.count && d.count <= 2){
+                moedas += 1000000000000000000;
+                lsSet('presenteVip', true);
+                salva(); desenhaHud();
+                document.getElementById('voltouBox').querySelector('h2').textContent = '🎁 PRESENTE DO DAVI!';
+                document.getElementById('voltouTexto').innerHTML =
+                    'Você foi um dos <b>2 primeiros</b> a entrar na cidade e ganhou<br>' +
+                    '<b style="color:#1a8c3a; font-size:17px">🪙 1.000.000.000.000.000.000</b><br>(UM QUINTILHÃO de moedas!) 🤯';
+                document.getElementById('voltouBox').style.display = 'flex';
+            }
+        }).catch(function(){});
+})();
 
 // ============ MAPA ============
 var mapaEl = document.getElementById('mapa');
