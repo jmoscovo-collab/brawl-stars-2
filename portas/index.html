@@ -196,12 +196,14 @@ var CHAO_Y = 0;
 function gera(n){
     var r = rnd(n * 1337 + andar * 777 + 42);
     var tipo = tipoDe(n);
+    var paraiso = (n === 50); // porta 50 de TODO andar: chuva de moedas e nenhum bicho!
+    if(paraiso) tipo = 'tesouro';
     var dif = Math.min(2, (n + (andar-1)*60) / 100); // andar mais alto = mais difícil!
     var L = { plats:[], espinhos:[], inimigos:[], moedinhas:[], baus:[], portas:[], tipo:tipo, n:n };
     var fim = 1800 + n * 25;
     if(tipo === 'arena' || tipo === 'boss') fim = 1300;
     L.fim = fim;
-    var x = 0, buracoChance = tipo==='parkour' ? 0.42 : (tipo==='boss'||tipo==='arena' ? 0 : 0.22);
+    var x = 0, buracoChance = paraiso ? 0 : (tipo==='parkour' ? 0.42 : (tipo==='boss'||tipo==='arena' ? 0 : 0.22));
     while(x < fim){
         var w = 220 + r()*320;
         L.plats.push({x:x, y:0, w:w, h:400, chao:true});
@@ -213,9 +215,9 @@ function gera(n){
         var px = 200 + r()*(fim-400);
         L.plats.push({x:px, y:110 + r()*160, w:90 + r()*110, h:18});
     }
-    var qe = tipo==='parkour' ? 6 + Math.floor(dif*12) : (tipo==='tesouro' ? 4 : 2);
+    var qe = paraiso ? 0 : (tipo==='parkour' ? 6 + Math.floor(dif*12) : (tipo==='tesouro' ? 4 : 2));
     for(var i=0;i<qe;i++) L.espinhos.push({x:320 + r()*(fim-500), w:40 + r()*50});
-    var qi = tipo==='arena' ? 3 + Math.floor(dif*7) : (tipo==='boss' ? 0 : 1 + Math.floor(dif*4));
+    var qi = paraiso ? 0 : (tipo==='arena' ? 3 + Math.floor(dif*7) : (tipo==='boss' ? 0 : 1 + Math.floor(dif*4)));
     var EMO = ['👾','🧟','🤖','👻','💀','🐗','🦂'];
     for(var i=0;i<qi;i++){
         var hp = Math.ceil(1 + dif*14 + r()*3);
@@ -226,9 +228,9 @@ function gera(n){
         var bhp = 10 + n;
         L.inimigos.push({x:fim-350, y:0, hp:bhp, hpMax:bhp, e:'👹', vel:60 + dif*120, tam:86, vivo:true, boss:true, dropa:40 + n});
     }
-    var qm = 8 + Math.floor(r()*8);
+    var qm = paraiso ? 70 : 8 + Math.floor(r()*8);
     for(var i=0;i<qm;i++) L.moedinhas.push({x:150 + r()*(fim-300), y:60 + r()*200, pega:false});
-    var qb = tipo==='tesouro' ? 3 + Math.floor(r()*3) : (r()<0.3 ? 1 : 0);
+    var qb = paraiso ? 6 : (tipo==='tesouro' ? 3 + Math.floor(r()*3) : (r()<0.3 ? 1 : 0));
     for(var i=0;i<qb;i++) L.baus.push({x:300 + r()*(fim-450), aberto:false, valor:15 + Math.floor(r()*35 + dif*60)});
     return L;
 }
