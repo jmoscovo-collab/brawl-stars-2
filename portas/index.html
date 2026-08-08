@@ -34,6 +34,15 @@ canvas { display:block; position:fixed; inset:0; touch-action:none; }
     background:rgba(255,255,255,0.15); color:#fff; display:none; }
 #bLoja { position:fixed; top:12px; right:12px; z-index:6; font-size:26px; width:52px; height:52px; border-radius:14px; border:2px solid #ffaa00;
     background:rgba(255,170,0,0.2); color:#fff; display:none; cursor:pointer; }
+#bFoguete { position:fixed; top:12px; right:74px; z-index:6; font-size:26px; width:52px; height:52px; border-radius:14px; border:2px solid #5fd0ff;
+    background:rgba(95,208,255,0.2); color:#fff; display:none; cursor:pointer; }
+#foguete { position:fixed; inset:0; z-index:25; background:rgba(8,8,24,0.85); display:none; align-items:center; justify-content:center; }
+#foguete .cartao { background:linear-gradient(180deg,#123, #1a2a4e); border:3px solid #5fd0ff; border-radius:22px; padding:22px; text-align:center; width:min(90vw,340px); }
+#foguete .cartao div { font-size:52px; margin-bottom:10px; }
+#nPorta { width:100%; padding:14px; font-size:26px; font-weight:bold; text-align:center; border:3px solid #5fd0ff; border-radius:14px; outline:none; background:#0c1830; color:#fff; }
+#foguete button { font-size:26px; margin-top:12px; padding:10px 30px; border:none; border-radius:14px; cursor:pointer; color:#fff; }
+#irFoguete { background:linear-gradient(135deg,#2a9aee,#5fd0ff); }
+#xFoguete { background:#556; margin-left:8px; }
 </style>
 </head>
 <body>
@@ -44,6 +53,17 @@ canvas { display:block; position:fixed; inset:0; touch-action:none; }
 <button class="ctl" id="bAtq" style="display:none">⚔️</button>
 <button id="bSair">🚪</button>
 <button id="bLoja" onclick="abreLoja()">🛒</button>
+<button id="bFoguete" onclick="abreFoguete()">🚀</button>
+
+<div id="foguete">
+    <div class="cartao">
+        <div>🚀</div>
+        <input id="nPorta" type="number" inputmode="numeric" pattern="[0-9]*" min="1">
+        <br>
+        <button id="irFoguete" onclick="voaFoguete()">🚀</button>
+        <button id="xFoguete" onclick="fechaFoguete()">❌</button>
+    </div>
+</div>
 
 <div id="zerou" style="position:fixed; inset:0; z-index:30; display:none; align-items:center; justify-content:center; flex-direction:column; background:rgba(5,5,20,0.92); text-align:center; padding:20px">
     <div style="font-size:70px">🏆👑🎉</div>
@@ -115,6 +135,31 @@ function fechaLoja(){
     requestAnimationFrame(loop);
 }
 window.abreLoja = abreLoja; window.fechaLoja = fechaLoja;
+
+// ============ FOGUETE GRÁTIS: voa direto pra frente de qualquer porta! ============
+function abreFoguete(){
+    rodando = false;
+    var inp = document.getElementById('nPorta');
+    inp.value = ''; inp.max = andar*100; inp.placeholder = '1 - ' + (andar*100);
+    document.getElementById('foguete').style.display = 'flex';
+    setTimeout(function(){ inp.focus(); }, 50); // abre o teclado no celular
+    inp.onkeydown = function(e){ if(e.key === 'Enter') voaFoguete(); };
+}
+function fechaFoguete(){
+    document.getElementById('foguete').style.display = 'none';
+    rodando = true; ultimoT = performance.now();
+    requestAnimationFrame(loop);
+}
+function voaFoguete(){
+    var n = parseInt(document.getElementById('nPorta').value, 10);
+    if(!n || n < 1 || n > andar*100) return;
+    pl.x = 260 + (n-1)*ESPACO - 60; // chega do ladinho da porta (pra não entrar sem querer)
+    pl.y = CHAO_Y - 160; pl.vy = 0; pl.vx = 0;
+    dwell = 0; dwellAlvo = null;
+    for(var i=0;i<14;i++) fx.push({x:pl.x+(Math.random()-0.5)*140, y:pl.y+Math.random()*160, t:['🚀','💨','🔥'][Math.floor(Math.random()*3)], vida:1});
+    fechaFoguete();
+}
+window.abreFoguete = abreFoguete; window.fechaFoguete = fechaFoguete; window.voaFoguete = voaFoguete;
 
 // ============ RNG com semente ============
 function rnd(seed){
@@ -212,6 +257,7 @@ function iniciaHub(voltandoDaPorta){
     dwell = 0; dwellAlvo = null;
     document.getElementById('bSair').style.display = 'none';
     document.getElementById('bLoja').style.display = 'block';
+    document.getElementById('bFoguete').style.display = 'block';
     mostraTouch(true);
     rodando = true; ultimoT = performance.now();
     requestAnimationFrame(loop);
@@ -224,6 +270,7 @@ function inicia(n){
     cam = 0; dwell = 0; dwellAlvo = null;
     document.getElementById('bSair').style.display = 'block';
     document.getElementById('bLoja').style.display = 'none';
+    document.getElementById('bFoguete').style.display = 'none';
     rodando = true; ultimoT = performance.now();
     requestAnimationFrame(loop);
 }
