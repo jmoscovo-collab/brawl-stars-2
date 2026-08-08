@@ -2,8 +2,8 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>100 Portas — Cogumelo Games</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Portas Misteriosas — Cogumelo Games</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 html,body { height:100%; overflow:hidden; }
@@ -26,10 +26,10 @@ canvas { display:block; position:fixed; inset:0; touch-action:none; }
 #fecharLoja { font-size:26px; margin-top:8px; padding:8px 26px; border:none; border-radius:14px; cursor:pointer; background:#556; color:#fff; }
 
 /* ===== CONTROLES TOUCH (sem texto) ===== */
-.ctl { position:fixed; bottom:18px; z-index:6; width:64px; height:64px; border-radius:50%; border:none; font-size:30px;
-    background:rgba(255,255,255,0.16); backdrop-filter:blur(3px); color:#fff; align-items:center; justify-content:center; }
-.ctl:active { background:rgba(255,255,255,0.4); }
-#bEsq { left:16px; } #bDir { left:94px; } #bPulo { right:94px; } #bAtq { right:16px; background:rgba(255,120,60,0.3); }
+.ctl { position:fixed; bottom:calc(14px + env(safe-area-inset-bottom)); z-index:6; width:76px; height:76px; border-radius:50%; border:none; font-size:36px;
+    background:rgba(255,255,255,0.18); backdrop-filter:blur(3px); color:#fff; align-items:center; justify-content:center; }
+.ctl:active { background:rgba(255,255,255,0.45); transform:scale(1.08); }
+#bEsq { left:14px; } #bDir { left:104px; } #bPulo { right:104px; } #bAtq { right:14px; background:rgba(255,120,60,0.35); }
 #bSair { position:fixed; top:12px; right:12px; z-index:6; font-size:24px; width:46px; height:46px; border-radius:12px; border:none;
     background:rgba(255,255,255,0.15); color:#fff; display:none; }
 #bLoja { position:fixed; top:12px; right:12px; z-index:6; font-size:26px; width:52px; height:52px; border-radius:14px; border:2px solid #ffaa00;
@@ -305,6 +305,7 @@ function gera(n){
 }
 
 // ============ CANVAS ============
+function ehCelular(){ return matchMedia('(pointer:coarse)').matches || ('ontouchstart' in window) || navigator.maxTouchPoints > 0; }
 var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 var W, H;
 function resize(){
@@ -312,9 +313,12 @@ function resize(){
     cv.width = W*devicePixelRatio; cv.height = H*devicePixelRatio;
     cv.style.width = W + 'px'; cv.style.height = H + 'px'; // sem isso o canvas fica 2x maior que a tela!
     ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
-    CHAO_Y = H - 90;
+    CHAO_Y = H - (ehCelular() ? 185 : 90);
 }
-addEventListener('resize', resize); resize();
+addEventListener('resize', resize);
+addEventListener('orientationchange', function(){ setTimeout(resize, 300); });
+if(window.visualViewport) visualViewport.addEventListener('resize', resize);
+resize();
 
 // ============ ESTADO ============
 var fase = null, rodando = false, cam = 0, portaAtual = 0, modo = 'hub';
@@ -349,8 +353,7 @@ function inicia(n){
     requestAnimationFrame(loop);
 }
 function mostraTouch(sim){
-    var ehCelular = matchMedia('(pointer:coarse)').matches || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-    var d = (sim && ehCelular) ? 'flex' : 'none';
+    var d = (sim && ehCelular()) ? 'flex' : 'none';
     ['bEsq','bDir','bPulo','bAtq'].forEach(function(id){ document.getElementById(id).style.display = d; });
 }
 document.getElementById('bSair').onclick = function(){
