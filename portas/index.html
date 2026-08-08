@@ -36,6 +36,17 @@ canvas { display:block; position:fixed; inset:0; touch-action:none; }
     background:rgba(255,170,0,0.2); color:#fff; display:none; cursor:pointer; }
 #bFoguete { position:fixed; top:12px; right:74px; z-index:6; font-size:26px; width:52px; height:52px; border-radius:14px; border:2px solid #5fd0ff;
     background:rgba(95,208,255,0.2); color:#fff; display:none; cursor:pointer; }
+#bMundo { position:fixed; top:12px; right:136px; z-index:6; font-size:26px; width:52px; height:52px; border-radius:14px; border:2px solid #4dff88;
+    background:rgba(77,255,136,0.2); color:#fff; display:none; cursor:pointer; }
+#mundos { position:fixed; inset:0; z-index:26; background:rgba(8,8,24,0.85); display:none; align-items:center; justify-content:center; }
+#mundos .cartao { background:linear-gradient(180deg,#0e2e1a,#123420); border:3px solid #4dff88; border-radius:22px; padding:20px; text-align:center; width:min(92vw,360px); }
+#mundos .cartao > div { font-size:44px; margin-bottom:10px; }
+#gradeMundos { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+#gradeMundos button { aspect-ratio:1; font-size:22px; font-weight:bold; border:2px solid rgba(255,255,255,0.3); border-radius:14px; cursor:pointer;
+    background:rgba(255,255,255,0.1); color:#fff; }
+#gradeMundos button.aqui { border-color:#ffd700; background:rgba(255,215,0,0.2); }
+#gradeMundos button:disabled { opacity:0.35; }
+#xMundos { font-size:24px; margin-top:12px; padding:8px 26px; border:none; border-radius:14px; cursor:pointer; background:#556; color:#fff; }
 #foguete { position:fixed; inset:0; z-index:25; background:rgba(8,8,24,0.85); display:none; align-items:center; justify-content:center; }
 #foguete .cartao { background:linear-gradient(180deg,#123, #1a2a4e); border:3px solid #5fd0ff; border-radius:22px; padding:22px; text-align:center; width:min(90vw,340px); }
 #foguete .cartao div { font-size:52px; margin-bottom:10px; }
@@ -54,6 +65,15 @@ canvas { display:block; position:fixed; inset:0; touch-action:none; }
 <button id="bSair">🚪</button>
 <button id="bLoja" onclick="abreLoja()">🛒</button>
 <button id="bFoguete" onclick="abreFoguete()">🚀</button>
+<button id="bMundo" onclick="abreMundos()">🌍</button>
+
+<div id="mundos">
+    <div class="cartao">
+        <div>🌍</div>
+        <div id="gradeMundos"></div>
+        <button id="xMundos" onclick="fechaMundos()">❌</button>
+    </div>
+</div>
 
 <div id="foguete">
     <div class="cartao">
@@ -178,6 +198,37 @@ function voaFoguete(){
 }
 window.abreFoguete = abreFoguete; window.fechaFoguete = fechaFoguete; window.voaFoguete = voaFoguete;
 
+// ============ TROCAR DE MUNDO (andar) — só os que você já desbloqueou ============
+var maxAndar = Math.max(lsGet('maxAndar', 1), andar);
+function abreMundos(){
+    rodando = false;
+    var g = document.getElementById('gradeMundos');
+    g.innerHTML = '';
+    for(var k=1; k<=10; k++){
+        var b = document.createElement('button');
+        b.textContent = k <= maxAndar ? k : '🔒';
+        if(k === andar) b.className = 'aqui';
+        if(k > maxAndar) b.disabled = true;
+        else (function(kk){ b.onclick = function(){ vaiMundo(kk); }; })(k);
+        g.appendChild(b);
+    }
+    document.getElementById('mundos').style.display = 'flex';
+}
+function fechaMundos(){
+    document.getElementById('mundos').style.display = 'none';
+    rodando = true; ultimoT = performance.now();
+    requestAnimationFrame(loop);
+}
+function vaiMundo(k){
+    andar = k;
+    lsSet('andar', andar);
+    zeradas = lsGet('zeradas_' + andar, []);
+    travas = lsGet('travas_' + andar, {});
+    document.getElementById('mundos').style.display = 'none';
+    iniciaHub(0);
+}
+window.abreMundos = abreMundos; window.fechaMundos = fechaMundos; window.vaiMundo = vaiMundo;
+
 // ============ RNG com semente ============
 function rnd(seed){
     var a = seed >>> 0;
@@ -279,6 +330,7 @@ function iniciaHub(voltandoDaPorta){
     document.getElementById('bSair').style.display = 'none';
     document.getElementById('bLoja').style.display = 'block';
     document.getElementById('bFoguete').style.display = 'block';
+    document.getElementById('bMundo').style.display = 'block';
     mostraTouch(true);
     rodando = true; ultimoT = performance.now();
     requestAnimationFrame(loop);
@@ -292,6 +344,7 @@ function inicia(n){
     document.getElementById('bSair').style.display = 'block';
     document.getElementById('bLoja').style.display = 'none';
     document.getElementById('bFoguete').style.display = 'none';
+    document.getElementById('bMundo').style.display = 'none';
     rodando = true; ultimoT = performance.now();
     requestAnimationFrame(loop);
 }
@@ -407,6 +460,8 @@ function loop(agora){
                 if(SECRETA[andar] === perto.n && andar < 10){
                     andar++;
                     lsSet('andar', andar);
+                    maxAndar = Math.max(maxAndar, andar);
+                    lsSet('maxAndar', maxAndar);
                     zeradas = lsGet('zeradas_' + andar, []);
                     travas = lsGet('travas_' + andar, {});
                     // 🎉 prêmio por descobrir a porta secreta!
