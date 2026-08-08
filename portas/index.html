@@ -266,7 +266,7 @@ function gera(n){
     var tipo = tipoDe(n);
     var paraiso = (n === 50); // porta 50 de TODO andar: chuva de moedas e nenhum bicho!
     if(paraiso) tipo = 'tesouro';
-    var dif = Math.min(2, (n + (andar-1)*60) / 100); // andar mais alto = mais difícil!
+    var dif = r()*1.6 + (andar-1)*0.05; // dificuldade SORTEADA — a porta 3 pode ser mais difícil que a 90!
     var L = { plats:[], espinhos:[], inimigos:[], moedinhas:[], baus:[], portas:[], tipo:tipo, n:n };
     var fim = 1800 + n * 25;
     if(tipo === 'arena' || tipo === 'boss') fim = 1300;
@@ -294,7 +294,7 @@ function gera(n){
             vel:(40 + r()*60 + dif*80) * (r()<0.5?-1:1), tam:38, vivo:true, dropa:2 + Math.floor(r()*4 + dif*6)});
     }
     if(tipo === 'boss'){
-        var bhp = 10 + n;
+        var bhp = 15 + Math.floor(r()*90);
         L.inimigos.push({x:fim-350, y:0, hp:bhp, hpMax:bhp, e:'👹', vel:60 + dif*120, tam:86, vivo:true, boss:true, dropa:40 + n});
     }
     var qm = paraiso ? 70 : 8 + Math.floor(r()*8);
@@ -349,7 +349,8 @@ function inicia(n){
     requestAnimationFrame(loop);
 }
 function mostraTouch(sim){
-    var d = (sim && matchMedia('(pointer:coarse)').matches) ? 'flex' : 'none';
+    var ehCelular = matchMedia('(pointer:coarse)').matches || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    var d = (sim && ehCelular) ? 'flex' : 'none';
     ['bEsq','bDir','bPulo','bAtq'].forEach(function(id){ document.getElementById(id).style.display = d; });
 }
 document.getElementById('bSair').onclick = function(){
