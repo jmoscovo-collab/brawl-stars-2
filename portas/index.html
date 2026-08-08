@@ -45,6 +45,13 @@ canvas { display:block; position:fixed; inset:0; touch-action:none; }
 <button id="bSair">🚪</button>
 <button id="bLoja" onclick="abreLoja()">🛒</button>
 
+<div id="zerou" style="position:fixed; inset:0; z-index:30; display:none; align-items:center; justify-content:center; flex-direction:column; background:rgba(5,5,20,0.92); text-align:center; padding:20px">
+    <div style="font-size:70px">🏆👑🎉</div>
+    <div style="font-size:min(8vw,44px); font-weight:900; color:#ffd700; text-shadow:0 0 24px rgba(255,215,0,0.8); margin:14px 0">PARABÉNS VOCÊ ZEROU O JOGO</div>
+    <div style="font-size:44px">🦫⚔️✨</div>
+    <button onclick="document.getElementById('zerou').style.display='none'; iniciaHub(0);" style="margin-top:22px; font-size:30px; padding:12px 34px; border:none; border-radius:16px; cursor:pointer; background:linear-gradient(135deg,#ffaa00,#ff6600); color:#fff">🎮</button>
+</div>
+
 <div id="loja">
     <div class="cartao">
         <h2>🛒⚔️</h2>
@@ -62,9 +69,13 @@ if (window.initStats) initStats('portas');
 function lsGet(k,d){ try{ var v=localStorage.getItem('portas_'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }
 function lsSet(k,v){ try{ localStorage.setItem('portas_'+k, JSON.stringify(v)); }catch(e){} }
 var moedas = lsGet('moedas', 0);
-var zeradas = lsGet('zeradas', []);
 var minhas = lsGet('espadas', [true]);
 var eq = lsGet('eq', 0);
+// ===== ANDARES: 10 fases, cada uma com +100 portas (100, 200, ... 1000) =====
+var andar = lsGet('andar', 1);
+var zeradas = lsGet('zeradas_' + andar, andar === 1 ? lsGet('zeradas', []) : []);
+// portas SECRETAS que levam pro próximo andar (ninguém sabe qual é... só você!)
+var SECRETA = { 1:84, 2:178, 3:113, 4:367, 5:555, 6:481, 7:676, 8:874, 9:990 };
 
 // ============ ESPADAS ============
 var ESPADAS = [
@@ -127,19 +138,20 @@ var ICONE = { parkour:'🏃', arena:'👾', tesouro:'🎁', boss:'👹' };
 // ============ SALÃO DAS 100 PORTAS (o "mundo" onde você nasce) ============
 var ESPACO = 170;
 function geraHub(){
+    var total = andar * 100;
     var L = { plats:[], espinhos:[], inimigos:[], moedinhas:[], baus:[], portas:[], tipo:'hub', n:0 };
-    L.fim = 100*ESPACO + 500;
+    L.fim = total*ESPACO + 500;
     L.plats.push({x:0, y:0, w:L.fim, h:400, chao:true});
-    for(var n=1; n<=100; n++) L.portas.push({ n:n, x:260 + (n-1)*ESPACO });
+    for(var n=1; n<=total; n++) L.portas.push({ n:n, x:260 + (n-1)*ESPACO });
     return L;
 }
 
 // ============ GERADOR DAS FASES (dentro de cada porta) ============
 var CHAO_Y = 0;
 function gera(n){
-    var r = rnd(n * 1337 + 42);
+    var r = rnd(n * 1337 + andar * 777 + 42);
     var tipo = tipoDe(n);
-    var dif = n / 100;
+    var dif = Math.min(2, (n + (andar-1)*60) / 100); // andar mais alto = mais difícil!
     var L = { plats:[], espinhos:[], inimigos:[], moedinhas:[], baus:[], portas:[], tipo:tipo, n:n };
     var fim = 1800 + n * 25;
     if(tipo === 'arena' || tipo === 'boss') fim = 1300;
@@ -190,13 +202,13 @@ addEventListener('resize', resize); resize();
 
 // ============ ESTADO ============
 var fase = null, rodando = false, cam = 0, portaAtual = 0, modo = 'hub';
-var pl = {}, fx = [], dwell = 0, dwellAlvo = null, lojaCooldown = 0;
+var pl = {}, fx = [], dwell = 0, dwellAlvo = null, lojaCooldown = 0, puloAntes = false;
 
 function iniciaHub(voltandoDaPorta){
     modo = 'hub';
     fase = geraHub();
     var px = voltandoDaPorta ? 260 + (voltandoDaPorta-1)*ESPACO : 60;
-    pl = { x:px, y:CHAO_Y-40, vx:0, vy:0, dir:1, chao:false, vidas:3, inv:0.6, atq:0 };
+    pl = { x:px, y:CHAO_Y-40, vx:0, vy:0, dir:1, chao:false, vidas:3, inv:0.6, atq:0, extra:1 };
     dwell = 0; dwellAlvo = null;
     document.getElementById('bSair').style.display = 'none';
     document.getElementById('bLoja').style.display = 'block';
@@ -208,7 +220,7 @@ function inicia(n){
     modo = 'fase';
     portaAtual = n;
     fase = gera(n);
-    pl = { x:60, y:CHAO_Y-100, vx:0, vy:0, dir:1, chao:false, vidas:3, inv:0, atq:0 };
+    pl = { x:60, y:CHAO_Y-100, vx:0, vy:0, dir:1, chao:false, vidas:3, inv:0, atq:0, extra:1 };
     cam = 0; dwell = 0; dwellAlvo = null;
     document.getElementById('bSair').style.display = 'block';
     document.getElementById('bLoja').style.display = 'none';
@@ -220,7 +232,7 @@ function mostraTouch(sim){
     ['bEsq','bDir','bPulo','bAtq'].forEach(function(id){ document.getElementById(id).style.display = d; });
 }
 document.getElementById('bSair').onclick = function(){
-    lsSet('moedas', moedas); lsSet('zeradas', zeradas);
+    lsSet('moedas', moedas); lsSet('zeradas_' + andar, zeradas);
     iniciaHub(portaAtual);
 };
 
@@ -282,7 +294,13 @@ function loop(agora){
     else if(tec['arrowright']||tec['d']) { pl.vx += ACEL*dt; pl.dir = 1; }
     else pl.vx *= (pl.chao ? 0.78 : 0.96);
     pl.vx = Math.max(-MAXV, Math.min(MAXV, pl.vx));
-    if((tec[' ']||tec['arrowup']||tec['w']) && pl.chao){ pl.vy = -PULO; pl.chao = false; }
+    // pulo + PULO DUPLO no ar!
+    var puloKey = tec[' ']||tec['arrowup']||tec['w'];
+    if(puloKey && !puloAntes){
+        if(pl.chao){ pl.vy = -PULO; pl.chao = false; }
+        else if(pl.extra > 0){ pl.vy = -PULO*0.92; pl.extra--; fx.push({x:pl.x, y:pl.y+4, t:'💨', vida:0.4}); }
+    }
+    puloAntes = puloKey;
 
     pl.vy += GRAV*dt;
     pl.x += pl.vx*dt; pl.y += pl.vy*dt;
@@ -296,7 +314,7 @@ function loop(agora){
     fase.plats.forEach(function(p){
         var py = p.chao ? CHAO_Y : CHAO_Y - p.y;
         if(pl.x > p.x-16 && pl.x < p.x+p.w+16 && pl.y >= py-4 && pl.y - pl.vy*dt <= py+6 && pl.vy >= 0){
-            pl.y = py; pl.vy = 0; pl.chao = true;
+            pl.y = py; pl.vy = 0; pl.chao = true; pl.extra = 1;
         }
     });
 
@@ -308,7 +326,19 @@ function loop(agora){
         }
         if(perto){
             if(dwellAlvo === perto.n) dwell += dt; else { dwellAlvo = perto.n; dwell = 0; }
-            if(dwell > 0.45){ lsSet('moedas',moedas); inicia(perto.n); return; }
+            if(dwell > 0.45){
+                lsSet('moedas',moedas);
+                // 🤫 PORTA SECRETA: sobe pro próximo andar!
+                if(SECRETA[andar] === perto.n && andar < 10){
+                    andar++;
+                    lsSet('andar', andar);
+                    zeradas = lsGet('zeradas_' + andar, []);
+                    for(var s=0;s<30;s++) fx.push({x:pl.x+(Math.random()-0.5)*300, y:pl.y-Math.random()*260, t:['🌀','✨','🌟','💫'][Math.floor(Math.random()*4)], vida:1.6});
+                    iniciaHub(0);
+                    return;
+                }
+                inicia(perto.n); return;
+            }
         } else { dwell = 0; dwellAlvo = null; }
     } else {
         // ===== dentro da porta =====
@@ -342,14 +372,20 @@ function loop(agora){
         var vivos = fase.inimigos.filter(function(i){ return i.vivo; }).length;
         var portaAberta = (fase.tipo==='arena'||fase.tipo==='boss') ? vivos===0 : true;
         if(portaAberta && Math.abs(fase.fim - 40 - pl.x) < 34 && pl.y > CHAO_Y - 60){
-            var premio = 10 + portaAtual*2;
+            var premio = 10 + portaAtual*2 + (andar-1)*50;
             moedas += premio;
             zeradas[portaAtual-1] = true;
-            lsSet('moedas', moedas); lsSet('zeradas', zeradas);
+            lsSet('moedas', moedas); lsSet('zeradas_' + andar, zeradas);
             rodando = false;
             fx.push({x:pl.x, y:pl.y-80, t:'🏆', vida:1.5});
             for(var i=0;i<26;i++) fx.push({x:pl.x+(Math.random()-0.5)*220, y:pl.y-Math.random()*220, t:['🎊','✨','🎉','⭐'][Math.floor(Math.random()*4)], vida:1.6});
-            setTimeout(function(){ iniciaHub(portaAtual); }, 1400);
+            // 👑 zerou a porta 1000 do andar 10 = ZEROU O JOGO!!!
+            if(andar === 10 && portaAtual === 1000){
+                lsSet('zerouTudo', true);
+                setTimeout(function(){ document.getElementById('zerou').style.display = 'flex'; }, 1200);
+            } else {
+                setTimeout(function(){ iniciaHub(portaAtual); }, 1400);
+            }
         }
     }
 
@@ -363,7 +399,7 @@ function loop(agora){
 function desenha(){
     if(!fase) return;
     var n = fase.n;
-    var hue = modo==='hub' ? 262 : (n*23)%360;
+    var hue = modo==='hub' ? (262 + (andar-1)*36)%360 : (n*23 + andar*57)%360;
     var g = ctx.createLinearGradient(0,0,0,H);
     g.addColorStop(0,'hsl('+hue+',45%,'+(modo==='hub'?22:16)+'%)');
     g.addColorStop(1,'hsl('+((hue+40)%360)+',50%,'+(modo==='hub'?34:30)+'%)');
@@ -482,6 +518,9 @@ function desenha(){
     ctx.textAlign = 'left'; ctx.font = 'bold 24px Arial'; ctx.fillStyle = '#fff';
     ctx.fillText('🪙' + Math.floor(moedas).toLocaleString('pt-BR'), 14, 34);
     ctx.fillText(ESPADAS[eq].e + '💥' + ESPADAS[eq].d, 14, 64);
+    if(modo === 'hub'){
+        ctx.fillText('🏛️' + andar, 14, 94);
+    }
     if(modo === 'fase'){
         ctx.fillText('🚪' + fase.n, 14, 94);
         var cor = '❤️'.repeat(Math.max(0,pl.vidas)) + '🖤'.repeat(Math.max(0, 3-pl.vidas));
