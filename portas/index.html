@@ -314,6 +314,7 @@ function resize(){
     cv.style.width = W + 'px'; cv.style.height = H + 'px'; // sem isso o canvas fica 2x maior que a tela!
     ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
     CHAO_Y = H - (ehCelular() ? 185 : 90);
+    if(pl && pl.y > CHAO_Y){ pl.y = CHAO_Y; pl.vy = 0; } // não deixa a capivara cair pra fora quando a tela muda
 }
 addEventListener('resize', resize);
 addEventListener('orientationchange', function(){ setTimeout(resize, 300); });
@@ -450,6 +451,7 @@ function loop(agora){
     });
 
     if(modo === 'hub'){
+        if(pl.y > H + 40){ pl.y = CHAO_Y - 10; pl.vy = 0; } // caiu pra fora? volta!
         // parado na frente de uma porta = ENTRA (enche o anelzinho)
         var perto = null;
         for(var i=0;i<fase.portas.length;i++){
