@@ -96,6 +96,15 @@ var andar = lsGet('andar', 1);
 var zeradas = lsGet('zeradas_' + andar, andar === 1 ? lsGet('zeradas', []) : []);
 // portas SECRETAS que levam pro próximo andar (ninguém sabe qual é... só você!)
 var SECRETA = { 1:84, 2:178, 3:113, 4:367, 5:555, 6:481, 7:676, 8:874, 9:990 };
+// portas trancadas por 1 hora depois que você sai da sala
+var travas = lsGet('travas_' + andar, {});
+function trancaPorta(n){
+    travas[n] = Date.now() + 3600*1000; // 1 hora
+    lsSet('travas_' + andar, travas);
+}
+function portaTrancada(n){
+    return travas[n] && travas[n] > Date.now();
+}
 
 // ============ ESPADAS ============
 var ESPADAS = [
@@ -254,7 +263,8 @@ var pl = {}, fx = [], dwell = 0, dwellAlvo = null, lojaCooldown = 0, puloAntes =
 function iniciaHub(voltandoDaPorta){
     modo = 'hub';
     fase = geraHub();
-    var px = voltandoDaPorta ? 260 + (voltandoDaPorta-1)*ESPACO : 60;
+    // volta DO LADO da porta, não em cima dela
+    var px = voltandoDaPorta ? 260 + (voltandoDaPorta-1)*ESPACO - 70 : 60;
     pl = { x:px, y:CHAO_Y-40, vx:0, vy:0, dir:1, chao:false, vidas:3, inv:0.6, atq:0, extra:1 };
     dwell = 0; dwellAlvo = null;
     document.getElementById('bSair').style.display = 'none';
@@ -282,6 +292,7 @@ function mostraTouch(sim){
 }
 document.getElementById('bSair').onclick = function(){
     lsSet('moedas', moedas); lsSet('zeradas_' + andar, zeradas);
+    trancaPorta(portaAtual);
     iniciaHub(portaAtual);
 };
 
@@ -299,6 +310,11 @@ function segura(id, prop){
     el.addEventListener('pointerleave', function(){ tec[prop] = false; });
 }
 segura('bEsq','arrowleft'); segura('bDir','arrowright'); segura('bPulo',' ');
+// segurar o mouse (ou o dedo) — é assim que se entra nas portas!
+var mouseSegurando = false;
+cv.addEventListener('pointerdown', function(){ mouseSegurando = true; });
+addEventListener('pointerup', function(){ mouseSegurando = false; });
+addEventListener('pointercancel', function(){ mouseSegurando = false; });
 document.getElementById('bAtq').addEventListener('pointerdown', function(e){ e.preventDefault(); if(rodando && modo==='fase') ataca(); });
 
 function ataca(){
@@ -327,7 +343,7 @@ function machuca(){
         fx.push({x:pl.x, y:pl.y, t:'💀', vida:1});
         rodando = false;
         lsSet('moedas', moedas);
-        setTimeout(function(){ iniciaHub(portaAtual); }, 900);
+        setTimeout(function(){ trancaPorta(portaAtual); iniciaHub(portaAtual); }, 900);
     }
 }
 
@@ -373,15 +389,17 @@ function loop(agora){
         for(var i=0;i<fase.portas.length;i++){
             if(Math.abs(fase.portas[i].x - pl.x) < 26 && pl.chao){ perto = fase.portas[i]; break; }
         }
-        if(perto){
+        if(perto && !portaTrancada(perto.n) && mouseSegurando){
+            // segure o mouse por 5 segundos na frente da porta pra entrar!
             if(dwellAlvo === perto.n) dwell += dt; else { dwellAlvo = perto.n; dwell = 0; }
-            if(dwell > 0.45){
+            if(dwell > 5){
                 lsSet('moedas',moedas);
                 // 🤫 PORTA SECRETA: sobe pro próximo andar!
                 if(SECRETA[andar] === perto.n && andar < 10){
                     andar++;
                     lsSet('andar', andar);
                     zeradas = lsGet('zeradas_' + andar, []);
+                    travas = lsGet('travas_' + andar, {});
                     for(var s=0;s<30;s++) fx.push({x:pl.x+(Math.random()-0.5)*300, y:pl.y-Math.random()*260, t:['🌀','✨','🌟','💫'][Math.floor(Math.random()*4)], vida:1.6});
                     iniciaHub(0);
                     return;
@@ -393,7 +411,7 @@ function loop(agora){
         // ===== dentro da porta =====
         if(pl.y > H + 60){
             pl.vidas--;
-            if(pl.vidas <= 0){ rodando=false; lsSet('moedas',moedas); setTimeout(function(){ iniciaHub(portaAtual); }, 600); }
+            if(pl.vidas <= 0){ rodando=false; lsSet('moedas',moedas); setTimeout(function(){ trancaPorta(portaAtual); iniciaHub(portaAtual); }, 600); }
             else { pl.x = Math.max(40, pl.x - 260); pl.y = CHAO_Y - 200; pl.vy = 0; pl.inv = 1.5; }
         }
         fase.espinhos.forEach(function(s){
@@ -433,7 +451,7 @@ function loop(agora){
                 lsSet('zerouTudo', true);
                 setTimeout(function(){ document.getElementById('zerou').style.display = 'flex'; }, 1200);
             } else {
-                setTimeout(function(){ iniciaHub(portaAtual); }, 1400);
+                setTimeout(function(){ trancaPorta(portaAtual); iniciaHub(portaAtual); }, 1400);
             }
         }
     }
@@ -475,10 +493,16 @@ function desenha(){
             ctx.beginPath(); ctx.arc(p.x+12, CHAO_Y-42, 3.5, 0, 7); ctx.fill();
             ctx.fillStyle = '#ffe9c8'; ctx.font = 'bold 17px Arial';
             ctx.fillText(p.n, p.x, CHAO_Y-52);
+            // trancada por 1 hora: mostra a ampulheta e os minutos que faltam
+            if(portaTrancada(p.n)){
+                var min = Math.ceil((travas[p.n] - Date.now())/60000);
+                ctx.font = '18px Arial';
+                ctx.fillText('⏳' + min, p.x, CHAO_Y-96);
+            }
             // anel de entrar enchendo
             if(dwellAlvo === p.n && dwell > 0.05){
                 ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 5;
-                ctx.beginPath(); ctx.arc(p.x, CHAO_Y-120, 15, -Math.PI/2, -Math.PI/2 + (dwell/0.45)*Math.PI*2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(p.x, CHAO_Y-120, 15, -Math.PI/2, -Math.PI/2 + (dwell/5)*Math.PI*2); ctx.stroke();
             }
         });
     } else {
