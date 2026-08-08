@@ -65,6 +65,13 @@ canvas { display:block; position:fixed; inset:0; touch-action:none; }
     </div>
 </div>
 
+<div id="novaFase" style="position:fixed; inset:0; z-index:28; display:none; align-items:center; justify-content:center; flex-direction:column; background:rgba(5,5,20,0.9); text-align:center; padding:20px">
+    <div style="font-size:64px">🌀🎉</div>
+    <div id="novaFaseTitulo" style="font-size:min(9vw,46px); font-weight:900; color:#5fd0ff; text-shadow:0 0 22px rgba(95,208,255,0.8); margin:12px 0">FASE 2!</div>
+    <div id="novaFasePremio" style="font-size:min(7vw,32px); font-weight:bold; color:#ffd700; text-shadow:0 0 14px rgba(255,215,0,0.7)">+🪙 1.000</div>
+    <button onclick="document.getElementById('novaFase').style.display='none'" style="margin-top:22px; font-size:28px; padding:10px 32px; border:none; border-radius:16px; cursor:pointer; background:linear-gradient(135deg,#2a9aee,#5fd0ff); color:#fff">▶️</button>
+</div>
+
 <div id="zerou" style="position:fixed; inset:0; z-index:30; display:none; align-items:center; justify-content:center; flex-direction:column; background:rgba(5,5,20,0.92); text-align:center; padding:20px">
     <div style="font-size:70px">🏆👑🎉</div>
     <div style="font-size:min(8vw,44px); font-weight:900; color:#ffd700; text-shadow:0 0 24px rgba(255,215,0,0.8); margin:14px 0">PARABÉNS VOCÊ ZEROU O JOGO</div>
@@ -400,6 +407,13 @@ function loop(agora){
                     lsSet('andar', andar);
                     zeradas = lsGet('zeradas_' + andar, []);
                     travas = lsGet('travas_' + andar, {});
+                    // 🎉 prêmio por descobrir a porta secreta!
+                    var premioFase = andar * 500;
+                    moedas += premioFase;
+                    lsSet('moedas', moedas);
+                    document.getElementById('novaFaseTitulo').textContent = 'VOCÊ ACHOU A PORTA SECRETA! FASE ' + andar + '!';
+                    document.getElementById('novaFasePremio').textContent = '+🪙 ' + premioFase.toLocaleString('pt-BR');
+                    document.getElementById('novaFase').style.display = 'flex';
                     for(var s=0;s<30;s++) fx.push({x:pl.x+(Math.random()-0.5)*300, y:pl.y-Math.random()*260, t:['🌀','✨','🌟','💫'][Math.floor(Math.random()*4)], vida:1.6});
                     iniciaHub(0);
                     return;
