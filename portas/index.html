@@ -378,23 +378,16 @@ function desenha(){
     ctx.textAlign = 'center';
 
     if(modo === 'hub'){
-        // lampadinhas no teto do salão
-        for(var lx=200; lx<fase.fim; lx+=ESPACO*2){ ctx.font='24px Arial'; ctx.fillText('🕯️', lx, 70); }
-        // as 100 portas!
+        // as 100 portas — todas iguais, só com o número!
         fase.portas.forEach(function(p){
-            var t = tipoDe(p.n);
-            // porta desenhada
-            ctx.fillStyle = t==='boss' ? '#6e1414' : '#7a4620';
+            ctx.fillStyle = '#7a4620';
             ctx.fillRect(p.x-26, CHAO_Y-86, 52, 86);
-            ctx.fillStyle = t==='boss' ? '#8a1a1a' : '#a0622d';
+            ctx.fillStyle = '#a0622d';
             ctx.fillRect(p.x-22, CHAO_Y-82, 44, 82);
             ctx.fillStyle = '#ffd700';
             ctx.beginPath(); ctx.arc(p.x+12, CHAO_Y-42, 3.5, 0, 7); ctx.fill();
-            // número + tipo (sem palavra!)
             ctx.fillStyle = '#ffe9c8'; ctx.font = 'bold 17px Arial';
             ctx.fillText(p.n, p.x, CHAO_Y-52);
-            ctx.font = '17px Arial';
-            ctx.fillText(zeradas[p.n-1] ? '⭐' : ICONE[t], p.x, CHAO_Y-96);
             // anel de entrar enchendo
             if(dwellAlvo === p.n && dwell > 0.05){
                 ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 5;
@@ -430,16 +423,42 @@ function desenha(){
         });
     }
 
-    // jogador
+    // jogador — a Capivara Aventureira, desenhada só pra esse jogo!
     if(!(pl.inv > 0 && Math.floor(pl.inv*10)%2===0)){
         ctx.save();
         ctx.translate(pl.x, pl.y);
         if(pl.dir < 0) ctx.scale(-1,1);
-        ctx.font = '44px Arial';
-        ctx.fillText('🦫', 0, 0);
-        ctx.font = '30px Arial';
+        var andando = Math.abs(pl.vx) > 30 && pl.chao;
+        var passo = andando ? Math.sin(performance.now()/70)*4 : 0;
+        // perninhas
+        ctx.fillStyle = '#7c5236';
+        ctx.fillRect(-16, -10 + passo, 8, 10 - passo);
+        ctx.fillRect(2,   -10 - passo, 8, 10 + passo);
+        // corpo redondinho
+        ctx.fillStyle = '#a9744f';
+        ctx.beginPath(); ctx.ellipse(-3, -26, 22, 17, 0, 0, 7); ctx.fill();
+        // cabeça quadradinha de capivara
+        ctx.beginPath(); ctx.ellipse(15, -36, 13, 11, -0.15, 0, 7); ctx.fill();
+        // focinho claro
+        ctx.fillStyle = '#c9987a';
+        ctx.beginPath(); ctx.ellipse(24, -33, 6.5, 5.5, 0, 0, 7); ctx.fill();
+        // narina
+        ctx.fillStyle = '#5a3a24';
+        ctx.beginPath(); ctx.arc(26, -34, 1.4, 0, 7); ctx.fill();
+        // orelhinha
+        ctx.fillStyle = '#8a5a3a';
+        ctx.beginPath(); ctx.arc(10, -46, 3.5, 0, 7); ctx.fill();
+        // olho
+        ctx.fillStyle = '#1e1208';
+        ctx.beginPath(); ctx.arc(17, -39, 2.2, 0, 7); ctx.fill();
+        // faixa de aventureira na testa
+        ctx.strokeStyle = '#d8322a'; ctx.lineWidth = 3.5;
+        ctx.beginPath(); ctx.moveTo(4, -44); ctx.lineTo(26, -41); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(5, -44); ctx.lineTo(-2, -50); ctx.stroke();
+        // espada na patinha
+        ctx.font = '30px Arial'; ctx.textAlign = 'center';
         ctx.save();
-        ctx.translate(26, -22);
+        ctx.translate(24, -18);
         ctx.rotate(pl.atq > 0 ? 0.9 : 0.15);
         ctx.fillText(ESPADAS[eq].e, 0, 0);
         ctx.restore();
@@ -470,6 +489,5 @@ function desenha(){
 
 iniciaHub(0);
 </script>
-<script src="/mascote.js"></script>
 </body>
 </html>
