@@ -10,27 +10,6 @@ html,body { height:100%; overflow:hidden; }
 body { background:#141428; font-family:Arial,sans-serif; color:#fff; user-select:none; }
 canvas { display:block; position:fixed; inset:0; touch-action:none; }
 
-/* ===== MENU DAS PORTAS (sem texto — só números e emojis) ===== */
-#menu { position:fixed; inset:0; z-index:10; background:linear-gradient(180deg,#1a1a3e,#2d1b4e 60%,#4a2060);
-    display:flex; flex-direction:column; align-items:center; overflow:auto; padding:14px; }
-#hudMenu { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; justify-content:center; position:sticky; top:0; z-index:2;
-    background:rgba(20,20,50,0.92); border:2px solid #7a5cff; border-radius:16px; padding:8px 16px; }
-#hudMenu .chip { font-size:20px; font-weight:bold; display:flex; align-items:center; gap:5px; }
-#hudMenu button { font-size:24px; padding:6px 14px; border:none; border-radius:12px; cursor:pointer;
-    background:linear-gradient(135deg,#ffaa00,#ff6600); }
-#grade { display:grid; grid-template-columns:repeat(10, 1fr); gap:6px; width:min(96vw, 560px); padding-bottom:20px; }
-.porta { aspect-ratio:0.72; border-radius:8px 8px 3px 3px; border:none; cursor:pointer; position:relative;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold;
-    background:linear-gradient(180deg,#a0622d,#7a4620); box-shadow:inset 0 0 0 2px rgba(0,0,0,0.25), 0 3px 5px rgba(0,0,0,0.5);
-    color:#ffe9c8; font-size:clamp(10px,2.6vw,15px); }
-.porta::after { content:''; position:absolute; right:14%; top:48%; width:5px; height:5px; border-radius:50%; background:#ffd700; }
-.porta:active { transform:scale(0.93); }
-.porta.fech { background:linear-gradient(180deg,#3a3a52,#2a2a3e); color:#666; filter:grayscale(1); }
-.porta.fech::after { background:#555; }
-.porta .ico { font-size:clamp(11px,3vw,17px); line-height:1; margin-top:2px; }
-.porta.boss { background:linear-gradient(180deg,#8a1a1a,#5a0e0e); box-shadow:inset 0 0 0 2px rgba(255,60,60,0.5), 0 0 12px rgba(255,40,40,0.55); color:#ffd6d6; }
-.porta.zerada { box-shadow:inset 0 0 0 2px #ffd700, 0 0 10px rgba(255,215,0,0.5); }
-
 /* ===== LOJA (sem texto) ===== */
 #loja { position:fixed; inset:0; z-index:20; background:rgba(8,8,24,0.9); display:none; align-items:center; justify-content:center; }
 #loja .cartao { background:linear-gradient(180deg,#2d1b4e,#1a1a3e); border:3px solid #ffaa00; border-radius:22px; padding:18px;
@@ -48,30 +27,20 @@ canvas { display:block; position:fixed; inset:0; touch-action:none; }
 
 /* ===== CONTROLES TOUCH (sem texto) ===== */
 .ctl { position:fixed; bottom:18px; z-index:6; width:64px; height:64px; border-radius:50%; border:none; font-size:30px;
-    background:rgba(255,255,255,0.16); backdrop-filter:blur(3px); color:#fff; display:none; align-items:center; justify-content:center; }
+    background:rgba(255,255,255,0.16); backdrop-filter:blur(3px); color:#fff; align-items:center; justify-content:center; }
 .ctl:active { background:rgba(255,255,255,0.4); }
 #bEsq { left:16px; } #bDir { left:94px; } #bPulo { right:94px; } #bAtq { right:16px; background:rgba(255,120,60,0.3); }
-#bCasa { position:fixed; top:12px; right:12px; z-index:6; font-size:24px; width:46px; height:46px; border-radius:12px; border:none;
+#bSair { position:fixed; top:12px; right:12px; z-index:6; font-size:24px; width:46px; height:46px; border-radius:12px; border:none;
     background:rgba(255,255,255,0.15); color:#fff; display:none; }
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
-<button class="ctl" id="bEsq">◀️</button>
-<button class="ctl" id="bDir">▶️</button>
-<button class="ctl" id="bPulo">🦵</button>
-<button class="ctl" id="bAtq">⚔️</button>
-<button id="bCasa">🚪</button>
-
-<div id="menu">
-    <div id="hudMenu">
-        <span class="chip">🪙 <span id="mMoedas">0</span></span>
-        <span class="chip" id="mEspada">🥢</span>
-        <button onclick="abreLoja()">🛒</button>
-        <a href="/" style="font-size:24px; text-decoration:none">🏠</a>
-    </div>
-    <div id="grade"></div>
-</div>
+<button class="ctl" id="bEsq" style="display:none">◀️</button>
+<button class="ctl" id="bDir" style="display:none">▶️</button>
+<button class="ctl" id="bPulo" style="display:none">🦵</button>
+<button class="ctl" id="bAtq" style="display:none">⚔️</button>
+<button id="bSair">🚪</button>
 
 <div id="loja">
     <div class="cartao">
@@ -90,11 +59,11 @@ if (window.initStats) initStats('portas');
 function lsGet(k,d){ try{ var v=localStorage.getItem('portas_'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }
 function lsSet(k,v){ try{ localStorage.setItem('portas_'+k, JSON.stringify(v)); }catch(e){} }
 var moedas = lsGet('moedas', 0);
-var zeradas = lsGet('zeradas', []);           // [true,...]
-var minhas = lsGet('espadas', [true]);        // espadas compradas
-var eq = lsGet('eq', 0);                      // espada equipada
+var zeradas = lsGet('zeradas', []);
+var minhas = lsGet('espadas', [true]);
+var eq = lsGet('eq', 0);
 
-// ============ ESPADAS (dano 💥 e preço 🪙 — mostrados só com emoji+número) ============
+// ============ ESPADAS ============
 var ESPADAS = [
     { e:'🥢', d:1,  p:0 },
     { e:'🗡️', d:2,  p:60 },
@@ -105,32 +74,6 @@ var ESPADAS = [
     { e:'🔥', d:35, p:12000 },
     { e:'🌈', d:60, p:30000 }
 ];
-
-// ============ MENU ============
-function tipoDe(n){ // tipo do desafio da porta n (1..100)
-    if(n % 10 === 0) return 'boss';
-    var r = rnd(n*7+3);
-    var t = r();
-    if(t < 0.4) return 'parkour';
-    if(t < 0.75) return 'arena';
-    return 'tesouro';
-}
-var ICONE = { parkour:'🏃', arena:'👾', tesouro:'🎁', boss:'👹' };
-function montaMenu(){
-    document.getElementById('mMoedas').textContent = Math.floor(moedas).toLocaleString('pt-BR');
-    document.getElementById('mEspada').textContent = ESPADAS[eq].e + ' 💥' + ESPADAS[eq].d;
-    var g = document.getElementById('grade');
-    g.innerHTML = '';
-    for(var n=1; n<=100; n++){
-        var aberta = n === 1 || zeradas[n-2];
-        var b = document.createElement('button');
-        var t = tipoDe(n);
-        b.className = 'porta' + (aberta ? '' : ' fech') + (t==='boss' ? ' boss' : '') + (zeradas[n-1] ? ' zerada' : '');
-        b.innerHTML = n + '<div class="ico">' + (zeradas[n-1] ? '⭐' : (aberta ? ICONE[t] : '🔒')) + '</div>';
-        if(aberta) (function(nn){ b.onclick = function(){ inicia(nn); }; })(n);
-        g.appendChild(b);
-    }
-}
 
 // ============ LOJA ============
 function abreLoja(){
@@ -145,16 +88,16 @@ function abreLoja(){
         b.onclick = function(){
             if(minhas[i]){ eq = i; lsSet('eq', eq); }
             else if(moedas >= s.p){ moedas -= s.p; minhas[i] = true; eq = i; lsSet('moedas',moedas); lsSet('espadas',minhas); lsSet('eq',eq); }
-            abreLoja(); montaMenu();
+            abreLoja();
         };
         el.appendChild(b);
     });
     document.getElementById('loja').style.display = 'flex';
 }
-function fechaLoja(){ document.getElementById('loja').style.display = 'none'; }
+function fechaLoja(){ document.getElementById('loja').style.display = 'none'; lojaCooldown = 1; }
 window.abreLoja = abreLoja; window.fechaLoja = fechaLoja;
 
-// ============ RNG com semente (cada porta gera SEMPRE o mesmo mapa) ============
+// ============ RNG com semente ============
 function rnd(seed){
     var a = seed >>> 0;
     return function(){
@@ -164,18 +107,36 @@ function rnd(seed){
         return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
 }
+function tipoDe(n){
+    if(n % 10 === 0) return 'boss';
+    var t = rnd(n*7+3)();
+    if(t < 0.4) return 'parkour';
+    if(t < 0.75) return 'arena';
+    return 'tesouro';
+}
+var ICONE = { parkour:'🏃', arena:'👾', tesouro:'🎁', boss:'👹' };
 
-// ============ GERADOR DE FASES ============
-var CHAO_Y = 0; // definido no resize
+// ============ SALÃO DAS 100 PORTAS (o "mundo" onde você nasce) ============
+var ESPACO = 170;
+function geraHub(){
+    var L = { plats:[], espinhos:[], inimigos:[], moedinhas:[], baus:[], portas:[], tipo:'hub', n:0 };
+    L.fim = 100*ESPACO + 500;
+    L.plats.push({x:0, y:0, w:L.fim, h:400, chao:true});
+    for(var n=1; n<=100; n++) L.portas.push({ n:n, x:260 + (n-1)*ESPACO });
+    L.lojaX = 120; // banquinha da loja no comecinho
+    return L;
+}
+
+// ============ GERADOR DAS FASES (dentro de cada porta) ============
+var CHAO_Y = 0;
 function gera(n){
     var r = rnd(n * 1337 + 42);
     var tipo = tipoDe(n);
-    var dif = n / 100; // 0..1
-    var L = { plats:[], espinhos:[], inimigos:[], moedinhas:[], baus:[], tipo:tipo, n:n };
+    var dif = n / 100;
+    var L = { plats:[], espinhos:[], inimigos:[], moedinhas:[], baus:[], portas:[], tipo:tipo, n:n };
     var fim = 1800 + n * 25;
     if(tipo === 'arena' || tipo === 'boss') fim = 1300;
     L.fim = fim;
-    // chão com buracos (parkour tem mais buraco)
     var x = 0, buracoChance = tipo==='parkour' ? 0.42 : (tipo==='boss'||tipo==='arena' ? 0 : 0.22);
     while(x < fim){
         var w = 220 + r()*320;
@@ -183,16 +144,13 @@ function gera(n){
         var gap = (r() < buracoChance) ? (90 + r()*(70 + dif*80)) : 0;
         x += w + gap;
     }
-    // plataformas no ar
     var qp = tipo==='parkour' ? 10 + Math.floor(dif*14) : 5;
     for(var i=0;i<qp;i++){
         var px = 200 + r()*(fim-400);
         L.plats.push({x:px, y:110 + r()*160, w:90 + r()*110, h:18});
     }
-    // espinhos
     var qe = tipo==='parkour' ? 6 + Math.floor(dif*12) : (tipo==='tesouro' ? 4 : 2);
     for(var i=0;i<qe;i++) L.espinhos.push({x:320 + r()*(fim-500), w:40 + r()*50});
-    // inimigos
     var qi = tipo==='arena' ? 3 + Math.floor(dif*7) : (tipo==='boss' ? 0 : 1 + Math.floor(dif*4));
     var EMO = ['👾','🧟','🤖','👻','💀','🐗','🦂'];
     for(var i=0;i<qi;i++){
@@ -204,16 +162,14 @@ function gera(n){
         var bhp = 10 + n;
         L.inimigos.push({x:fim-350, y:0, hp:bhp, hpMax:bhp, e:'👹', vel:60 + dif*120, tam:86, vivo:true, boss:true, dropa:40 + n});
     }
-    // moedinhas
     var qm = 8 + Math.floor(r()*8);
     for(var i=0;i<qm;i++) L.moedinhas.push({x:150 + r()*(fim-300), y:60 + r()*200, pega:false});
-    // baús (sala do tesouro tem vários!)
     var qb = tipo==='tesouro' ? 3 + Math.floor(r()*3) : (r()<0.3 ? 1 : 0);
     for(var i=0;i<qb;i++) L.baus.push({x:300 + r()*(fim-450), aberto:false, valor:15 + Math.floor(r()*35 + dif*60)});
     return L;
 }
 
-// ============ CANVAS / CÂMERA ============
+// ============ CANVAS ============
 var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 var W, H;
 function resize(){
@@ -224,38 +180,43 @@ function resize(){
 }
 addEventListener('resize', resize); resize();
 
-// ============ JOGADOR / FASE ============
-var fase = null, rodando = false, cam = 0, portaAtual = 1;
-var pl = {};
-var ganhoFase = 0;
-function inicia(n){
-    portaAtual = n;
-    fase = gera(n);
-    pl = { x:60, y:CHAO_Y-100, vx:0, vy:0, dir:1, chao:false, vidas:3, inv:0, atq:0 };
-    ganhoFase = 0;
-    cam = 0;
-    document.getElementById('menu').style.display = 'none';
-    mostraControles(true);
+// ============ ESTADO ============
+var fase = null, rodando = false, cam = 0, portaAtual = 0, modo = 'hub';
+var pl = {}, fx = [], dwell = 0, dwellAlvo = null, lojaCooldown = 0;
+
+function iniciaHub(voltandoDaPorta){
+    modo = 'hub';
+    fase = geraHub();
+    var px = voltandoDaPorta ? 260 + (voltandoDaPorta-1)*ESPACO : 60;
+    pl = { x:px, y:CHAO_Y-40, vx:0, vy:0, dir:1, chao:false, vidas:3, inv:0.6, atq:0 };
+    dwell = 0; dwellAlvo = null;
+    document.getElementById('bSair').style.display = 'none';
+    mostraTouch(true);
     rodando = true; ultimoT = performance.now();
     requestAnimationFrame(loop);
 }
-function voltaMenu(){
-    rodando = false;
-    mostraControles(false);
+function inicia(n){
+    modo = 'fase';
+    portaAtual = n;
+    fase = gera(n);
+    pl = { x:60, y:CHAO_Y-100, vx:0, vy:0, dir:1, chao:false, vidas:3, inv:0, atq:0 };
+    cam = 0; dwell = 0; dwellAlvo = null;
+    document.getElementById('bSair').style.display = 'block';
+    rodando = true; ultimoT = performance.now();
+    requestAnimationFrame(loop);
+}
+function mostraTouch(sim){
+    var d = (sim && matchMedia('(pointer:coarse)').matches) ? 'flex' : 'none';
+    ['bEsq','bDir','bPulo','bAtq'].forEach(function(id){ document.getElementById(id).style.display = d; });
+}
+document.getElementById('bSair').onclick = function(){
     lsSet('moedas', moedas); lsSet('zeradas', zeradas);
-    montaMenu();
-    document.getElementById('menu').style.display = 'flex';
-}
-function mostraControles(sim){
-    var d = sim ? 'flex' : 'none';
-    ['bEsq','bDir','bPulo','bAtq'].forEach(function(id){ document.getElementById(id).style.display = matchMedia('(pointer:coarse)').matches ? d : 'none'; });
-    document.getElementById('bCasa').style.display = sim ? 'block' : 'none';
-}
-document.getElementById('bCasa').onclick = voltaMenu;
+    iniciaHub(portaAtual);
+};
 
 // ============ CONTROLES ============
 var tec = {};
-addEventListener('keydown', function(e){ tec[e.key.toLowerCase()] = true; if(e.key===' ') e.preventDefault(); if((e.key.toLowerCase()==='x'||e.key.toLowerCase()==='j') && rodando) ataca(); });
+addEventListener('keydown', function(e){ tec[e.key.toLowerCase()] = true; if(e.key===' ') e.preventDefault(); if((e.key.toLowerCase()==='x'||e.key.toLowerCase()==='j') && rodando && modo==='fase') ataca(); });
 addEventListener('keyup', function(e){ tec[e.key.toLowerCase()] = false; });
 function segura(id, prop){
     var el = document.getElementById(id);
@@ -265,44 +226,42 @@ function segura(id, prop){
     el.addEventListener('pointerleave', function(){ tec[prop] = false; });
 }
 segura('bEsq','arrowleft'); segura('bDir','arrowright'); segura('bPulo',' ');
-document.getElementById('bAtq').addEventListener('pointerdown', function(e){ e.preventDefault(); if(rodando) ataca(); });
+document.getElementById('bAtq').addEventListener('pointerdown', function(e){ e.preventDefault(); if(rodando && modo==='fase') ataca(); });
 
-var fx = []; // efeitos (números de dano, brilhos)
 function ataca(){
     if(pl.atq > 0) return;
     pl.atq = 0.28;
     var alcance = 78, dano = ESPADAS[eq].d;
     fase.inimigos.forEach(function(ii){
         if(!ii.vivo) return;
-        var dx = (ii.x) - pl.x, dy = Math.abs((CHAO_Y - ii.tam/2) - pl.y);
+        var dx = ii.x - pl.x, dy = Math.abs((CHAO_Y - ii.tam/2) - pl.y);
         if(dy < 90 && dx*pl.dir > -20 && Math.abs(dx) < alcance + ii.tam/2){
             ii.hp -= dano;
             fx.push({x:ii.x, y:CHAO_Y-ii.tam-14, t:'💥', vida:0.5});
             if(ii.hp <= 0){
                 ii.vivo = false;
-                moedas += ii.dropa; ganhoFase += ii.dropa;
+                moedas += ii.dropa;
                 fx.push({x:ii.x, y:CHAO_Y-ii.tam-30, t:'🪙+' + ii.dropa, vida:1.2});
             }
         }
     });
 }
-
 function machuca(){
     if(pl.inv > 0) return;
     pl.vidas--; pl.inv = 1.4;
     pl.vy = -420; pl.vx = -pl.dir * 260;
     if(pl.vidas <= 0){
-        // perdeu: volta pro menu (fase não zera)
         fx.push({x:pl.x, y:pl.y, t:'💀', vida:1});
         rodando = false;
-        setTimeout(voltaMenu, 900);
+        lsSet('moedas', moedas);
+        setTimeout(function(){ iniciaHub(portaAtual); }, 900);
     }
 }
 
-// ============ FÍSICA / LOOP ============
+// ============ LOOP ============
 var ultimoT = 0;
 function loop(agora){
-    if(!rodando) { desenha(); return; }
+    if(!rodando){ desenha(); return; }
     var dt = Math.min((agora-ultimoT)/1000, 0.04);
     ultimoT = agora;
     var ACEL = 1600, MAXV = 340, PULO = 660, GRAV = 1800;
@@ -316,10 +275,11 @@ function loop(agora){
     pl.vy += GRAV*dt;
     pl.x += pl.vx*dt; pl.y += pl.vy*dt;
     if(pl.x < 20) pl.x = 20;
+    if(pl.x > fase.fim - 20) pl.x = fase.fim - 20;
     if(pl.atq > 0) pl.atq -= dt;
     if(pl.inv > 0) pl.inv -= dt;
+    if(lojaCooldown > 0) lojaCooldown -= dt;
 
-    // colisão com plataformas (só por cima)
     pl.chao = false;
     fase.plats.forEach(function(p){
         var py = p.chao ? CHAO_Y : CHAO_Y - p.y;
@@ -328,59 +288,61 @@ function loop(agora){
         }
     });
 
-    // caiu no buraco
-    if(pl.y > H + 60){
-        pl.vidas--;
-        if(pl.vidas <= 0){ rodando=false; setTimeout(voltaMenu, 600); }
-        else { pl.x = Math.max(40, pl.x - 260); pl.y = CHAO_Y - 200; pl.vy = 0; pl.inv = 1.5; }
-    }
-
-    // espinhos
-    fase.espinhos.forEach(function(s){
-        if(pl.y > CHAO_Y - 26 && pl.x > s.x-10 && pl.x < s.x+s.w+10) machuca();
-    });
-
-    // inimigos andam e machucam
-    fase.inimigos.forEach(function(ii){
-        if(!ii.vivo) return;
-        ii.x += ii.vel*dt;
-        if(ii.x < 140 || ii.x > fase.fim-60) ii.vel *= -1;
-        // persegue um pouquinho se for boss
-        if(ii.boss) ii.vel = (pl.x > ii.x ? 1 : -1) * Math.abs(ii.vel);
-        var dx = Math.abs(ii.x-pl.x), dy = Math.abs((CHAO_Y-ii.tam/2)-(pl.y-20));
-        if(dx < ii.tam/2+14 && dy < ii.tam/2+22) machuca();
-    });
-
-    // moedinhas
-    fase.moedinhas.forEach(function(m){
-        if(m.pega) return;
-        if(Math.abs(m.x-pl.x)<28 && Math.abs((CHAO_Y-m.y)-(pl.y-20))<34){
-            m.pega = true; moedas++; ganhoFase++;
+    if(modo === 'hub'){
+        // parado na frente de uma porta = ENTRA (enche o anelzinho)
+        var perto = null;
+        for(var i=0;i<fase.portas.length;i++){
+            if(Math.abs(fase.portas[i].x - pl.x) < 26 && pl.chao){ perto = fase.portas[i]; break; }
         }
-    });
-
-    // baús
-    fase.baus.forEach(function(bb){
-        if(bb.aberto) return;
-        if(Math.abs(bb.x-pl.x) < 34 && pl.y > CHAO_Y-40){
-            bb.aberto = true; moedas += bb.valor; ganhoFase += bb.valor;
-            fx.push({x:bb.x, y:CHAO_Y-70, t:'🪙+'+bb.valor, vida:1.4});
+        var naLoja = Math.abs(fase.lojaX - pl.x) < 30 && pl.chao && lojaCooldown <= 0 && document.getElementById('loja').style.display !== 'flex';
+        if(perto){
+            if(dwellAlvo === perto.n) dwell += dt; else { dwellAlvo = perto.n; dwell = 0; }
+            if(dwell > 0.45){ lsSet('moedas',moedas); inicia(perto.n); return; }
+        } else if(naLoja){
+            if(dwellAlvo === 'loja') dwell += dt; else { dwellAlvo = 'loja'; dwell = 0; }
+            if(dwell > 0.45){ dwell = 0; dwellAlvo = null; abreLoja(); }
+        } else { dwell = 0; dwellAlvo = null; }
+    } else {
+        // ===== dentro da porta =====
+        if(pl.y > H + 60){
+            pl.vidas--;
+            if(pl.vidas <= 0){ rodando=false; lsSet('moedas',moedas); setTimeout(function(){ iniciaHub(portaAtual); }, 600); }
+            else { pl.x = Math.max(40, pl.x - 260); pl.y = CHAO_Y - 200; pl.vy = 0; pl.inv = 1.5; }
         }
-    });
-
-    // porta do fim: arena/boss só abre com todos derrotados
-    var vivos = fase.inimigos.filter(function(i){ return i.vivo; }).length;
-    var portaAberta = (fase.tipo==='arena'||fase.tipo==='boss') ? vivos===0 : true;
-    if(portaAberta && Math.abs(fase.fim - 40 - pl.x) < 34 && pl.y > CHAO_Y - 60){
-        // ZEROU!
-        var premio = 10 + portaAtual*2;
-        moedas += premio; ganhoFase += premio;
-        zeradas[portaAtual-1] = true;
-        lsSet('moedas', moedas); lsSet('zeradas', zeradas);
-        rodando = false;
-        fx.push({x:pl.x, y:pl.y-80, t:'🏆', vida:1.5});
-        for(var i=0;i<26;i++) fx.push({x:pl.x+(Math.random()-0.5)*220, y:pl.y-Math.random()*220, t:['🎊','✨','🎉','⭐'][Math.floor(Math.random()*4)], vida:1.6});
-        setTimeout(voltaMenu, 1400);
+        fase.espinhos.forEach(function(s){
+            if(pl.y > CHAO_Y - 26 && pl.x > s.x-10 && pl.x < s.x+s.w+10) machuca();
+        });
+        fase.inimigos.forEach(function(ii){
+            if(!ii.vivo) return;
+            ii.x += ii.vel*dt;
+            if(ii.x < 140 || ii.x > fase.fim-60) ii.vel *= -1;
+            if(ii.boss) ii.vel = (pl.x > ii.x ? 1 : -1) * Math.abs(ii.vel);
+            var dx = Math.abs(ii.x-pl.x), dy = Math.abs((CHAO_Y-ii.tam/2)-(pl.y-20));
+            if(dx < ii.tam/2+14 && dy < ii.tam/2+22) machuca();
+        });
+        fase.moedinhas.forEach(function(m){
+            if(m.pega) return;
+            if(Math.abs(m.x-pl.x)<28 && Math.abs((CHAO_Y-m.y)-(pl.y-20))<34){ m.pega = true; moedas++; }
+        });
+        fase.baus.forEach(function(bb){
+            if(bb.aberto) return;
+            if(Math.abs(bb.x-pl.x) < 34 && pl.y > CHAO_Y-40){
+                bb.aberto = true; moedas += bb.valor;
+                fx.push({x:bb.x, y:CHAO_Y-70, t:'🪙+'+bb.valor, vida:1.4});
+            }
+        });
+        var vivos = fase.inimigos.filter(function(i){ return i.vivo; }).length;
+        var portaAberta = (fase.tipo==='arena'||fase.tipo==='boss') ? vivos===0 : true;
+        if(portaAberta && Math.abs(fase.fim - 40 - pl.x) < 34 && pl.y > CHAO_Y - 60){
+            var premio = 10 + portaAtual*2;
+            moedas += premio;
+            zeradas[portaAtual-1] = true;
+            lsSet('moedas', moedas); lsSet('zeradas', zeradas);
+            rodando = false;
+            fx.push({x:pl.x, y:pl.y-80, t:'🏆', vida:1.5});
+            for(var i=0;i<26;i++) fx.push({x:pl.x+(Math.random()-0.5)*220, y:pl.y-Math.random()*220, t:['🎊','✨','🎉','⭐'][Math.floor(Math.random()*4)], vida:1.6});
+            setTimeout(function(){ iniciaHub(portaAtual); }, 1400);
+        }
     }
 
     cam = Math.max(0, Math.min(pl.x - W*0.38, fase.fim - W + 60));
@@ -389,59 +351,87 @@ function loop(agora){
     else if(fx.length) (function anim(){ desenha(); if(fx.length) requestAnimationFrame(anim); })();
 }
 
-// ============ DESENHO (tudo emoji, sem texto!) ============
+// ============ DESENHO ============
 function desenha(){
-    if(!fase){ return; }
-    var n = portaAtual;
-    // céu muda de cor conforme a porta
-    var hue = (n*23)%360;
+    if(!fase) return;
+    var n = fase.n;
+    var hue = modo==='hub' ? 262 : (n*23)%360;
     var g = ctx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0,'hsl('+hue+',45%,16%)');
-    g.addColorStop(1,'hsl('+((hue+40)%360)+',50%,30%)');
+    g.addColorStop(0,'hsl('+hue+',45%,14%)');
+    g.addColorStop(1,'hsl('+((hue+40)%360)+',50%,'+(modo==='hub'?24:30)+'%)');
     ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
     ctx.save(); ctx.translate(-cam,0);
-    // plataformas
+
     fase.plats.forEach(function(p){
         var py = p.chao ? CHAO_Y : CHAO_Y - p.y;
-        ctx.fillStyle = p.chao ? 'hsl('+hue+',35%,24%)' : 'hsl('+hue+',45%,38%)';
+        ctx.fillStyle = p.chao ? 'hsl('+hue+',35%,22%)' : 'hsl('+hue+',45%,38%)';
         ctx.fillRect(p.x, py, p.w, p.chao ? H-py : p.h);
         ctx.fillStyle = 'hsl('+((hue+90)%360)+',55%,45%)';
         ctx.fillRect(p.x, py, p.w, 8);
     });
-    ctx.font = '30px Arial'; ctx.textAlign = 'center';
-    // espinhos
-    fase.espinhos.forEach(function(s){
-        ctx.fillStyle = '#dfe3ee';
-        for(var xx=s.x; xx<s.x+s.w; xx+=16){
-            ctx.beginPath(); ctx.moveTo(xx,CHAO_Y); ctx.lineTo(xx+8,CHAO_Y-20); ctx.lineTo(xx+16,CHAO_Y); ctx.fill();
+    ctx.textAlign = 'center';
+
+    if(modo === 'hub'){
+        // lampadinhas no teto do salão
+        for(var lx=200; lx<fase.fim; lx+=ESPACO*2){ ctx.font='24px Arial'; ctx.fillText('🕯️', lx, 70); }
+        // banquinha da loja
+        ctx.font = '54px Arial'; ctx.fillText('🛒', fase.lojaX, CHAO_Y-8);
+        ctx.font = '26px Arial'; ctx.fillText('⚔️', fase.lojaX, CHAO_Y-64);
+        // as 100 portas!
+        fase.portas.forEach(function(p){
+            var t = tipoDe(p.n);
+            // porta desenhada
+            ctx.fillStyle = t==='boss' ? '#6e1414' : '#7a4620';
+            ctx.fillRect(p.x-26, CHAO_Y-86, 52, 86);
+            ctx.fillStyle = t==='boss' ? '#8a1a1a' : '#a0622d';
+            ctx.fillRect(p.x-22, CHAO_Y-82, 44, 82);
+            ctx.fillStyle = '#ffd700';
+            ctx.beginPath(); ctx.arc(p.x+12, CHAO_Y-42, 3.5, 0, 7); ctx.fill();
+            // número + tipo (sem palavra!)
+            ctx.fillStyle = '#ffe9c8'; ctx.font = 'bold 17px Arial';
+            ctx.fillText(p.n, p.x, CHAO_Y-52);
+            ctx.font = '17px Arial';
+            ctx.fillText(zeradas[p.n-1] ? '⭐' : ICONE[t], p.x, CHAO_Y-96);
+            // anel de entrar enchendo
+            if(dwellAlvo === p.n && dwell > 0.05){
+                ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 5;
+                ctx.beginPath(); ctx.arc(p.x, CHAO_Y-120, 15, -Math.PI/2, -Math.PI/2 + (dwell/0.45)*Math.PI*2); ctx.stroke();
+            }
+        });
+        if(dwellAlvo === 'loja' && dwell > 0.05){
+            ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.arc(fase.lojaX, CHAO_Y-100, 15, -Math.PI/2, -Math.PI/2 + (dwell/0.45)*Math.PI*2); ctx.stroke();
         }
-    });
-    // baús
-    fase.baus.forEach(function(b){ ctx.font='36px Arial'; ctx.fillText(b.aberto?'📭':'🎁', b.x, CHAO_Y-6); });
-    // moedinhas
-    fase.moedinhas.forEach(function(m){ if(!m.pega){ ctx.font='26px Arial'; ctx.fillText('🪙', m.x, CHAO_Y - m.y); } });
-    // porta do fim
-    var vivos = fase.inimigos.filter(function(i){ return i.vivo; }).length;
-    var aberta = (fase.tipo==='arena'||fase.tipo==='boss') ? vivos===0 : true;
-    ctx.font = '64px Arial';
-    ctx.fillText(aberta ? '🚪' : '🔒', fase.fim-40, CHAO_Y-4);
-    if(!aberta){ ctx.font='26px Arial'; ctx.fillText('👾×'+vivos, fase.fim-40, CHAO_Y-80); }
-    // inimigos
-    fase.inimigos.forEach(function(ii){
-        if(!ii.vivo) return;
-        ctx.font = ii.tam + 'px Arial';
-        ctx.save();
-        ctx.translate(ii.x, CHAO_Y-2);
-        if(ii.vel > 0) ctx.scale(-1,1);
-        ctx.fillText(ii.e, 0, 0);
-        ctx.restore();
-        // barrinha de vida
-        var bw = ii.tam;
-        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(ii.x-bw/2, CHAO_Y-ii.tam-16, bw, 7);
-        ctx.fillStyle = ii.boss ? '#ff4444' : '#4dff88';
-        ctx.fillRect(ii.x-bw/2, CHAO_Y-ii.tam-16, bw*Math.max(0,ii.hp/ii.hpMax), 7);
-    });
-    // jogador (capivara com espada!)
+    } else {
+        fase.espinhos.forEach(function(s){
+            ctx.fillStyle = '#dfe3ee';
+            for(var xx=s.x; xx<s.x+s.w; xx+=16){
+                ctx.beginPath(); ctx.moveTo(xx,CHAO_Y); ctx.lineTo(xx+8,CHAO_Y-20); ctx.lineTo(xx+16,CHAO_Y); ctx.fill();
+            }
+        });
+        fase.baus.forEach(function(b){ ctx.font='36px Arial'; ctx.fillText(b.aberto?'📭':'🎁', b.x, CHAO_Y-6); });
+        fase.moedinhas.forEach(function(m){ if(!m.pega){ ctx.font='26px Arial'; ctx.fillText('🪙', m.x, CHAO_Y - m.y); } });
+        var vivos = fase.inimigos.filter(function(i){ return i.vivo; }).length;
+        var aberta = (fase.tipo==='arena'||fase.tipo==='boss') ? vivos===0 : true;
+        ctx.font = '64px Arial';
+        ctx.fillText(aberta ? '🚪' : '🔒', fase.fim-40, CHAO_Y-4);
+        if(!aberta){ ctx.font='26px Arial'; ctx.fillText('👾×'+vivos, fase.fim-40, CHAO_Y-80); }
+        fase.inimigos.forEach(function(ii){
+            if(!ii.vivo) return;
+            ctx.font = ii.tam + 'px Arial';
+            ctx.save();
+            ctx.translate(ii.x, CHAO_Y-2);
+            if(ii.vel > 0) ctx.scale(-1,1);
+            ctx.fillText(ii.e, 0, 0);
+            ctx.restore();
+            var bw = ii.tam;
+            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(ii.x-bw/2, CHAO_Y-ii.tam-16, bw, 7);
+            ctx.fillStyle = ii.boss ? '#ff4444' : '#4dff88';
+            ctx.fillRect(ii.x-bw/2, CHAO_Y-ii.tam-16, bw*Math.max(0,ii.hp/ii.hpMax), 7);
+        });
+    }
+
+    // jogador
     if(!(pl.inv > 0 && Math.floor(pl.inv*10)%2===0)){
         ctx.save();
         ctx.translate(pl.x, pl.y);
@@ -460,23 +450,26 @@ function desenha(){
     ctx.font = '26px Arial';
     for(var i=fx.length-1; i>=0; i--){
         var f = fx[i];
-        f.y -= 40*0.016; f.vida -= 0.016;
+        f.y -= 0.7; f.vida -= 0.016;
         ctx.globalAlpha = Math.max(0, Math.min(1, f.vida));
         ctx.fillText(f.t, f.x, f.y);
         if(f.vida <= 0) fx.splice(i,1);
     }
     ctx.globalAlpha = 1;
     ctx.restore();
-    // HUD (número da porta, vidas, moedas — sem palavra nenhuma)
-    ctx.textAlign = 'left'; ctx.font = 'bold 24px Arial';
-    ctx.fillStyle = '#fff';
-    ctx.fillText('🚪' + n, 14, 34);
-    var cor = '❤️'.repeat(Math.max(0,pl.vidas)) + '🖤'.repeat(Math.max(0, 3-pl.vidas));
-    ctx.fillText(cor, 14, 64);
-    ctx.fillText('🪙' + Math.floor(moedas).toLocaleString('pt-BR'), 14, 94);
+
+    // HUD sem palavras
+    ctx.textAlign = 'left'; ctx.font = 'bold 24px Arial'; ctx.fillStyle = '#fff';
+    ctx.fillText('🪙' + Math.floor(moedas).toLocaleString('pt-BR'), 14, 34);
+    ctx.fillText(ESPADAS[eq].e + '💥' + ESPADAS[eq].d, 14, 64);
+    if(modo === 'fase'){
+        ctx.fillText('🚪' + fase.n, 14, 94);
+        var cor = '❤️'.repeat(Math.max(0,pl.vidas)) + '🖤'.repeat(Math.max(0, 3-pl.vidas));
+        ctx.fillText(cor, 14, 124);
+    }
 }
 
-montaMenu();
+iniciaHub(0);
 </script>
 <script src="/mascote.js"></script>
 </body>
