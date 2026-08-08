@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>100 Portas — Cogumelo Games</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+html,body { height:100%; overflow:hidden; }
+body { background:#141428; font-family:Arial,sans-serif; color:#fff; user-select:none; }
+canvas { display:block; position:fixed; inset:0; touch-action:none; }
+
+/* ===== MENU DAS PORTAS (sem texto — só números e emojis) ===== */
+#menu { position:fixed; inset:0; z-index:10; background:linear-gradient(180deg,#1a1a3e,#2d1b4e 60%,#4a2060);
+    display:flex; flex-direction:column; align-items:center; overflow:auto; padding:14px; }
+#hudMenu { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; justify-content:center; position:sticky; top:0; z-index:2;
+    background:rgba(20,20,50,0.92); border:2px solid #7a5cff; border-radius:16px; padding:8px 16px; }
+#hudMenu .chip { font-size:20px; font-weight:bold; display:flex; align-items:center; gap:5px; }
+#hudMenu button { font-size:24px; padding:6px 14px; border:none; border-radius:12px; cursor:pointer;
+    background:linear-gradient(135deg,#ffaa00,#ff6600); }
+#grade { display:grid; grid-template-columns:repeat(10, 1fr); gap:6px; width:min(96vw, 560px); padding-bottom:20px; }
+.porta { aspect-ratio:0.72; border-radius:8px 8px 3px 3px; border:none; cursor:pointer; position:relative;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold;
+    background:linear-gradient(180deg,#a0622d,#7a4620); box-shadow:inset 0 0 0 2px rgba(0,0,0,0.25), 0 3px 5px rgba(0,0,0,0.5);
+    color:#ffe9c8; font-size:clamp(10px,2.6vw,15px); }
+.porta::after { content:''; position:absolute; right:14%; top:48%; width:5px; height:5px; border-radius:50%; background:#ffd700; }
+.porta:active { transform:scale(0.93); }
+.porta.fech { background:linear-gradient(180deg,#3a3a52,#2a2a3e); color:#666; filter:grayscale(1); }
+.porta.fech::after { background:#555; }
+.porta .ico { font-size:clamp(11px,3vw,17px); line-height:1; margin-top:2px; }
+.porta.boss { background:linear-gradient(180deg,#8a1a1a,#5a0e0e); box-shadow:inset 0 0 0 2px rgba(255,60,60,0.5), 0 0 12px rgba(255,40,40,0.55); color:#ffd6d6; }
+.porta.zerada { box-shadow:inset 0 0 0 2px #ffd700, 0 0 10px rgba(255,215,0,0.5); }
+
+/* ===== LOJA (sem texto) ===== */
+#loja { position:fixed; inset:0; z-index:20; background:rgba(8,8,24,0.9); display:none; align-items:center; justify-content:center; }
+#loja .cartao { background:linear-gradient(180deg,#2d1b4e,#1a1a3e); border:3px solid #ffaa00; border-radius:22px; padding:18px;
+    width:min(94vw,420px); max-height:86vh; overflow:auto; text-align:center; }
+#loja h2 { font-size:34px; margin-bottom:10px; }
+.espada { display:flex; align-items:center; gap:10px; width:100%; margin:7px 0; padding:10px 14px; border:none; border-radius:14px; cursor:pointer;
+    background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.25); color:#fff; font-size:18px; font-weight:bold; }
+.espada:active { transform:scale(0.96); }
+.espada .ic { font-size:32px; }
+.espada .info { flex:1; text-align:left; display:flex; gap:12px; }
+.espada.minha { border-color:#4dff88; }
+.espada.equipada { border-color:#ffd700; background:rgba(255,215,0,0.15); box-shadow:0 0 12px rgba(255,215,0,0.4); }
+.espada.caro { opacity:0.45; }
+#fecharLoja { font-size:26px; margin-top:8px; padding:8px 26px; border:none; border-radius:14px; cursor:pointer; background:#556; color:#fff; }
+
+/* ===== CONTROLES TOUCH (sem texto) ===== */
+.ctl { position:fixed; bottom:18px; z-index:6; width:64px; height:64px; border-radius:50%; border:none; font-size:30px;
+    background:rgba(255,255,255,0.16); backdrop-filter:blur(3px); color:#fff; display:none; align-items:center; justify-content:center; }
+.ctl:active { background:rgba(255,255,255,0.4); }
+#bEsq { left:16px; } #bDir { left:94px; } #bPulo { right:94px; } #bAtq { right:16px; background:rgba(255,120,60,0.3); }
+#bCasa { position:fixed; top:12px; right:12px; z-index:6; font-size:24px; width:46px; height:46px; border-radius:12px; border:none;
+    background:rgba(255,255,255,0.15); color:#fff; display:none; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<button class="ctl" id="bEsq">◀️</button>
+<button class="ctl" id="bDir">▶️</button>
+<button class="ctl" id="bPulo">🦵</button>
+<button class="ctl" id="bAtq">⚔️</button>
+<button id="bCasa">🚪</button>
+
+<div id="menu">
+    <div id="hudMenu">
+        <span class="chip">🪙 <span id="mMoedas">0</span></span>
+        <span class="chip" id="mEspada">🥢</span>
+        <button onclick="abreLoja()">🛒</button>
+        <a href="/" style="font-size:24px; text-decoration:none">🏠</a>
+    </div>
+    <div id="grade"></div>
+</div>
+
+<div id="loja">
+    <div class="cartao">
+        <h2>🛒⚔️</h2>
+        <div id="listaEspadas"></div>
+        <button id="fecharLoja" onclick="fechaLoja()">❌</button>
+    </div>
+</div>
+
+<script src="/stats.js"></script>
+<script src="/avisos.js?v=6"></script>
+<script>
+if (window.initStats) initStats('portas');
+
+// ============ SAVE ============
+function lsGet(k,d){ try{ var v=localStorage.getItem('portas_'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }
+function lsSet(k,v){ try{ localStorage.setItem('portas_'+k, JSON.stringify(v)); }catch(e){} }
+var moedas = lsGet('moedas', 0);
+var zeradas = lsGet('zeradas', []);           // [true,...]
+var minhas = lsGet('espadas', [true]);        // espadas compradas
+var eq = lsGet('eq', 0);                      // espada equipada
+
+// ============ ESPADAS (dano 💥 e preço 🪙 — mostrados só com emoji+número) ============
+var ESPADAS = [
+    { e:'🥢', d:1,  p:0 },
+    { e:'🗡️', d:2,  p:60 },
+    { e:'⚔️', d:4,  p:250 },
+    { e:'🪓', d:7,  p:700 },
+    { e:'🔱', d:12, p:1800 },
+    { e:'⚡', d:20, p:4500 },
+    { e:'🔥', d:35, p:12000 },
+    { e:'🌈', d:60, p:30000 }
+];
+
+// ============ MENU ============
+function tipoDe(n){ // tipo do desafio da porta n (1..100)
+    if(n % 10 === 0) return 'boss';
+    var r = rnd(n*7+3);
+    var t = r();
+    if(t < 0.4) return 'parkour';
+    if(t < 0.75) return 'arena';
+    return 'tesouro';
+}
+var ICONE = { parkour:'🏃', arena:'👾', tesouro:'🎁', boss:'👹' };
+function montaMenu(){
+    document.getElementById('mMoedas').textContent = Math.floor(moedas).toLocaleString('pt-BR');
+    document.getElementById('mEspada').textContent = ESPADAS[eq].e + ' 💥' + ESPADAS[eq].d;
+    var g = document.getElementById('grade');
+    g.innerHTML = '';
+    for(var n=1; n<=100; n++){
+        var aberta = n === 1 || zeradas[n-2];
+        var b = document.createElement('button');
+        var t = tipoDe(n);
+        b.className = 'porta' + (aberta ? '' : ' fech') + (t==='boss' ? ' boss' : '') + (zeradas[n-1] ? ' zerada' : '');
+        b.innerHTML = n + '<div class="ico">' + (zeradas[n-1] ? '⭐' : (aberta ? ICONE[t] : '🔒')) + '</div>';
+        if(aberta) (function(nn){ b.onclick = function(){ inicia(nn); }; })(n);
+        g.appendChild(b);
+    }
+}
+
+// ============ LOJA ============
+function abreLoja(){
+    var el = document.getElementById('listaEspadas');
+    el.innerHTML = '';
+    ESPADAS.forEach(function(s, i){
+        var b = document.createElement('button');
+        var tem = minhas[i];
+        b.className = 'espada' + (tem ? ' minha' : (moedas < s.p ? ' caro' : '')) + (eq === i ? ' equipada' : '');
+        b.innerHTML = '<span class="ic">' + s.e + '</span><span class="info"><span>💥' + s.d + '</span>' +
+            (tem ? (eq===i ? '<span>✅</span>' : '<span>👆</span>') : '<span>🪙' + s.p.toLocaleString('pt-BR') + '</span>') + '</span>';
+        b.onclick = function(){
+            if(minhas[i]){ eq = i; lsSet('eq', eq); }
+            else if(moedas >= s.p){ moedas -= s.p; minhas[i] = true; eq = i; lsSet('moedas',moedas); lsSet('espadas',minhas); lsSet('eq',eq); }
+            abreLoja(); montaMenu();
+        };
+        el.appendChild(b);
+    });
+    document.getElementById('loja').style.display = 'flex';
+}
+function fechaLoja(){ document.getElementById('loja').style.display = 'none'; }
+window.abreLoja = abreLoja; window.fechaLoja = fechaLoja;
+
+// ============ RNG com semente (cada porta gera SEMPRE o mesmo mapa) ============
+function rnd(seed){
+    var a = seed >>> 0;
+    return function(){
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        var t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+}
+
+// ============ GERADOR DE FASES ============
+var CHAO_Y = 0; // definido no resize
+function gera(n){
+    var r = rnd(n * 1337 + 42);
+    var tipo = tipoDe(n);
+    var dif = n / 100; // 0..1
+    var L = { plats:[], espinhos:[], inimigos:[], moedinhas:[], baus:[], tipo:tipo, n:n };
+    var fim = 1800 + n * 25;
+    if(tipo === 'arena' || tipo === 'boss') fim = 1300;
+    L.fim = fim;
+    // chão com buracos (parkour tem mais buraco)
+    var x = 0, buracoChance = tipo==='parkour' ? 0.42 : (tipo==='boss'||tipo==='arena' ? 0 : 0.22);
+    while(x < fim){
+        var w = 220 + r()*320;
+        L.plats.push({x:x, y:0, w:w, h:400, chao:true});
+        var gap = (r() < buracoChance) ? (90 + r()*(70 + dif*80)) : 0;
+        x += w + gap;
+    }
+    // plataformas no ar
+    var qp = tipo==='parkour' ? 10 + Math.floor(dif*14) : 5;
+    for(var i=0;i<qp;i++){
+        var px = 200 + r()*(fim-400);
+        L.plats.push({x:px, y:110 + r()*160, w:90 + r()*110, h:18});
+    }
+    // espinhos
+    var qe = tipo==='parkour' ? 6 + Math.floor(dif*12) : (tipo==='tesouro' ? 4 : 2);
+    for(var i=0;i<qe;i++) L.espinhos.push({x:320 + r()*(fim-500), w:40 + r()*50});
+    // inimigos
+    var qi = tipo==='arena' ? 3 + Math.floor(dif*7) : (tipo==='boss' ? 0 : 1 + Math.floor(dif*4));
+    var EMO = ['👾','🧟','🤖','👻','💀','🐗','🦂'];
+    for(var i=0;i<qi;i++){
+        var hp = Math.ceil(1 + dif*14 + r()*3);
+        L.inimigos.push({x:380 + r()*(fim-560), y:0, hp:hp, hpMax:hp, e:EMO[Math.floor(r()*EMO.length)],
+            vel:(40 + r()*60 + dif*80) * (r()<0.5?-1:1), tam:38, vivo:true, dropa:2 + Math.floor(r()*4 + dif*6)});
+    }
+    if(tipo === 'boss'){
+        var bhp = 10 + n;
+        L.inimigos.push({x:fim-350, y:0, hp:bhp, hpMax:bhp, e:'👹', vel:60 + dif*120, tam:86, vivo:true, boss:true, dropa:40 + n});
+    }
+    // moedinhas
+    var qm = 8 + Math.floor(r()*8);
+    for(var i=0;i<qm;i++) L.moedinhas.push({x:150 + r()*(fim-300), y:60 + r()*200, pega:false});
+    // baús (sala do tesouro tem vários!)
+    var qb = tipo==='tesouro' ? 3 + Math.floor(r()*3) : (r()<0.3 ? 1 : 0);
+    for(var i=0;i<qb;i++) L.baus.push({x:300 + r()*(fim-450), aberto:false, valor:15 + Math.floor(r()*35 + dif*60)});
+    return L;
+}
+
+// ============ CANVAS / CÂMERA ============
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+var W, H;
+function resize(){
+    W = innerWidth; H = innerHeight;
+    cv.width = W*devicePixelRatio; cv.height = H*devicePixelRatio;
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    CHAO_Y = H - 90;
+}
+addEventListener('resize', resize); resize();
+
+// ============ JOGADOR / FASE ============
+var fase = null, rodando = false, cam = 0, portaAtual = 1;
+var pl = {};
+var ganhoFase = 0;
+function inicia(n){
+    portaAtual = n;
+    fase = gera(n);
+    pl = { x:60, y:CHAO_Y-100, vx:0, vy:0, dir:1, chao:false, vidas:3, inv:0, atq:0 };
+    ganhoFase = 0;
+    cam = 0;
+    document.getElementById('menu').style.display = 'none';
+    mostraControles(true);
+    rodando = true; ultimoT = performance.now();
+    requestAnimationFrame(loop);
+}
+function voltaMenu(){
+    rodando = false;
+    mostraControles(false);
+    lsSet('moedas', moedas); lsSet('zeradas', zeradas);
+    montaMenu();
+    document.getElementById('menu').style.display = 'flex';
+}
+function mostraControles(sim){
+    var d = sim ? 'flex' : 'none';
+    ['bEsq','bDir','bPulo','bAtq'].forEach(function(id){ document.getElementById(id).style.display = matchMedia('(pointer:coarse)').matches ? d : 'none'; });
+    document.getElementById('bCasa').style.display = sim ? 'block' : 'none';
+}
+document.getElementById('bCasa').onclick = voltaMenu;
+
+// ============ CONTROLES ============
+var tec = {};
+addEventListener('keydown', function(e){ tec[e.key.toLowerCase()] = true; if(e.key===' ') e.preventDefault(); if((e.key.toLowerCase()==='x'||e.key.toLowerCase()==='j') && rodando) ataca(); });
+addEventListener('keyup', function(e){ tec[e.key.toLowerCase()] = false; });
+function segura(id, prop){
+    var el = document.getElementById(id);
+    el.addEventListener('pointerdown', function(e){ e.preventDefault(); tec[prop] = true; });
+    el.addEventListener('pointerup', function(){ tec[prop] = false; });
+    el.addEventListener('pointercancel', function(){ tec[prop] = false; });
+    el.addEventListener('pointerleave', function(){ tec[prop] = false; });
+}
+segura('bEsq','arrowleft'); segura('bDir','arrowright'); segura('bPulo',' ');
+document.getElementById('bAtq').addEventListener('pointerdown', function(e){ e.preventDefault(); if(rodando) ataca(); });
+
+var fx = []; // efeitos (números de dano, brilhos)
+function ataca(){
+    if(pl.atq > 0) return;
+    pl.atq = 0.28;
+    var alcance = 78, dano = ESPADAS[eq].d;
+    fase.inimigos.forEach(function(ii){
+        if(!ii.vivo) return;
+        var dx = (ii.x) - pl.x, dy = Math.abs((CHAO_Y - ii.tam/2) - pl.y);
+        if(dy < 90 && dx*pl.dir > -20 && Math.abs(dx) < alcance + ii.tam/2){
+            ii.hp -= dano;
+            fx.push({x:ii.x, y:CHAO_Y-ii.tam-14, t:'💥', vida:0.5});
+            if(ii.hp <= 0){
+                ii.vivo = false;
+                moedas += ii.dropa; ganhoFase += ii.dropa;
+                fx.push({x:ii.x, y:CHAO_Y-ii.tam-30, t:'🪙+' + ii.dropa, vida:1.2});
+            }
+        }
+    });
+}
+
+function machuca(){
+    if(pl.inv > 0) return;
+    pl.vidas--; pl.inv = 1.4;
+    pl.vy = -420; pl.vx = -pl.dir * 260;
+    if(pl.vidas <= 0){
+        // perdeu: volta pro menu (fase não zera)
+        fx.push({x:pl.x, y:pl.y, t:'💀', vida:1});
+        rodando = false;
+        setTimeout(voltaMenu, 900);
+    }
+}
+
+// ============ FÍSICA / LOOP ============
+var ultimoT = 0;
+function loop(agora){
+    if(!rodando) { desenha(); return; }
+    var dt = Math.min((agora-ultimoT)/1000, 0.04);
+    ultimoT = agora;
+    var ACEL = 1600, MAXV = 340, PULO = 660, GRAV = 1800;
+
+    if(tec['arrowleft']||tec['a']) { pl.vx -= ACEL*dt; pl.dir = -1; }
+    else if(tec['arrowright']||tec['d']) { pl.vx += ACEL*dt; pl.dir = 1; }
+    else pl.vx *= (pl.chao ? 0.78 : 0.96);
+    pl.vx = Math.max(-MAXV, Math.min(MAXV, pl.vx));
+    if((tec[' ']||tec['arrowup']||tec['w']) && pl.chao){ pl.vy = -PULO; pl.chao = false; }
+
+    pl.vy += GRAV*dt;
+    pl.x += pl.vx*dt; pl.y += pl.vy*dt;
+    if(pl.x < 20) pl.x = 20;
+    if(pl.atq > 0) pl.atq -= dt;
+    if(pl.inv > 0) pl.inv -= dt;
+
+    // colisão com plataformas (só por cima)
+    pl.chao = false;
+    fase.plats.forEach(function(p){
+        var py = p.chao ? CHAO_Y : CHAO_Y - p.y;
+        if(pl.x > p.x-16 && pl.x < p.x+p.w+16 && pl.y >= py-4 && pl.y - pl.vy*dt <= py+6 && pl.vy >= 0){
+            pl.y = py; pl.vy = 0; pl.chao = true;
+        }
+    });
+
+    // caiu no buraco
+    if(pl.y > H + 60){
+        pl.vidas--;
+        if(pl.vidas <= 0){ rodando=false; setTimeout(voltaMenu, 600); }
+        else { pl.x = Math.max(40, pl.x - 260); pl.y = CHAO_Y - 200; pl.vy = 0; pl.inv = 1.5; }
+    }
+
+    // espinhos
+    fase.espinhos.forEach(function(s){
+        if(pl.y > CHAO_Y - 26 && pl.x > s.x-10 && pl.x < s.x+s.w+10) machuca();
+    });
+
+    // inimigos andam e machucam
+    fase.inimigos.forEach(function(ii){
+        if(!ii.vivo) return;
+        ii.x += ii.vel*dt;
+        if(ii.x < 140 || ii.x > fase.fim-60) ii.vel *= -1;
+        // persegue um pouquinho se for boss
+        if(ii.boss) ii.vel = (pl.x > ii.x ? 1 : -1) * Math.abs(ii.vel);
+        var dx = Math.abs(ii.x-pl.x), dy = Math.abs((CHAO_Y-ii.tam/2)-(pl.y-20));
+        if(dx < ii.tam/2+14 && dy < ii.tam/2+22) machuca();
+    });
+
+    // moedinhas
+    fase.moedinhas.forEach(function(m){
+        if(m.pega) return;
+        if(Math.abs(m.x-pl.x)<28 && Math.abs((CHAO_Y-m.y)-(pl.y-20))<34){
+            m.pega = true; moedas++; ganhoFase++;
+        }
+    });
+
+    // baús
+    fase.baus.forEach(function(bb){
+        if(bb.aberto) return;
+        if(Math.abs(bb.x-pl.x) < 34 && pl.y > CHAO_Y-40){
+            bb.aberto = true; moedas += bb.valor; ganhoFase += bb.valor;
+            fx.push({x:bb.x, y:CHAO_Y-70, t:'🪙+'+bb.valor, vida:1.4});
+        }
+    });
+
+    // porta do fim: arena/boss só abre com todos derrotados
+    var vivos = fase.inimigos.filter(function(i){ return i.vivo; }).length;
+    var portaAberta = (fase.tipo==='arena'||fase.tipo==='boss') ? vivos===0 : true;
+    if(portaAberta && Math.abs(fase.fim - 40 - pl.x) < 34 && pl.y > CHAO_Y - 60){
+        // ZEROU!
+        var premio = 10 + portaAtual*2;
+        moedas += premio; ganhoFase += premio;
+        zeradas[portaAtual-1] = true;
+        lsSet('moedas', moedas); lsSet('zeradas', zeradas);
+        rodando = false;
+        fx.push({x:pl.x, y:pl.y-80, t:'🏆', vida:1.5});
+        for(var i=0;i<26;i++) fx.push({x:pl.x+(Math.random()-0.5)*220, y:pl.y-Math.random()*220, t:['🎊','✨','🎉','⭐'][Math.floor(Math.random()*4)], vida:1.6});
+        setTimeout(voltaMenu, 1400);
+    }
+
+    cam = Math.max(0, Math.min(pl.x - W*0.38, fase.fim - W + 60));
+    desenha();
+    if(rodando) requestAnimationFrame(loop);
+    else if(fx.length) (function anim(){ desenha(); if(fx.length) requestAnimationFrame(anim); })();
+}
+
+// ============ DESENHO (tudo emoji, sem texto!) ============
+function desenha(){
+    if(!fase){ return; }
+    var n = portaAtual;
+    // céu muda de cor conforme a porta
+    var hue = (n*23)%360;
+    var g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'hsl('+hue+',45%,16%)');
+    g.addColorStop(1,'hsl('+((hue+40)%360)+',50%,30%)');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    ctx.save(); ctx.translate(-cam,0);
+    // plataformas
+    fase.plats.forEach(function(p){
+        var py = p.chao ? CHAO_Y : CHAO_Y - p.y;
+        ctx.fillStyle = p.chao ? 'hsl('+hue+',35%,24%)' : 'hsl('+hue+',45%,38%)';
+        ctx.fillRect(p.x, py, p.w, p.chao ? H-py : p.h);
+        ctx.fillStyle = 'hsl('+((hue+90)%360)+',55%,45%)';
+        ctx.fillRect(p.x, py, p.w, 8);
+    });
+    ctx.font = '30px Arial'; ctx.textAlign = 'center';
+    // espinhos
+    fase.espinhos.forEach(function(s){
+        ctx.fillStyle = '#dfe3ee';
+        for(var xx=s.x; xx<s.x+s.w; xx+=16){
+            ctx.beginPath(); ctx.moveTo(xx,CHAO_Y); ctx.lineTo(xx+8,CHAO_Y-20); ctx.lineTo(xx+16,CHAO_Y); ctx.fill();
+        }
+    });
+    // baús
+    fase.baus.forEach(function(b){ ctx.font='36px Arial'; ctx.fillText(b.aberto?'📭':'🎁', b.x, CHAO_Y-6); });
+    // moedinhas
+    fase.moedinhas.forEach(function(m){ if(!m.pega){ ctx.font='26px Arial'; ctx.fillText('🪙', m.x, CHAO_Y - m.y); } });
+    // porta do fim
+    var vivos = fase.inimigos.filter(function(i){ return i.vivo; }).length;
+    var aberta = (fase.tipo==='arena'||fase.tipo==='boss') ? vivos===0 : true;
+    ctx.font = '64px Arial';
+    ctx.fillText(aberta ? '🚪' : '🔒', fase.fim-40, CHAO_Y-4);
+    if(!aberta){ ctx.font='26px Arial'; ctx.fillText('👾×'+vivos, fase.fim-40, CHAO_Y-80); }
+    // inimigos
+    fase.inimigos.forEach(function(ii){
+        if(!ii.vivo) return;
+        ctx.font = ii.tam + 'px Arial';
+        ctx.save();
+        ctx.translate(ii.x, CHAO_Y-2);
+        if(ii.vel > 0) ctx.scale(-1,1);
+        ctx.fillText(ii.e, 0, 0);
+        ctx.restore();
+        // barrinha de vida
+        var bw = ii.tam;
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(ii.x-bw/2, CHAO_Y-ii.tam-16, bw, 7);
+        ctx.fillStyle = ii.boss ? '#ff4444' : '#4dff88';
+        ctx.fillRect(ii.x-bw/2, CHAO_Y-ii.tam-16, bw*Math.max(0,ii.hp/ii.hpMax), 7);
+    });
+    // jogador (capivara com espada!)
+    if(!(pl.inv > 0 && Math.floor(pl.inv*10)%2===0)){
+        ctx.save();
+        ctx.translate(pl.x, pl.y);
+        if(pl.dir < 0) ctx.scale(-1,1);
+        ctx.font = '44px Arial';
+        ctx.fillText('🦫', 0, 0);
+        ctx.font = '30px Arial';
+        ctx.save();
+        ctx.translate(26, -22);
+        ctx.rotate(pl.atq > 0 ? 0.9 : 0.15);
+        ctx.fillText(ESPADAS[eq].e, 0, 0);
+        ctx.restore();
+        ctx.restore();
+    }
+    // efeitos
+    ctx.font = '26px Arial';
+    for(var i=fx.length-1; i>=0; i--){
+        var f = fx[i];
+        f.y -= 40*0.016; f.vida -= 0.016;
+        ctx.globalAlpha = Math.max(0, Math.min(1, f.vida));
+        ctx.fillText(f.t, f.x, f.y);
+        if(f.vida <= 0) fx.splice(i,1);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+    // HUD (número da porta, vidas, moedas — sem palavra nenhuma)
+    ctx.textAlign = 'left'; ctx.font = 'bold 24px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('🚪' + n, 14, 34);
+    var cor = '❤️'.repeat(Math.max(0,pl.vidas)) + '🖤'.repeat(Math.max(0, 3-pl.vidas));
+    ctx.fillText(cor, 14, 64);
+    ctx.fillText('🪙' + Math.floor(moedas).toLocaleString('pt-BR'), 14, 94);
+}
+
+montaMenu();
+</script>
+<script src="/mascote.js"></script>
+</body>
+</html>
