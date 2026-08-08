@@ -32,6 +32,8 @@ canvas { display:block; position:fixed; inset:0; touch-action:none; }
 #bEsq { left:16px; } #bDir { left:94px; } #bPulo { right:94px; } #bAtq { right:16px; background:rgba(255,120,60,0.3); }
 #bSair { position:fixed; top:12px; right:12px; z-index:6; font-size:24px; width:46px; height:46px; border-radius:12px; border:none;
     background:rgba(255,255,255,0.15); color:#fff; display:none; }
+#bLoja { position:fixed; top:12px; right:12px; z-index:6; font-size:26px; width:52px; height:52px; border-radius:14px; border:2px solid #ffaa00;
+    background:rgba(255,170,0,0.2); color:#fff; display:none; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -41,6 +43,7 @@ canvas { display:block; position:fixed; inset:0; touch-action:none; }
 <button class="ctl" id="bPulo" style="display:none">🦵</button>
 <button class="ctl" id="bAtq" style="display:none">⚔️</button>
 <button id="bSair">🚪</button>
+<button id="bLoja" onclick="abreLoja()">🛒</button>
 
 <div id="loja">
     <div class="cartao">
@@ -77,6 +80,7 @@ var ESPADAS = [
 
 // ============ LOJA ============
 function abreLoja(){
+    rodando = false; // pausa o jogo enquanto a loja tá aberta
     var el = document.getElementById('listaEspadas');
     el.innerHTML = '';
     ESPADAS.forEach(function(s, i){
@@ -94,7 +98,11 @@ function abreLoja(){
     });
     document.getElementById('loja').style.display = 'flex';
 }
-function fechaLoja(){ document.getElementById('loja').style.display = 'none'; lojaCooldown = 1; }
+function fechaLoja(){
+    document.getElementById('loja').style.display = 'none';
+    rodando = true; ultimoT = performance.now();
+    requestAnimationFrame(loop);
+}
 window.abreLoja = abreLoja; window.fechaLoja = fechaLoja;
 
 // ============ RNG com semente ============
@@ -123,7 +131,6 @@ function geraHub(){
     L.fim = 100*ESPACO + 500;
     L.plats.push({x:0, y:0, w:L.fim, h:400, chao:true});
     for(var n=1; n<=100; n++) L.portas.push({ n:n, x:260 + (n-1)*ESPACO });
-    L.lojaX = 120; // banquinha da loja no comecinho
     return L;
 }
 
@@ -191,6 +198,7 @@ function iniciaHub(voltandoDaPorta){
     pl = { x:px, y:CHAO_Y-40, vx:0, vy:0, dir:1, chao:false, vidas:3, inv:0.6, atq:0 };
     dwell = 0; dwellAlvo = null;
     document.getElementById('bSair').style.display = 'none';
+    document.getElementById('bLoja').style.display = 'block';
     mostraTouch(true);
     rodando = true; ultimoT = performance.now();
     requestAnimationFrame(loop);
@@ -202,6 +210,7 @@ function inicia(n){
     pl = { x:60, y:CHAO_Y-100, vx:0, vy:0, dir:1, chao:false, vidas:3, inv:0, atq:0 };
     cam = 0; dwell = 0; dwellAlvo = null;
     document.getElementById('bSair').style.display = 'block';
+    document.getElementById('bLoja').style.display = 'none';
     rodando = true; ultimoT = performance.now();
     requestAnimationFrame(loop);
 }
@@ -294,13 +303,9 @@ function loop(agora){
         for(var i=0;i<fase.portas.length;i++){
             if(Math.abs(fase.portas[i].x - pl.x) < 26 && pl.chao){ perto = fase.portas[i]; break; }
         }
-        var naLoja = Math.abs(fase.lojaX - pl.x) < 30 && pl.chao && lojaCooldown <= 0 && document.getElementById('loja').style.display !== 'flex';
         if(perto){
             if(dwellAlvo === perto.n) dwell += dt; else { dwellAlvo = perto.n; dwell = 0; }
             if(dwell > 0.45){ lsSet('moedas',moedas); inicia(perto.n); return; }
-        } else if(naLoja){
-            if(dwellAlvo === 'loja') dwell += dt; else { dwellAlvo = 'loja'; dwell = 0; }
-            if(dwell > 0.45){ dwell = 0; dwellAlvo = null; abreLoja(); }
         } else { dwell = 0; dwellAlvo = null; }
     } else {
         // ===== dentro da porta =====
@@ -357,8 +362,8 @@ function desenha(){
     var n = fase.n;
     var hue = modo==='hub' ? 262 : (n*23)%360;
     var g = ctx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0,'hsl('+hue+',45%,14%)');
-    g.addColorStop(1,'hsl('+((hue+40)%360)+',50%,'+(modo==='hub'?24:30)+'%)');
+    g.addColorStop(0,'hsl('+hue+',45%,'+(modo==='hub'?22:16)+'%)');
+    g.addColorStop(1,'hsl('+((hue+40)%360)+',50%,'+(modo==='hub'?34:30)+'%)');
     ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
     ctx.save(); ctx.translate(-cam,0);
 
@@ -374,9 +379,6 @@ function desenha(){
     if(modo === 'hub'){
         // lampadinhas no teto do salão
         for(var lx=200; lx<fase.fim; lx+=ESPACO*2){ ctx.font='24px Arial'; ctx.fillText('🕯️', lx, 70); }
-        // banquinha da loja
-        ctx.font = '54px Arial'; ctx.fillText('🛒', fase.lojaX, CHAO_Y-8);
-        ctx.font = '26px Arial'; ctx.fillText('⚔️', fase.lojaX, CHAO_Y-64);
         // as 100 portas!
         fase.portas.forEach(function(p){
             var t = tipoDe(p.n);
@@ -398,10 +400,6 @@ function desenha(){
                 ctx.beginPath(); ctx.arc(p.x, CHAO_Y-120, 15, -Math.PI/2, -Math.PI/2 + (dwell/0.45)*Math.PI*2); ctx.stroke();
             }
         });
-        if(dwellAlvo === 'loja' && dwell > 0.05){
-            ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 5;
-            ctx.beginPath(); ctx.arc(fase.lojaX, CHAO_Y-100, 15, -Math.PI/2, -Math.PI/2 + (dwell/0.45)*Math.PI*2); ctx.stroke();
-        }
     } else {
         fase.espinhos.forEach(function(s){
             ctx.fillStyle = '#dfe3ee';
