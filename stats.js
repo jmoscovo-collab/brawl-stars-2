@@ -51,6 +51,32 @@ function cgCriaControlePs5(jogo) {
     } catch (e) {}
 }
 
+// 🎮 Modo PS5: responde "COMPUTADOR" sozinho em QUALQUER tela de "onde você está jogando?"
+function cgAutoEscolhePc() {
+    try {
+        if (localStorage.getItem('cg_ps5') !== '1') return;
+        var ultimoClique = 0;
+        setInterval(function () {
+            try {
+                if (Date.now() - ultimoClique < 3000) return;
+                var alvo = document.getElementById('ds-pc') || document.getElementById('btnPC') || document.getElementById('devPC');
+                if (!alvo) {
+                    var els = document.querySelectorAll('button, .opt, .option, [onclick], div.label, div');
+                    for (var i = 0; i < els.length; i++) {
+                        var tx = (els[i].textContent || '').replace(/[^A-Za-z]/g, '').toUpperCase();
+                        if (tx === 'COMPUTADOR' && els[i].children.length <= 1) { alvo = els[i]; break; }
+                    }
+                }
+                if (alvo && alvo.offsetParent !== null) {
+                    ultimoClique = Date.now();
+                    alvo.click(); // o clique "sobe" até quem cuida do botão
+                }
+            } catch (e) {}
+        }, 700);
+    } catch (e) {}
+}
+cgAutoEscolhePc();
+
 let currentGame = null;
 let playStartTime = null;
 let playerName = null;
