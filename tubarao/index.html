@@ -53,11 +53,12 @@ function lsSet(k,v){ try{ localStorage.setItem('tubarao_'+k, JSON.stringify(v));
 
 var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 var W, H;
+var DPR = Math.min(devicePixelRatio || 1, 1.5); // resolução mais leve = jogo mais rápido
 function resize(){
     W = innerWidth; H = innerHeight;
-    cv.width = W*devicePixelRatio; cv.height = H*devicePixelRatio;
+    cv.width = W*DPR; cv.height = H*DPR;
     cv.style.width = W+'px'; cv.style.height = H+'px';
-    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
 }
 addEventListener('resize', resize); resize();
 
@@ -106,6 +107,7 @@ addEventListener('keyup', function(e){ tec[e.key.toLowerCase()] = false; });
 
 // ============ PEIXES ============
 function novoPeixe(){
+    if(peixes.length >= 22) return; // não deixa a tela lotar e pesar
     // peixes do seu tamanho pra baixo aparecem mais; de vez em quando vem um GRANDÃO
     var maxTipo = Math.min(PEIXES.length-1, tub.nivel*2 + (Math.random() < 0.25 ? 3 : 2));
     var t = PEIXES[Math.floor(Math.random() * (maxTipo+1))];
@@ -215,7 +217,7 @@ function loop(agora){
     }
 
     // bolhas de enfeite
-    if(Math.random() < 0.1) bolhas.push({ x:Math.random()*W, y:H+10, v:30+Math.random()*50, r:2+Math.random()*5 });
+    if(Math.random() < 0.07 && bolhas.length < 12) bolhas.push({ x:Math.random()*W, y:H+10, v:30+Math.random()*50, r:2+Math.random()*5 });
     for(var i=bolhas.length-1; i>=0; i--){ bolhas[i].y -= bolhas[i].v*dt; if(bolhas[i].y < -10) bolhas.splice(i,1); }
 
     desenha(agora);
@@ -322,7 +324,7 @@ function carinha(t){
 function desenhaBicho(p, agora){
     var t = p.tam;
     ctx.lineWidth = 2;
-    ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 6;
+    
     if(p.tipo === 'peixinho'){
         peixeBase(t, '#ff8c2e', '#e06a10', '#ffd9a8');
         carinha(t);
@@ -476,7 +478,7 @@ function desenhaBicho(p, agora){
         // coração de vida brilhando!
         var pulso = 1 + Math.sin(agora/200)*0.12;
         ctx.save(); ctx.scale(pulso, pulso);
-        ctx.shadowColor = '#ff4d6d'; ctx.shadowBlur = 20;
+        ctx.shadowColor = '#ff4d6d'; ctx.shadowBlur = 10;
         ctx.fillStyle = '#ff4d6d';
         ctx.beginPath();
         ctx.moveTo(0, t*0.75);
@@ -488,7 +490,7 @@ function desenhaBicho(p, agora){
         ctx.restore();
     } else if(p.tipo === 'aguaviva'){
         ctx.globalAlpha = 0.9;
-        ctx.shadowColor = '#ff9ad0'; ctx.shadowBlur = 16;
+        
         ctx.fillStyle = 'rgba(255,130,195,0.8)';
         ctx.beginPath(); ctx.arc(0, 0, t*0.65, Math.PI, 0);
         ctx.quadraticCurveTo(t*0.65, t*0.2, t*0.5, t*0.18);
@@ -507,11 +509,10 @@ function desenhaBicho(p, agora){
         ctx.beginPath(); ctx.arc(t*0.18, -t*0.1, t*0.06, 0, 7); ctx.fill();
         ctx.globalAlpha = 1;
     }
-    ctx.shadowBlur = 0;
 }
 function desenhaTubarao(t, agora){
     var rabo = Math.sin(agora/120) * t * 0.12; // rabo balança nadando
-    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 8;
+    
     // rabo
     ctx.fillStyle = '#5a7d94';
     ctx.beginPath();
