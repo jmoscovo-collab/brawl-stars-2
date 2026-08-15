@@ -4,8 +4,12 @@
 function cgCriaControlePs5(jogo) {
     try {
         if (localStorage.getItem('cg_ps5') !== '1') return;
-        if (['home','conta','sugestoes','controle','cidade','merge','quiz','sorte','desenha','clicker'].indexOf(jogo) >= 0) return;
-        if (document.getElementById('cgPs5pad')) return;
+        if (['home','conta','sugestoes','controle'].indexOf(jogo) >= 0) return;
+        if (window.cgPs5Ligado) return;
+        window.cgPs5Ligado = true;
+        // 🕹️ SEM BOTÕES! O analógico do PS5 move o cursor — e o cursor vira o movimento:
+        // cursor na ESQUERDA da tela = andar pra esquerda, DIREITA = direita,
+        // EM CIMA = pular, EMBAIXO = abaixar. Segurar ❌ = atacar/confirmar.
         var seguradas = {};
         function manda(tipo, key, code) {
             try {
@@ -13,41 +17,31 @@ function cgCriaControlePs5(jogo) {
                 window.dispatchEvent(ev); document.dispatchEvent(ev);
             } catch (e) {}
         }
-        var BOTOES = [
-            { t: '◀', teclas: [['ArrowLeft','ArrowLeft'],['a','KeyA']],  css: 'left:18px;  bottom:100px;' },
-            { t: '▶', teclas: [['ArrowRight','ArrowRight'],['d','KeyD']],css: 'left:196px; bottom:100px;' },
-            { t: '▲', teclas: [['ArrowUp','ArrowUp'],['w','KeyW']],      css: 'left:107px; bottom:170px;' },
-            { t: '▼', teclas: [['ArrowDown','ArrowDown'],['s','KeyS']],  css: 'left:107px; bottom:30px;' },
-            { t: '🦘', teclas: [[' ','Space']],                          css: 'right:18px;  bottom:150px; background:rgba(0,200,100,0.45);' },
-            { t: '💥', teclas: [['e','KeyE'],['j','KeyJ'],['x','KeyX']], css: 'right:110px; bottom:60px;  background:rgba(255,90,60,0.45);' },
-            { t: '↵',  teclas: [['Enter','Enter']],                      css: 'right:18px;  bottom:30px;  background:rgba(90,140,255,0.45);' }
-        ];
-        BOTOES.forEach(function (b) {
-            var el = document.createElement('button');
-            el.textContent = b.t;
-            el.style.cssText = 'position:fixed; z-index:99990; width:82px; height:82px; border-radius:50%;' +
-                'border:3px solid rgba(255,255,255,0.6); background:rgba(255,255,255,0.22); color:#fff;' +
-                'font-size:38px; cursor:pointer; user-select:none; touch-action:none;' + b.css;
-            function desce(e) {
-                e.preventDefault();
-                if (seguradas[b.t]) return;
-                seguradas[b.t] = true;
-                el.style.background = 'rgba(255,255,0,0.55)';
-                b.teclas.forEach(function (k) { manda('keydown', k[0], k[1]); });
-            }
-            function sobe() {
-                if (!seguradas[b.t]) return;
-                seguradas[b.t] = false;
-                el.style.background = '';
-                el.style.cssText += b.css;
-                b.teclas.forEach(function (k) { manda('keyup', k[0], k[1]); });
-            }
-            el.addEventListener('pointerdown', desce);
-            el.addEventListener('pointerup', sobe);
-            el.addEventListener('pointerleave', sobe);
-            el.addEventListener('pointercancel', sobe);
-            document.body.appendChild(el);
-        });
+        function tecla(nome, key, code, ativa) {
+            if (ativa && !seguradas[nome]) { seguradas[nome] = true; manda('keydown', key, code); }
+            else if (!ativa && seguradas[nome]) { seguradas[nome] = false; manda('keyup', key, code); }
+        }
+        var mx = innerWidth / 2, my = innerHeight / 2, clicando = false;
+        addEventListener('pointermove', function (e) { mx = e.clientX; my = e.clientY; }, true);
+        addEventListener('pointerdown', function () { clicando = true; }, true);
+        addEventListener('pointerup', function () { clicando = false; }, true);
+        addEventListener('pointercancel', function () { clicando = false; }, true);
+        (function anda() {
+            var W = innerWidth, H = innerHeight;
+            tecla('esq',   'ArrowLeft',  'ArrowLeft',  mx < W * 0.34);
+            tecla('esq2',  'a',          'KeyA',       mx < W * 0.34);
+            tecla('dir',   'ArrowRight', 'ArrowRight', mx > W * 0.66);
+            tecla('dir2',  'd',          'KeyD',       mx > W * 0.66);
+            tecla('cima',  'ArrowUp',    'ArrowUp',    my < H * 0.28);
+            tecla('cima2', 'w',          'KeyW',       my < H * 0.28);
+            tecla('pulo',  ' ',          'Space',      my < H * 0.28);
+            tecla('baixo', 'ArrowDown',  'ArrowDown',  my > H * 0.8);
+            tecla('baixo2','s',          'KeyS',       my > H * 0.8);
+            // segurar ❌ (clique) = atacar
+            tecla('atq',  'e', 'KeyE', clicando);
+            tecla('atq2', 'j', 'KeyJ', clicando);
+            requestAnimationFrame(anda);
+        })();
     } catch (e) {}
 }
 
