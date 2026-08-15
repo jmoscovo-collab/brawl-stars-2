@@ -1,4 +1,10 @@
 // === COGUMELO GAMES — Stats (gratuito, sem backend) ===
+// 🎮 MODO PS5 (código secreto "estou_no_ps5"): finge que a tela tem toque,
+// então TODOS os jogos mostram os botões de tela — clicáveis com o cursor do PS5.
+try {
+    if (localStorage.getItem('cg_ps5') === '1' && !('ontouchstart' in window)) window.ontouchstart = null;
+} catch (e) {}
+
 let currentGame = null;
 let playStartTime = null;
 let playerName = null;
