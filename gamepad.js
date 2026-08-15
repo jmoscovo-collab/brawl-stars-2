@@ -17,6 +17,7 @@
     }
     function mostraAviso(){
         if(avisou) return;
+        try{ if(localStorage.getItem('cg_ps5')==='1') { avisou = true; return; } }catch(e){}
         avisou = true;
         var d = document.createElement('div');
         d.textContent = '🎮';
@@ -39,13 +40,24 @@
             tecla('dir',  'ArrowRight', 'ArrowRight', b(15) || ax >  0.35);
             tecla('cima', 'ArrowUp',    'ArrowUp',    b(12) || ay < -0.5);
             tecla('baixo','ArrowDown',  'ArrowDown',  b(13) || ay >  0.5);
-            // ❌ = pular/espaço | ⬜ = E (ataque) | 🔺 = X | ⭕ = Enter
-            tecla('pulo',   ' ',     'Space', b(0));
-            tecla('ataque', 'e',     'KeyE',  b(2));
-            tecla('extra',  'x',     'KeyX',  b(3));
-            tecla('enter',  'Enter', 'Enter', b(1) || b(9));
-            // R2/L2 também atacam (mais fácil!)
-            tecla('atq2', 'j', 'KeyJ', b(7) || b(6));
+            // ❌ = AVANÇAR sempre (pula, confirma, começa)
+            tecla('pulo',  ' ',     'Space', b(0));
+            tecla('enter', 'Enter', 'Enter', b(0) || b(1) || b(9));
+            // ⬜ = E (ataque) | R2/L2 também atacam
+            tecla('ataque', 'e', 'KeyE', b(2));
+            tecla('atq2',   'j', 'KeyJ', b(7) || b(6));
+            // 🕹️ analógico DIREITO = girar a câmera (jogos 3D)
+            var rx = p.axes[2] || 0, ry = p.axes[3] || 0;
+            if(Math.abs(rx) > 0.25 || Math.abs(ry) > 0.25){
+                try {
+                    var mv = new MouseEvent('mousemove', { bubbles:true, movementX: rx*14, movementY: ry*14,
+                        clientX: innerWidth/2, clientY: innerHeight/2 });
+                    Object.defineProperty(mv, 'movementX', { value: rx*14 });
+                    Object.defineProperty(mv, 'movementY', { value: ry*14 });
+                    (document.querySelector('canvas') || document).dispatchEvent(mv);
+                    document.dispatchEvent(mv);
+                } catch(e){}
+            }
         }
         requestAnimationFrame(loop);
     }
