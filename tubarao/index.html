@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Tubarão Faminto — Cogumelo Games</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+html,body { height:100%; overflow:hidden; }
+body { background:#04294a; font-family:Arial,sans-serif; color:#fff; user-select:none; }
+canvas { display:block; position:fixed; inset:0; touch-action:none; }
+.tela { position:fixed; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:linear-gradient(180deg,#0a4a7a 0%, #04294a 60%, #021428 100%); text-align:center; padding:20px; }
+.tela h1 { font-size:min(11vw,54px); font-weight:900; color:#7fd4ff; text-shadow:0 0 22px rgba(0,170,255,0.8); margin-bottom:8px; }
+.tela .sub { color:#a8d8f0; font-size:16px; margin-bottom:24px; max-width:420px; line-height:1.5; }
+.tela button { font-size:24px; font-weight:bold; padding:16px 44px; border:none; border-radius:18px; cursor:pointer;
+    background:linear-gradient(135deg,#00a8ff,#7fd4ff); color:#03293f; box-shadow:0 0 22px rgba(0,170,255,0.6); }
+.tela button:active { transform:scale(0.95); }
+.tela .rec { color:#ffd700; font-weight:bold; margin-top:16px; font-size:18px; }
+#fim { display:none; }
+#fim .pontos { font-size:64px; font-weight:900; color:#7fd4ff; text-shadow:0 0 22px rgba(0,170,255,0.8); }
+a.voltar { position:fixed; bottom:10px; left:0; right:0; text-align:center; color:#7fb8d8; text-decoration:none; font-weight:bold; font-size:13px; z-index:11; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div class="tela" id="menu">
+    <h1>🦈 Tubarão Faminto</h1>
+    <div class="sub">Você é o tubarão! Coma peixes MENORES que você pra crescer.<br>
+        Peixe maior te machuca! 🪼 Águas-vivas sempre machucam. 🎣 Cuidado com o anzol do barco!<br><br>
+        🖱️ O tubarão segue o mouse/dedo (ou setas/WASD).<br>
+        Cresça até virar o <b style="color:#ffd700">REI DO OCEANO 👑</b></div>
+    <button onclick="jogar()">🦈 NADAR!</button>
+    <div class="rec" id="recMenu"></div>
+</div>
+
+<div class="tela" id="fim">
+    <h1 id="fimTitulo">💀 GLUB GLUB...</h1>
+    <div class="pontos" id="fimPontos">0</div>
+    <div class="rec" id="fimRec"></div>
+    <button onclick="jogar()" style="margin-top:20px">🔁 DE NOVO!</button>
+</div>
+<a class="voltar" href="/">← Voltar pros jogos</a>
+
+<script src="/stats.js"></script>
+<script src="/avisos.js?v=6"></script>
+<script>
+if (window.initStats) initStats('tubarao');
+
+function lsGet(k,d){ try{ var v=localStorage.getItem('tubarao_'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }
+function lsSet(k,v){ try{ localStorage.setItem('tubarao_'+k, JSON.stringify(v)); }catch(e){} }
+
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+var W, H;
+function resize(){
+    W = innerWidth; H = innerHeight;
+    cv.width = W*devicePixelRatio; cv.height = H*devicePixelRatio;
+    cv.style.width = W+'px'; cv.style.height = H+'px';
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+}
+addEventListener('resize', resize); resize();
+
+// ============ ESTADO ============
+var rodando = false, tub, peixes, bolhas, fx, pontos, alvoX, alvoY, ultimoT, spawnT, barco;
+var NIVEIS = [
+    { tam:26, nome:'Filhote' },
+    { tam:34, nome:'Tubarão' },
+    { tam:44, nome:'Tubarãozão' },
+    { tam:56, nome:'GIGANTE' },
+    { tam:70, nome:'MEGALODON' },
+    { tam:86, nome:'REI DO OCEANO 👑' }
+];
+var PEIXES = [
+    { tipo:'peixinho',     tam:14, pts:1 },
+    { tipo:'cavalomarinho',tam:16, pts:3 },
+    { tipo:'listrado',     tam:18, pts:2 },
+    { tipo:'baiacu',       tam:26, pts:4 },
+    { tipo:'tartaruga',    tam:30, pts:5 },
+    { tipo:'lula',         tam:34, pts:7 },
+    { tipo:'arraia',       tam:42, pts:9 },
+    { tipo:'polvo',        tam:46, pts:12 },
+    { tipo:'baleia',       tam:70, pts:25 }
+];
+
+function jogar(){
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('fim').style.display = 'none';
+    tub = { x:W/2, y:H/2, tam:NIVEIS[0].tam, nivel:0, comidos:0, vidas:3, inv:0, dir:1 };
+    peixes = []; bolhas = []; fx = [];
+    pontos = 0; spawnT = 0;
+    alvoX = W/2; alvoY = H/2;
+    barco = { x:-200, ativo:false, anzolY:0 };
+    rodando = true; ultimoT = performance.now();
+    requestAnimationFrame(loop);
+}
+window.jogar = jogar;
+document.getElementById('recMenu').textContent = lsGet('rec',0) ? '🏆 Recorde: ' + lsGet('rec',0) : '';
+
+// ============ CONTROLES ============
+cv.addEventListener('pointermove', function(e){ alvoX = e.clientX; alvoY = e.clientY; });
+cv.addEventListener('pointerdown', function(e){ alvoX = e.clientX; alvoY = e.clientY; });
+var tec = {};
+addEventListener('keydown', function(e){ tec[e.key.toLowerCase()] = true; });
+addEventListener('keyup', function(e){ tec[e.key.toLowerCase()] = false; });
+
+// ============ PEIXES ============
+function novoPeixe(){
+    // peixes do seu tamanho pra baixo aparecem mais; de vez em quando vem um GRANDÃO
+    var maxTipo = Math.min(PEIXES.length-1, tub.nivel*2 + (Math.random() < 0.25 ? 3 : 2));
+    var t = PEIXES[Math.floor(Math.random() * (maxTipo+1))];
+    var esq = Math.random() < 0.5;
+    peixes.push({
+        tipo:t.tipo, tam:t.tam * (0.85 + Math.random()*0.4), pts:t.pts,
+        x: esq ? -60 : W+60, y: 40 + Math.random()*(H-120),
+        vx: (esq ? 1 : -1) * (40 + Math.random()*90),
+        onda: Math.random()*7
+    });
+    // ❤️ coração de vida (raro, só quando você perdeu vida!)
+    if(Math.random() < 0.06 && tub.vidas < 3){
+        var esq2 = Math.random() < 0.5;
+        peixes.push({ tipo:'coracao', tam:16, pts:0, cura:true, x: esq2 ? -60 : W+60, y: 60 + Math.random()*(H-160), vx: (esq2?1:-1)*45, onda: Math.random()*7 });
+    }
+    // água-viva sobe do fundo
+    if(Math.random() < 0.18) peixes.push({ tipo:'aguaviva', tam:26, pts:0, agua:true, x:40+Math.random()*(W-80), y:H+40, vx:0, vy:-(30+Math.random()*40), onda:Math.random()*7 });
+}
+
+function machuca(){
+    if(tub.inv > 0) return;
+    tub.vidas--; tub.inv = 1.5;
+    fx.push({ x:tub.x, y:tub.y, t:'💢', vida:0.8 });
+    if(tub.vidas <= 0){
+        rodando = false;
+        var rec = lsGet('rec',0), novo = pontos > rec;
+        if(novo) lsSet('rec', pontos);
+        document.getElementById('fimTitulo').textContent = tub.nivel >= 5 ? '👑 REI DO OCEANO!' : '💀 GLUB GLUB...';
+        document.getElementById('fimPontos').textContent = pontos;
+        document.getElementById('fimRec').textContent = novo ? '🏆 NOVO RECORDE!!!' : '🏆 Recorde: ' + Math.max(rec,pontos);
+        setTimeout(function(){ document.getElementById('fim').style.display = 'flex'; }, 700);
+    }
+}
+
+// ============ LOOP ============
+function loop(agora){
+    if(!rodando){ return; }
+    var dt = Math.min((agora-ultimoT)/1000, 0.05);
+    ultimoT = agora;
+
+    // teclado também move o alvo (PS5/computador)
+    var V = 420*dt;
+    if(tec['arrowleft']||tec['a']) alvoX -= V;
+    if(tec['arrowright']||tec['d']) alvoX += V;
+    if(tec['arrowup']||tec['w']) alvoY -= V;
+    if(tec['arrowdown']||tec['s']) alvoY += V;
+    alvoX = Math.max(20, Math.min(W-20, alvoX));
+    alvoY = Math.max(20, Math.min(H-20, alvoY));
+
+    // tubarão nada até o alvo
+    var dx = alvoX - tub.x, dy = alvoY - tub.y;
+    tub.x += dx * Math.min(1, 4.5*dt);
+    tub.y += dy * Math.min(1, 4.5*dt);
+    if(Math.abs(dx) > 6) tub.dir = dx > 0 ? 1 : -1;
+    if(tub.inv > 0) tub.inv -= dt;
+
+    // nascem peixes
+    spawnT -= dt;
+    if(spawnT <= 0){ novoPeixe(); spawnT = Math.max(0.35, 1.1 - pontos*0.004); }
+
+    // barco pescador de vez em quando (depois de crescer um pouco)
+    if(!barco.ativo && tub.nivel >= 2 && Math.random() < 0.002){
+        barco.ativo = true; barco.x = -120; barco.anzolY = 80 + Math.random()*(H*0.5);
+    }
+    if(barco.ativo){
+        barco.x += 90*dt;
+        if(barco.x > W+140) barco.ativo = false;
+        // anzol machuca!
+        if(Math.abs(barco.x - tub.x) < 26 && Math.abs(barco.anzolY - tub.y) < 34) machuca();
+    }
+
+    // peixes nadam
+    for(var i=peixes.length-1; i>=0; i--){
+        var p = peixes[i];
+        p.x += p.vx*dt;
+        if(p.vy) p.y += p.vy*dt;
+        p.y += Math.sin(agora/400 + p.onda) * 18 * dt;
+        if(p.x < -100 || p.x > W+100 || p.y < -80){ peixes.splice(i,1); continue; }
+        // encostou no tubarão?
+        var dist = Math.hypot(p.x-tub.x, p.y-tub.y);
+        if(dist < (p.tam + tub.tam)*0.55){
+            if(p.cura){
+                tub.vidas = Math.min(3, tub.vidas + 1);
+                fx.push({ x:p.x, y:p.y, t:'💚 +1', vida:1.2 });
+                peixes.splice(i,1);
+                continue;
+            }
+            if(p.agua || p.tam > tub.tam*1.15){
+                machuca();
+                if(p.agua) peixes.splice(i,1);
+            } else {
+                // NHAC! 😋
+                pontos += p.pts;
+                tub.comidos++;
+                fx.push({ x:p.x, y:p.y, t:'+'+p.pts, vida:0.9 });
+                peixes.splice(i,1);
+                // cresce!
+                var precisa = 6 + tub.nivel*5;
+                if(tub.comidos >= precisa && tub.nivel < NIVEIS.length-1){
+                    tub.comidos = 0; tub.nivel++;
+                    tub.tam = NIVEIS[tub.nivel].tam;
+                    for(var b2=0;b2<16;b2++) fx.push({ x:tub.x+(Math.random()-0.5)*140, y:tub.y+(Math.random()-0.5)*140, t:['✨','🌟','💛'][Math.floor(Math.random()*3)], vida:1.2 });
+                    fx.push({ x:tub.x, y:tub.y-70, t:NIVEIS[tub.nivel].nome + '!', vida:1.8 });
+                }
+            }
+        }
+    }
+
+    // bolhas de enfeite
+    if(Math.random() < 0.1) bolhas.push({ x:Math.random()*W, y:H+10, v:30+Math.random()*50, r:2+Math.random()*5 });
+    for(var i=bolhas.length-1; i>=0; i--){ bolhas[i].y -= bolhas[i].v*dt; if(bolhas[i].y < -10) bolhas.splice(i,1); }
+
+    desenha(agora);
+    requestAnimationFrame(loop);
+}
+
+// ============ DESENHO ============
+function desenha(agora){
+    var g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#0a4a7a'); g.addColorStop(0.6,'#04294a'); g.addColorStop(1,'#021428');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    // raios de luz
+    ctx.fillStyle = 'rgba(120,200,255,0.05)';
+    for(var i=0;i<3;i++){
+        ctx.beginPath();
+        var lx = W*0.2 + i*W*0.3 + Math.sin(agora/3000+i)*30;
+        ctx.moveTo(lx-30,0); ctx.lineTo(lx+30,0); ctx.lineTo(lx+120,H); ctx.lineTo(lx-120,H); ctx.fill();
+    }
+    // bolhas
+    ctx.strokeStyle = 'rgba(180,230,255,0.4)';
+    bolhas.forEach(function(b){ ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,7); ctx.stroke(); });
+    // barco + anzol
+    if(barco.ativo){
+        ctx.font = '54px Arial'; ctx.textAlign = 'center';
+        ctx.fillText('⛵', barco.x, 46);
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(barco.x, 40); ctx.lineTo(barco.x, barco.anzolY); ctx.stroke();
+        ctx.font = '26px Arial'; ctx.fillText('🪝', barco.x, barco.anzolY+10);
+    }
+    // peixes DESENHADOS À MÃO — coloridos e bem visíveis!
+    peixes.forEach(function(p){
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        if(p.vx > 0) ctx.scale(-1,1); // todos nadam olhando pra esquerda
+        desenhaBicho(p, agora);
+        ctx.restore();
+        if(!p.agua && !p.cura && p.tam > tub.tam*1.15){
+            ctx.strokeStyle = 'rgba(255,60,60,0.8)'; ctx.lineWidth = 3;
+            ctx.setLineDash([8,6]);
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.tam*1.05, 0, 7); ctx.stroke();
+            ctx.setLineDash([]);
+        }
+    });
+    // tubarão desenhado (pisca quando machucado)
+    if(!(tub.inv > 0 && Math.floor(tub.inv*10)%2 === 0)){
+        ctx.save();
+        ctx.translate(tub.x, tub.y);
+        if(tub.dir > 0) ctx.scale(-1,1);
+        desenhaTubarao(tub.tam, agora);
+        ctx.restore();
+    }
+    // efeitos
+    ctx.font = 'bold 24px Arial'; ctx.fillStyle = '#ffe066';
+    for(var i=fx.length-1; i>=0; i--){
+        var f = fx[i];
+        f.y -= 0.8; f.vida -= 0.016;
+        ctx.globalAlpha = Math.max(0, Math.min(1, f.vida));
+        ctx.fillText(f.t, f.x, f.y);
+        if(f.vida <= 0) fx.splice(i,1);
+    }
+    ctx.globalAlpha = 1;
+    // HUD
+    ctx.textAlign = 'left'; ctx.font = 'bold 24px Arial'; ctx.fillStyle = '#fff';
+    ctx.fillText('⭐ ' + pontos, 14, 34);
+    ctx.fillText('❤️'.repeat(Math.max(0,tub.vidas)) + '🖤'.repeat(Math.max(0,3-tub.vidas)), 14, 64);
+    ctx.fillText('🦈 ' + NIVEIS[tub.nivel].nome, 14, 94);
+    // barrinha de crescimento
+    var precisa = 6 + tub.nivel*5;
+    if(tub.nivel < NIVEIS.length-1){
+        ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(14, 104, 160, 12);
+        ctx.fillStyle = '#7fd4ff'; ctx.fillRect(14, 104, 160*Math.min(1, tub.comidos/precisa), 12);
+    }
+}
+
+// ============ BICHOS DESENHADOS À MÃO ============
+function peixeBase(t, cor, corEscura, corBarriga){
+    // rabo
+    ctx.fillStyle = corEscura;
+    ctx.beginPath(); ctx.moveTo(t*0.8, 0); ctx.lineTo(t*1.35, -t*0.45); ctx.lineTo(t*1.35, t*0.45); ctx.closePath(); ctx.fill();
+    // barbatana de cima
+    ctx.beginPath(); ctx.moveTo(-t*0.15, -t*0.5); ctx.lineTo(t*0.15, -t*0.85); ctx.lineTo(t*0.35, -t*0.45); ctx.closePath(); ctx.fill();
+    // corpo
+    ctx.fillStyle = cor;
+    ctx.beginPath(); ctx.ellipse(0, 0, t, t*0.6, 0, 0, 7); ctx.fill();
+    // barriga clarinha SÓ dentro do corpo (recortada)
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(0, 0, t, t*0.6, 0, 0, 7); ctx.clip();
+    ctx.fillStyle = corBarriga;
+    ctx.beginPath(); ctx.ellipse(0, t*0.45, t*0.9, t*0.4, 0, 0, 7); ctx.fill();
+    ctx.restore();
+}
+function carinha(t){
+    // olho grande e fofo
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-t*0.45, -t*0.12, t*0.22, 0, 7); ctx.fill();
+    ctx.fillStyle = '#1b1b1b';
+    ctx.beginPath(); ctx.arc(-t*0.52, -t*0.12, t*0.11, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-t*0.56, -t*0.17, t*0.045, 0, 7); ctx.fill();
+    // sorrisinho
+    ctx.strokeStyle = 'rgba(30,30,30,0.75)'; ctx.lineWidth = Math.max(1.5, t*0.06);
+    ctx.beginPath(); ctx.arc(-t*0.68, t*0.12, t*0.14, 0.3, 2.6); ctx.stroke();
+}
+function desenhaBicho(p, agora){
+    var t = p.tam;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 6;
+    if(p.tipo === 'peixinho'){
+        peixeBase(t, '#ff8c2e', '#e06a10', '#ffd9a8');
+        carinha(t);
+    } else if(p.tipo === 'listrado'){
+        peixeBase(t, '#ffd42e', '#e0a800', '#fff2b0');
+        // listras azuis recortadas dentro do corpo
+        ctx.save();
+        ctx.beginPath(); ctx.ellipse(0, 0, t, t*0.6, 0, 0, 7); ctx.clip();
+        ctx.fillStyle = '#2a6ad0';
+        ctx.fillRect(-t*0.25, -t*0.7, t*0.2, t*1.4);
+        ctx.fillRect(t*0.2, -t*0.7, t*0.2, t*1.4);
+        ctx.restore();
+        carinha(t);
+    } else if(p.tipo === 'baiacu'){
+        // espinhos = triangulinhos fofos em volta
+        ctx.fillStyle = '#d89a2a';
+        for(var i=0;i<12;i++){
+            var a = i/12*Math.PI*2;
+            var cx = Math.cos(a), cy = Math.sin(a);
+            ctx.beginPath();
+            ctx.moveTo(cx*t*0.72 - cy*t*0.09, cy*t*0.72 + cx*t*0.09);
+            ctx.lineTo(cx*t*0.72 + cy*t*0.09, cy*t*0.72 - cx*t*0.09);
+            ctx.lineTo(cx*t*0.98, cy*t*0.98);
+            ctx.closePath(); ctx.fill();
+        }
+        // corpo redondinho
+        ctx.fillStyle = '#f5c84e';
+        ctx.beginPath(); ctx.arc(0, 0, t*0.75, 0, 7); ctx.fill();
+        ctx.save();
+        ctx.beginPath(); ctx.arc(0, 0, t*0.75, 0, 7); ctx.clip();
+        ctx.fillStyle = '#fbe7a8';
+        ctx.beginPath(); ctx.ellipse(0, t*0.55, t*0.75, t*0.42, 0, 0, 7); ctx.fill();
+        ctx.restore();
+        // rabinho
+        ctx.fillStyle = '#d89a2a';
+        ctx.beginPath(); ctx.moveTo(t*0.7, 0); ctx.lineTo(t*1.1, -t*0.28); ctx.lineTo(t*1.1, t*0.28); ctx.closePath(); ctx.fill();
+        carinha(t*0.9);
+    } else if(p.tipo === 'lula'){
+        // cabeça de foguetinho + tentáculos
+        ctx.fillStyle = '#ff8ab8';
+        ctx.beginPath();
+        ctx.moveTo(-t, 0);
+        ctx.quadraticCurveTo(-t*0.4, -t*0.6, t*0.15, -t*0.42);
+        ctx.quadraticCurveTo(t*0.4, 0, t*0.15, t*0.42);
+        ctx.quadraticCurveTo(-t*0.4, t*0.6, -t, 0);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#ff8ab8'; ctx.lineWidth = Math.max(3, t*0.14); ctx.lineCap = 'round';
+        for(var i=-2;i<=2;i++){
+            ctx.beginPath(); ctx.moveTo(t*0.15, i*t*0.14);
+            ctx.quadraticCurveTo(t*0.55, i*t*0.2 + Math.sin(agora/200+i)*4, t*0.85, i*t*0.26 + Math.sin(agora/150+i)*3);
+            ctx.stroke();
+        }
+        carinha(t*0.8);
+    } else if(p.tipo === 'polvo'){
+        // cabeça redonda + 4 perninhas onduladas
+        ctx.strokeStyle = '#a56ad8'; ctx.lineWidth = Math.max(4, t*0.16); ctx.lineCap = 'round';
+        for(var i=0;i<4;i++){
+            var lx = -t*0.4 + i*t*0.27;
+            ctx.beginPath(); ctx.moveTo(lx, t*0.25);
+            ctx.quadraticCurveTo(lx + Math.sin(agora/180+i)*6, t*0.65, lx + (i%2?8:-8), t*0.9);
+            ctx.stroke();
+        }
+        ctx.fillStyle = '#a56ad8';
+        ctx.beginPath(); ctx.arc(0, -t*0.05, t*0.62, 0, 7); ctx.fill();
+        // bochechas
+        ctx.fillStyle = 'rgba(255,140,180,0.6)';
+        ctx.beginPath(); ctx.arc(-t*0.35, t*0.12, t*0.1, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.arc(t*0.35, t*0.12, t*0.1, 0, 7); ctx.fill();
+        // dois olhos fofos
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(-t*0.2, -t*0.12, t*0.16, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.arc(t*0.2, -t*0.12, t*0.16, 0, 7); ctx.fill();
+        ctx.fillStyle = '#1b1b1b';
+        ctx.beginPath(); ctx.arc(-t*0.22, -t*0.1, t*0.08, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.arc(t*0.18, -t*0.1, t*0.08, 0, 7); ctx.fill();
+        // boquinha
+        ctx.strokeStyle = 'rgba(60,20,90,0.8)'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(0, t*0.14, t*0.1, 0.3, 2.8); ctx.stroke();
+    } else if(p.tipo === 'baleia'){
+        peixeBase(t, '#4a7ad8', '#33529c', '#c5d9f7');
+        carinha(t);
+        // esguicho fofo
+        ctx.strokeStyle = '#9ad4ff'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(-t*0.15, -t*0.6); ctx.quadraticCurveTo(-t*0.3, -t*0.85, -t*0.4, -t*0.95); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-t*0.15, -t*0.6); ctx.quadraticCurveTo(0, -t*0.85, t*0.1, -t*0.95); ctx.stroke();
+    } else if(p.tipo === 'tartaruga'){
+        // patinhas
+        ctx.fillStyle = '#4aa85e';
+        ctx.beginPath(); ctx.ellipse(-t*0.55, t*0.35, t*0.22, t*0.13, -0.4, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(t*0.45, t*0.35, t*0.22, t*0.13, 0.4, 0, 7); ctx.fill();
+        // casco
+        ctx.fillStyle = '#2f7d43';
+        ctx.beginPath(); ctx.ellipse(0, 0, t*0.85, t*0.55, 0, 0, 7); ctx.fill();
+        // desenho do casco
+        ctx.strokeStyle = '#1e5a2e'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(0, 0, t*0.55, t*0.32, 0, 0, 7); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-t*0.55, 0); ctx.lineTo(t*0.55, 0); ctx.stroke();
+        // cabecinha
+        ctx.fillStyle = '#4aa85e';
+        ctx.beginPath(); ctx.arc(-t*0.95, -t*0.1, t*0.28, 0, 7); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(-t*1.02, -t*0.18, t*0.1, 0, 7); ctx.fill();
+        ctx.fillStyle = '#1b1b1b';
+        ctx.beginPath(); ctx.arc(-t*1.05, -t*0.18, t*0.05, 0, 7); ctx.fill();
+        ctx.strokeStyle = 'rgba(20,60,30,0.8)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(-t*1.05, t*0.0, t*0.09, 0.3, 2.6); ctx.stroke();
+    } else if(p.tipo === 'cavalomarinho'){
+        ctx.strokeStyle = '#ff9d4a'; ctx.lineWidth = Math.max(5, t*0.35); ctx.lineCap = 'round';
+        // corpinho em S
+        ctx.beginPath();
+        ctx.moveTo(-t*0.35, -t*0.55);
+        ctx.quadraticCurveTo(t*0.35, -t*0.35, t*0.05, t*0.1);
+        ctx.quadraticCurveTo(-t*0.3, t*0.55, t*0.25, t*0.8);
+        ctx.stroke();
+        // focinho
+        ctx.beginPath(); ctx.moveTo(-t*0.35, -t*0.55); ctx.lineTo(-t*0.75, -t*0.5); ctx.stroke();
+        // crista
+        ctx.fillStyle = '#e07820';
+        for(var i=0;i<3;i++){
+            ctx.beginPath();
+            ctx.arc(-t*0.05 + i*t*0.16, -t*0.55 - i*t*0.02, t*0.1, 0, 7); ctx.fill();
+        }
+        // olhinho
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(-t*0.35, -t*0.6, t*0.13, 0, 7); ctx.fill();
+        ctx.fillStyle = '#1b1b1b';
+        ctx.beginPath(); ctx.arc(-t*0.38, -t*0.6, t*0.065, 0, 7); ctx.fill();
+    } else if(p.tipo === 'arraia'){
+        // asas de arraia (losango suave)
+        ctx.fillStyle = '#7a6ae0';
+        ctx.beginPath();
+        ctx.moveTo(-t*0.9, 0);
+        ctx.quadraticCurveTo(-t*0.1, -t*0.75 + Math.sin(agora/250)*5, t*0.5, -t*0.1);
+        ctx.quadraticCurveTo(t*0.9, 0, t*0.5, t*0.1);
+        ctx.quadraticCurveTo(-t*0.1, t*0.75 - Math.sin(agora/250)*5, -t*0.9, 0);
+        ctx.closePath(); ctx.fill();
+        // rabo comprido
+        ctx.strokeStyle = '#7a6ae0'; ctx.lineWidth = Math.max(3, t*0.08); ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(t*0.8, 0); ctx.quadraticCurveTo(t*1.3, Math.sin(agora/200)*8, t*1.6, -t*0.1); ctx.stroke();
+        // barriga clara
+        ctx.fillStyle = 'rgba(230,225,255,0.5)';
+        ctx.beginPath(); ctx.ellipse(-t*0.2, t*0.08, t*0.45, t*0.2, 0, 0, 7); ctx.fill();
+        // olhinhos
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(-t*0.55, -t*0.12, t*0.11, 0, 7); ctx.fill();
+        ctx.fillStyle = '#1b1b1b';
+        ctx.beginPath(); ctx.arc(-t*0.58, -t*0.12, t*0.055, 0, 7); ctx.fill();
+        ctx.strokeStyle = 'rgba(40,30,90,0.8)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(-t*0.62, t*0.08, t*0.1, 0.3, 2.6); ctx.stroke();
+    } else if(p.tipo === 'coracao'){
+        // coração de vida brilhando!
+        var pulso = 1 + Math.sin(agora/200)*0.12;
+        ctx.save(); ctx.scale(pulso, pulso);
+        ctx.shadowColor = '#ff4d6d'; ctx.shadowBlur = 20;
+        ctx.fillStyle = '#ff4d6d';
+        ctx.beginPath();
+        ctx.moveTo(0, t*0.75);
+        ctx.bezierCurveTo(-t*1.05, 0, -t*0.55, -t*0.85, 0, -t*0.25);
+        ctx.bezierCurveTo(t*0.55, -t*0.85, t*1.05, 0, 0, t*0.75);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.beginPath(); ctx.arc(-t*0.3, -t*0.3, t*0.14, 0, 7); ctx.fill();
+        ctx.restore();
+    } else if(p.tipo === 'aguaviva'){
+        ctx.globalAlpha = 0.9;
+        ctx.shadowColor = '#ff9ad0'; ctx.shadowBlur = 16;
+        ctx.fillStyle = 'rgba(255,130,195,0.8)';
+        ctx.beginPath(); ctx.arc(0, 0, t*0.65, Math.PI, 0);
+        ctx.quadraticCurveTo(t*0.65, t*0.2, t*0.5, t*0.18);
+        ctx.quadraticCurveTo(0, t*0.32, -t*0.5, t*0.18);
+        ctx.quadraticCurveTo(-t*0.65, t*0.2, -t*0.65, 0);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,160,215,0.85)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+        for(var i=-2;i<=2;i++){
+            ctx.beginPath(); ctx.moveTo(i*t*0.2, t*0.2);
+            ctx.quadraticCurveTo(i*t*0.2 + Math.sin(agora/150+i)*6, t*0.55, i*t*0.24, t*0.85);
+            ctx.stroke();
+        }
+        // olhinhos
+        ctx.fillStyle = 'rgba(120,20,70,0.8)';
+        ctx.beginPath(); ctx.arc(-t*0.18, -t*0.1, t*0.06, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.arc(t*0.18, -t*0.1, t*0.06, 0, 7); ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+    ctx.shadowBlur = 0;
+}
+function desenhaTubarao(t, agora){
+    var rabo = Math.sin(agora/120) * t * 0.12; // rabo balança nadando
+    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 8;
+    // rabo
+    ctx.fillStyle = '#5a7d94';
+    ctx.beginPath();
+    ctx.moveTo(t*0.9, 0);
+    ctx.lineTo(t*1.5, -t*0.6 + rabo);
+    ctx.lineTo(t*1.35, 0);
+    ctx.lineTo(t*1.5, t*0.5 + rabo);
+    ctx.closePath(); ctx.fill();
+    // corpo
+    ctx.beginPath(); ctx.ellipse(0, 0, t, t*0.52, 0, 0, 7); ctx.fill();
+    // barbatana de cima
+    ctx.beginPath(); ctx.moveTo(-t*0.1, -t*0.4); ctx.lineTo(t*0.15, -t*0.95); ctx.lineTo(t*0.45, -t*0.4); ctx.closePath(); ctx.fill();
+    // barbatana de baixo
+    ctx.beginPath(); ctx.moveTo(t*0.05, t*0.35); ctx.lineTo(t*0.3, t*0.75); ctx.lineTo(t*0.5, t*0.35); ctx.closePath(); ctx.fill();
+    // barriga branca
+    ctx.fillStyle = '#e8f2f8';
+    ctx.beginPath(); ctx.ellipse(-t*0.1, t*0.18, t*0.8, t*0.3, 0, 0, 7); ctx.fill();
+    // guelras
+    ctx.strokeStyle = '#3a5a70'; ctx.lineWidth = 2;
+    for(var i=0;i<3;i++){ ctx.beginPath(); ctx.moveTo(t*0.25+i*t*0.12, -t*0.15); ctx.lineTo(t*0.3+i*t*0.12, t*0.15); ctx.stroke(); }
+    // boca sorrindo com DENTES
+    ctx.strokeStyle = '#26404f'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(-t*0.55, t*0.1, t*0.32, 0.25, 1.35); ctx.stroke();
+    ctx.fillStyle = '#fff';
+    for(var i=0;i<4;i++){
+        var mx = -t*0.78 + i*t*0.15;
+        ctx.beginPath(); ctx.moveTo(mx, t*0.28); ctx.lineTo(mx+t*0.06, t*0.42); ctx.lineTo(mx+t*0.12, t*0.28); ctx.closePath(); ctx.fill();
+    }
+    // olho
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-t*0.55, -t*0.18, t*0.14, 0, 7); ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.arc(-t*0.58, -t*0.18, t*0.075, 0, 7); ctx.fill();
+    // coroa de REI DO OCEANO
+    if(tub.nivel >= 5){
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.moveTo(-t*0.35, -t*0.95); ctx.lineTo(-t*0.35, -t*1.3); ctx.lineTo(-t*0.18, -t*1.05);
+        ctx.lineTo(0, -t*1.35); ctx.lineTo(t*0.18, -t*1.05); ctx.lineTo(t*0.35, -t*1.3); ctx.lineTo(t*0.35, -t*0.95);
+        ctx.closePath(); ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+}
+</script>
+</body>
+</html>
