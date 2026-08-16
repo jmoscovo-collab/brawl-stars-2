@@ -127,6 +127,7 @@ var pa = lsGet('pa', 0);
 var detsMinhas = lsGet('dets', [true]);
 var det = lsGet('det', 0);
 var achados = lsGet('achados', 0); // total de tesouros já achados (recorde de pirata)
+var ima = lsGet('ima', false); // 🧲 puxa ferro e moeda sozinho!
 
 // ============ ILHA ============
 var tesouros = [], buracos = [], pl, alvo, ultimoT = 0, brilhoAchado = 0;
@@ -256,6 +257,16 @@ function abreLoja(){
         };
         el.appendChild(b);
     });
+    var t3 = document.createElement('small'); t3.style.color='#a8cbe0'; t3.textContent='🧲 EXTRAS';
+    el.appendChild(t3);
+    var bi = document.createElement('button');
+    bi.className = 'item' + (ima ? ' meu usando' : (moedas < 800 ? ' caro' : ''));
+    bi.innerHTML = '<span class="ic">🧲</span><span class="info">Ímã de Metais<small>puxa 🔩 ferro e 🪙 moeda sozinho, sem cavar!</small></span>' + (ima ? '✅' : '🪙800');
+    bi.onclick = function(){
+        if(!ima && moedas >= 800){ moedas -= 800; ima = true; lsSet('moedas',moedas); lsSet('ima',ima); }
+        abreLoja();
+    };
+    el.appendChild(bi);
     document.getElementById('loja').style.display = 'flex';
 }
 function abreIlhas(){
@@ -303,6 +314,22 @@ function loop(agora){
     if(pl.cavando > 0) pl.cavando -= dt;
     if(brilhoAchado > 0) brilhoAchado -= dt;
 
+    // 🧲 ímã: ferro e moeda enterrados PERTO voam pro seu bolso!
+    if(ima){
+        tesouros.forEach(function(t){
+            if(!t.achado && t.tipo <= 1 && Math.hypot(t.x-pl.x, t.y-pl.y) < 190){
+                t.achado = true;
+                var item = ITENS[t.tipo];
+                moedas += item.v; achados++;
+                lsSet('moedas', moedas); lsSet('achados', achados);
+                brilhoAchado = 0.35;
+                bipe(700, 0.1);
+                if(tesouros.every(function(x){ return x.achado; })){
+                    setTimeout(function(){ rodada++; lsSet('rodada', rodada); montaIlha(); }, 1200);
+                }
+            }
+        });
+    }
     // detector: quanto mais perto do tesouro, mais rápido apita
     var maisPerto = 1e9;
     tesouros.forEach(function(t){ if(!t.achado) maisPerto = Math.min(maisPerto, Math.hypot(t.x-pl.x, t.y-pl.y)); });
