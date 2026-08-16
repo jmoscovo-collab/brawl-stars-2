@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Caça ao Tesouro — Cogumelo Games</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+html,body { height:100%; overflow:hidden; }
+body { background:#0a3a5c; font-family:Arial,sans-serif; color:#fff; user-select:none; }
+canvas { display:block; position:fixed; inset:0; touch-action:none; }
+#bCavar { position:fixed; right:18px; bottom:calc(20px + env(safe-area-inset-bottom)); z-index:6; width:92px; height:92px; border-radius:50%;
+    border:4px solid #fff; background:linear-gradient(135deg,#b06a2a,#e0954a); color:#fff; font-size:44px; cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,0.5); }
+#bCavar:active { transform:scale(0.9); }
+#bLoja, #bIlhas { position:fixed; top:12px; z-index:6; font-size:26px; width:52px; height:52px; border-radius:14px; color:#fff; cursor:pointer; }
+#bLoja { right:12px; border:2px solid #ffaa00; background:rgba(255,170,0,0.25); }
+#bIlhas { right:74px; border:2px solid #4dff88; background:rgba(77,255,136,0.25); }
+.painel { position:fixed; inset:0; z-index:20; background:rgba(4,15,30,0.88); display:none; align-items:center; justify-content:center; }
+.painel .cartao { background:linear-gradient(180deg,#14405e,#0b2a42); border:3px solid #ffaa00; border-radius:22px; padding:20px;
+    width:min(94vw,420px); max-height:86vh; overflow:auto; text-align:center; }
+.painel h2 { font-size:30px; margin-bottom:12px; }
+.item { display:flex; align-items:center; gap:10px; width:100%; margin:7px 0; padding:10px 14px; border:2px solid rgba(255,255,255,0.25);
+    border-radius:14px; cursor:pointer; background:rgba(255,255,255,0.08); color:#fff; font-size:17px; font-weight:bold; }
+.item:active { transform:scale(0.96); }
+.item .ic { font-size:30px; }
+.item .info { flex:1; text-align:left; }
+.item small { display:block; font-weight:normal; font-size:12px; color:#a8cbe0; }
+.item.meu { border-color:#4dff88; }
+.item.usando { border-color:#ffd700; background:rgba(255,215,0,0.15); }
+.item.caro { opacity:0.45; }
+.fechar { font-size:24px; margin-top:10px; padding:8px 26px; border:none; border-radius:14px; cursor:pointer; background:#456; color:#fff; }
+#achou { position:fixed; inset:0; z-index:25; display:none; align-items:center; justify-content:center; flex-direction:column;
+    background:rgba(4,15,30,0.8); text-align:center; }
+#achou .ic { font-size:110px; filter:drop-shadow(0 0 30px rgba(255,215,0,0.9)); animation:pula 0.6s ease infinite alternate; }
+@keyframes pula { from{ transform:scale(1) rotate(-4deg);} to{ transform:scale(1.15) rotate(4deg);} }
+#achou .nome { font-size:30px; font-weight:900; color:#ffd700; margin:10px 0; text-shadow:0 0 16px rgba(255,215,0,0.7); }
+#achou .valor { font-size:24px; font-weight:bold; color:#4dff88; }
+a.voltar { position:fixed; bottom:8px; left:12px; color:#a8cbe0; text-decoration:none; font-weight:bold; font-size:13px; z-index:6; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<button id="bCavar">⛏️</button>
+<button id="bIlhas" onclick="abreIlhas()">🏝️</button>
+<button id="bLoja" onclick="abreLoja()">🛒</button>
+<a class="voltar" href="/">← jogos</a>
+
+<div class="painel" id="loja">
+    <div class="cartao">
+        <h2>🛒 Loja do Pirata</h2>
+        <div id="listaLoja"></div>
+        <button class="fechar" onclick="fecha('loja')">❌</button>
+    </div>
+</div>
+
+<div class="painel" id="ilhas">
+    <div class="cartao">
+        <h2>🗺️ Ilhas</h2>
+        <div id="listaIlhas"></div>
+        <button class="fechar" onclick="fecha('ilhas')">❌</button>
+    </div>
+</div>
+
+<div id="achou" onclick="fechaAchou()">
+    <div class="ic" id="achouIc">💎</div>
+    <div class="nome" id="achouNome">DIAMANTE!</div>
+    <div class="valor" id="achouValor">+🪙 80</div>
+</div>
+
+<script src="/stats.js?v=355"></script>
+<script src="/avisos.js?v=6"></script>
+<script>
+if (window.initStats) initStats('tesouro');
+
+function lsGet(k,d){ try{ var v=localStorage.getItem('tesouro_'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }
+function lsSet(k,v){ try{ localStorage.setItem('tesouro_'+k, JSON.stringify(v)); }catch(e){} }
+
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+var W, H;
+var ehCel = matchMedia('(pointer:coarse)').matches || ('ontouchstart' in window);
+var DPR = ehCel ? 1 : Math.min(devicePixelRatio||1, 1.5);
+function resize(){
+    W = innerWidth; H = innerHeight;
+    cv.width = W*DPR; cv.height = H*DPR;
+    cv.style.width = W+'px'; cv.style.height = H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+addEventListener('resize', resize); resize();
+
+// ============ DADOS ============
+var ILHAS = [
+    { nome:'Praia do Começo',    emoji:'🏖️', custo:0,     areia:'#e8c87a', agua:'#1a7ab8', tesouros:6 },
+    { nome:'Ilha da Selva',      emoji:'🌴', custo:300,   areia:'#a8c46a', agua:'#1a8a6a', tesouros:8 },
+    { nome:'Deserto Dourado',    emoji:'🏜️', custo:900,   areia:'#e0a84a', agua:'#2a9ac8', tesouros:10 },
+    { nome:'Ilha do Gelo',       emoji:'🧊', custo:2500,  areia:'#cfe4f0', agua:'#3a6a9c', tesouros:12 },
+    { nome:'Vulcão do Pirata',   emoji:'🌋', custo:7000,  areia:'#8a6a5a', agua:'#c84a2a', tesouros:15 }
+];
+var ITENS = [
+    { ic:'🪙', nome:'MOEDA ANTIGA', v:10 },
+    { ic:'💍', nome:'ANEL PERDIDO', v:25 },
+    { ic:'🏺', nome:'VASO ANTIGO',  v:40 },
+    { ic:'🗝️', nome:'CHAVE MISTERIOSA', v:60 },
+    { ic:'💎', nome:'DIAMANTE',     v:90 },
+    { ic:'👑', nome:'COROA DO REI', v:150 },
+    { ic:'🧰', nome:'BAÚ DO PIRATA', v:250 }
+];
+var PAS = [
+    { ic:'🥄', nome:'Colher',        raio:40,  p:0 },
+    { ic:'⛏️', nome:'Pá de Madeira', raio:65,  p:120 },
+    { ic:'🪓', nome:'Pá de Ferro',   raio:95,  p:500 },
+    { ic:'💪', nome:'Pá de Ouro',    raio:140, p:2000 }
+];
+var DETECTORES = [
+    { ic:'📻', nome:'Detector Velho',   alc:170, p:0 },
+    { ic:'📡', nome:'Detector Bom',     alc:280, p:200 },
+    { ic:'🛰️', nome:'Super Detector',   alc:450, p:800 },
+    { ic:'🔮', nome:'Detector Mágico',  alc:9999, p:3000 }
+];
+
+var moedas = lsGet('moedas', 0);
+var ilhaAtual = lsGet('ilha', 0);
+var ilhasMinhas = lsGet('ilhasMinhas', [true]);
+var pasMinhas = lsGet('pas', [true]);
+var pa = lsGet('pa', 0);
+var detsMinhas = lsGet('dets', [true]);
+var det = lsGet('det', 0);
+var achados = lsGet('achados', 0); // total de tesouros já achados (recorde de pirata)
+
+// ============ ILHA ============
+var tesouros = [], buracos = [], pl, alvo, ultimoT = 0, brilhoAchado = 0;
+function rnd(seed){
+    var a = seed >>> 0;
+    return function(){ a|=0; a=a+0x6D2B79F5|0; var t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+}
+var rodada = lsGet('rodada', 1); // cada ilha muda os esconderijos a cada rodada!
+function montaIlha(){
+    var I = ILHAS[ilhaAtual];
+    var r = rnd(ilhaAtual*991 + rodada*37 + 7);
+    tesouros = []; buracos = [];
+    var margem = 90;
+    for(var i=0;i<I.tesouros;i++){
+        // sorteia o tesouro: os raros aparecem menos
+        var sorte = r();
+        var tipo = sorte < 0.3 ? 0 : sorte < 0.5 ? 1 : sorte < 0.65 ? 2 : sorte < 0.78 ? 3 : sorte < 0.88 ? 4 : sorte < 0.96 ? 5 : 6;
+        tesouros.push({ x: margem + r()*(W-margem*2), y: margem + r()*(H-margem*2), tipo: tipo, achado:false });
+    }
+    pl = { x:W/2, y:H/2, dir:1, cavando:0 };
+    alvo = { x:pl.x, y:pl.y };
+}
+montaIlha();
+
+// ============ SOM (bipes do detector) ============
+var actx = null, bipT = 0;
+function bipe(freq, dur){
+    try{
+        if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+        var o = actx.createOscillator(), g = actx.createGain();
+        o.type='square'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.08, actx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+        o.connect(g); g.connect(actx.destination);
+        o.start(); o.stop(actx.currentTime + dur);
+    }catch(e){}
+}
+
+// ============ CONTROLES ============
+cv.addEventListener('pointerdown', function(e){ alvo.x = e.clientX; alvo.y = e.clientY; });
+cv.addEventListener('pointermove', function(e){ if(e.buttons || e.pressure > 0) { alvo.x = e.clientX; alvo.y = e.clientY; } });
+var tec = {};
+addEventListener('keydown', function(e){
+    tec[e.key.toLowerCase()] = true;
+    var k = e.key.toLowerCase();
+    if(k===' '||k==='e'||k==='j'){ e.preventDefault(); cavar(); }
+});
+addEventListener('keyup', function(e){ tec[e.key.toLowerCase()] = false; });
+document.getElementById('bCavar').addEventListener('pointerdown', function(e){ e.preventDefault(); cavar(); });
+
+// ============ CAVAR ============
+function cavar(){
+    if(pl.cavando > 0) return;
+    pl.cavando = 0.5;
+    buracos.push({ x:pl.x, y:pl.y + 14 });
+    if(buracos.length > 40) buracos.shift();
+    var raio = PAS[pa].raio;
+    var achou = null;
+    for(var i=0;i<tesouros.length;i++){
+        var t = tesouros[i];
+        if(!t.achado && Math.hypot(t.x-pl.x, t.y-pl.y) < raio){ achou = t; break; }
+    }
+    if(achou){
+        achou.achado = true;
+        var item = ITENS[achou.tipo];
+        moedas += item.v;
+        achados++;
+        lsSet('moedas', moedas); lsSet('achados', achados);
+        brilhoAchado = 1;
+        bipe(880, 0.15); setTimeout(function(){ bipe(1320, 0.3); }, 130);
+        document.getElementById('achouIc').textContent = item.ic;
+        document.getElementById('achouNome').textContent = item.nome + '!';
+        document.getElementById('achouValor').textContent = '+🪙 ' + item.v;
+        document.getElementById('achou').style.display = 'flex';
+        setTimeout(fechaAchou, 1600);
+        // achou TODOS = ilha limpa! novos tesouros são enterrados
+        if(tesouros.every(function(t){ return t.achado; })){
+            setTimeout(function(){
+                rodada++; lsSet('rodada', rodada);
+                montaIlha();
+            }, 1800);
+        }
+    } else {
+        bipe(160, 0.12);
+    }
+}
+function fechaAchou(){ document.getElementById('achou').style.display = 'none'; }
+window.fechaAchou = fechaAchou;
+
+// ============ LOJA / ILHAS ============
+function abreLoja(){
+    var el = document.getElementById('listaLoja');
+    el.innerHTML = '<small style="color:#a8cbe0">⛏️ PÁS (cavam uma área maior)</small>';
+    PAS.forEach(function(s,i){
+        var b = document.createElement('button');
+        b.className = 'item' + (pasMinhas[i] ? ' meu' : (moedas < s.p ? ' caro' : '')) + (pa===i ? ' usando' : '');
+        b.innerHTML = '<span class="ic">'+s.ic+'</span><span class="info">'+s.nome+'<small>cava área de '+s.raio+'</small></span>' +
+            (pasMinhas[i] ? (pa===i?'✅':'👆') : '🪙'+s.p.toLocaleString('pt-BR'));
+        b.onclick = function(){
+            if(pasMinhas[i]){ pa=i; lsSet('pa',pa); }
+            else if(moedas>=s.p){ moedas-=s.p; pasMinhas[i]=true; pa=i; lsSet('moedas',moedas); lsSet('pas',pasMinhas); lsSet('pa',pa); }
+            abreLoja();
+        };
+        el.appendChild(b);
+    });
+    var t2 = document.createElement('small'); t2.style.color='#a8cbe0'; t2.textContent='📡 DETECTORES (sentem o tesouro de mais longe)';
+    el.appendChild(t2);
+    DETECTORES.forEach(function(s,i){
+        var b = document.createElement('button');
+        b.className = 'item' + (detsMinhas[i] ? ' meu' : (moedas < s.p ? ' caro' : '')) + (det===i ? ' usando' : '');
+        b.innerHTML = '<span class="ic">'+s.ic+'</span><span class="info">'+s.nome+'<small>'+(s.alc>5000?'sente a ilha INTEIRA':'sente a '+s.alc+' de distância')+'</small></span>' +
+            (detsMinhas[i] ? (det===i?'✅':'👆') : '🪙'+s.p.toLocaleString('pt-BR'));
+        b.onclick = function(){
+            if(detsMinhas[i]){ det=i; lsSet('det',det); }
+            else if(moedas>=s.p){ moedas-=s.p; detsMinhas[i]=true; det=i; lsSet('moedas',moedas); lsSet('dets',detsMinhas); lsSet('det',det); }
+            abreLoja();
+        };
+        el.appendChild(b);
+    });
+    document.getElementById('loja').style.display = 'flex';
+}
+function abreIlhas(){
+    var el = document.getElementById('listaIlhas');
+    el.innerHTML = '';
+    ILHAS.forEach(function(I,i){
+        var b = document.createElement('button');
+        b.className = 'item' + (ilhasMinhas[i] ? ' meu' : (moedas < I.custo ? ' caro' : '')) + (ilhaAtual===i ? ' usando' : '');
+        b.innerHTML = '<span class="ic">'+I.emoji+'</span><span class="info">'+I.nome+'<small>'+I.tesouros+' tesouros enterrados</small></span>' +
+            (ilhasMinhas[i] ? (ilhaAtual===i?'✅':'⛵') : '🪙'+I.custo.toLocaleString('pt-BR'));
+        b.onclick = function(){
+            if(ilhasMinhas[i]){ ilhaAtual=i; lsSet('ilha',ilhaAtual); montaIlha(); fecha('ilhas'); }
+            else if(moedas>=I.custo){ moedas-=I.custo; ilhasMinhas[i]=true; ilhaAtual=i; lsSet('moedas',moedas); lsSet('ilhasMinhas',ilhasMinhas); lsSet('ilha',ilhaAtual); montaIlha(); fecha('ilhas'); }
+            else abreIlhas();
+        };
+        el.appendChild(b);
+    });
+    document.getElementById('ilhas').style.display = 'flex';
+}
+function fecha(id){ document.getElementById(id).style.display = 'none'; }
+window.abreLoja = abreLoja; window.abreIlhas = abreIlhas; window.fecha = fecha;
+
+// ============ LOOP ============
+function loop(agora){
+    var dt = Math.min((agora-ultimoT)/1000, 0.05);
+    ultimoT = agora;
+
+    var V = 300*dt;
+    if(tec['arrowleft']||tec['a']) { alvo.x = pl.x - 60; alvo.y = pl.y; }
+    if(tec['arrowright']||tec['d']) { alvo.x = pl.x + 60; alvo.y = pl.y; }
+    if(tec['arrowup']||tec['w']) { alvo.y = pl.y - 60; alvo.x = pl.x; }
+    if(tec['arrowdown']||tec['s']) { alvo.y = pl.y + 60; alvo.x = pl.x; }
+
+    var dx = alvo.x - pl.x, dy = alvo.y - pl.y, dist = Math.hypot(dx,dy);
+    if(dist > 6 && pl.cavando <= 0){
+        pl.x += dx/dist * Math.min(240*dt, dist);
+        pl.y += dy/dist * Math.min(240*dt, dist);
+        if(Math.abs(dx) > 4) pl.dir = dx > 0 ? 1 : -1;
+    }
+    pl.x = Math.max(50, Math.min(W-50, pl.x));
+    pl.y = Math.max(60, Math.min(H-60, pl.y));
+    if(pl.cavando > 0) pl.cavando -= dt;
+    if(brilhoAchado > 0) brilhoAchado -= dt;
+
+    // detector: quanto mais perto do tesouro, mais rápido apita
+    var maisPerto = 1e9;
+    tesouros.forEach(function(t){ if(!t.achado) maisPerto = Math.min(maisPerto, Math.hypot(t.x-pl.x, t.y-pl.y)); });
+    var alc = DETECTORES[det].alc;
+    var sinal = maisPerto < alc ? 1 - (maisPerto/alc) : 0; // 0 (longe) a 1 (em cima!)
+    bipT -= dt;
+    if(sinal > 0 && bipT <= 0){
+        bipe(300 + sinal*500, 0.06);
+        bipT = 0.8 - sinal*0.68;
+    }
+
+    desenha(agora, sinal, maisPerto);
+    requestAnimationFrame(loop);
+}
+
+// ============ DESENHO ============
+function desenha(agora, sinal, maisPerto){
+    var I = ILHAS[ilhaAtual];
+    // água em volta
+    ctx.fillStyle = I.agua; ctx.fillRect(0,0,W,H);
+    // ondinhas
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 2;
+    for(var i=0;i<5;i++){
+        var wy = (agora/40 + i*140) % (H+80) - 40;
+        ctx.beginPath(); ctx.arc(30 + (i*173)%60, wy, 12, 0.3, 2.8); ctx.stroke();
+        ctx.beginPath(); ctx.arc(W-30 - (i*97)%60, H - wy, 12, 3.4, 6.0); ctx.stroke();
+    }
+    // areia da ilha (retângulo arredondado grande)
+    ctx.fillStyle = I.areia;
+    ctx.beginPath();
+    var m = 34, rr = 60;
+    ctx.moveTo(m+rr, m);
+    ctx.arcTo(W-m, m, W-m, H-m, rr); ctx.arcTo(W-m, H-m, m, H-m, rr);
+    ctx.arcTo(m, H-m, m, m, rr); ctx.arcTo(m, m, W-m, m, rr);
+    ctx.closePath(); ctx.fill();
+    // pontinhos de areia
+    ctx.fillStyle = 'rgba(0,0,0,0.06)';
+    for(var i=0;i<40;i++){ ctx.fillRect((i*197)%(W-100)+60, (i*271)%(H-140)+80, 3, 3); }
+    // palmeiras nos cantos
+    palmeira(m+50, m+55); palmeira(W-m-55, m+70); palmeira(m+65, H-m-60); palmeira(W-m-70, H-m-70);
+    // buracos cavados
+    buracos.forEach(function(b){
+        ctx.fillStyle = 'rgba(90,60,30,0.55)';
+        ctx.beginPath(); ctx.ellipse(b.x, b.y, 16, 9, 0, 0, 7); ctx.fill();
+    });
+    // brilho dourado quando acha
+    if(brilhoAchado > 0){
+        ctx.fillStyle = 'rgba(255,215,0,' + brilhoAchado*0.25 + ')';
+        ctx.fillRect(0,0,W,H);
+    }
+    // jogador: exploradorzinho com detector
+    ctx.save();
+    ctx.translate(pl.x, pl.y);
+    if(pl.dir < 0) ctx.scale(-1,1);
+    var cavAng = pl.cavando > 0 ? Math.sin(pl.cavando*20)*0.5 : 0;
+    // sombra
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath(); ctx.ellipse(0, 18, 18, 6, 0, 0, 7); ctx.fill();
+    // perninhas
+    ctx.fillStyle = '#3a5a8c';
+    ctx.fillRect(-9, 2, 7, 15); ctx.fillRect(3, 2, 7, 15);
+    // corpo
+    ctx.fillStyle = '#e05a3a';
+    ctx.beginPath(); ctx.ellipse(0, -8, 13, 13, 0, 0, 7); ctx.fill();
+    // cabeça
+    ctx.fillStyle = '#f0b088';
+    ctx.beginPath(); ctx.arc(0, -26, 10, 0, 7); ctx.fill();
+    // chapéu de explorador
+    ctx.fillStyle = '#c8a04a';
+    ctx.beginPath(); ctx.ellipse(0, -31, 15, 5, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -33, 9, Math.PI, 0); ctx.fill();
+    // olho
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.arc(5, -27, 1.8, 0, 7); ctx.fill();
+    // braço + detector (ou pá cavando)
+    ctx.save();
+    ctx.translate(9, -10);
+    ctx.rotate(0.5 + cavAng);
+    ctx.strokeStyle = '#f0b088'; ctx.lineWidth = 5; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(14, 8); ctx.stroke();
+    if(pl.cavando > 0){
+        ctx.font = '22px Arial'; ctx.fillText('⛏️', 22, 16);
+    } else {
+        // cabo do detector + disco
+        ctx.strokeStyle = '#888'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(14, 8); ctx.lineTo(30, 24); ctx.stroke();
+        ctx.fillStyle = sinal > 0.6 ? '#ff5a3a' : '#a0a8b0';
+        ctx.beginPath(); ctx.ellipse(33, 27, 9, 4.5, 0.7, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+    ctx.restore();
+
+    // ===== HUD =====
+    ctx.textAlign='left'; ctx.font='bold 22px Arial'; ctx.fillStyle='#fff';
+    ctx.fillText('🪙 ' + moedas.toLocaleString('pt-BR'), 14, 32);
+    var faltam = tesouros.filter(function(t){ return !t.achado; }).length;
+    ctx.fillText('💰 faltam ' + faltam, 14, 60);
+    ctx.fillText(PAS[pa].ic + ' ' + DETECTORES[det].ic, 14, 88);
+    // medidor do detector 📶
+    var barras = Math.ceil(sinal*5);
+    for(var i=0;i<5;i++){
+        ctx.fillStyle = i < barras ? (sinal>0.7?'#ff5a3a':sinal>0.4?'#ffd24a':'#4dff88') : 'rgba(255,255,255,0.25)';
+        ctx.fillRect(14 + i*16, 118 - i*4, 12, 10 + i*4);
+    }
+    if(sinal >= 0.92){
+        ctx.font='bold 26px Arial'; ctx.fillStyle='#ff5a3a';
+        ctx.fillText('⛏️ CAVA AQUI!!!', 100, 126);
+    }
+}
+function palmeira(x, y){
+    ctx.strokeStyle = '#8a5a2a'; ctx.lineWidth = 6; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(x, y+18); ctx.quadraticCurveTo(x+6, y-4, x+2, y-18); ctx.stroke();
+    ctx.fillStyle = '#2f8a43';
+    for(var i=0;i<5;i++){
+        var a = -Math.PI/2 + (i-2)*0.55;
+        ctx.beginPath();
+        ctx.ellipse(x+2 + Math.cos(a)*14, y-18 + Math.sin(a)*8, 13, 5, a, 0, 7);
+        ctx.fill();
+    }
+    ctx.fillStyle = '#7a4a1a';
+    ctx.beginPath(); ctx.arc(x+2, y-14, 3, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+8, y-16, 3, 0, 7); ctx.fill();
+}
+
+ultimoT = performance.now();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
