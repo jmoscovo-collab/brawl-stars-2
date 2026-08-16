@@ -503,33 +503,12 @@ function desenha(agora, sinal, maisPerto){
     palmeiras.forEach(function(pm){
         if(pm.x > camX-60 && pm.x < camX+W+60 && pm.y > camY-60 && pm.y < camY+H+60) palmeira(pm.x, pm.y);
     });
-    // comerciantes (barraquinha com guarda-sol)
+    // comerciantes — o velhinho pixelado de touca vermelha!
     comerciantes.forEach(function(c){
-        if(c.x < camX-80 || c.x > camX+W+80 || c.y < camY-80 || c.y > camY+H+80) return;
-        // balcão
-        ctx.fillStyle = '#8a5a2a';
-        ctx.fillRect(c.x-26, c.y-8, 52, 18);
-        ctx.fillStyle = '#6a4318';
-        ctx.fillRect(c.x-26, c.y-8, 52, 5);
-        // guarda-sol
-        ctx.strokeStyle = '#6a4318'; ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.moveTo(c.x, c.y-8); ctx.lineTo(c.x, c.y-46); ctx.stroke();
-        ctx.fillStyle = '#e04a4a';
-        ctx.beginPath(); ctx.arc(c.x, c.y-44, 30, Math.PI, 0); ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.moveTo(c.x-30, c.y-44); ctx.arc(c.x, c.y-44, 30, Math.PI, 0); ctx.closePath();
-        ctx.globalAlpha = 0.25; ctx.fill(); ctx.globalAlpha = 1;
-        // comerciante (cabecinha atrás do balcão)
-        ctx.fillStyle = '#e8a878';
-        ctx.beginPath(); ctx.arc(c.x, c.y-20, 8, 0, 7); ctx.fill();
-        ctx.fillStyle = '#222';
-        ctx.beginPath(); ctx.arc(c.x-3, c.y-21, 1.4, 0, 7); ctx.fill();
-        ctx.beginPath(); ctx.arc(c.x+3, c.y-21, 1.4, 0, 7); ctx.fill();
-        ctx.strokeStyle = '#5a3a1a'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(c.x, c.y-17, 3.5, 0.3, 2.8); ctx.stroke(); // bigode sorridente
-        // plaquinha 💰 flutuando
+        if(c.x < camX-80 || c.x > camX+W+80 || c.y < camY-100 || c.y > camY+H+100) return;
+        desenhaComerciante(c.x, c.y, agora);
         ctx.font = '22px Arial'; ctx.textAlign = 'center';
-        ctx.fillText('💰', c.x, c.y - 62 + Math.sin(agora/300)*4);
+        ctx.fillText('💰', c.x, c.y - 92 + Math.sin(agora/300)*4);
     });
     // buracos cavados
     buracos.forEach(function(b){
@@ -605,6 +584,45 @@ function desenha(agora, sinal, maisPerto){
         ctx.font='bold 26px Arial'; ctx.fillStyle='#ff5a3a';
         ctx.fillText('⛏️ CAVA AQUI!!!', 100, 126);
     }
+}
+function px(x, y, w, h, cor){ ctx.fillStyle = cor; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
+function desenhaComerciante(cx, cy, agora){
+    // pixel-art: velhinho de touca vermelha, barba e avental (cada "pixel" = 3x3)
+    var u = 3, x = cx - 8*u, y = cy - 26*u; // origem no canto superior esquerdo
+    function P(gx, gy, gw, gh, cor){ px(x + gx*u, y + gy*u, gw*u, gh*u, cor); }
+    var CONTORNO='#2f241c', TOUCA='#7a3b34', PELE='#e8b48a', BARBA='#cfcfc9',
+        CAMISA='#7a5c40', AVENTAL='#b39a74', AVENTAL2='#a08a66', CINTO='#5a3a24',
+        BOLSA='#8a6844', CALCA='#6b5136', BOTA='#4e3826', FIVELA='#c8c0a8';
+    // sombra no chão
+    ctx.fillStyle='rgba(0,0,0,0.2)';
+    ctx.beginPath(); ctx.ellipse(cx, cy+2, 22, 6, 0, 0, 7); ctx.fill();
+    // ===== touca =====
+    P(5,0,6,1,CONTORNO); P(4,1,8,2,TOUCA); P(3,3,10,1,TOUCA); P(3,4,10,1,CONTORNO);
+    // ===== rosto =====
+    P(4,5,8,3,PELE);
+    P(6,6,1,1,CONTORNO); P(9,6,1,1,CONTORNO); // olhos
+    // ===== barba grisalha =====
+    P(4,8,8,3,BARBA); P(5,11,6,1,BARBA);
+    P(7,8,2,1,'#8a8a86'); // boca escondida na barba
+    // ===== corpo: camisa + avental =====
+    P(3,12,10,2,CAMISA);
+    P(5,12,6,1,AVENTAL2); // alça do avental
+    P(4,14,8,6,AVENTAL);
+    P(4,19,8,1,AVENTAL2);
+    // ===== braço esquerdo (na cintura) =====
+    P(2,13,2,4,CAMISA); P(2,17,2,1,PELE);
+    // ===== braço direito LEVANTADO acenando =====
+    var acena = Math.floor(agora/400)%2 === 0 ? 0 : 1;
+    P(12,12,2,2,CAMISA);
+    P(13,10-acena,2,2,PELE); // mãozinha acenando!
+    // ===== cinto com fivela e bolsinhas =====
+    P(4,16,8,1,CINTO); P(7,16,2,1,FIVELA);
+    P(3,17,2,2,BOLSA); P(11,17,2,2,BOLSA);
+    // ===== pernas =====
+    P(5,20,3,3,CALCA); P(9,20,3,3,CALCA);
+    // ===== botas =====
+    P(4,23,4,2,BOTA); P(9,23,4,2,BOTA);
+    P(4,25,4,1,CONTORNO); P(9,25,4,1,CONTORNO);
 }
 function palmeira(x, y){
     ctx.strokeStyle = '#8a5a2a'; ctx.lineWidth = 6; ctx.lineCap='round';
