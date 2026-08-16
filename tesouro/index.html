@@ -217,7 +217,7 @@ function guardaNaColecao(item){
 }
 
 // ============ ILHA ============
-var tesouros = [], buracos = [], pl, alvo, ultimoT = 0, brilhoAchado = 0;
+var tesouros = [], buracos = [], pl, alvo, ultimoT = 0, brilhoAchado = 0, sinalAtual = 0;
 var MW = 0, MH = 0, camX = 0, camY = 0, palmeiras = [], comerciantes = [], pertoVenda = false;
 function rnd(seed){
     var a = seed >>> 0;
@@ -310,9 +310,12 @@ function cavar(){
     if(buracos.length > 40) buracos.shift();
     var raio = PAS[pa].raio;
     var achou = null;
-    for(var i=0;i<tesouros.length;i++){
-        var t = tesouros[i];
-        if(!t.achado && Math.hypot(t.x-pl.x, t.y-pl.y) < raio){ achou = t; break; }
+    // regra do caçador: só desenterra com o detector nas 5 BARRAS (bem em cima!)
+    if(Math.ceil(sinalAtual*5) >= 5){
+        for(var i=0;i<tesouros.length;i++){
+            var t = tesouros[i];
+            if(!t.achado && Math.hypot(t.x-pl.x, t.y-pl.y) < raio){ achou = t; break; }
+        }
     }
     if(achou && mochila.length >= capMochila()){
         // mochila CHEIA! o tesouro fica esperando — vai vender no comerciante!
@@ -539,6 +542,7 @@ function loop(agora){
     tesouros.forEach(function(t){ if(!t.achado) maisPerto = Math.min(maisPerto, Math.hypot(t.x-pl.x, t.y-pl.y)); });
     var alc = DETECTORES[det].alc;
     var sinal = maisPerto < alc ? 1 - (maisPerto/alc) : 0; // 0 (longe) a 1 (em cima!)
+    sinalAtual = sinal;
     bipT -= dt;
     if(sinal > 0 && bipT <= 0){
         bipe(1175, 0.05);
