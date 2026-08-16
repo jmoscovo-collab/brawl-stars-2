@@ -71,6 +71,16 @@ a.voltar { position:fixed; bottom:8px; left:12px; color:#a8cbe0; text-decoration
     <div class="valor" id="achouValor">+🪙 80</div>
 </div>
 
+<div class="painel" id="venda">
+    <div class="cartao">
+        <h2>💰 Comerciante</h2>
+        <div style="font-size:16px; color:#a8cbe0; margin-bottom:8px">"Arrr! Me mostra teus achados, pirata!"</div>
+        <div id="vendaInfo" style="font-size:20px; font-weight:bold; margin:10px 0"></div>
+        <button class="item" style="justify-content:center; border-color:#4dff88; background:rgba(77,255,136,0.2)" onclick="venderTudo()">💰 VENDER TUDO!</button>
+        <button class="fechar" onclick="fecha('venda')">❌</button>
+    </div>
+</div>
+
 <div class="painel" id="indice">
     <div class="cartao" style="max-width:520px">
         <h2>📖 Índice do Colecionador</h2>
@@ -140,6 +150,12 @@ var PAS = [
     { ic:'🪓', nome:'Pá de Ferro',   raio:95,  p:500 },
     { ic:'💪', nome:'Pá de Ouro',    raio:140, p:2000 }
 ];
+var MOCHILAS = [
+    { ic:'🎒', nome:'Mochila Pequena', cap:15,  p:0 },
+    { ic:'🧳', nome:'Mala Média',      cap:35,  p:300 },
+    { ic:'🛒', nome:'Carrinho',        cap:80,  p:1200 },
+    { ic:'🐪', nome:'Camelo Cargueiro',cap:200, p:5000 }
+];
 var DETECTORES = [
     { ic:'📻', nome:'Detector Velho',   alc:170, p:0 },
     { ic:'📡', nome:'Detector Bom',     alc:280, p:200 },
@@ -157,6 +173,11 @@ var det = lsGet('det', 0);
 var achados = lsGet('achados', 0); // total de tesouros já achados (recorde de pirata)
 var ima = lsGet('ima', false); // 🧲 puxa ferro e moeda sozinho!
 var colecao = lsGet('colecao', {}); // 📖 índice: id do item -> quantas vezes achou
+var mochilasMinhas = lsGet('mochilas', [true]);
+var mochilaEq = lsGet('mochilaEq', 0);
+var mochila = lsGet('mochila', []); // itens guardados {b, r} — vende no comerciante!
+function capMochila(){ return MOCHILAS[mochilaEq].cap; }
+function valorMochila(){ var v=0; mochila.forEach(function(m){ v += itemDe(m.b,m.r).v; }); return v; }
 function guardaNaColecao(item){
     colecao[item.id] = (colecao[item.id] || 0) + 1;
     lsSet('colecao', colecao);
@@ -164,7 +185,7 @@ function guardaNaColecao(item){
 
 // ============ ILHA ============
 var tesouros = [], buracos = [], pl, alvo, ultimoT = 0, brilhoAchado = 0;
-var MW = 0, MH = 0, camX = 0, camY = 0, palmeiras = [];
+var MW = 0, MH = 0, camX = 0, camY = 0, palmeiras = [], comerciantes = [], pertoVenda = false;
 function rnd(seed){
     var a = seed >>> 0;
     return function(){ a|=0; a=a+0x6D2B79F5|0; var t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
@@ -179,6 +200,8 @@ function montaIlha(){
     MH = 1700 + ilhaAtual*400;
     palmeiras = [];
     for(var i=0;i<14 + ilhaAtual*4;i++) palmeiras.push({ x: 120 + r()*(MW-240), y: 120 + r()*(MH-240) });
+    comerciantes = [];
+    for(var i=0;i<2 + Math.floor(ilhaAtual/2);i++) comerciantes.push({ x: 200 + r()*(MW-400), y: 200 + r()*(MH-400) });
     var margem = 130;
     for(var i=0;i<I.tesouros;i++){
         // sorteia objeto + raridade (lendário é raríssimo!)
@@ -234,13 +257,26 @@ function cavar(){
         var t = tesouros[i];
         if(!t.achado && Math.hypot(t.x-pl.x, t.y-pl.y) < raio){ achou = t; break; }
     }
+    if(achou && mochila.length >= capMochila()){
+        // mochila CHEIA! o tesouro fica esperando — vai vender no comerciante!
+        bipe(140, 0.25);
+        document.getElementById('achouIc').textContent = '🎒';
+        document.getElementById('achouNome').textContent = 'MOCHILA CHEIA!';
+        document.getElementById('achouNome').style.color = '#ff6666';
+        document.getElementById('achouRar').textContent = 'ache um comerciante 💰 pra vender';
+        document.getElementById('achouRar').style.color = '#a8cbe0';
+        document.getElementById('achouValor').textContent = '';
+        document.getElementById('achou').style.display = 'flex';
+        setTimeout(fechaAchou, 1500);
+        return;
+    }
     if(achou){
         achou.achado = true;
         var item = itemDe(achou.b, achou.r);
-        moedas += item.v;
+        mochila.push({ b:achou.b, r:achou.r });
         achados++;
         guardaNaColecao(item);
-        lsSet('moedas', moedas); lsSet('achados', achados);
+        lsSet('mochila', mochila); lsSet('achados', achados);
         brilhoAchado = 1;
         bipe(880, 0.15); setTimeout(function(){ bipe(1320, 0.3); }, 130);
         document.getElementById('achouIc').textContent = item.ic;
@@ -248,7 +284,7 @@ function cavar(){
         document.getElementById('achouNome').style.color = item.rar.cor;
         document.getElementById('achouRar').textContent = '⭐ ' + item.rar.nome;
         document.getElementById('achouRar').style.color = item.rar.cor;
-        document.getElementById('achouValor').textContent = '+🪙 ' + item.v;
+        document.getElementById('achouValor').textContent = '🎒 guardou! (vale 🪙 ' + item.v + ')';
         document.getElementById('achou').style.display = 'flex';
         setTimeout(fechaAchou, 1600);
         // achou TODOS = ilha limpa! novos tesouros são enterrados
@@ -295,6 +331,20 @@ function abreLoja(){
         };
         el.appendChild(b);
     });
+    var t4 = document.createElement('small'); t4.style.color='#a8cbe0'; t4.textContent='🎒 MOCHILAS (carregam mais tesouros)';
+    el.appendChild(t4);
+    MOCHILAS.forEach(function(s2,i){
+        var b = document.createElement('button');
+        b.className = 'item' + (mochilasMinhas[i] ? ' meu' : (moedas < s2.p ? ' caro' : '')) + (mochilaEq===i ? ' usando' : '');
+        b.innerHTML = '<span class="ic">'+s2.ic+'</span><span class="info">'+s2.nome+'<small>cabem '+s2.cap+' tesouros</small></span>' +
+            (mochilasMinhas[i] ? (mochilaEq===i?'✅':'👆') : '🪙'+s2.p.toLocaleString('pt-BR'));
+        b.onclick = function(){
+            if(mochilasMinhas[i]){ mochilaEq=i; lsSet('mochilaEq',mochilaEq); }
+            else if(moedas>=s2.p){ moedas-=s2.p; mochilasMinhas[i]=true; mochilaEq=i; lsSet('moedas',moedas); lsSet('mochilas',mochilasMinhas); lsSet('mochilaEq',mochilaEq); }
+            abreLoja();
+        };
+        el.appendChild(b);
+    });
     var t3 = document.createElement('small'); t3.style.color='#a8cbe0'; t3.textContent='🧲 EXTRAS';
     el.appendChild(t3);
     var bi = document.createElement('button');
@@ -325,6 +375,19 @@ function abreIlhas(){
     document.getElementById('ilhas').style.display = 'flex';
 }
 function fecha(id){ document.getElementById(id).style.display = 'none'; }
+function abreVenda(){
+    document.getElementById('vendaInfo').innerHTML = '🎒 ' + mochila.length + ' tesouros na mochila<br>valem <span style="color:#ffd700">🪙 ' + valorMochila().toLocaleString('pt-BR') + '</span>';
+    document.getElementById('venda').style.display = 'flex';
+}
+function venderTudo(){
+    var v = valorMochila();
+    moedas += v;
+    mochila = [];
+    lsSet('moedas', moedas); lsSet('mochila', mochila);
+    bipe(700, 0.12); setTimeout(function(){ bipe(1000, 0.2); }, 120);
+    brilhoAchado = 0.6;
+    fecha('venda');
+}
 function abreIndice(){
     var el = document.getElementById('listaIndice');
     el.innerHTML = '';
@@ -348,7 +411,7 @@ function abreIndice(){
     document.getElementById('indiceProg').textContent = '🏆 ' + tenho + ' / ' + total + ' itens descobertos';
     document.getElementById('indice').style.display = 'flex';
 }
-window.abreLoja = abreLoja; window.abreIlhas = abreIlhas; window.fecha = fecha; window.abreIndice = abreIndice;
+window.abreLoja = abreLoja; window.abreIlhas = abreIlhas; window.fecha = fecha; window.abreIndice = abreIndice; window.abreVenda = abreVenda; window.venderTudo = venderTudo;
 
 // ============ LOOP ============
 function loop(agora){
@@ -378,12 +441,13 @@ function loop(agora){
     // 🧲 ímã: ferro e moeda enterrados PERTO voam pro seu bolso!
     if(ima){
         tesouros.forEach(function(t){
-            if(!t.achado && t.r === 0 && Math.hypot(t.x-pl.x, t.y-pl.y) < 190){
+            if(!t.achado && t.r === 0 && mochila.length < capMochila() && Math.hypot(t.x-pl.x, t.y-pl.y) < 190){
                 t.achado = true;
                 var item = itemDe(t.b, t.r);
-                moedas += item.v; achados++;
+                mochila.push({ b:t.b, r:t.r });
+                achados++;
                 guardaNaColecao(item);
-                lsSet('moedas', moedas); lsSet('achados', achados);
+                lsSet('mochila', mochila); lsSet('achados', achados);
                 brilhoAchado = 0.35;
                 bipe(700, 0.1);
                 if(tesouros.every(function(x){ return x.achado; })){
@@ -392,6 +456,11 @@ function loop(agora){
             }
         });
     }
+    // chegou perto de um comerciante? abre a venda!
+    var pertoAgora = false;
+    comerciantes.forEach(function(c){ if(Math.hypot(c.x-pl.x, c.y-pl.y) < 75) pertoAgora = true; });
+    if(pertoAgora && !pertoVenda && document.getElementById('venda').style.display !== 'flex') abreVenda();
+    pertoVenda = pertoAgora;
     // detector: quanto mais perto do tesouro, mais rápido apita
     var maisPerto = 1e9;
     tesouros.forEach(function(t){ if(!t.achado) maisPerto = Math.min(maisPerto, Math.hypot(t.x-pl.x, t.y-pl.y)); });
@@ -433,6 +502,34 @@ function desenha(agora, sinal, maisPerto){
     // palmeiras espalhadas pela ilha
     palmeiras.forEach(function(pm){
         if(pm.x > camX-60 && pm.x < camX+W+60 && pm.y > camY-60 && pm.y < camY+H+60) palmeira(pm.x, pm.y);
+    });
+    // comerciantes (barraquinha com guarda-sol)
+    comerciantes.forEach(function(c){
+        if(c.x < camX-80 || c.x > camX+W+80 || c.y < camY-80 || c.y > camY+H+80) return;
+        // balcão
+        ctx.fillStyle = '#8a5a2a';
+        ctx.fillRect(c.x-26, c.y-8, 52, 18);
+        ctx.fillStyle = '#6a4318';
+        ctx.fillRect(c.x-26, c.y-8, 52, 5);
+        // guarda-sol
+        ctx.strokeStyle = '#6a4318'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(c.x, c.y-8); ctx.lineTo(c.x, c.y-46); ctx.stroke();
+        ctx.fillStyle = '#e04a4a';
+        ctx.beginPath(); ctx.arc(c.x, c.y-44, 30, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.moveTo(c.x-30, c.y-44); ctx.arc(c.x, c.y-44, 30, Math.PI, 0); ctx.closePath();
+        ctx.globalAlpha = 0.25; ctx.fill(); ctx.globalAlpha = 1;
+        // comerciante (cabecinha atrás do balcão)
+        ctx.fillStyle = '#e8a878';
+        ctx.beginPath(); ctx.arc(c.x, c.y-20, 8, 0, 7); ctx.fill();
+        ctx.fillStyle = '#222';
+        ctx.beginPath(); ctx.arc(c.x-3, c.y-21, 1.4, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.arc(c.x+3, c.y-21, 1.4, 0, 7); ctx.fill();
+        ctx.strokeStyle = '#5a3a1a'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(c.x, c.y-17, 3.5, 0.3, 2.8); ctx.stroke(); // bigode sorridente
+        // plaquinha 💰 flutuando
+        ctx.font = '22px Arial'; ctx.textAlign = 'center';
+        ctx.fillText('💰', c.x, c.y - 62 + Math.sin(agora/300)*4);
     });
     // buracos cavados
     buracos.forEach(function(b){
@@ -494,6 +591,10 @@ function desenha(agora, sinal, maisPerto){
     var faltam = tesouros.filter(function(t){ return !t.achado; }).length;
     ctx.fillText('💰 faltam ' + faltam, 14, 60);
     ctx.fillText(PAS[pa].ic + ' ' + DETECTORES[det].ic, 14, 88);
+    var cheia = mochila.length >= capMochila();
+    ctx.fillStyle = cheia ? '#ff6666' : '#fff';
+    ctx.fillText(MOCHILAS[mochilaEq].ic + ' ' + mochila.length + '/' + capMochila() + (cheia ? ' CHEIA!' : ''), 14, 148);
+    ctx.fillStyle = '#fff';
     // medidor do detector 📶
     var barras = Math.ceil(sinal*5);
     for(var i=0;i<5;i++){
