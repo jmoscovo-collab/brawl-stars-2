@@ -3,59 +3,50 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teste de Controle — Cogumelo Games</title>
+<title>Espião do PS5 — Cogumelo Games</title>
 <style>
-body { background:#101028; color:#fff; font-family:Arial,sans-serif; text-align:center; padding:20px; }
-h1 { font-size:34px; margin-bottom:6px; }
-#status { font-size:60px; margin:12px 0; }
-#nome { font-size:16px; color:#8ff; min-height:22px; }
-#botoes { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:18px auto; max-width:600px; }
-.b { width:64px; height:64px; border-radius:14px; background:#2a2a4a; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:bold; font-size:18px; }
-.b small { font-size:10px; color:#889; }
-.b.on { background:#22cc66; color:#fff; box-shadow:0 0 16px #22cc66; }
-#eixos { font-size:26px; font-weight:bold; margin-top:8px; }
-#tecla { font-size:22px; color:#ffd700; min-height:30px; margin-top:14px; }
-a { color:#8ff; }
+body { background:#0a1230; color:#fff; font-family:Arial,sans-serif; padding:16px; font-size:20px; }
+h1 { font-size:26px; color:#7fd4ff; margin-bottom:12px; }
+.linha { background:rgba(255,255,255,0.08); border-radius:12px; padding:12px 16px; margin:8px 0; }
+.ok { color:#4dff88; font-weight:bold; }
+.ruim { color:#ff6666; font-weight:bold; }
+b { color:#ffd700; }
 </style>
 </head>
 <body>
-<h1>🎮 Teste de Controle</h1>
-<div id="status">❌</div>
-<div id="nome">Nenhum controle detectado... aperte um botão do controle!</div>
-<div id="eixos">🕹️ 0.0 , 0.0</div>
-<div id="botoes"></div>
-<div id="tecla"></div>
-<a href="/">← Voltar</a>
+<h1>🕵️ Espião do PS5</h1>
+<div class="linha">1️⃣ Aparelho: <b id="ua">...</b></div>
+<div class="linha">2️⃣ É PlayStation? <span id="ps">...</span></div>
+<div class="linha">3️⃣ Modo PS5 ligado (cg_ps5)? <span id="flag">...</span></div>
+<div class="linha">4️⃣ Cursor mexendo? <span id="cursor">mexe o analógico...</span></div>
+<div class="linha">5️⃣ Clique (❌)? <span id="clique">aperta o ❌...</span></div>
+<div class="linha">6️⃣ Controle direto (gamepad)? <span id="gp">...</span></div>
+<div class="linha">7️⃣ Versão desta página: <b>E2</b></div>
 <script>
-var NOMES = ['❌','⭕','⬜','🔺','L1','R1','L2','R2','SH','OP','L3','R3','⬆️','⬇️','⬅️','➡️','PS','TP'];
-var bx = document.getElementById('botoes');
-for(var i=0;i<18;i++){
-    var d = document.createElement('div');
-    d.className = 'b'; d.id = 'b'+i;
-    d.innerHTML = NOMES[i] + '<small>'+i+'</small>';
-    bx.appendChild(d);
-}
-addEventListener('keydown', function(e){
-    document.getElementById('tecla').textContent = '⌨️ tecla: ' + e.key + ' (' + e.code + ')';
+document.getElementById('ua').textContent = navigator.userAgent;
+var ehPs = /PlayStation/i.test(navigator.userAgent);
+document.getElementById('ps').innerHTML = ehPs ? '<span class="ok">SIM ✅</span>' : '<span class="ruim">NÃO ❌</span>';
+try { if (ehPs) localStorage.setItem('cg_ps5','1'); } catch(e){}
+var flag = '?';
+try { flag = localStorage.getItem('cg_ps5'); } catch(e){}
+document.getElementById('flag').innerHTML = flag === '1' ? '<span class="ok">SIM ✅</span>' : '<span class="ruim">NÃO ❌ (' + flag + ')</span>';
+var nMove = 0;
+addEventListener('pointermove', function(e){
+    nMove++;
+    document.getElementById('cursor').innerHTML = '<span class="ok">SIM ✅</span> x=' + Math.round(e.clientX) + ' y=' + Math.round(e.clientY) + ' (' + nMove + ' vezes)';
 });
-function loop(){
+addEventListener('mousemove', function(e){
+    if(nMove === 0) document.getElementById('cursor').innerHTML = '<span class="ok">SÓ MOUSEMOVE ✅</span> x=' + Math.round(e.clientX);
+});
+addEventListener('pointerdown', function(){ document.getElementById('clique').innerHTML = '<span class="ok">SIM ✅ (pointerdown)</span>'; });
+addEventListener('mousedown', function(){ if(document.getElementById('clique').textContent.indexOf('SIM')<0) document.getElementById('clique').innerHTML = '<span class="ok">SIM ✅ (mousedown)</span>'; });
+(function gp(){
     var pads = navigator.getGamepads ? navigator.getGamepads() : [];
     var p = null;
-    for(var i=0;i<pads.length;i++) if(pads[i] && pads[i].connected){ p = pads[i]; break; }
-    if(p){
-        document.getElementById('status').textContent = '✅🎮';
-        document.getElementById('nome').textContent = p.id;
-        document.getElementById('eixos').textContent = '🕹️ ' + (p.axes[0]||0).toFixed(1) + ' , ' + (p.axes[1]||0).toFixed(1);
-        for(var i=0;i<18;i++){
-            var el = document.getElementById('b'+i);
-            if(el) el.className = 'b' + (p.buttons[i] && p.buttons[i].pressed ? ' on' : '');
-        }
-    } else {
-        document.getElementById('status').textContent = '❌';
-    }
-    requestAnimationFrame(loop);
-}
-loop();
+    for(var i=0;i<pads.length;i++) if(pads[i] && pads[i].connected) p = pads[i];
+    document.getElementById('gp').innerHTML = p ? '<span class="ok">SIM ✅</span> ' + p.id + ' 🕹️' + (p.axes[0]||0).toFixed(1) : '<span class="ruim">NÃO ❌</span>';
+    requestAnimationFrame(gp);
+})();
 </script>
 </body>
 </html>
