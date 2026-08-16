@@ -53,7 +53,12 @@ function cgAutoEscolhePc() {
         setInterval(function () {
             try {
                 if (Date.now() - ultimoClique < 3000) return;
-                var alvo = document.getElementById('ds-pc') || document.getElementById('btnPC') || document.getElementById('devPC');
+                // se o jogo tem a função de escolher, usa direto!
+                if (typeof window.escolheDisp === 'function') {
+                    try { window.escolheDisp('pc'); ultimoClique = Date.now(); return; } catch (e) {}
+                }
+                var alvo = document.getElementById('ds-pc') || document.getElementById('btnPC') ||
+                           document.getElementById('btnPc') || document.getElementById('devPC');
                 if (!alvo) {
                     var els = document.querySelectorAll('button, .opt, .option, [onclick], div.label, div');
                     for (var i = 0; i < els.length; i++) {
