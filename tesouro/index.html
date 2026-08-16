@@ -500,9 +500,19 @@ function desenha(agora, sinal, maisPerto){
             ctx.fillRect(gx + (gx*7+gy*13)%90, gy + (gx*11+gy*3)%90, 3, 3);
         }
     }
-    // palmeiras espalhadas pela ilha
+    // árvores do Davi espalhadas pela ilha (pinheiro ou copuda, sorteado pelo lugar)
     palmeiras.forEach(function(pm){
-        if(pm.x > camX-60 && pm.x < camX+W+60 && pm.y > camY-60 && pm.y < camY+H+60) palmeira(pm.x, pm.y);
+        if(pm.x < camX-90 || pm.x > camX+W+90 || pm.y < camY-140 || pm.y > camY+H+60) return;
+        var img = ((Math.floor(pm.x) + Math.floor(pm.y)) % 2 === 0) ? imgPinheiro : imgArvore;
+        if(img.complete && img.naturalWidth > 0){
+            ctx.imageSmoothingEnabled = false;
+            var th = 110, tw = th * img.naturalWidth / img.naturalHeight;
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.beginPath(); ctx.ellipse(pm.x, pm.y+2, tw*0.35, 7, 0, 0, 7); ctx.fill();
+            ctx.drawImage(img, pm.x - tw/2, pm.y - th, tw, th);
+        } else {
+            palmeira(pm.x, pm.y);
+        }
     });
     // comerciantes — o velhinho pixelado de touca vermelha!
     comerciantes.forEach(function(c){
@@ -608,6 +618,9 @@ function desenha(agora, sinal, maisPerto){
 function px(x, y, w, h, cor){ ctx.fillStyle = cor; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
 var imgPersonagem = new Image();
 imgPersonagem.src = 'personagem.png';
+// árvores desenhadas pelo Davi no Gemini!
+var imgPinheiro = new Image(); imgPinheiro.src = 'pinheiro.png';
+var imgArvore = new Image(); imgArvore.src = 'arvore.png';
 // a imagem oficial do comerciante (feita pelo Davi com o Gemini!)
 var imgComerciante = new Image();
 imgComerciante.src = 'comerciante.png';
