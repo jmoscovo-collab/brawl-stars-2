@@ -38,6 +38,10 @@ canvas { display:block; position:fixed; inset:0; touch-action:none; }
 #achou .nome { font-size:30px; font-weight:900; color:#ffd700; margin:10px 0; text-shadow:0 0 16px rgba(255,215,0,0.7); }
 #achou .valor { font-size:24px; font-weight:bold; color:#4dff88; }
 a.voltar { position:fixed; bottom:8px; left:12px; color:#a8cbe0; text-decoration:none; font-weight:bold; font-size:13px; z-index:6; }
+#joyBase { position:fixed; left:22px; bottom:calc(40px + env(safe-area-inset-bottom)); z-index:6; width:130px; height:130px; border-radius:50%;
+    background:rgba(255,255,255,0.14); border:3px solid rgba(255,255,255,0.4); display:none; touch-action:none; }
+#joyKnob { position:absolute; left:50%; top:50%; width:58px; height:58px; border-radius:50%; transform:translate(-50%,-50%);
+    background:rgba(255,255,255,0.55); box-shadow:0 3px 8px rgba(0,0,0,0.4); pointer-events:none; }
 </style>
 </head>
 <body>
@@ -53,6 +57,7 @@ a.voltar { position:fixed; bottom:8px; left:12px; color:#a8cbe0; text-decoration
     </div>
 </div>
 <button id="bCavar">⛏️</button>
+<div id="joyBase"><div id="joyKnob"></div></div>
 <button id="bIlhas" onclick="abreIlhas()">🏝️</button>
 <button id="bLoja" onclick="abreLoja()">🛒</button>
 <button id="bIndice" onclick="abreIndice()">📖</button>
@@ -244,11 +249,30 @@ function bipe(freq, dur){
 var modoCel = false;
 function escolheDisp(d){
     modoCel = (d === 'celular');
+    document.getElementById('joyBase').style.display = modoCel ? 'block' : 'none';
     document.getElementById('disp').style.display = 'none';
 }
 window.escolheDisp = escolheDisp;
-cv.addEventListener('pointerdown', function(e){ if(modoCel){ alvo.x = e.clientX + camX; alvo.y = e.clientY + camY; } });
-cv.addEventListener('pointermove', function(e){ if(modoCel && (e.buttons || e.pressure > 0)) { alvo.x = e.clientX + camX; alvo.y = e.clientY + camY; } });
+// 🕹️ bolinha (joystick) do celular
+var joyX = 0, joyY = 0, joyId = null;
+var joyBase = document.getElementById('joyBase'), joyKnob = document.getElementById('joyKnob');
+function joyMexe(e){
+    var r = joyBase.getBoundingClientRect();
+    var cx = r.left + r.width/2, cy = r.top + r.height/2;
+    var dx = e.clientX - cx, dy = e.clientY - cy;
+    var d = Math.hypot(dx,dy), max = r.width/2 - 10;
+    if(d > max){ dx = dx/d*max; dy = dy/d*max; }
+    joyX = dx/max; joyY = dy/max;
+    joyKnob.style.transform = 'translate(calc(-50% + '+dx+'px), calc(-50% + '+dy+'px))';
+}
+function joySolta(){
+    joyId = null; joyX = 0; joyY = 0;
+    joyKnob.style.transform = 'translate(-50%,-50%)';
+}
+joyBase.addEventListener('pointerdown', function(e){ e.preventDefault(); joyId = e.pointerId; joyBase.setPointerCapture(e.pointerId); joyMexe(e); });
+joyBase.addEventListener('pointermove', function(e){ if(e.pointerId === joyId) joyMexe(e); });
+joyBase.addEventListener('pointerup', joySolta);
+joyBase.addEventListener('pointercancel', joySolta);
 var tec = {};
 addEventListener('keydown', function(e){
     tec[e.key.toLowerCase()] = true;
@@ -432,6 +456,10 @@ function loop(agora){
     ultimoT = agora;
 
     var V = 300*dt;
+    if(modoCel && (Math.abs(joyX) > 0.15 || Math.abs(joyY) > 0.15)){
+        alvo.x = pl.x + joyX*90;
+        alvo.y = pl.y + joyY*90;
+    }
     if(tec['arrowleft']||tec['a']) { alvo.x = pl.x - 60; alvo.y = pl.y; }
     if(tec['arrowright']||tec['d']) { alvo.x = pl.x + 60; alvo.y = pl.y; }
     if(tec['arrowup']||tec['w']) { alvo.y = pl.y - 60; alvo.x = pl.x; }
