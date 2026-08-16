@@ -42,6 +42,16 @@ a.voltar { position:fixed; bottom:8px; left:12px; color:#a8cbe0; text-decoration
 </head>
 <body>
 <canvas id="cv"></canvas>
+
+<div class="painel" id="disp" style="display:flex; z-index:40">
+    <div class="cartao">
+        <h2>🏴‍☠️ Caça ao Tesouro</h2>
+        <div style="font-size:18px; color:#a8cbe0; margin-bottom:12px">Onde você está jogando?</div>
+        <button class="item" style="justify-content:center; border-color:#4dff88; background:rgba(77,255,136,0.15); font-size:20px" onclick="escolheDisp('pc')">💻 COMPUTADOR</button>
+        <button class="item" style="justify-content:center; border-color:#ffd24a; background:rgba(255,210,74,0.15); font-size:20px" onclick="escolheDisp('celular')">📱 CELULAR</button>
+        <div style="font-size:13px; color:#a8cbe0; margin-top:10px">💻 setas/WASD andam · espaço/E cava<br>📱 toca na areia pra andar · botão ⛏️ cava</div>
+    </div>
+</div>
 <button id="bCavar">⛏️</button>
 <button id="bIlhas" onclick="abreIlhas()">🏝️</button>
 <button id="bLoja" onclick="abreLoja()">🛒</button>
@@ -230,12 +240,15 @@ function bipe(freq, dur){
 }
 
 // ============ CONTROLES ============
-// no computador: SÓ teclado (setas/WASD) — o mouse não manda no explorador!
-// no celular: toca na areia que ele anda até lá
-if(ehCel){
-    cv.addEventListener('pointerdown', function(e){ alvo.x = e.clientX + camX; alvo.y = e.clientY + camY; });
-    cv.addEventListener('pointermove', function(e){ if(e.buttons || e.pressure > 0) { alvo.x = e.clientX + camX; alvo.y = e.clientY + camY; } });
+// a escolha define os controles: PC = teclado; Celular = toque na areia
+var modoCel = false;
+function escolheDisp(d){
+    modoCel = (d === 'celular');
+    document.getElementById('disp').style.display = 'none';
 }
+window.escolheDisp = escolheDisp;
+cv.addEventListener('pointerdown', function(e){ if(modoCel){ alvo.x = e.clientX + camX; alvo.y = e.clientY + camY; } });
+cv.addEventListener('pointermove', function(e){ if(modoCel && (e.buttons || e.pressure > 0)) { alvo.x = e.clientX + camX; alvo.y = e.clientY + camY; } });
 var tec = {};
 addEventListener('keydown', function(e){
     tec[e.key.toLowerCase()] = true;
