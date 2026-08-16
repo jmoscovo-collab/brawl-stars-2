@@ -1,4 +1,8 @@
 // === COGUMELO GAMES — Stats (gratuito, sem backend) ===
+// 🎮 PS5 se apresenta como "PlayStation" — liga o modo PS5 SOZINHO, sem precisar de código!
+try {
+    if (/PlayStation/i.test(navigator.userAgent)) localStorage.setItem('cg_ps5', '1');
+} catch (e) {}
 // 🎮 MODO PS5 (código secreto "estou_no_ps5"): mostra um CONTROLE DE TELA em todo jogo.
 // Os botões mandam teclas de teclado — que todo jogo entende — e são clicáveis com o cursor do PS5.
 function cgCriaControlePs5(jogo) {
