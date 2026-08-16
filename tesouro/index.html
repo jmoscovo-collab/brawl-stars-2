@@ -201,7 +201,7 @@ function montaIlha(){
     palmeiras = [];
     for(var i=0;i<14 + ilhaAtual*4;i++) palmeiras.push({ x: 120 + r()*(MW-240), y: 120 + r()*(MH-240) });
     comerciantes = [];
-    for(var i=0;i<2 + Math.floor(ilhaAtual/2);i++) comerciantes.push({ x: 200 + r()*(MW-400), y: 200 + r()*(MH-400) });
+    for(var i=0;i<2 + Math.floor(ilhaAtual/2);i++) comerciantes.push({ x: 200 + r()*(MW-400), y: 200 + r()*(MH-400), tx:0, ty:0, timer:0 });
     var margem = 130;
     for(var i=0;i<I.tesouros;i++){
         // sorteia objeto + raridade (lendário é raríssimo!)
@@ -457,6 +457,17 @@ function loop(agora){
             }
         });
     }
+    // comerciantes passeiam devagarzinho pela ilha
+    comerciantes.forEach(function(c){
+        c.timer -= dt;
+        if(c.timer <= 0){
+            c.tx = Math.max(160, Math.min(MW-160, c.x + (Math.random()-0.5)*500));
+            c.ty = Math.max(160, Math.min(MH-160, c.y + (Math.random()-0.5)*500));
+            c.timer = 2.5 + Math.random()*4;
+        }
+        var cdx = c.tx - c.x, cdy = c.ty - c.y, cd = Math.hypot(cdx,cdy);
+        if(cd > 8){ c.x += cdx/cd * 42*dt; c.y += cdy/cd * 42*dt; }
+    });
     // chegou perto de um comerciante? abre a venda!
     var pertoAgora = false;
     comerciantes.forEach(function(c){ if(Math.hypot(c.x-pl.x, c.y-pl.y) < 75) pertoAgora = true; });
@@ -518,8 +529,15 @@ function desenha(agora, sinal, maisPerto){
     comerciantes.forEach(function(c){
         if(c.x < camX-80 || c.x > camX+W+80 || c.y < camY-100 || c.y > camY+H+100) return;
         desenhaComerciante(c.x, c.y, agora);
-        ctx.font = '22px Arial'; ctx.textAlign = 'center';
-        ctx.fillText('💰', c.x, c.y - 92 + Math.sin(agora/300)*4);
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 14px Arial';
+        var lw = ctx.measureText('COMERCIANTE').width;
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(c.x - lw/2 - 8, c.y - 112, lw + 16, 20);
+        ctx.fillStyle = '#ffd700';
+        ctx.fillText('COMERCIANTE', c.x, c.y - 97);
+        ctx.font = '20px Arial';
+        ctx.fillText('💰', c.x, c.y - 118 + Math.sin(agora/300)*4);
     });
     // buracos cavados
     buracos.forEach(function(b){
