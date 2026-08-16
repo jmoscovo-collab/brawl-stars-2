@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Capy Dash — Cogumelo Games</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+html,body { height:100%; overflow:hidden; }
+body { background:#12082e; font-family:Arial,sans-serif; color:#fff; user-select:none; }
+canvas { display:block; position:fixed; inset:0; touch-action:none; }
+#menu { position:fixed; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:linear-gradient(160deg,#1a0b45 0%, #4a1080 55%, #b03080 130%); text-align:center; padding:20px; }
+#menu h1 { font-size:min(13vw,64px); font-weight:900; font-style:italic; letter-spacing:2px;
+    background:linear-gradient(180deg,#7fffd4,#4dc8ff 55%,#c86bff);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 0 18px rgba(77,200,255,0.8)); }
+#menu .sub { color:#cdb8f0; font-size:16px; margin:14px 0 26px; line-height:1.6; }
+#menu button { font-size:26px; font-weight:bold; padding:16px 50px; border:none; border-radius:18px; cursor:pointer;
+    background:linear-gradient(135deg,#4dc8ff,#7fffd4); color:#0a2038; box-shadow:0 0 26px rgba(77,200,255,0.6); }
+#menu button:active { transform:scale(0.94); }
+#menu .rec { color:#ffd700; font-weight:bold; margin-top:18px; font-size:19px; }
+a.voltar { position:fixed; bottom:10px; left:0; right:0; text-align:center; color:#cdb8f0; text-decoration:none; font-weight:bold; font-size:13px; z-index:11; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="menu">
+    <h1>⚡ CAPY DASH ⚡</h1>
+    <div class="sub">A capivara corre SOZINHA — você só PULA!<br>
+        🖱️ Clique, toque ou ESPAÇO = pular (segure pra pular sem parar)<br>
+        Espinho = 💥 e recomeça NA HORA. Até onde você chega?</div>
+    <button onclick="jogar()">▶ JOGAR</button>
+    <div class="rec" id="recMenu"></div>
+</div>
+<a class="voltar" href="/">← Voltar pros jogos</a>
+
+<script src="/stats.js?v=358"></script>
+<script src="/avisos.js?v=6"></script>
+<script>
+if (window.initStats) initStats('capydash');
+
+function lsGet(k,d){ try{ var v=localStorage.getItem('capydash_'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }
+function lsSet(k,v){ try{ localStorage.setItem('capydash_'+k, JSON.stringify(v)); }catch(e){} }
+
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+var W, H, CHAO;
+var ehCel = matchMedia('(pointer:coarse)').matches || ('ontouchstart' in window);
+var DPR = ehCel ? 1 : Math.min(devicePixelRatio||1, 1.5);
+function resize(){
+    W = innerWidth; H = innerHeight;
+    cv.width = W*DPR; cv.height = H*DPR;
+    cv.style.width = W+'px'; cv.style.height = H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    CHAO = H*0.72;
+}
+addEventListener('resize', resize); resize();
+
+// ============ ESTADO ============
+var rodando = false, morto = 0;
+var pl, obst, parts, dist, vel, ultimoT, tentativa = lsGet('tentativa', 0), proxX;
+var TAM = 42; // tamanho do cubo
+var PX = 0;   // posição fixa do jogador na tela (definida ao jogar)
+
+function jogar(){
+    document.getElementById('menu').style.display = 'none';
+    comeca();
+}
+function comeca(){
+    tentativa++; lsSet('tentativa', tentativa);
+    PX = W*0.25;
+    pl = { y:CHAO, vy:0, rot:0, chao:true };
+    obst = []; parts = [];
+    dist = 0; vel = 340; morto = 0;
+    proxX = W + 200;
+    rodando = true; ultimoT = performance.now();
+    requestAnimationFrame(loop);
+}
+window.jogar = jogar;
+document.getElementById('recMenu').textContent = lsGet('rec',0) ? '🏆 Recorde: ' + lsGet('rec',0) + 'm' : '';
+
+// ============ CONTROLES (segurar = pula sem parar, estilo GD) ============
+var segurando = false;
+addEventListener('keydown', function(e){ if(e.key===' '||e.key==='ArrowUp'||e.key.toLowerCase()==='w'){ e.preventDefault(); segurando = true; } });
+addEventListener('keyup', function(e){ if(e.key===' '||e.key==='ArrowUp'||e.key.toLowerCase()==='w') segurando = false; });
+cv.addEventListener('pointerdown', function(e){ e.preventDefault(); segurando = true; });
+addEventListener('pointerup', function(){ segurando = false; });
+addEventListener('pointercancel', function(){ segurando = false; });
+
+// ============ SOM (batida + efeitos) ============
+var actx = null;
+function som(freq, dur, tipo, vol){
+    try{
+        if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+        var o = actx.createOscillator(), g = actx.createGain();
+        o.type = tipo || 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.001, actx.currentTime);
+        g.gain.exponentialRampToValueAtTime(vol || 0.1, actx.currentTime + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+        o.connect(g); g.connect(actx.destination);
+        o.start(); o.stop(actx.currentTime + dur);
+    }catch(e){}
+}
+
+// ============ OBSTÁCULOS (padrões estilo Geometry Dash) ============
+function geraPadrao(){
+    var p = Math.floor(Math.random()*6);
+    var x = proxX;
+    if(p === 0){ // espinho solitário
+        obst.push({ t:'spike', x:x, n:1 });
+        x += 60;
+    } else if(p === 1){ // 2 espinhos juntos
+        obst.push({ t:'spike', x:x, n:2 });
+        x += 100;
+    } else if(p === 2){ // bloco pra pular em cima
+        obst.push({ t:'bloco', x:x, w:TAM, h:TAM });
+        x += TAM + 40;
+    } else if(p === 3){ // espinho + bloco (pula no bloco!)
+        obst.push({ t:'spike', x:x, n:1 });
+        obst.push({ t:'bloco', x:x+110, w:TAM, h:TAM });
+        x += 110 + TAM + 40;
+    } else if(p === 4){ // escadinha de blocos
+        obst.push({ t:'bloco', x:x, w:TAM, h:TAM });
+        obst.push({ t:'bloco', x:x+TAM+90, w:TAM, h:TAM*2 });
+        x += TAM*2 + 130;
+    } else { // corredor de 3 espinhos (só com pulo certeiro!)
+        obst.push({ t:'spike', x:x, n:3 });
+        x += 140;
+    }
+    proxX = x + 240 + Math.random()*260 + vel*0.25;
+}
+
+// ============ MORTE ============
+function morre(){
+    if(morto > 0) return;
+    morto = 0.7;
+    rodando = false;
+    som(90, 0.4, 'sawtooth', 0.2);
+    var rec = lsGet('rec', 0), m = Math.floor(dist);
+    if(m > rec) lsSet('rec', m);
+    for(var i=0;i<26;i++){
+        parts.push({ x:PX, y:pl.y-TAM/2, vx:(Math.random()-0.5)*600, vy:(Math.random()-0.9)*500, vida:0.9, cor: Math.random()<0.5 ? '#4dc8ff' : '#a9744f' });
+    }
+    // recomeça SOZINHO — rapidinho, estilo Dash!
+    setTimeout(comeca, 750);
+    (function anim(){ desenha(performance.now()); morto -= 0.016; if(morto > 0) requestAnimationFrame(anim); })();
+}
+
+// ============ LOOP ============
+function loop(agora){
+    if(!rodando) return;
+    var dt = Math.min((agora-ultimoT)/1000, 0.04);
+    ultimoT = agora;
+
+    dist += vel*dt/10;
+    vel = 340 + Math.min(360, dist*0.9); // acelera com a distância!
+
+    // pulo
+    if(segurando && pl.chao){
+        pl.vy = -760;
+        pl.chao = false;
+        som(500, 0.08, 'square', 0.05);
+    }
+    pl.vy += 2400*dt;
+    pl.y += pl.vy*dt;
+    if(!pl.chao) pl.rot += 4.4*dt; // gira no ar!
+
+    // chão base
+    var apoio = CHAO;
+    // blocos servem de chão
+    obst.forEach(function(o){
+        if(o.t !== 'bloco') return;
+        var ox = o.x;
+        if(PX + TAM/2 > ox - o.w/2 + 6 && PX - TAM/2 < ox + o.w/2 - 6){
+            var topo = CHAO - o.h;
+            if(pl.y <= topo + 14 && pl.vy >= 0 && pl.y - pl.vy*dt <= topo + 6) apoio = Math.min(apoio, topo);
+            else if(pl.y > topo + 14) morre(); // bateu na lateral do bloco!
+        }
+    });
+    if(pl.y >= apoio){
+        pl.y = apoio; pl.vy = 0;
+        if(!pl.chao) pl.rot = Math.round(pl.rot / (Math.PI/2)) * (Math.PI/2); // aterrissa alinhado
+        pl.chao = true;
+    } else pl.chao = false;
+
+    // move obstáculos
+    for(var i=obst.length-1;i>=0;i--){
+        obst[i].x -= vel*dt;
+        if(obst[i].x < -200) obst.splice(i,1);
+    }
+    proxX -= vel*dt;
+    while(proxX < W + 500) geraPadrao();
+
+    // espinhos matam
+    obst.forEach(function(o){
+        if(o.t !== 'spike') return;
+        for(var k=0;k<o.n;k++){
+            var sx = o.x + k*34;
+            if(Math.abs(sx - PX) < TAM/2 + 8 && pl.y > CHAO - 30) morre();
+        }
+    });
+
+    // rastro de partículas
+    if(pl.chao && Math.random()<0.5) parts.push({ x:PX-TAM/2, y:pl.y-4, vx:-vel*0.5, vy:-Math.random()*60, vida:0.4, cor:'#4dc8ff' });
+
+    desenha(agora);
+    if(rodando) requestAnimationFrame(loop);
+}
+
+// ============ DESENHO ============
+function desenha(agora){
+    var hue = (250 + dist*0.35) % 360; // o mundo muda de cor conforme você avança!
+    var g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'hsl('+hue+',65%,12%)');
+    g.addColorStop(1,'hsl('+((hue+50)%360)+',70%,26%)');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+    // grade neon do fundo
+    ctx.strokeStyle = 'hsla('+hue+',80%,60%,0.12)'; ctx.lineWidth = 1;
+    var off = (dist*10) % 90;
+    for(var x=-off; x<W; x+=90){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+
+    // chão
+    ctx.fillStyle = 'hsl('+hue+',55%,18%)';
+    ctx.fillRect(0, CHAO, W, H-CHAO);
+    ctx.strokeStyle = 'hsl('+((hue+140)%360)+',90%,60%)'; ctx.lineWidth = 3;
+    ctx.shadowColor = 'hsl('+((hue+140)%360)+',90%,60%)'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.moveTo(0,CHAO); ctx.lineTo(W,CHAO); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // obstáculos
+    obst.forEach(function(o){
+        if(o.t === 'spike'){
+            for(var k=0;k<o.n;k++){
+                var sx = o.x + k*34;
+                ctx.fillStyle = '#ff4d6d';
+                ctx.beginPath(); ctx.moveTo(sx-16,CHAO); ctx.lineTo(sx,CHAO-34); ctx.lineTo(sx+16,CHAO); ctx.closePath(); ctx.fill();
+                ctx.strokeStyle = '#ff8aa0'; ctx.lineWidth = 2; ctx.stroke();
+            }
+        } else {
+            ctx.fillStyle = 'hsl('+((hue+180)%360)+',50%,30%)';
+            ctx.fillRect(o.x-o.w/2, CHAO-o.h, o.w, o.h);
+            ctx.strokeStyle = 'hsl('+((hue+180)%360)+',90%,65%)'; ctx.lineWidth = 2.5;
+            ctx.strokeRect(o.x-o.w/2, CHAO-o.h, o.w, o.h);
+        }
+    });
+
+    // partículas
+    for(var i=parts.length-1;i>=0;i--){
+        var p = parts[i];
+        p.x += p.vx*0.016; p.y += p.vy*0.016; p.vy += 14; p.vida -= 0.03;
+        if(p.vida <= 0){ parts.splice(i,1); continue; }
+        ctx.globalAlpha = Math.max(0, p.vida);
+        ctx.fillStyle = p.cor;
+        ctx.fillRect(p.x-3, p.y-3, 6, 6);
+    }
+    ctx.globalAlpha = 1;
+
+    // ===== o CUBO-CAPIVARA =====
+    if(morto <= 0){
+        ctx.save();
+        ctx.translate(PX, pl.y - TAM/2);
+        ctx.rotate(pl.rot);
+        // cubo
+        ctx.fillStyle = '#a9744f';
+        ctx.shadowColor = '#4dc8ff'; ctx.shadowBlur = 14;
+        ctx.fillRect(-TAM/2, -TAM/2, TAM, TAM);
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = '#4dc8ff'; ctx.lineWidth = 3;
+        ctx.strokeRect(-TAM/2, -TAM/2, TAM, TAM);
+        // carinha de capivara no cubo
+        ctx.fillStyle = '#c9987a'; // focinho
+        ctx.fillRect(2, -4, TAM/2-4, TAM/2-2);
+        ctx.fillStyle = '#1e1208';
+        ctx.beginPath(); ctx.arc(-4, -8, 3.4, 0, 7); ctx.fill();  // olho
+        ctx.beginPath(); ctx.arc(TAM/2-8, 2, 2.2, 0, 7); ctx.fill(); // narina
+        ctx.fillStyle = '#8a5a3a';
+        ctx.beginPath(); ctx.arc(-12, -TAM/2+5, 4, 0, 7); ctx.fill(); // orelha
+        ctx.restore();
+    }
+
+    // HUD
+    ctx.textAlign = 'center'; ctx.font = 'bold 42px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 6;
+    ctx.fillText(Math.floor(dist) + 'm', W/2, 64);
+    ctx.font = 'bold 16px Arial';
+    ctx.fillStyle = '#cdb8f0';
+    ctx.fillText('tentativa ' + tentativa + '  ·  🏆 ' + Math.max(lsGet('rec',0), Math.floor(dist)) + 'm', W/2, 92);
+    ctx.shadowBlur = 0;
+}
+</script>
+</body>
+</html>
