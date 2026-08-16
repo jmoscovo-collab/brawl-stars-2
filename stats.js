@@ -7,7 +7,8 @@ try {
 // Os botões mandam teclas de teclado — que todo jogo entende — e são clicáveis com o cursor do PS5.
 function cgCriaControlePs5(jogo) {
     try {
-        if (localStorage.getItem('cg_ps5') !== '1') return;
+        // só liga em PlayStation DE VERDADE — nunca no computador/celular!
+        if (!/PlayStation/i.test(navigator.userAgent)) return;
         if (['home','conta','sugestoes','controle'].indexOf(jogo) >= 0) return;
         if (window.cgPs5Ligado) return;
         window.cgPs5Ligado = true;
@@ -52,7 +53,7 @@ function cgCriaControlePs5(jogo) {
 // 🎮 Modo PS5: responde "COMPUTADOR" sozinho em QUALQUER tela de "onde você está jogando?"
 function cgAutoEscolhePc() {
     try {
-        if (localStorage.getItem('cg_ps5') !== '1') return;
+        if (!/PlayStation/i.test(navigator.userAgent)) return;
         var ultimoClique = 0;
         setInterval(function () {
             try {
