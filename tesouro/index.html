@@ -13,6 +13,7 @@ canvas { display:block; position:fixed; inset:0; touch-action:none; }
     border:4px solid #fff; background:linear-gradient(135deg,#b06a2a,#e0954a); color:#fff; font-size:44px; cursor:pointer;
     box-shadow:0 4px 14px rgba(0,0,0,0.5); }
 #bCavar:active { transform:scale(0.9); }
+#bIndice { position:fixed; top:12px; right:136px; z-index:6; font-size:26px; width:52px; height:52px; border-radius:14px; color:#fff; cursor:pointer; border:2px solid #c86bff; background:rgba(200,107,255,0.25); }
 #bLoja, #bIlhas { position:fixed; top:12px; z-index:6; font-size:26px; width:52px; height:52px; border-radius:14px; color:#fff; cursor:pointer; }
 #bLoja { right:12px; border:2px solid #ffaa00; background:rgba(255,170,0,0.25); }
 #bIlhas { right:74px; border:2px solid #4dff88; background:rgba(77,255,136,0.25); }
@@ -44,6 +45,7 @@ a.voltar { position:fixed; bottom:8px; left:12px; color:#a8cbe0; text-decoration
 <button id="bCavar">⛏️</button>
 <button id="bIlhas" onclick="abreIlhas()">🏝️</button>
 <button id="bLoja" onclick="abreLoja()">🛒</button>
+<button id="bIndice" onclick="abreIndice()">📖</button>
 <a class="voltar" href="/">← jogos</a>
 
 <div class="painel" id="loja">
@@ -65,7 +67,17 @@ a.voltar { position:fixed; bottom:8px; left:12px; color:#a8cbe0; text-decoration
 <div id="achou" onclick="fechaAchou()">
     <div class="ic" id="achouIc">💎</div>
     <div class="nome" id="achouNome">DIAMANTE!</div>
+    <div style="font-size:20px; font-weight:900" id="achouRar">⭐ RARO</div>
     <div class="valor" id="achouValor">+🪙 80</div>
+</div>
+
+<div class="painel" id="indice">
+    <div class="cartao" style="max-width:520px">
+        <h2>📖 Índice do Colecionador</h2>
+        <div id="indiceProg" style="font-weight:bold; color:#ffd700; margin-bottom:10px"></div>
+        <div id="listaIndice" style="display:grid; grid-template-columns:repeat(5,1fr); gap:6px"></div>
+        <button class="fechar" onclick="fecha('indice')">❌</button>
+    </div>
 </div>
 
 <script src="/stats.js?v=358"></script>
@@ -96,16 +108,32 @@ var ILHAS = [
     { nome:'Ilha do Gelo',       emoji:'🧊', custo:2500,  areia:'#cfe4f0', agua:'#3a6a9c', tesouros:12 },
     { nome:'Vulcão do Pirata',   emoji:'🌋', custo:7000,  areia:'#8a6a5a', agua:'#c84a2a', tesouros:15 }
 ];
-var ITENS = [
-    { ic:'🔩', nome:'FERRO ENFERRUJADO', v:3 },
-    { ic:'🪙', nome:'MOEDA ANTIGA', v:10 },
-    { ic:'💍', nome:'ANEL PERDIDO', v:25 },
-    { ic:'🏺', nome:'VASO ANTIGO',  v:40 },
-    { ic:'🗝️', nome:'CHAVE MISTERIOSA', v:60 },
-    { ic:'💎', nome:'DIAMANTE',     v:90 },
-    { ic:'👑', nome:'COROA DO REI', v:150 },
-    { ic:'🧰', nome:'BAÚ DO PIRATA', v:250 }
+// 5 raridades — quanto mais rara, mais vale!
+var RARIDADES = [
+    { nome:'COMUM',    sufixo:'Simples',    mult:1,  cor:'#b8c4cc', peso:0.45 },
+    { nome:'INCOMUM',  sufixo:'de Bronze',  mult:3,  cor:'#4dff88', peso:0.25 },
+    { nome:'RARO',     sufixo:'de Prata',   mult:8,  cor:'#4da8ff', peso:0.15 },
+    { nome:'ÉPICO',    sufixo:'de Ouro',    mult:20, cor:'#c86bff', peso:0.10 },
+    { nome:'LENDÁRIO', sufixo:'Encantado',  mult:60, cor:'#ffd700', peso:0.05 }
 ];
+// 42 objetos x 5 raridades = 210 itens colecionáveis!
+var BASES = [
+    ['🔩','Parafuso',2],   ['🥄','Colher',3],       ['🥾','Bota Perdida',3], ['🍾','Garrafa',4],
+    ['🐚','Concha',4],     ['🦴','Osso de Dino',5], ['🪙','Moeda Antiga',5], ['🔔','Sino',6],
+    ['🧦','Meia Sumida',6],['🪥','Escova',6],       ['🥫','Lata Velha',7],   ['🍴','Garfo',7],
+    ['🕶️','Óculos',8],     ['📿','Colar',8],        ['💍','Anel',9],         ['🫖','Bule',9],
+    ['🏮','Lanterna',10],  ['🎭','Máscara',10],     ['♟️','Peça de Xadrez',11],['🪃','Bumerangue',11],
+    ['🏺','Vaso Antigo',12],['🗝️','Chave Misteriosa',12],['🪞','Espelho',13],['🕯️','Castiçal',13],
+    ['🎺','Trombeta',14],  ['🎻','Violino',15],     ['🧭','Bússola',15],     ['⌚','Relógio',16],
+    ['🖼️','Quadro',17],    ['🧿','Amuleto',18],     ['⚓','Âncora',18],      ['🗡️','Adaga',20],
+    ['🛡️','Escudo',22],    ['🥇','Medalha',22],     ['⚔️','Espada',24],      ['⛑️','Elmo',24],
+    ['📜','Mapa do Pirata',26],['🔮','Bola de Cristal',28],['🏆','Troféu',30],['💰','Saco de Moedas',32],
+    ['💎','Diamante',36],  ['👑','Coroa Real',40]
+];
+function itemDe(b, r){
+    var base = BASES[b], rar = RARIDADES[r];
+    return { ic: base[0], nome: (base[1] + ' ' + rar.sufixo).toUpperCase(), v: base[2]*rar.mult, rar: rar, id: b*5+r };
+}
 var PAS = [
     { ic:'🥄', nome:'Colher',        raio:40,  p:0 },
     { ic:'⛏️', nome:'Pá de Madeira', raio:65,  p:120 },
@@ -128,6 +156,11 @@ var detsMinhas = lsGet('dets', [true]);
 var det = lsGet('det', 0);
 var achados = lsGet('achados', 0); // total de tesouros já achados (recorde de pirata)
 var ima = lsGet('ima', false); // 🧲 puxa ferro e moeda sozinho!
+var colecao = lsGet('colecao', {}); // 📖 índice: id do item -> quantas vezes achou
+function guardaNaColecao(item){
+    colecao[item.id] = (colecao[item.id] || 0) + 1;
+    lsSet('colecao', colecao);
+}
 
 // ============ ILHA ============
 var tesouros = [], buracos = [], pl, alvo, ultimoT = 0, brilhoAchado = 0;
@@ -148,10 +181,11 @@ function montaIlha(){
     for(var i=0;i<14 + ilhaAtual*4;i++) palmeiras.push({ x: 120 + r()*(MW-240), y: 120 + r()*(MH-240) });
     var margem = 130;
     for(var i=0;i<I.tesouros;i++){
-        // sorteia o tesouro: os raros aparecem menos
-        var sorte = r();
-        var tipo = sorte < 0.22 ? 0 : sorte < 0.42 ? 1 : sorte < 0.58 ? 2 : sorte < 0.7 ? 3 : sorte < 0.81 ? 4 : sorte < 0.9 ? 5 : sorte < 0.97 ? 6 : 7;
-        tesouros.push({ x: margem + r()*(MW-margem*2), y: margem + r()*(MH-margem*2), tipo: tipo, achado:false });
+        // sorteia objeto + raridade (lendário é raríssimo!)
+        var b = Math.floor(r()*BASES.length);
+        var sorte = r(), acc = 0, rar = 0;
+        for(var k=0;k<RARIDADES.length;k++){ acc += RARIDADES[k].peso; if(sorte < acc){ rar = k; break; } }
+        tesouros.push({ x: margem + r()*(MW-margem*2), y: margem + r()*(MH-margem*2), b:b, r:rar, achado:false });
     }
     pl = { x:MW/2, y:MH/2, dir:1, cavando:0 };
     alvo = { x:pl.x, y:pl.y };
@@ -202,14 +236,18 @@ function cavar(){
     }
     if(achou){
         achou.achado = true;
-        var item = ITENS[achou.tipo];
+        var item = itemDe(achou.b, achou.r);
         moedas += item.v;
         achados++;
+        guardaNaColecao(item);
         lsSet('moedas', moedas); lsSet('achados', achados);
         brilhoAchado = 1;
         bipe(880, 0.15); setTimeout(function(){ bipe(1320, 0.3); }, 130);
         document.getElementById('achouIc').textContent = item.ic;
         document.getElementById('achouNome').textContent = item.nome + '!';
+        document.getElementById('achouNome').style.color = item.rar.cor;
+        document.getElementById('achouRar').textContent = '⭐ ' + item.rar.nome;
+        document.getElementById('achouRar').style.color = item.rar.cor;
         document.getElementById('achouValor').textContent = '+🪙 ' + item.v;
         document.getElementById('achou').style.display = 'flex';
         setTimeout(fechaAchou, 1600);
@@ -287,7 +325,30 @@ function abreIlhas(){
     document.getElementById('ilhas').style.display = 'flex';
 }
 function fecha(id){ document.getElementById(id).style.display = 'none'; }
-window.abreLoja = abreLoja; window.abreIlhas = abreIlhas; window.fecha = fecha;
+function abreIndice(){
+    var el = document.getElementById('listaIndice');
+    el.innerHTML = '';
+    var total = BASES.length * RARIDADES.length, tenho = 0;
+    for(var b=0;b<BASES.length;b++){
+        for(var r=0;r<RARIDADES.length;r++){
+            var it = itemDe(b, r);
+            var qtd = colecao[it.id] || 0;
+            if(qtd > 0) tenho++;
+            var d = document.createElement('div');
+            d.style.cssText = 'border:2px solid ' + (qtd>0 ? it.rar.cor : 'rgba(255,255,255,0.15)') +
+                '; border-radius:10px; padding:6px 2px; text-align:center; background:rgba(0,0,0,0.25);' +
+                (qtd>0 ? '' : 'opacity:0.45; filter:grayscale(1);');
+            d.innerHTML = '<div style="font-size:24px">' + (qtd>0 ? it.ic : '❓') + '</div>' +
+                '<div style="font-size:8.5px; font-weight:bold; color:' + (qtd>0?it.rar.cor:'#889') + '; line-height:1.1">' +
+                (qtd>0 ? it.nome : '???') + '</div>' +
+                (qtd>1 ? '<div style="font-size:9px; color:#a8cbe0">x' + qtd + '</div>' : '');
+            el.appendChild(d);
+        }
+    }
+    document.getElementById('indiceProg').textContent = '🏆 ' + tenho + ' / ' + total + ' itens descobertos';
+    document.getElementById('indice').style.display = 'flex';
+}
+window.abreLoja = abreLoja; window.abreIlhas = abreIlhas; window.fecha = fecha; window.abreIndice = abreIndice;
 
 // ============ LOOP ============
 function loop(agora){
@@ -317,10 +378,11 @@ function loop(agora){
     // 🧲 ímã: ferro e moeda enterrados PERTO voam pro seu bolso!
     if(ima){
         tesouros.forEach(function(t){
-            if(!t.achado && t.tipo <= 1 && Math.hypot(t.x-pl.x, t.y-pl.y) < 190){
+            if(!t.achado && t.r === 0 && Math.hypot(t.x-pl.x, t.y-pl.y) < 190){
                 t.achado = true;
-                var item = ITENS[t.tipo];
+                var item = itemDe(t.b, t.r);
                 moedas += item.v; achados++;
+                guardaNaColecao(item);
                 lsSet('moedas', moedas); lsSet('achados', achados);
                 brilhoAchado = 0.35;
                 bipe(700, 0.1);
