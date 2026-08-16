@@ -236,8 +236,10 @@ function bipe(freq, dur){
     try{
         if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
         var o = actx.createOscillator(), g = actx.createGain();
-        o.type='square'; o.frequency.value = freq;
-        g.gain.setValueAtTime(0.08, actx.currentTime);
+        o.type = freq > 500 ? 'sine' : 'square'; // agudo = suave, grave = robusto
+        o.frequency.value = freq;
+        g.gain.setValueAtTime(0.001, actx.currentTime);
+        g.gain.exponentialRampToValueAtTime(freq > 500 ? 0.12 : 0.07, actx.currentTime + 0.008);
         g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
         o.connect(g); g.connect(actx.destination);
         o.start(); o.stop(actx.currentTime + dur);
@@ -521,7 +523,7 @@ function loop(agora){
     var sinal = maisPerto < alc ? 1 - (maisPerto/alc) : 0; // 0 (longe) a 1 (em cima!)
     bipT -= dt;
     if(sinal > 0 && bipT <= 0){
-        bipe(1000 + sinal*800, 0.045);
+        bipe(1175, 0.05);
         bipT = 0.8 - sinal*0.68;
     }
 
