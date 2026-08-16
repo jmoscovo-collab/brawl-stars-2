@@ -425,6 +425,7 @@ function loop(agora){
     if(tec['arrowdown']||tec['s']) { alvo.y = pl.y + 60; alvo.x = pl.x; }
 
     var dx = alvo.x - pl.x, dy = alvo.y - pl.y, dist = Math.hypot(dx,dy);
+    pl.andando = dist > 6 && pl.cavando <= 0;
     if(dist > 6 && pl.cavando <= 0){
         pl.x += dx/dist * Math.min(240*dt, dist);
         pl.y += dy/dist * Math.min(240*dt, dist);
@@ -520,7 +521,25 @@ function desenha(agora, sinal, maisPerto){
         ctx.fillStyle = 'rgba(255,215,0,' + brilhoAchado*0.25 + ')';
         ctx.fillRect(0,0,W,H);
     }
-    // jogador: exploradorzinho com detector
+    // jogador: o PERSONAGEM desenhado pelo Davi no Gemini — com animação de andar!
+    if(imgPersonagem.complete && imgPersonagem.naturalWidth > 0){
+        ctx.save();
+        ctx.translate(pl.x, pl.y);
+        // sombra
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.beginPath(); ctx.ellipse(0, 2, 20, 6, 0, 0, 7); ctx.fill();
+        if(pl.dir < 0) ctx.scale(-1,1);
+        var passo = pl.andando ? Math.sin(agora/90) : 0;
+        var pulo = pl.andando ? Math.abs(Math.sin(agora/90))*5 : 0; // quica ao andar
+        ctx.rotate(passo * 0.09); // balança pros lados como passinhos
+        if(pl.cavando > 0) ctx.rotate(Math.sin(pl.cavando*20)*0.35); // cavando com força!
+        ctx.imageSmoothingEnabled = false;
+        var h = 78, w = h * imgPersonagem.naturalWidth / imgPersonagem.naturalHeight;
+        ctx.drawImage(imgPersonagem, -w/2, -h - pulo, w, h);
+        if(pl.cavando > 0){ ctx.font = '26px Arial'; ctx.textAlign='center'; ctx.fillText('⛏️', 24, -18); }
+        ctx.restore();
+    } else {
+    // (desenho reserva enquanto a imagem carrega)
     ctx.save();
     // (dentro do mundo, a câmera já foi aplicada)
     ctx.translate(pl.x, pl.y);
@@ -562,6 +581,7 @@ function desenha(agora, sinal, maisPerto){
     }
     ctx.restore();
     ctx.restore();
+    }
     ctx.restore(); // sai da câmera — HUD fica parado na tela
 
     // ===== HUD =====
@@ -586,6 +606,8 @@ function desenha(agora, sinal, maisPerto){
     }
 }
 function px(x, y, w, h, cor){ ctx.fillStyle = cor; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
+var imgPersonagem = new Image();
+imgPersonagem.src = 'personagem.png';
 // a imagem oficial do comerciante (feita pelo Davi com o Gemini!)
 var imgComerciante = new Image();
 imgComerciante.src = 'comerciante.png';
