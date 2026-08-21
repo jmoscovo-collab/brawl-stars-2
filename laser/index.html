@@ -1,0 +1,455 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Desvia do Laser 🔴</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#05050c; font-family:'Comic Sans MS','Chalkboard SE',cursive,sans-serif; touch-action:none; }
+  #wrap { position:relative; width:100%; height:100%; }
+  canvas { display:block; width:100%; height:100%; }
+  .screen { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:linear-gradient(#1a0b1e,#08040c); z-index:10; text-align:center; padding:20px; }
+  .hidden { display:none !important; }
+  h1 { font-size:clamp(28px,7vw,56px); color:#fff; text-shadow:0 0 12px #ff2b5e,3px 3px 0 #b01038; }
+  h2 { font-size:clamp(22px,5vw,36px); color:#ffd0dc; }
+  p  { color:#d8a9c0; font-size:clamp(15px,3.6vw,20px); max-width:440px; line-height:1.5; }
+  .btn { font-family:inherit; font-size:clamp(18px,4vw,26px); padding:12px 34px; border:none; border-radius:18px; cursor:pointer; color:#fff; background:#ff2b5e; box-shadow:0 5px 0 #b01038; transition:transform .08s; }
+  .btn:active { transform:translateY(4px); box-shadow:0 1px 0 #b01038; }
+  .btn.azul { background:#4a7bd6; box-shadow:0 5px 0 #2b4f9e; }
+  .tag { font-size:clamp(16px,4vw,22px); color:#fff6d8; background:#2a0f1c; border:2px solid #ff2b5e; border-radius:14px; padding:6px 18px; }
+  #hud { position:absolute; top:0; left:0; right:0; padding:12px 16px; display:flex; justify-content:space-between; z-index:5; pointer-events:none; font-size:clamp(20px,5vw,30px); color:#fff; text-shadow:0 0 6px #000; }
+</style>
+
+<div id="wrap">
+  <canvas id="cv"></canvas>
+  <div id="hud" class="hidden">
+    <div id="hudTime">⏱️ 0.0s</div>
+    <div id="hudBest">🏆 0s</div>
+  </div>
+
+  <!-- MENU -->
+  <div id="scrMenu" class="screen">
+    <h1>🔴 Desvia do Laser</h1>
+    <div class="tag" id="menuBest">🏆 Recorde: 0s</div>
+    <div class="tag" id="menuCoins">🪙 0 moedas</div>
+    <p>Mexa o cogumelo 🍄 e fuja dos lasers vermelhos que vêm de todos os lados! Eles avisam com uma linha piscando antes de disparar. Pegue as 🪙 moedas pra comprar skins! Aguente o máximo que conseguir! 😱<br><br>PC: mouse. Celular: arraste o dedo.</p>
+    <button class="btn" id="btnPlay">▶️ JOGAR</button>
+    <button class="btn azul" id="btnSkins">😎 SKINS</button>
+    <a href="/" class="btn azul" style="text-decoration:none;display:inline-block">🏠 Voltar</a>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="scrOver" class="screen hidden">
+    <h2 id="overTitle">💥 Queimou!</h2>
+    <div id="overStats" style="color:#ffd0dc;font-size:22px;line-height:1.6"></div>
+    <button class="btn" id="btnAgain">🔄 De novo</button>
+    <button class="btn azul" id="btnSkins2">😎 SKINS</button>
+    <a href="/" class="btn azul" style="text-decoration:none;display:inline-block">🏠 Menu</a>
+  </div>
+
+  <!-- SKINS -->
+  <div id="scrSkins" class="screen hidden">
+    <h2>😎 Skins do Cogumelo</h2>
+    <div class="tag" id="skinCoins">🪙 0</div>
+    <div id="skinMsg" style="color:#ffe14a;font-size:16px;height:20px;opacity:0;transition:opacity .3s"></div>
+    <div id="skinList" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:min(96vw,500px);max-height:56vh;overflow-y:auto;padding:4px"></div>
+    <button class="btn" id="skinBack">⬅️ Voltar</button>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var LS={ get:function(k,d){try{var v=localStorage.getItem('laser_'+k);return v===null?d:JSON.parse(v);}catch(e){return d;}}, set:function(k,v){try{localStorage.setItem('laser_'+k,JSON.stringify(v));}catch(e){}} };
+var best=LS.get('best',0);
+
+// ---- MOEDAS + SKINS ----
+var coins=LS.get('coins',0);
+var SKINS=[
+  { id:'classico', nome:'Clássico',  preco:0,   style:'classic' },
+  { id:'oceano',   nome:'Oceano',    preco:40,  style:'ocean' },
+  { id:'floresta', nome:'Floresta',  preco:70,  style:'forest' },
+  { id:'fogo',     nome:'Fogo',      preco:120, style:'fire' },
+  { id:'gelo',     nome:'Gelo',      preco:120, style:'ice' },
+  { id:'galaxia',  nome:'Galáxia',   preco:200, style:'galaxy' },
+  { id:'ouro',     nome:'Dourado',   preco:300, style:'gold' },
+  { id:'lava',     nome:'Lava',      preco:400, style:'lava' },
+  { id:'diamante', nome:'Diamante',  preco:600, style:'diamond' },
+  { id:'arcoiris', nome:'Arco-íris', preco:999, style:'rainbow' }
+];
+var selSkin=LS.get('skin','classico');
+var unlocked=LS.get('unlocked',['classico']);
+function curSkin(){ for(var i=0;i<SKINS.length;i++) if(SKINS[i].id===selSkin) return SKINS[i]; return SKINS[0]; }
+
+// desenha o cogumelo lindo com a skin escolhida
+function drawSkinMushroom(g, px, py, r, style, t){
+  // corpo
+  g.fillStyle='#ffe9c9'; g.beginPath(); g.arc(px,py+r*0.3,r*0.8,0,7); g.fill();
+  g.strokeStyle='#e6cfa8'; g.lineWidth=r*0.06; g.stroke();
+  // chapéu (dome)
+  var top=py-r*1.2, bot=py-r*0.1;
+  g.save();
+  g.beginPath(); g.arc(px,py-r*0.1,r*1.1,Math.PI,0); g.closePath(); g.clip();
+  var grad;
+  function lg(c1,c2,c3){ var gg=g.createLinearGradient(0,top,0,bot); gg.addColorStop(0,c1); gg.addColorStop(c3?0.5:1,c2); if(c3) gg.addColorStop(1,c3); return gg; }
+  if(style==='classic'){ g.fillStyle='#e84d4d'; }
+  else if(style==='ocean'){ g.fillStyle=lg('#7fdcff','#2e8bff','#0b3d91'); }
+  else if(style==='forest'){ g.fillStyle=lg('#9be36a','#4caf2f','#1f5e12'); }
+  else if(style==='fire'){ g.fillStyle=lg('#ffe259','#ff7a2e','#c11e00'); }
+  else if(style==='ice'){ g.fillStyle=lg('#f0fbff','#8fdcff','#3aa0e0'); }
+  else if(style==='galaxy'){ g.fillStyle=lg('#6a3cb5','#3a1c71','#120a33'); }
+  else if(style==='gold'){ g.fillStyle=lg('#fff6c0','#ffcf3a','#c98a00'); }
+  else if(style==='lava'){ g.fillStyle=lg('#4a1010','#2a0808','#180404'); }
+  else if(style==='diamond'){ g.fillStyle=lg('#f2ffff','#b9ecff','#6fd0ff'); }
+  else if(style==='rainbow'){ var rg=g.createLinearGradient(px-r*1.1,0,px+r*1.1,0); for(var i=0;i<=6;i++) rg.addColorStop(i/6,'hsl('+((i*60+t*80)%360)+',85%,60%)'); g.fillStyle=rg; }
+  else g.fillStyle='#e84d4d';
+  g.fillRect(px-r*1.2, top, r*2.4, r*1.2);
+  // decorações por skin
+  if(style==='classic'){ g.fillStyle='#fff'; dot(g,px-r*0.45,py-r*0.4,r*0.22); dot(g,px+r*0.35,py-r*0.55,r*0.16); dot(g,px+r*0.05,py-r*0.25,r*0.12); }
+  else if(style==='ocean'){ g.fillStyle='rgba(255,255,255,0.6)'; dot(g,px-r*0.4,py-r*0.4,r*0.14); dot(g,px+r*0.3,py-r*0.55,r*0.10); dot(g,px+r*0.55,py-r*0.3,r*0.08); }
+  else if(style==='forest'){ g.fillStyle='rgba(255,255,255,0.85)'; dot(g,px-r*0.45,py-r*0.35,r*0.18); dot(g,px+r*0.4,py-r*0.5,r*0.14); dot(g,px-r*0.05,py-r*0.6,r*0.1); }
+  else if(style==='fire'){ g.fillStyle='rgba(255,240,180,'+(0.5+Math.sin(t*8)*0.3)+')'; dot(g,px-r*0.3,py-r*0.45,r*0.12); dot(g,px+r*0.2,py-r*0.55,r*0.1); }
+  else if(style==='ice'){ g.strokeStyle='#eaffff'; g.lineWidth=r*0.06; crystal(g,px-r*0.4,py-r*0.4,r*0.22); crystal(g,px+r*0.35,py-r*0.5,r*0.18); }
+  else if(style==='galaxy'){ star4(g,px-r*0.4,py-r*0.45,r*0.14,t); star4(g,px+r*0.35,py-r*0.55,r*0.11,t+1); star4(g,px+r*0.05,py-r*0.3,r*0.09,t+2); star4(g,px-r*0.6,py-r*0.2,r*0.08,t+3); }
+  else if(style==='gold'){ sparkle(g,px-r*0.35,py-r*0.45,r*0.3,t); sparkle(g,px+r*0.35,py-r*0.4,r*0.24,t+1.5); }
+  else if(style==='lava'){ g.strokeStyle='#ff5b2e'; g.shadowColor='#ff7a2e'; g.shadowBlur=r*0.5; g.lineWidth=r*0.12;
+    g.beginPath(); g.moveTo(px-r*0.9,py-r*0.4); g.lineTo(px-r*0.2,py-r*0.6); g.lineTo(px+r*0.3,py-r*0.35); g.lineTo(px+r*0.9,py-r*0.5); g.stroke();
+    g.beginPath(); g.moveTo(px-r*0.4,py-r*0.15); g.lineTo(px+r*0.1,py-r*0.5); g.stroke(); g.shadowBlur=0; }
+  else if(style==='diamond'){ g.strokeStyle='rgba(255,255,255,0.7)'; g.lineWidth=r*0.05;
+    g.beginPath(); g.moveTo(px-r*0.9,py-r*0.5); g.lineTo(px,py-r*0.15); g.lineTo(px+r*0.9,py-r*0.5); g.stroke();
+    sparkle(g,px-r*0.3,py-r*0.5,r*0.34,t); sparkle(g,px+r*0.4,py-r*0.35,r*0.26,t+1); }
+  g.restore();
+  // brilho/glow por cima pra skins premium
+  if(style==='gold'||style==='diamond'||style==='lava'||style==='rainbow'){
+    g.save(); g.globalAlpha=0.25; g.fillStyle='#fff';
+    g.beginPath(); g.ellipse(px-r*0.35,py-r*0.75,r*0.5,r*0.2,-0.5,0,7); g.fill(); g.restore();
+  }
+  // contorno do chapéu
+  g.strokeStyle='rgba(0,0,0,0.25)'; g.lineWidth=r*0.06;
+  g.beginPath(); g.arc(px,py-r*0.1,r*1.1,Math.PI,0); g.stroke();
+  // olhos
+  g.fillStyle='#333'; dot(g,px-r*0.25,py+r*0.35,r*0.15); dot(g,px+r*0.25,py+r*0.35,r*0.15);
+  g.fillStyle='#fff'; dot(g,px-r*0.29,py+r*0.31,r*0.05); dot(g,px+r*0.21,py+r*0.31,r*0.05);
+}
+function dot(g,x,y,rr){ g.beginPath(); g.arc(x,y,rr,0,7); g.fill(); }
+function crystal(g,x,y,rr){ g.beginPath(); g.moveTo(x,y-rr); g.lineTo(x+rr*0.7,y); g.lineTo(x,y+rr); g.lineTo(x-rr*0.7,y); g.closePath(); g.stroke(); }
+function star4(g,x,y,rr,t){ var a=0.5+Math.sin(t*4+x)*0.5; g.fillStyle='rgba(255,255,255,'+(0.4+a*0.6)+')'; g.beginPath(); for(var i=0;i<8;i++){ var ang=i*Math.PI/4; var rad=(i%2===0)?rr:rr*0.4; g.lineTo(x+Math.cos(ang)*rad,y+Math.sin(ang)*rad); } g.closePath(); g.fill(); }
+function sparkle(g,x,y,rr,t){ var a=0.4+Math.abs(Math.sin(t*3+x))*0.6; g.strokeStyle='rgba(255,255,255,'+a+')'; g.lineWidth=rr*0.16; g.beginPath(); g.moveTo(x-rr,y); g.lineTo(x+rr,y); g.moveTo(x,y-rr); g.lineTo(x,y+rr); g.moveTo(x-rr*0.6,y-rr*0.6); g.lineTo(x+rr*0.6,y+rr*0.6); g.moveTo(x-rr*0.6,y+rr*0.6); g.lineTo(x+rr*0.6,y-rr*0.6); g.stroke(); }
+
+var AC=null;
+function ac(){ if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}} if(AC&&AC.state==='suspended')AC.resume(); return AC; }
+function beep(f,d,t,v,slide){ var c=ac(); if(!c)return; var o=c.createOscillator(),g=c.createGain(); o.type=t||'square'; o.frequency.value=f; if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,slide),c.currentTime+d); g.gain.value=v||0.1; g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d); o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+d); }
+var snd={
+  warn:function(){ beep(880,0.05,'square',0.05); },
+  fire:function(){ beep(200,0.18,'sawtooth',0.12,900); },
+  star:function(){ beep(660,0.07,'square',0.08); beep(990,0.1,'square',0.06); },
+  boom:function(){ beep(90,0.35,'sawtooth',0.18,40); beep(150,0.2,'square',0.1); },
+  ring:function(){ beep(500,0.1,'triangle',0.08,1200); },
+  die:function(){ beep(220,0.5,'sawtooth',0.18,40); beep(110,0.7,'triangle',0.14,30); }
+};
+
+function $(id){ return document.getElementById(id); }
+function show(id){ ['scrMenu','scrOver','scrSkins'].forEach(function(s){ $(s).classList.add('hidden'); }); if(id) $(id).classList.remove('hidden'); }
+
+var skinsFrom='scrMenu', skinPreviews=[];
+function openSkins(from){ skinsFrom=from; renderSkins(); show('scrSkins'); }
+function skinMsg(m){ var el=$('skinMsg'); el.textContent=m; el.style.opacity=1; clearTimeout(skinMsg._t); skinMsg._t=setTimeout(function(){ el.style.opacity=0; },1500); }
+function renderSkins(){
+  $('skinCoins').textContent='🪙 '+coins;
+  var box=$('skinList'); box.innerHTML=''; skinPreviews=[];
+  SKINS.forEach(function(sk){
+    var owned = unlocked.indexOf(sk.id)>=0;
+    var card=document.createElement('div');
+    card.style.cssText='background:#141428;border:3px solid '+(sk.id===selSkin?'#3fbb63':(owned?'#4a7bd6':'#553')) +';border-radius:16px;padding:8px;width:112px;display:flex;flex-direction:column;align-items:center;gap:5px';
+    var cvp=document.createElement('canvas'); cvp.width=100; cvp.height=100; cvp.style.width='100px'; cvp.style.height='100px';
+    card.appendChild(cvp); skinPreviews.push({ c:cvp, style:sk.style });
+    var nm=document.createElement('div'); nm.textContent=sk.nome; nm.style.cssText='color:#fff;font-size:14px'; card.appendChild(nm);
+    var b=document.createElement('button'); b.className='btn'; b.style.cssText='font-size:14px;padding:7px 12px;box-shadow:0 3px 0 #0006';
+    if(sk.id===selSkin){ b.textContent='✅ USANDO'; b.style.background='#3fbb63'; }
+    else if(owned){ b.textContent='USAR'; b.style.background='#4a7bd6'; }
+    else { b.textContent='🪙 '+sk.preco; b.style.background=coins>=sk.preco?'#e0a52a':'#666'; }
+    b.onclick=function(){
+      if(unlocked.indexOf(sk.id)>=0){ selSkin=sk.id; LS.set('skin',selSkin); snd.star(); renderSkins(); }
+      else if(coins>=sk.preco){ coins-=sk.preco; LS.set('coins',coins); unlocked.push(sk.id); LS.set('unlocked',unlocked); selSkin=sk.id; LS.set('skin',selSkin); snd.star(); skinMsg('Comprou '+sk.nome+'! 🎉'); renderSkins(); }
+      else { snd.die(); skinMsg('Faltam '+(sk.preco-coins)+' moedas 😅'); }
+    };
+    card.appendChild(b); box.appendChild(card);
+  });
+}
+// anima os previews das skins
+function animSkins(){
+  if(!$('scrSkins').classList.contains('hidden')){
+    var t=performance.now()/1000;
+    skinPreviews.forEach(function(pv){ var g=pv.c.getContext('2d'); g.clearRect(0,0,100,100); g.fillStyle='#0a0a18'; g.fillRect(0,0,100,100); drawSkinMushroom(g,50,54,30,pv.style,t); });
+  }
+  requestAnimationFrame(animSkins);
+}
+requestAnimationFrame(animSkins);
+
+var cv=$('cv'), ctx=cv.getContext('2d');
+var W=0,H=0,DPR=1;
+function resize(){ DPR=window.devicePixelRatio||1; W=window.innerWidth; H=window.innerHeight; cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); }
+window.addEventListener('resize', resize); resize();
+
+var playing=false, player, lasers, stars, particles, meteors, rings, elapsed, spawnT, meteorT, ringT, score, lastTs;
+
+function start(){
+  ac(); show(null);
+  $('hud').classList.remove('hidden');
+  player={ x:W/2, y:H/2, tx:W/2, ty:H/2, r:14 };
+  lasers=[]; stars=[]; particles=[]; meteors=[]; rings=[]; elapsed=0; spawnT=0.8; meteorT=2; ringT=3; score=0;
+  playing=true; lastTs=performance.now();
+  requestAnimationFrame(loop);
+}
+function over(){
+  playing=false;
+  $('hud').classList.add('hidden');
+  snd.die();
+  var t=Math.floor(elapsed*10)/10;
+  var novo=t>best; if(novo){ best=t; LS.set('best',best); }
+  // cada moeda 🪙 pega vira dinheiro direto
+  var ganhou=score;
+  coins+=ganhou; LS.set('coins',coins);
+  $('overTitle').textContent=novo?'🏆 NOVO RECORDE!':'💥 Queimou!';
+  $('overStats').innerHTML='⏱️ Você sobreviveu <b>'+t.toFixed(1)+'s</b>!<br>🪙 Pegou <b>'+ganhou+' moedas</b> (total: '+coins+')<br>🏆 Recorde: '+best.toFixed(1)+'s';
+  show('scrOver');
+}
+
+function setPos(x,y){ player.tx=x; player.ty=y; }
+cv.addEventListener('mousemove', function(e){ setPos(e.clientX,e.clientY); });
+cv.addEventListener('touchmove', function(e){ e.preventDefault(); var t=e.touches[0]; setPos(t.clientX,t.clientY); }, {passive:false});
+cv.addEventListener('touchstart', function(e){ e.preventDefault(); var t=e.touches[0]; setPos(t.clientX,t.clientY); }, {passive:false});
+
+function spawnLaser(){
+  // laser horizontal ou vertical, numa posição aleatória
+  var horiz = Math.random()<0.5;
+  var pos = horiz ? Math.random()*H : Math.random()*W;
+  var thick = 16 + Math.random()*14;
+  var fase = Math.floor(elapsed/10);
+  var warn = Math.max(0.35, 0.9 - fase*0.10); // aviso mais curto nas fases altas
+  lasers.push({ horiz:horiz, pos:pos, thick:thick, warn:warn, active:0, life:0.35 });
+  snd.warn();
+}
+function spawnStar(){
+  stars.push({ x:40+Math.random()*(W-80), y:60+Math.random()*(H-100), r:12, t:6 });
+}
+function spawnMeteor(){
+  // meteoro: mostra a sombra do lugar onde vai cair, depois explode
+  var x=40+Math.random()*(W-80), y=60+Math.random()*(H-120);
+  var fase=Math.floor(elapsed/10);
+  var wm=Math.max(0.7,1.4-fase*0.1);
+  meteors.push({ x:x, y:y, r:44+Math.random()*22, warn:wm, warnMax:wm, boom:0, life:0.35, drop:-H*0.6 });
+}
+function spawnRing(){
+  // círculo de laser que cresce a partir de um centro, MAS com um buraco pra fugir
+  var x=W*0.2+Math.random()*W*0.6, y=H*0.2+Math.random()*H*0.6;
+  var fase=Math.floor(elapsed/10);
+  var gapAng=Math.random()*Math.PI*2;             // onde fica a abertura
+  var gapSize=Math.max(0.9, 1.4 - fase*0.05);     // tamanho do buraco
+  // o círculo NÃO varre o mapa todo — para pequeno, longe dos cantos
+  var maxR=Math.min(W,H)*0.28;                     // bem pequeno! só uma explosão no meio
+  rings.push({ x:x, y:y, rad:0, thick:18, grow:(200+fase*25), max:maxR, warn:0.9, gapAng:gapAng, gapSize:gapSize });
+  snd.ring();
+}
+
+function loop(ts){
+  if(!playing) return;
+  var dt=Math.min((ts-lastTs)/1000,0.05); lastTs=ts;
+  update(dt); draw();
+  requestAnimationFrame(loop);
+}
+
+function update(dt){
+  elapsed+=dt;
+  // player segue o alvo suavemente
+  player.x += (player.tx-player.x)*Math.min(1,dt*14);
+  player.y += (player.ty-player.y)*Math.min(1,dt*14);
+  player.x=Math.max(player.r,Math.min(W-player.r,player.x));
+  player.y=Math.max(player.r,Math.min(H-player.r,player.y));
+
+  // FASES: a cada 10s fica mais difícil, SEM avisar nada na tela
+  var fase = Math.floor(elapsed/10); // 0,1,2,3...
+  // quanto maior a fase: lasers mais rápidos e mais lasers de uma vez
+  spawnT-=dt;
+  var gap = Math.max(0.20, 0.85 - fase*0.10);
+  if(spawnT<=0){
+    spawnLaser();
+    // a partir da fase 1, chance de sair mais de um laser junto (cresce com a fase)
+    var extras = Math.min(fase, 3);
+    for(var ex=0; ex<extras; ex++){ if(Math.random() < 0.35 + fase*0.06) spawnLaser(); }
+    spawnT=gap;
+  }
+
+  // FASE 1+: caem meteoros ☄️
+  if(fase>=1){
+    meteorT-=dt;
+    if(meteorT<=0){ spawnMeteor(); if(fase>=3 && Math.random()<0.5) spawnMeteor(); meteorT=Math.max(1.0, 3.2-fase*0.35); }
+  }
+  // FASE 2+: círculos de laser que crescem 🔴
+  if(fase>=2){
+    ringT-=dt;
+    if(ringT<=0){ spawnRing(); if(fase>=4 && Math.random()<0.5) spawnRing(); ringT=Math.max(1.6, 4.5-fase*0.4); }
+  }
+
+  // atualiza meteoros
+  for(var mi=meteors.length-1; mi>=0; mi--){
+    var mt=meteors[mi];
+    if(mt.warn>0){ mt.warn-=dt; mt.drop=-H*0.6*(mt.warn/mt.warnMax); if(mt.warn<=0){ mt.drop=0; mt.boom=mt.life; snd.boom(); burst(mt.x,mt.y,'#ff9a3c'); } }
+    else if(mt.boom>0){
+      mt.boom-=dt;
+      var dx=mt.x-player.x, dy=mt.y-player.y;
+      if(dx*dx+dy*dy < mt.r*mt.r){ over(); return; }  // só pega dentro da área marcada
+      if(mt.boom<=0) meteors.splice(mi,1);
+    }
+  }
+  // atualiza rings
+  for(var ri=rings.length-1; ri>=0; ri--){
+    var rg=rings[ri];
+    if(rg.warn>0){ rg.warn-=dt; }
+    else {
+      rg.rad += rg.grow*dt;
+      var d=Math.sqrt((rg.x-player.x)*(rg.x-player.x)+(rg.y-player.y)*(rg.y-player.y));
+      if(Math.abs(d-rg.rad) < rg.thick/2+player.r*0.6){
+        // só machuca se o jogador NÃO estiver no buraco da abertura
+        var ang=Math.atan2(player.y-rg.y, player.x-rg.x);
+        var da=ang-rg.gapAng; while(da>Math.PI)da-=Math.PI*2; while(da<-Math.PI)da+=Math.PI*2;
+        if(Math.abs(da) > rg.gapSize/2){ over(); return; }
+      }
+      if(rg.rad>rg.max) rings.splice(ri,1);
+    }
+  }
+
+  // estrelas
+  if(stars.length<2 && Math.random()<dt*0.8) spawnStar();
+  for(var i=stars.length-1;i>=0;i--){
+    var st=stars[i]; st.t-=dt;
+    var dx=st.x-player.x, dy=st.y-player.y;
+    if(dx*dx+dy*dy < (st.r+player.r)*(st.r+player.r)){ score++; snd.star(); burst(st.x,st.y,'#ffe14a'); stars.splice(i,1); continue; }
+    if(st.t<=0) stars.splice(i,1);
+  }
+
+  // lasers
+  for(var j=lasers.length-1;j>=0;j--){
+    var L=lasers[j];
+    if(L.warn>0){
+      L.warn-=dt;
+      if(L.warn<=0){ L.active=L.life; snd.fire(); }
+    } else if(L.active>0){
+      L.active-=dt;
+      // dano só na 1a metade do disparo (feixe forte)
+      var hit=false;
+      if(L.horiz){ if(Math.abs(player.y-L.pos) < L.thick/2+player.r*0.6) hit=true; }
+      else { if(Math.abs(player.x-L.pos) < L.thick/2+player.r*0.6) hit=true; }
+      if(hit){ over(); return; }
+      if(L.active<=0) lasers.splice(j,1);
+    }
+  }
+
+  // particulas
+  for(var p=particles.length-1;p>=0;p--){ var pa=particles[p]; pa.t-=dt; pa.x+=pa.vx*dt; pa.y+=pa.vy*dt; if(pa.t<=0) particles.splice(p,1); }
+
+  $('hudTime').textContent='⏱️ '+elapsed.toFixed(1)+'s';
+  $('hudBest').textContent='🏆 '+best.toFixed(1)+'s';
+}
+
+function burst(x,y,c){ for(var i=0;i<10;i++) particles.push({x:x,y:y,vx:(Math.random()-0.5)*260,vy:(Math.random()-0.5)*260,t:0.5,c:c}); }
+
+function draw(){
+  ctx.fillStyle='#08040e'; ctx.fillRect(0,0,W,H);
+  // grade suave
+  ctx.strokeStyle='#1a0e2266'; ctx.lineWidth=1;
+  for(var gx=0;gx<W;gx+=50){ ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,H); ctx.stroke(); }
+  for(var gy=0;gy<H;gy+=50){ ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
+
+  // moedas 🪙
+  stars.forEach(function(st){
+    ctx.save(); ctx.translate(st.x,st.y);
+    ctx.shadowColor='#ffd21c'; ctx.shadowBlur=14;
+    ctx.font=(st.r*2)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('🪙',0,2); ctx.restore();
+  });
+
+  // lasers
+  lasers.forEach(function(L){
+    if(L.warn>0){
+      // linha de aviso piscando
+      var blink = Math.sin(L.warn*40)>0 ? 0.9 : 0.35;
+      ctx.strokeStyle='rgba(255,60,90,'+blink+')'; ctx.lineWidth=2;
+      ctx.setLineDash([10,8]);
+      ctx.beginPath();
+      if(L.horiz){ ctx.moveTo(0,L.pos); ctx.lineTo(W,L.pos); } else { ctx.moveTo(L.pos,0); ctx.lineTo(L.pos,H); }
+      ctx.stroke(); ctx.setLineDash([]);
+    } else if(L.active>0){
+      var a=Math.max(0.2,L.active/L.life);
+      ctx.fillStyle='rgba(255,40,70,'+a+')'; ctx.shadowColor='#ff2b5e'; ctx.shadowBlur=20;
+      if(L.horiz) ctx.fillRect(0,L.pos-L.thick/2,W,L.thick);
+      else ctx.fillRect(L.pos-L.thick/2,0,L.thick,H);
+      ctx.fillStyle='rgba(255,220,230,'+a+')';
+      if(L.horiz) ctx.fillRect(0,L.pos-2,W,4);
+      else ctx.fillRect(L.pos-2,0,4,H);
+      ctx.shadowBlur=0;
+    }
+  });
+
+  // círculos de laser (rings)
+  rings.forEach(function(rg){
+    // a parte "cheia" do anel vai de (gap fim) até (gap início), deixando o buraco aberto
+    var a0=rg.gapAng+rg.gapSize/2, a1=rg.gapAng-rg.gapSize/2+Math.PI*2;
+    if(rg.warn>0){
+      var blink=Math.sin(rg.warn*40)>0?0.8:0.3;
+      ctx.strokeStyle='rgba(255,80,80,'+blink+')'; ctx.lineWidth=3; ctx.setLineDash([8,8]);
+      ctx.beginPath(); ctx.arc(rg.x,rg.y,30,a0,a1); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle='rgba(255,80,80,'+blink+')'; ctx.font='24px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('⚠️',rg.x,rg.y);
+    } else {
+      ctx.shadowColor='#ff2b5e'; ctx.shadowBlur=18;
+      ctx.strokeStyle='#ff2b5e'; ctx.lineWidth=rg.thick;
+      ctx.beginPath(); ctx.arc(rg.x,rg.y,rg.rad,a0,a1); ctx.stroke();
+      ctx.strokeStyle='#ffd0dc'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(rg.x,rg.y,rg.rad,a0,a1); ctx.stroke();
+      ctx.shadowBlur=0;
+    }
+  });
+
+  // meteoros ☄️
+  meteors.forEach(function(mt){
+    if(mt.warn>0){
+      // sombra do alvo no chão
+      ctx.strokeStyle='rgba(255,140,60,0.8)'; ctx.lineWidth=3; ctx.setLineDash([6,6]);
+      ctx.beginPath(); ctx.arc(mt.x,mt.y,mt.r,0,7); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle='rgba(255,90,40,0.25)'; ctx.beginPath(); ctx.arc(mt.x,mt.y,mt.r,0,7); ctx.fill();
+      // pedra caindo
+      var my=mt.y+mt.drop;
+      ctx.fillStyle='#7a4a2a'; ctx.shadowColor='#ff8c2a'; ctx.shadowBlur=20;
+      ctx.beginPath(); ctx.arc(mt.x,my,mt.r*0.5,0,7); ctx.fill();
+      ctx.fillStyle='#ffb84a'; ctx.font=(mt.r*0.8)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.shadowBlur=0;
+      ctx.fillText('☄️',mt.x,my);
+    } else if(mt.boom>0){
+      var a=Math.max(0.1,mt.boom/mt.life);
+      // a explosão fica DENTRO da área marcada (não passa do círculo de aviso)
+      ctx.fillStyle='rgba(255,140,40,'+a+')'; ctx.shadowColor='#ff6a1a'; ctx.shadowBlur=30;
+      ctx.beginPath(); ctx.arc(mt.x,mt.y,mt.r,0,7); ctx.fill();
+      ctx.fillStyle='rgba(255,240,180,'+a+')'; ctx.beginPath(); ctx.arc(mt.x,mt.y,mt.r*0.5,0,7); ctx.fill();
+      ctx.shadowBlur=0;
+    }
+  });
+
+  // particulas
+  particles.forEach(function(pa){ ctx.globalAlpha=Math.max(0,pa.t*2); ctx.fillStyle=pa.c; ctx.fillRect(pa.x-3,pa.y-3,6,6); });
+  ctx.globalAlpha=1;
+
+  // player cogumelo (com a skin escolhida)
+  drawSkinMushroom(ctx, player.x, player.y, player.r*1.15, curSkin().style, elapsed);
+}
+
+$('btnPlay').onclick=start;
+$('btnAgain').onclick=start;
+$('btnSkins').onclick=function(){ openSkins('scrMenu'); };
+$('btnSkins2').onclick=function(){ openSkins('scrOver'); };
+$('skinBack').onclick=function(){ $('menuCoins').textContent='🪙 '+coins+' moedas'; show(skinsFrom); };
+$('menuBest').textContent='🏆 Recorde: '+best.toFixed(1)+'s';
+$('menuCoins').textContent='🪙 '+coins+' moedas';
+show('scrMenu');
+})();
+</script>
+<script src="/stats.js?v=358"></script>
+<script src="/avisos.js?v=6"></script>
+<script>if (window.initStats) initStats('laser');</script>
+<script src="/mascote.js"></script>

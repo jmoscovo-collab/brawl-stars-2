@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v378 (2026-08-21)
+- 2 JOGOS NOVOS: Desvia do Laser 🔴 (fuga de lasers, meteoros e círculos com fases secretas
+  a cada 10s, + loja de 10 skins pagas com moedas) e Piso Certo 3D 🟦 (2 pistas, uma é falsa
+  e racha — corra pra certa ou cai nos espinhos)
+
 ## v3.22.0 (2026-08-02)
 - Cidade Capivara GIGANTE: mapa 12x12 (144 terrenos, era 36), preco do terreno cresce pro
   longe do centro, migracao automatica do save antigo pro centro da cidade nova

@@ -1,0 +1,239 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Piso Certo 3D 🟦</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#0a0a14; font-family:'Comic Sans MS','Chalkboard SE',cursive,sans-serif; touch-action:none; }
+  #wrap { position:relative; width:100%; height:100%; }
+  canvas { display:block; width:100%; height:100%; }
+  .screen { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:linear-gradient(#1b2340,#0a0e1c); z-index:10; text-align:center; padding:20px; }
+  .hidden { display:none !important; }
+  h1 { font-size:clamp(28px,7vw,56px); color:#fff; text-shadow:3px 3px 0 #4a7bd6,-2px -2px 0 #2b4f9e; }
+  h2 { font-size:clamp(22px,5vw,36px); color:#cfe0ff; }
+  p  { color:#aab6d8; font-size:clamp(15px,3.6vw,20px); max-width:440px; line-height:1.5; }
+  .btn { font-family:inherit; font-size:clamp(18px,4vw,26px); padding:12px 34px; border:none; border-radius:18px; cursor:pointer; color:#fff; background:#4a7bd6; box-shadow:0 5px 0 #2b4f9e; transition:transform .08s; }
+  .btn:active { transform:translateY(4px); box-shadow:0 1px 0 #2b4f9e; }
+  .btn.verde { background:#3fbb63; box-shadow:0 5px 0 #268a45; }
+  .tag { font-size:clamp(16px,4vw,22px); color:#fff6d8; background:#2a2a44; border:2px solid #4a7bd6; border-radius:14px; padding:6px 18px; }
+  #hud { position:absolute; top:0; left:0; right:0; padding:12px 16px; display:flex; justify-content:space-between; z-index:5; pointer-events:none; font-size:clamp(20px,5vw,30px); color:#fff; text-shadow:1px 1px 3px #000; }
+  #tapHint { position:absolute; bottom:22px; width:100%; text-align:center; color:#ffffffaa; font-size:17px; z-index:5; pointer-events:none; }
+</style>
+
+<div id="wrap">
+  <canvas id="cv"></canvas>
+
+  <div id="hud" class="hidden">
+    <div id="hudScore">0</div>
+    <div id="hudBest">🏆 0</div>
+  </div>
+  <div id="tapHint" class="hidden">👈 fique na pista certa — o piso FALSO racha! 👉</div>
+
+  <!-- MENU -->
+  <div id="scrMenu" class="screen">
+    <h1>🟦 Piso Certo 3D</h1>
+    <div class="tag" id="menuBest">🏆 Recorde: 0</div>
+    <p>Duas pistas vêm em sua direção e parecem iguais! 🪨 Mas uma é <b>FALSA</b>! Quando chega perto, a falsa começa a <b>rachar</b> — corra pra pista certa a tempo! Se pisar na falsa, o chão quebra e você cai nos espinhos! 😱<br><br>PC: setas ⬅️➡️ (ou A/D). Celular: toque nos lados.</p>
+    <button class="btn verde" id="btnPlay">▶️ JOGAR</button>
+    <a href="/" class="btn" style="text-decoration:none;display:inline-block">🏠 Voltar</a>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="scrOver" class="screen hidden">
+    <h2 id="overTitle">💥 Caiu nos espinhos!</h2>
+    <div id="overStats" style="color:#cfe0ff;font-size:22px;line-height:1.6"></div>
+    <button class="btn verde" id="btnAgain">🔄 De novo</button>
+    <a href="/" class="btn" style="text-decoration:none;display:inline-block">🏠 Menu</a>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var LS={ get:function(k,d){try{var v=localStorage.getItem('piso_'+k);return v===null?d:JSON.parse(v);}catch(e){return d;}}, set:function(k,v){try{localStorage.setItem('piso_'+k,JSON.stringify(v));}catch(e){}} };
+var best=LS.get('best',0);
+
+var AC=null;
+function ac(){ if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}} if(AC&&AC.state==='suspended')AC.resume(); return AC; }
+function beep(f,d,t,v,slide){ var c=ac(); if(!c)return; var o=c.createOscillator(),g=c.createGain(); o.type=t||'square'; o.frequency.value=f; if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,slide),c.currentTime+d); g.gain.value=v||0.1; g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d); o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+d); }
+var NOTES=[262,294,330,349,392,440,494,523,587,659,698,784];
+var noteIdx=0;
+var snd={
+  step:function(){ beep(NOTES[noteIdx%NOTES.length],0.16,'triangle',0.14); noteIdx++; },
+  swap:function(){ beep(700,0.05,'triangle',0.06,900); },
+  crack:function(){ beep(180,0.15,'sawtooth',0.14,60); },
+  fall:function(){ beep(400,0.5,'sawtooth',0.16,80); },
+  die:function(){ beep(120,0.6,'triangle',0.16,40); }
+};
+
+function $(id){ return document.getElementById(id); }
+function show(id){ ['scrMenu','scrOver'].forEach(function(s){ $(s).classList.add('hidden'); }); if(id) $(id).classList.remove('hidden'); }
+
+var cv=$('cv'), ctx=cv.getContext('2d');
+var W=0,H=0,DPR=1;
+function resize(){ DPR=window.devicePixelRatio||1; W=window.innerWidth; H=window.innerHeight; cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); }
+window.addEventListener('resize', resize); resize();
+
+// ---- projeção pseudo-3D ----
+var FOCAL=2.2;
+function HORIZON(){ return H*0.32; }
+function GROUNDY(){ return H*0.92; }
+function KX(){ return W*0.62; }
+function pOf(z){ return FOCAL/(FOCAL+Math.max(z,-1.9)); }
+function proj(wx, z){ var p=pOf(z); return { x:W/2 + wx*p*KX(), y:HORIZON()+(GROUNDY()-HORIZON())*p, p:p }; }
+var ZP=0.7;       // linha de avaliação (onde o cogumelo pisa)
+var ZFAR=9;
+var DZ=1.15;
+
+var playing=false, rows, score, speed, playerX, playerLane, lastTs;
+var falling, fallT;
+
+function newRow(z){ return { z:z, fakeLane:(Math.random()<0.5?-1:1), evald:false, breakT:0 }; }
+// a "revelação" da rachadura acontece a partir dessa distância (dá tempo pra escolher)
+function zReveal(){ return Math.max(2.2, 4.2 - score*0.03); }
+
+function start(){
+  ac(); show(null);
+  $('hud').classList.remove('hidden');
+  $('tapHint').classList.remove('hidden');
+  rows=[]; score=0; speed=2.1; noteIdx=0; falling=false; fallT=0;
+  playerLane=(Math.random()<0.5?-1:1); playerX=playerLane*0.5;
+  for(var z=1.4; z<ZFAR; z+=DZ) rows.push(newRow(z));
+  playing=true; lastTs=performance.now();
+  requestAnimationFrame(loop);
+}
+function over(){
+  playing=false;
+  $('hud').classList.add('hidden'); $('tapHint').classList.add('hidden');
+  snd.die();
+  var novo=score>best; if(novo){ best=score; LS.set('best',best); }
+  $('overTitle').textContent=novo?'🏆 NOVO RECORDE!':'💥 Caiu nos espinhos!';
+  $('overStats').innerHTML='🎯 Pisos: <b>'+score+'</b><br>🏆 Recorde: '+best;
+  show('scrOver');
+}
+
+function setLane(l){ if(!playing||falling) return; if(l!==playerLane){ playerLane=l; snd.swap(); } }
+window.addEventListener('keydown', function(e){ if(e.code==='ArrowLeft'||e.code==='KeyA') setLane(-1); if(e.code==='ArrowRight'||e.code==='KeyD') setLane(1); });
+cv.addEventListener('pointerdown', function(e){ if(!playing) return; setLane(e.clientX<window.innerWidth/2?-1:1); });
+
+function loop(ts){
+  if(!playing) return;
+  var dt=Math.min((ts-lastTs)/1000,0.05); lastTs=ts;
+  update(dt); draw();
+  requestAnimationFrame(loop);
+}
+
+function update(dt){
+  var targetX=playerLane*0.5;
+  playerX += (targetX-playerX)*Math.min(1,dt*16);
+  if(falling){ fallT+=dt; if(fallT>0.7) over(); return; }
+  speed = 2.1 + score*0.07;
+  for(var i=rows.length-1;i>=0;i--){
+    var r=rows[i];
+    r.z -= speed*dt;
+    if(r.breakT>0) r.breakT+=dt;
+    if(!r.evald && r.z<=ZP){
+      r.evald=true;
+      if(playerLane===r.fakeLane){
+        r.breakT=0.0001; falling=true; fallT=0;
+        snd.crack(); setTimeout(function(){ snd.fall(); },120);
+        return;
+      } else { score++; snd.step(); }
+    }
+    if(r.z<-2.5) rows.splice(i,1);
+  }
+  var maxZ=0; rows.forEach(function(r){ if(r.z>maxZ) maxZ=r.z; });
+  while(maxZ<ZFAR){ maxZ+=DZ; rows.push(newRow(maxZ)); }
+  $('hudScore').textContent=score;
+  $('hudBest').textContent='🏆 '+best;
+}
+
+// ---- desenho ----
+function drawSky(){
+  var g=ctx.createLinearGradient(0,0,0,HORIZON());
+  g.addColorStop(0,'#2a3a72'); g.addColorStop(1,'#5a7bd0');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,HORIZON()+2);
+  ctx.fillStyle='#ffffff55';
+  for(var i=0;i<30;i++){ ctx.fillRect((i*97%W),(i*53%(HORIZON()-10)),2,2); }
+}
+function drawPit(){
+  var g=ctx.createLinearGradient(0,HORIZON(),0,H);
+  g.addColorStop(0,'#241020'); g.addColorStop(1,'#0a0208');
+  ctx.fillStyle=g; ctx.fillRect(0,HORIZON(),W,H-HORIZON());
+  var baseY=H*0.985, sw=W/16, sh=H*0.10;
+  for(var i=0;i<17;i++){
+    var x=i*sw;
+    var grd=ctx.createLinearGradient(0,baseY-sh,0,baseY);
+    grd.addColorStop(0,'#c9d2dd'); grd.addColorStop(1,'#5a6472');
+    ctx.fillStyle=grd;
+    ctx.beginPath(); ctx.moveTo(x,baseY); ctx.lineTo(x+sw/2,baseY-sh); ctx.lineTo(x+sw,baseY); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#2a3038'; ctx.lineWidth=1; ctx.stroke();
+  }
+}
+function quad(a,b,c,d,fill,stroke){
+  ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.lineTo(c.x,c.y); ctx.lineTo(d.x,d.y); ctx.closePath();
+  ctx.fillStyle=fill; ctx.fill();
+  if(stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=2; ctx.stroke(); }
+}
+function drawTile(lane, z, fake, revealed, breakT){
+  var cx=lane*0.5, hw=0.42, hd=0.50;
+  var nl=proj(cx-hw, z-hd), nr=proj(cx+hw, z-hd);
+  var fl=proj(cx-hw, z+hd), fr=proj(cx+hw, z+hd);
+  var sink = breakT>0 ? Math.min(1, breakT*2.5) : 0;
+  if(sink>0){ var dy=sink*H*0.5; nl={x:nl.x,y:nl.y+dy}; nr={x:nr.x,y:nr.y+dy}; fl={x:fl.x,y:fl.y+dy}; fr={x:fr.x,y:fr.y+dy}; }
+  // por padrão TODAS as pistas parecem iguais (cinza pedra)
+  var top='#7d8aa8', side='#4a5573', edge='#aeb9d6';
+  // só quando revelado, a falsa fica avermelhada
+  if(fake && revealed){ top='#b6564f'; side='#7a322d'; edge='#e88a83'; }
+  if(sink>0) ctx.globalAlpha=Math.max(0,1-sink);
+  var thick=18*pOf(z);
+  var nlb={x:nl.x,y:nl.y+thick}, nrb={x:nr.x,y:nr.y+thick};
+  quad(nl,nr,nrb,nlb, side);
+  quad(fl,fr,nr,nl, top, edge);
+  if(fake && revealed){
+    ctx.strokeStyle='#3a1512'; ctx.lineWidth=2;
+    var mid=proj(cx,z);
+    ctx.beginPath();
+    ctx.moveTo(nl.x+(nr.x-nl.x)*0.3, nl.y+(fl.y-nl.y)*0.1);
+    ctx.lineTo(mid.x, mid.y);
+    ctx.lineTo(nr.x-(nr.x-nl.x)*0.2, nr.y+(fr.y-nr.y)*0.6);
+    ctx.moveTo(mid.x,mid.y);
+    ctx.lineTo(fl.x+(fr.x-fl.x)*0.4, fl.y);
+    ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+}
+function drawPlayer(){
+  var pr=proj(playerX, ZP);
+  var s=pr.p*95;
+  var px=pr.x, py=pr.y - (falling? Math.min(fallT*fallT*1100, H*0.65):0) - s*0.05;
+  if(!falling){ ctx.fillStyle='#0006'; ctx.beginPath(); ctx.ellipse(pr.x,pr.y+2,s*0.5,s*0.16,0,0,7); ctx.fill(); }
+  ctx.strokeStyle='#b0722d'; ctx.lineWidth=s*0.10; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(px-s*0.14,py); ctx.lineTo(px-s*0.16,py+s*0.22); ctx.moveTo(px+s*0.14,py); ctx.lineTo(px+s*0.16,py+s*0.22); ctx.stroke();
+  ctx.fillStyle='#ffe9c9'; ctx.beginPath(); ctx.arc(px,py-s*0.05,s*0.28,0,7); ctx.fill();
+  ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(px-s*0.10,py-s*0.08,s*0.055,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(px+s*0.10,py-s*0.08,s*0.055,0,7); ctx.fill();
+  ctx.fillStyle='#e84d4d'; ctx.beginPath(); ctx.arc(px,py-s*0.20,s*0.36,Math.PI,0); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(px-s*0.14,py-s*0.26,s*0.07,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(px+s*0.12,py-s*0.30,s*0.055,0,7); ctx.fill();
+}
+function draw(){
+  drawSky(); drawPit();
+  var zr=zReveal();
+  var sorted=rows.slice().sort(function(a,b){ return b.z-a.z; });
+  sorted.forEach(function(r){
+    if(r.z>ZFAR+0.5||r.z<-2.5) return;
+    var revealed = r.z <= zr;
+    drawTile(r.fakeLane, r.z, true, revealed, r.breakT);
+    drawTile(-r.fakeLane, r.z, false, false, 0);
+  });
+  drawPlayer();
+}
+
+$('btnPlay').onclick=start;
+$('btnAgain').onclick=start;
+$('menuBest').textContent='🏆 Recorde: '+best;
+show('scrMenu');
+})();
+</script>
+<script src="/stats.js?v=358"></script>
+<script src="/avisos.js?v=6"></script>
+<script>if (window.initStats) initStats('piso');</script>
+<script src="/mascote.js"></script>
