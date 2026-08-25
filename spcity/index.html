@@ -188,7 +188,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 scene.fog = new THREE.Fog(0x87ceeb, 250, 800);
 const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 2500);
-const renderer = new THREE.WebGLRenderer({antialias:true});
+const renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
@@ -1053,6 +1053,7 @@ function showHome(){
       <button class="appIcon" onclick="appHomes()"><span class="emoji">🏠</span>Imobiliária</button>
       <button class="appIcon" onclick="appGarage()"><span class="emoji">🔑</span>Garagem</button>
       <button class="appIcon" onclick="appGoogle()"><span class="emoji">🌐</span>Google</button>
+      <button class="appIcon" onclick="appRede()" style="grid-column:1 / -1;background:linear-gradient(135deg,rgba(255,80,120,.35),rgba(160,80,255,.35))"><span class="emoji">🍄</span>CoguRede</button>
     </div>`;
 }
 window.appJobs = function(){
@@ -1216,6 +1217,73 @@ window.doBuild = function(lotIdx, key){
   updateMoney(); save();
   toast(`${b.name} construída! 🏗️🎉 Vai render R$ ${b.income}!`);
   togglePhone();
+};
+// ============ COGUREDE (rede social) ============
+function redeLoad(){
+  try { return JSON.parse(localStorage.getItem('cogurede_posts')) || null; } catch(e){ return null; }
+}
+function redeSave(posts){ try{ localStorage.setItem('cogurede_posts', JSON.stringify(posts.slice(0,60))); }catch(e){} }
+function redeSeed(){
+  return [
+    {who:'🦫 Capivara Gamer', txt:'Zerei o Capy Dash de novo!! Ninguém me pega 😎', likes:42},
+    {who:'🍄 Cogumelo Oficial', txt:'Bem-vindos à CoguRede! Poste suas aventuras de SP City aqui! 🌆', likes:99},
+    {who:'🏎️ Turbo Max', txt:'Comprei o Super SP-1... 220 km/h na Paulista, quase bati no poste 💀', likes:17},
+    {who:'👷 Zé da Obra', txt:'Minha fábrica já rendeu R$ 8.000!! Virei rico 🤑', likes:23},
+    {who:'🏖️ Praiana', txt:'Coco gelado no quiosque da praia é o melhor do jogo, confia 🥥', likes:31},
+  ].map((p,i)=>({...p, id:'seed'+i, img:null, vid:null}));
+}
+function ytId(url){
+  const m = (url||'').match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{11})/);
+  return m ? m[1] : null;
+}
+window.appRede = function(){
+  const posts = redeLoad() || redeSeed();
+  redeSave(posts);
+  let html = `<button class="backBtn" onclick="showHome()">← Voltar</button>
+    <div style="text-align:center;font-size:20px;font-weight:bold;margin-bottom:8px">🍄 CoguRede</div>
+    <div class="card">
+      <input id="rTxt" placeholder="No que você está pensando?" style="width:100%;padding:8px;border-radius:10px;border:none;font-size:13px">
+      <input id="rVid" placeholder="Link de vídeo do YouTube (opcional)" style="width:100%;padding:8px;border-radius:10px;border:none;font-size:12px;margin-top:6px">
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button onclick="redePost(false)" style="flex:1">📢 POSTAR</button>
+        <button onclick="redePost(true)" style="flex:1;background:#8844cc">📸 + FOTO DO JOGO</button>
+      </div>
+    </div>`;
+  posts.forEach(p=>{
+    html += `<div class="card">
+      <b>${p.who}</b>
+      <span style="font-size:13px">${p.txt}</span>
+      ${p.img?`<img src="${p.img}" style="width:100%;border-radius:10px;margin-top:6px">`:''}
+      ${p.vid?`<iframe src="https://www.youtube-nocookie.com/embed/${p.vid}" style="width:100%;height:130px;border:none;border-radius:10px;margin-top:6px" allowfullscreen></iframe>`:''}
+      <button onclick="redeLike('${p.id}')" style="background:rgba(255,255,255,.15);margin-top:6px">❤️ ${p.likes}</button>
+    </div>`;
+  });
+  screenEl.innerHTML = html;
+};
+window.redePost = function(withPhoto){
+  const txt = document.getElementById('rTxt').value.trim();
+  const vid = ytId(document.getElementById('rVid').value.trim());
+  if (!txt && !withPhoto && !vid){ toast('Escreve alguma coisa! ✏️'); return; }
+  let img = null;
+  if (withPhoto){
+    try {
+      const small = document.createElement('canvas');
+      small.width = 320; small.height = Math.round(320*renderer.domElement.height/renderer.domElement.width);
+      small.getContext('2d').drawImage(renderer.domElement, 0, 0, small.width, small.height);
+      img = small.toDataURL('image/jpeg', 0.6);
+    } catch(e){}
+  }
+  const posts = redeLoad() || redeSeed();
+  posts.unshift({id:'p'+Date.now(), who:'😎 Você', txt: txt||'📸', img, vid, likes:0});
+  redeSave(posts);
+  toast('Postado na CoguRede! 🍄🎉');
+  window.appRede();
+};
+window.redeLike = function(id){
+  const posts = redeLoad() || redeSeed();
+  const p = posts.find(p=>p.id===id);
+  if (p){ p.likes++; redeSave(posts); }
+  window.appRede();
 };
 window.showHome = showHome;
 window.togglePhone = togglePhone;
