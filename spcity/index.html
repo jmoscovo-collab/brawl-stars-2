@@ -151,11 +151,12 @@
 // ============ ESTADO ============
 const G = {
   money: 500, carIdx: 0, ownedCars: [0], ownedHomes: [],
-  job: null, jobPhase: 0, fuel: 100, hunger: 100,
+  job: null, jobPhase: 0, fuel: 100, hunger: 100, lots: {},
 };
 try { const s = JSON.parse(localStorage.getItem('spcity_save')); if (s) Object.assign(G, s); } catch(e) {}
 if (G.fuel === undefined) G.fuel = 100;
 if (G.hunger === undefined) G.hunger = 100;
+if (!G.lots) G.lots = {};
 function save(){ try{ localStorage.setItem('spcity_save', JSON.stringify(G)); }catch(e){} }
 
 const CARS = [
@@ -518,6 +519,81 @@ SHOP_KINDS.forEach((kind,i)=>{
   pois.push({x, z, type:'kiosk', label:'🥥 Coco gelado R$ 20'});
 });
 
+// ===== TERRENOS À VENDA (construa seu império!) =====
+const LOT_CELLS = [[1,1],[5,2],[14,5],[2,12],[10,8],[15,10],[5,14],[9,5]];
+const LOT_PRICE = 3000;
+const BUILDS = {
+  loja:    {name:'🏪 Loja',              price:5000,  income:150},
+  fabrica: {name:'🏭 Fábrica',           price:25000, income:800},
+  predio:  {name:'🏢 Prédio Comercial',  price:80000, income:3000},
+};
+const lotPos = LOT_CELLS.map(([gx,gz])=>({x:-CITY/2+gx*CELL+CELL/2, z:-CITY/2+gz*CELL+CELL/2}));
+const lotGroups = [];
+lotPos.forEach(({x,z},i)=>{
+  // terra batida
+  const dirt = new THREE.Mesh(new THREE.BoxGeometry(BLOCK,0.25,BLOCK), new THREE.MeshLambertMaterial({color:0x9a7a4a}));
+  dirt.position.set(x,0.12,z); dirt.receiveShadow=true; scene.add(dirt);
+  // placa VENDE-SE (some quando compra)
+  const sale = new THREE.Group();
+  const post = new THREE.Mesh(new THREE.BoxGeometry(0.5,6,0.5), new THREE.MeshLambertMaterial({color:0x6a4a2a}));
+  post.position.set(x,3,z+20); sale.add(post);
+  const board = new THREE.Mesh(new THREE.BoxGeometry(12,4,0.5), makeSign('VENDE-SE','#cc8800'));
+  board.position.set(x,6.5,z+20); sale.add(board);
+  scene.add(sale);
+  const g = new THREE.Group(); scene.add(g);
+  lotGroups.push({sale, g});
+  pois.push({x, z:z+20, type:'lot', lidx:i, label:'🏗️ Terreno'});
+});
+function buildLot(i, type){
+  const {x,z} = lotPos[i];
+  const g = lotGroups[i].g;
+  while(g.children.length) g.remove(g.children[0]);
+  lotGroups[i].sale.visible = false;
+  if (type==='loja'){
+    const b = new THREE.Mesh(new THREE.BoxGeometry(26,10,20), new THREE.MeshLambertMaterial({color:0x88bbdd}));
+    b.position.set(x,5,z); g.add(b);
+    const sg = new THREE.Mesh(new THREE.BoxGeometry(22,4,1), makeSign('MINHA LOJA','#22aacc'));
+    sg.position.set(x,12,z+10.5); g.add(sg);
+    const gl = new THREE.Mesh(new THREE.BoxGeometry(18,5,0.5), new THREE.MeshPhongMaterial({color:0xbfe8ff, emissive:0x224455, transparent:true, opacity:0.85}));
+    gl.position.set(x,3.5,z+10.2); g.add(gl);
+    buildings.push({x,z,w:26,d:20});
+  } else if (type==='fabrica'){
+    const hall = new THREE.Mesh(new THREE.BoxGeometry(40,16,28), new THREE.MeshLambertMaterial({color:0x8a8a95}));
+    hall.position.set(x,8,z); g.add(hall);
+    const roof = new THREE.Mesh(new THREE.CylinderGeometry(14,14,40,3,1), new THREE.MeshLambertMaterial({color:0x666670}));
+    roof.rotation.z=Math.PI/2; roof.rotation.y=Math.PI/2; roof.scale.y=0.35; roof.position.set(x,17,z); g.add(roof);
+    [[-10],[2]].forEach(([dx])=>{
+      const chim = new THREE.Mesh(new THREE.CylinderGeometry(2,2.5,14,10), new THREE.MeshLambertMaterial({color:0xaa4433}));
+      chim.position.set(x+dx,22,z-6); g.add(chim);
+      for(let k=0;k<3;k++){
+        const smoke = new THREE.Mesh(new THREE.SphereGeometry(2+k,8,6), new THREE.MeshLambertMaterial({color:0xdddddd, transparent:true, opacity:0.5-k*0.12}));
+        smoke.position.set(x+dx, 30+k*4, z-6); g.add(smoke);
+      }
+    });
+    const sg = new THREE.Mesh(new THREE.BoxGeometry(24,4,1), makeSign('FÁBRICA DAVI','#884499'));
+    sg.position.set(x,14,z+14.5); g.add(sg);
+    buildings.push({x,z,w:40,d:28});
+  } else if (type==='predio'){
+    const t = new THREE.Mesh(new THREE.BoxGeometry(22,60,22), facadeMats[0]);
+    t.position.set(x,30,z); g.add(t);
+    const topo = new THREE.Mesh(new THREE.BoxGeometry(24,3,24), new THREE.MeshLambertMaterial({color:0x445566}));
+    topo.position.set(x,61.5,z); g.add(topo);
+    const sg = new THREE.Mesh(new THREE.BoxGeometry(18,4,1), makeSign('DAVI TOWER','#2255cc'));
+    sg.position.set(x,58,z+11.6); g.add(sg);
+    buildings.push({x,z,w:22,d:22});
+  } else { // comprado, vazio: cerca
+    for(let f=-1;f<=1;f+=2){
+      const fence = new THREE.Mesh(new THREE.BoxGeometry(BLOCK,2,0.5), new THREE.MeshLambertMaterial({color:0xcc8833}));
+      fence.position.set(x,1,z+f*BLOCK/2); g.add(fence);
+      const fence2 = new THREE.Mesh(new THREE.BoxGeometry(0.5,2,BLOCK), new THREE.MeshLambertMaterial({color:0xcc8833}));
+      fence2.position.set(x+f*BLOCK/2,1,z); g.add(fence2);
+    }
+  }
+  g.traverse(o=>{ if(o.isMesh) o.castShadow=true; });
+}
+// reconstrói terrenos salvos
+Object.entries(G.lots).forEach(([i,t])=>buildLot(+i, t==='vazio'?null:t));
+
 // ===== INTERIORES das casas (longe do mapa) =====
 const interiors = [];
 const IB_X = 4000;
@@ -577,7 +653,7 @@ HOMES.forEach((h,i)=>{
 let inside = null, outPos = null; // inside = {it:{cx,cz,RW,RD}}
 
 const shopCells = new Set(['3,3','12,12','6,10','11,4','8,13','2,8','8,2','13,8','8,14',
-  ...HOME_CELLS.map(c=>c[0]+','+c[1])]);
+  ...HOME_CELLS.map(c=>c[0]+','+c[1]), ...LOT_CELLS.map(c=>c[0]+','+c[1])]);
 
 // ===== faixas de pedestre nas avenidas principais =====
 {
@@ -939,6 +1015,19 @@ function doInteract(){
     if (G.money < 20){ toast('Precisa de R$ 20! 😢'); return; }
     G.money -= 20; G.hunger = Math.min(100, G.hunger+35);
     updateMoney(); save(); toast('Coco gelado na praia! 🥥🏖️');
+  } else if (nearPoi.type==='lot'){
+    const i = nearPoi.lidx;
+    if (G.lots[i]===undefined){
+      if (G.money < LOT_PRICE){ toast(`Terreno à venda: R$ ${LOT_PRICE.toLocaleString('pt-BR')} — junte dinheiro! 💰`); return; }
+      G.money -= LOT_PRICE; G.lots[i]='vazio';
+      buildLot(i, null); updateMoney(); save();
+      toast('Terreno comprado! 🏗️ Aperte F de novo pra construir!');
+    } else if (G.lots[i]==='vazio'){
+      if(!phoneOpen) togglePhone();
+      window.appBuild(i);
+    } else {
+      toast(`${BUILDS[G.lots[i]].name} — rendendo R$ ${BUILDS[G.lots[i]].income} por ciclo! 🤑`);
+    }
   } else if (nearPoi.type==='counterCars'){
     if(!phoneOpen) togglePhone();
     window.appCars();
@@ -1110,6 +1199,24 @@ window.openSite = function(url){
   screenEl.innerHTML = `<button class="backBtn" onclick="appGoogle()">← Google</button>
     <iframe src="${url}" style="width:100%;height:400px;border:none;border-radius:12px;background:#fff"></iframe>`;
 };
+window.appBuild = function(lotIdx){
+  let html = `<button class="backBtn" onclick="togglePhone()">← Fechar</button>
+    <b style="font-size:16px">🏗️ O que construir no terreno?</b>`;
+  Object.entries(BUILDS).forEach(([key,b])=>{
+    html += `<div class="card"><b>${b.name}</b>💰 Custa R$ ${b.price.toLocaleString('pt-BR')}<br>🤑 Rende R$ ${b.income} por ciclo
+      <button ${G.money<b.price?'disabled':''} onclick="doBuild(${lotIdx},'${key}')">CONSTRUIR</button></div>`;
+  });
+  screenEl.innerHTML = html;
+};
+window.doBuild = function(lotIdx, key){
+  const b = BUILDS[key];
+  if (G.money < b.price) return;
+  G.money -= b.price; G.lots[lotIdx] = key;
+  buildLot(lotIdx, key);
+  updateMoney(); save();
+  toast(`${b.name} construída! 🏗️🎉 Vai render R$ ${b.income}!`);
+  togglePhone();
+};
 window.showHome = showHome;
 window.togglePhone = togglePhone;
 
@@ -1133,8 +1240,9 @@ buildCar();
 // aluguel passivo a cada 90s
 setInterval(()=>{
   if (!running) return;
-  const rent = G.ownedHomes.reduce((s,i)=>s+Math.floor(HOMES[i].price*0.01),0);
-  if (rent>0){ G.money+=rent; toast(`Aluguéis! 🏠 +R$ ${rent}`); updateMoney(); save(); }
+  let rent = G.ownedHomes.reduce((s,i)=>s+Math.floor(HOMES[i].price*0.01),0);
+  let biz = Object.values(G.lots).reduce((s,t)=>s+(BUILDS[t]?BUILDS[t].income:0),0);
+  if (rent+biz>0){ G.money+=rent+biz; toast(`Ganhos! 🏠 R$ ${rent} + 🏭 R$ ${biz}`); updateMoney(); save(); }
 }, 90000);
 
 // ============ MINIMAPA ============
@@ -1155,7 +1263,7 @@ function drawMinimap(){
   // POIs
   for (const p of pois){
     const [px,py]=toM(p.x,p.z);
-    mm.fillStyle = p.type==='posto'?'#f80': p.type==='shopEnter'?'#48f': p.type==='kiosk'?'#fb0': p.type==='home'?'#4f8':'#4f8';
+    mm.fillStyle = p.type==='posto'?'#f80': p.type==='shopEnter'?'#48f': p.type==='kiosk'?'#fb0': p.type==='lot'?'#b73':'#4f8';
     mm.beginPath(); mm.arc(px,py,3.5,0,7); mm.fill();
   }
   if (G.job){
