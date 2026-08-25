@@ -133,7 +133,8 @@
   <div id="mission"></div>
   <div id="toast"></div>
   <div id="speedo"><div class="num" id="speedNum">0</div><div class="unit">km/h</div></div>
-  <div id="fuelWrap">⛽ Combustível<div id="fuelBar"><div id="fuelFill"></div></div></div>
+  <div id="fuelWrap">⛽ Combustível<div id="fuelBar"><div id="fuelFill"></div></div>
+  <div style="margin-top:6px">🍔 Fome<div id="fuelBar"><div id="hungerFill" style="height:100%;width:100%;background:linear-gradient(90deg,#c33,#f66);border-radius:5px;transition:width .3s"></div></div></div></div>
   <div id="minimapWrap"><canvas id="minimap" width="180" height="180"></canvas></div>
   <button id="exitBtn">🚶 SAIR DO CARRO (E)</button>
   <button id="actBtn"></button>
@@ -150,10 +151,11 @@
 // ============ ESTADO ============
 const G = {
   money: 500, carIdx: 0, ownedCars: [0], ownedHomes: [],
-  job: null, jobPhase: 0, fuel: 100,
+  job: null, jobPhase: 0, fuel: 100, hunger: 100,
 };
 try { const s = JSON.parse(localStorage.getItem('spcity_save')); if (s) Object.assign(G, s); } catch(e) {}
 if (G.fuel === undefined) G.fuel = 100;
+if (G.hunger === undefined) G.hunger = 100;
 function save(){ try{ localStorage.setItem('spcity_save', JSON.stringify(G)); }catch(e){} }
 
 const CARS = [
@@ -169,6 +171,8 @@ const HOMES = [
   {name:'🏢 Apê na Paulista', price:40000},
   {name:'🏙️ Cobertura em Pinheiros', price:100000},
   {name:'🏰 Mansão no Morumbi', price:300000},
+  {name:'🏯 Mansão Alphaville', price:600000},
+  {name:'🏖️ Mansão da Praia', price:1200000},
 ];
 const JOBS = [
   {label:'🍕 Entregar pizza', pay:300},
@@ -308,9 +312,11 @@ function makeShop(gx,gz,type,label,signText,signColor,buildColor){
   const sign = new THREE.Mesh(new THREE.BoxGeometry(36,7,1), makeSign(signText, signColor));
   sign.position.set(x,18,z+15.5); scene.add(sign);
   const sign2 = sign.clone(); sign2.position.z=z-15.5; sign2.rotation.y=Math.PI; scene.add(sign2);
-  pois.push({x, z:z+25, type, label});
+  pois.push({x, z:z+25, type:'shopEnter', sidx:shopCount, stype:type, label:label+' — Entrar'});
+  shopCount++;
   return {x,z};
 }
+let shopCount = 0;
 // postos de gasolina (4 espalhados) — com cobertura e bombas
 function makePosto(gx,gz){
   const x = -CITY/2 + gx*CELL + CELL/2, z = -CITY/2 + gz*CELL + CELL/2;
@@ -337,7 +343,7 @@ SHOPS.lanche = makeShop(8,13,'mercado','🍔 Lanchonete','DAVI BURGER','#dd4400'
 makePosto(2,8); makePosto(8,2); makePosto(13,8); makePosto(8,14);
 
 // ===== CASAS COMPRÁVEIS (lotes fixos na cidade) =====
-const HOME_CELLS = [[13,6],[12,3],[6,6],[4,11],[1,13]];
+const HOME_CELLS = [[13,6],[12,3],[6,6],[4,11],[1,13],[14,14]];
 const homeDoors = [];
 const HOME_STYLE = [
   {w:12,h:5,d:10, col:0x9a8a6a, roof:0x6a5a3a},   // barraco
@@ -345,9 +351,13 @@ const HOME_STYLE = [
   {w:18,h:26,d:16, col:0x8899bb, roof:0x556677},  // apê
   {w:20,h:40,d:18, col:0xcfd8e8, roof:0x8899aa},  // cobertura
   {w:34,h:14,d:26, col:0xfff0d0, roof:0xcc8833},  // mansão
+  {w:40,h:18,d:30, col:0xe8e8f5, roof:0x445566},  // alphaville
+  {w:42,h:15,d:32, col:0xfff8e0, roof:0x2288aa},  // praia
 ];
-HOME_CELLS.forEach(([gx,gz],i)=>{
-  const x = -CITY/2 + gx*CELL + CELL/2, z = -CITY/2 + gz*CELL + CELL/2;
+// posições: 6 na cidade + mansão da praia na areia
+const HOME_POS = HOME_CELLS.map(([gx,gz])=>({x:-CITY/2+gx*CELL+CELL/2, z:-CITY/2+gz*CELL+CELL/2}));
+HOME_POS.push({x:0, z:CITY/2+SAND_W/2+5});
+HOME_POS.forEach(({x,z},i)=>{
   const s = HOME_STYLE[i];
   // gramado do lote
   const lawn = new THREE.Mesh(new THREE.BoxGeometry(BLOCK,0.3,BLOCK), new THREE.MeshLambertMaterial({color:0x4a9a4a}));
@@ -355,7 +365,7 @@ HOME_CELLS.forEach(([gx,gz],i)=>{
   // casa
   const base = new THREE.Mesh(new THREE.BoxGeometry(s.w,s.h,s.d), new THREE.MeshLambertMaterial({color:s.col}));
   base.position.set(x,s.h/2,z); base.castShadow=true; scene.add(base);
-  if (i===0 || i===1 || i===4){ // telhado nas casas baixas
+  if (i===0 || i===1 || i>=4){ // telhado nas casas baixas e mansões
     const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(s.w,s.d)*0.75,5,4), new THREE.MeshLambertMaterial({color:s.roof}));
     roof.position.set(x,s.h+2.5,z); roof.rotation.y=Math.PI/4; roof.castShadow=true; scene.add(roof);
   }
@@ -364,11 +374,88 @@ HOME_CELLS.forEach(([gx,gz],i)=>{
   door.position.set(x, 2.2, z+s.d/2+0.1); scene.add(door);
   // placa com nome
   const sign = new THREE.Mesh(new THREE.BoxGeometry(16,3.2,0.5), makeSign(HOMES[i].name.replace(/[^\w\sÀ-ú]/g,'').trim().toUpperCase().slice(0,14),'#22aa55'));
-  sign.position.set(x, 7+ (s.h>10? s.h-4 : 0)*0 + 7, z+s.d/2+1); sign.position.y = s.h+ (i===0||i===1||i===4?6:3); scene.add(sign);
+  sign.position.set(x, 7+ (s.h>10? s.h-4 : 0)*0 + 7, z+s.d/2+1); sign.position.y = s.h+ (i===0||i===1||i>=4?6:3); scene.add(sign);
   buildings.push({x,z,w:s.w,d:s.d});
   const doorPos = {x, z: z+s.d/2+6};
   homeDoors.push(doorPos);
   pois.push({x:doorPos.x, z:doorPos.z, type:'home', idx:i, label:'🏠 Entrar em casa'});
+});
+
+// ===== INTERIORES das lojas =====
+const shopInts = [];
+const SHOP_KINDS = ['concess','imobil','mercado','mercado','lanche']; // ordem de criação
+SHOP_KINDS.forEach((kind,i)=>{
+  const cx = 8000 + i*300, cz = 0, RW = 44, RD = 32, WH = 9;
+  const g = new THREE.Group();
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(RW,0.4,RD), new THREE.MeshLambertMaterial({color:0xd8d8d0}));
+  floor.position.set(cx,0.2,cz); floor.receiveShadow=true; g.add(floor);
+  const wallMat = new THREE.MeshLambertMaterial({color: kind==='mercado'?0xdfe8df : kind==='lanche'?0xf5ddc0 : 0xe0e4ec});
+  [[0,-RD/2,RW,0],[-RW/2,0,0,RD],[RW/2,0,0,RD]].forEach(([wx,wz,ww,wd])=>{
+    const w = new THREE.Mesh(new THREE.BoxGeometry(ww||1,WH,wd||1), wallMat);
+    w.position.set(cx+wx,WH/2,cz+wz); g.add(w);
+  });
+  [[-RW/4-2, RW/2-4],[RW/4+2, RW/2-4]].forEach(([wx,ww])=>{
+    const w = new THREE.Mesh(new THREE.BoxGeometry(ww,WH,1), wallMat);
+    w.position.set(cx+wx,WH/2,cz+RD/2); g.add(w);
+  });
+  // balcão
+  const counter = new THREE.Mesh(new THREE.BoxGeometry(10,3,3), new THREE.MeshLambertMaterial({color:0x8a5a2a}));
+  counter.position.set(cx,1.5,cz-RD/2+4); g.add(counter);
+  if (kind==='mercado'){
+    // prateleiras com produtos coloridos
+    for (let r=0;r<3;r++){
+      const shelf = new THREE.Mesh(new THREE.BoxGeometry(3,5,RD-12), new THREE.MeshLambertMaterial({color:0xb0b0b8}));
+      shelf.position.set(cx-12+r*12, 2.5, cz+3); g.add(shelf);
+      for (let p=0;p<6;p++){
+        const prod = new THREE.Mesh(new THREE.BoxGeometry(2.4,1.2,2),
+          new THREE.MeshLambertMaterial({color:[0xdd3333,0x33aa55,0xddaa22,0x3366dd,0xcc66aa,0xff8833][p]}));
+        prod.position.set(cx-12+r*12, 1.2+ (p%3)*1.8, cz-4+Math.floor(p/3)*10); g.add(prod);
+      }
+    }
+    pois.push({x:cx, z:cz-RD/2+7, type:'buyFood', label:'🛒 Comprar comida R$ 50'});
+  } else if (kind==='lanche'){
+    for (let t=0;t<3;t++){
+      const table = new THREE.Mesh(new THREE.CylinderGeometry(2.5,2.5,0.3,10), new THREE.MeshLambertMaterial({color:0xcc4433}));
+      table.position.set(cx-10+t*10, 2.2, cz+5); g.add(table);
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.5,2.2,8), new THREE.MeshLambertMaterial({color:0x555}));
+      leg.position.set(cx-10+t*10, 1.1, cz+5); g.add(leg);
+    }
+    const burger = new THREE.Mesh(new THREE.SphereGeometry(1.4,10,8), new THREE.MeshLambertMaterial({color:0xddaa33}));
+    burger.position.set(cx,3.8,cz-RD/2+4); burger.scale.y=0.7; g.add(burger);
+    pois.push({x:cx, z:cz-RD/2+7, type:'buyBurger', label:'🍔 Davi Burger R$ 30'});
+  } else if (kind==='concess'){
+    // carros expostos
+    CARS.slice(0,3).forEach((c,ci)=>{
+      const show = new THREE.Mesh(new THREE.BoxGeometry(4,1.5,7), new THREE.MeshPhongMaterial({color:c.color, shininess:90}));
+      show.position.set(cx-12+ci*12, 1.5, cz+5); show.rotation.y=0.5; g.add(show);
+      const ped = new THREE.Mesh(new THREE.CylinderGeometry(5,5,0.7,16), new THREE.MeshLambertMaterial({color:0xcccccc}));
+      ped.position.set(cx-12+ci*12, 0.35, cz+5); g.add(ped);
+    });
+    pois.push({x:cx, z:cz-RD/2+7, type:'counterCars', label:'🚙 Falar com vendedor'});
+  } else if (kind==='imobil'){
+    const desk = new THREE.Mesh(new THREE.BoxGeometry(8,2.6,4), new THREE.MeshLambertMaterial({color:0x6a4a2a}));
+    desk.position.set(cx+8,1.3,cz+4); g.add(desk);
+    const maqueta = new THREE.Mesh(new THREE.ConeGeometry(2,3,4), new THREE.MeshLambertMaterial({color:0xddccaa}));
+    maqueta.position.set(cx,4,cz-RD/2+4); g.add(maqueta);
+    pois.push({x:cx, z:cz-RD/2+7, type:'counterHomes', label:'🏠 Falar com corretor'});
+  }
+  const lamp = new THREE.PointLight(0xffffff, 0.9, 70);
+  lamp.position.set(cx, WH-1, cz); g.add(lamp);
+  g.traverse(o=>{ if(o.isMesh) o.castShadow=true; });
+  scene.add(g);
+  shopInts.push({cx, cz, RW, RD});
+  pois.push({x:cx, z:cz+RD/2, type:'shopExit', sidx:i, label:'🚪 Sair da loja'});
+});
+
+// ===== QUIOSQUES na praia (coco gelado!) =====
+[[0, CITY/2+50],[0,-CITY/2-50],[CITY/2+50, 200],[-CITY/2-50, -200]].forEach(([x,z])=>{
+  const base = new THREE.Mesh(new THREE.BoxGeometry(6,3,4), new THREE.MeshLambertMaterial({color:0xcc8844}));
+  base.position.set(x,1.5,z); base.castShadow=true; scene.add(base);
+  const straw = new THREE.Mesh(new THREE.ConeGeometry(5.5,3,8), new THREE.MeshLambertMaterial({color:0xbfa04a}));
+  straw.position.set(x,5.5,z); straw.castShadow=true; scene.add(straw);
+  const coco = new THREE.Mesh(new THREE.SphereGeometry(0.8,8,6), new THREE.MeshLambertMaterial({color:0x3faa3f}));
+  coco.position.set(x,3.5,z); scene.add(coco);
+  pois.push({x, z, type:'kiosk', label:'🥥 Coco gelado R$ 20'});
 });
 
 // ===== INTERIORES das casas (longe do mapa) =====
@@ -379,8 +466,8 @@ HOMES.forEach((h,i)=>{
   const rich = i; // 0 pobre → 4 mansão
   const RW = 34+rich*6, RD = 26+rich*4, WH = 8;
   const g = new THREE.Group();
-  const floorCols=[0x8a7a5a,0xc0a070,0xd8c8a8,0xe8e0d0,0xf0e8e0];
-  const wallCols=[0x9a9a8a,0xd0c8b0,0xb0c8d8,0xe0d8e8,0xf5ecd8];
+  const floorCols=[0x8a7a5a,0xc0a070,0xd8c8a8,0xe8e0d0,0xf0e8e0,0xe0e8f0,0xf5efd8];
+  const wallCols=[0x9a9a8a,0xd0c8b0,0xb0c8d8,0xe0d8e8,0xf5ecd8,0xdde8f5,0xf8f0dd];
   const floor = new THREE.Mesh(new THREE.BoxGeometry(RW,0.4,RD), new THREE.MeshLambertMaterial({color:floorCols[i]}));
   floor.position.set(cx,0.2,cz); floor.receiveShadow=true; g.add(floor);
   const wallMat = new THREE.MeshLambertMaterial({color:wallCols[i]});
@@ -408,7 +495,7 @@ HOMES.forEach((h,i)=>{
   table.position.set(cx-6, 2.4, cz+2); g.add(table);
   const tleg = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.7,2.4,8), new THREE.MeshLambertMaterial({color:0x6a4a2a}));
   tleg.position.set(cx-6, 1.2, cz+2); g.add(tleg);
-  const rug = new THREE.Mesh(new THREE.CylinderGeometry(6,6,0.1,20), new THREE.MeshLambertMaterial({color:[0x996644,0xaa5566,0x5588aa,0x8866aa,0xddaa44][i]}));
+  const rug = new THREE.Mesh(new THREE.CylinderGeometry(6,6,0.1,20), new THREE.MeshLambertMaterial({color:[0x996644,0xaa5566,0x5588aa,0x8866aa,0xddaa44,0x66aacc,0x33ccaa][i]}));
   rug.position.set(cx+4, 0.45, cz+2); g.add(rug);
   if (rich>=2){ // planta e luminária nos chiques
     const vase = new THREE.Mesh(new THREE.CylinderGeometry(1,1.4,2.4,10), new THREE.MeshLambertMaterial({color:0xcc7733}));
@@ -427,7 +514,7 @@ HOMES.forEach((h,i)=>{
   interiors.push({cx, cz, RW, RD});
   pois.push({x:cx, z:cz+RD/2, type:'homeExit', idx:i, label:'🚪 Sair de casa'});
 });
-let inside = null, outPos = null;
+let inside = null, outPos = null; // inside = {it:{cx,cz,RW,RD}}
 
 const shopCells = new Set(['3,3','12,12','6,10','11,4','8,13','2,8','8,2','13,8','8,14',
   ...HOME_CELLS.map(c=>c[0]+','+c[1])]);
@@ -752,10 +839,6 @@ function doInteract(){
     G.money -= custo; G.fuel = spec.tank;
     updateMoney(); save();
     toast(`Abasteceu! ⛽ -R$ ${custo}`);
-  } else if (nearPoi.type==='mercado'){
-    if (G.money < 50){ toast('Precisa de R$ 50! 😢'); return; }
-    G.money -= 50; updateMoney(); save();
-    toast('Comprou um lanche! 🍔😋 -R$ 50');
   } else if (nearPoi.type==='home'){
     const i = nearPoi.idx;
     if (!G.ownedHomes.includes(i)){
@@ -764,22 +847,42 @@ function doInteract(){
     }
     if (mode==='car'){ mode='walk'; player.visible=true; speed=0; document.getElementById('exitBtn').textContent='🚗 ENTRAR NO CARRO (E)'; }
     outPos = {x: nearPoi.x, z: nearPoi.z+3};
-    inside = i;
     const it = interiors[i];
+    inside = {it};
     player.position.set(it.cx, 0, it.cz+it.RD/2-4);
     player.rotation.y = walkHeading = Math.PI;
     camera.position.set(it.cx, 6, it.cz+it.RD/2+8);
     toast(`Bem-vindo: ${HOMES[i].name}! 🏡`);
-  } else if (nearPoi.type==='homeExit'){
-    if (inside===null) return;
+  } else if (nearPoi.type==='homeExit' || nearPoi.type==='shopExit'){
+    if (!inside) return;
     inside = null;
     player.position.set(outPos.x, 0, outPos.z);
     walkHeading = 0; player.rotation.y = 0;
     toast('Saiu de casa! 🌆');
-  } else if (nearPoi.type==='concess'){
+  } else if (nearPoi.type==='shopEnter'){
+    if (mode==='car'){ mode='walk'; player.visible=true; speed=0; document.getElementById('exitBtn').textContent='🚗 ENTRAR NO CARRO (E)'; }
+    outPos = {x: nearPoi.x, z: nearPoi.z+4};
+    const it = shopInts[nearPoi.sidx];
+    inside = {it};
+    player.position.set(it.cx, 0, it.cz+it.RD/2-4);
+    player.rotation.y = walkHeading = Math.PI;
+    camera.position.set(it.cx, 6, it.cz+it.RD/2+8);
+  } else if (nearPoi.type==='buyFood'){
+    if (G.money < 50){ toast('Precisa de R$ 50! 😢'); return; }
+    G.money -= 50; G.hunger = Math.min(100, G.hunger+45);
+    updateMoney(); save(); toast('Comprou comida! 🛒😋 +fome cheia');
+  } else if (nearPoi.type==='buyBurger'){
+    if (G.money < 30){ toast('Precisa de R$ 30! 😢'); return; }
+    G.money -= 30; G.hunger = Math.min(100, G.hunger+70);
+    updateMoney(); save(); toast('Davi Burger! 🍔🤤 Que delícia!');
+  } else if (nearPoi.type==='kiosk'){
+    if (G.money < 20){ toast('Precisa de R$ 20! 😢'); return; }
+    G.money -= 20; G.hunger = Math.min(100, G.hunger+35);
+    updateMoney(); save(); toast('Coco gelado na praia! 🥥🏖️');
+  } else if (nearPoi.type==='counterCars'){
     if(!phoneOpen) togglePhone();
     window.appCars();
-  } else if (nearPoi.type==='imobil'){
+  } else if (nearPoi.type==='counterHomes'){
     if(!phoneOpen) togglePhone();
     window.appHomes();
   }
@@ -993,7 +1096,7 @@ function drawMinimap(){
   // POIs
   for (const p of pois){
     const [px,py]=toM(p.x,p.z);
-    mm.fillStyle = p.type==='posto'?'#f80': p.type==='mercado'?'#48f': p.type==='concess'?'#fc0':'#4f8';
+    mm.fillStyle = p.type==='posto'?'#f80': p.type==='shopEnter'?'#48f': p.type==='kiosk'?'#fb0': p.type==='home'?'#4f8':'#4f8';
     mm.beginPath(); mm.arc(px,py,3.5,0,7); mm.fill();
   }
   if (G.job){
@@ -1032,7 +1135,7 @@ function tick(t){
     else if (back && hasFuel) speed -= spec.acc*0.7*dt;
     else speed *= (1 - 1.2*dt);
     if (brake) speed *= (1 - 5*dt);
-    const maxMs = spec.max/3.6;
+    const maxMs = (spec.max/3.6) * (G.hunger<=0?0.5:1);
     speed = Math.max(-maxMs*0.35, Math.min(maxMs, speed));
 
     // gasta combustível
@@ -1071,7 +1174,8 @@ function tick(t){
     walkHeading += steer * 2.5 * dt;
     player.rotation.y = walkHeading;
     let mv = 0;
-    if (fwd) mv = 9; else if (back) mv = -5;
+    const hslow = G.hunger<=0?0.5:1;
+    if (fwd) mv = 9*hslow; else if (back) mv = -5*hslow;
     if (mv!==0){
       walkT += dt*10;
       const legs = player.userData.legs, arms = player.userData.arms;
@@ -1081,8 +1185,8 @@ function tick(t){
       arms[1].rotation.x = Math.sin(walkT)*0.6;
       const nx = player.position.x + Math.sin(walkHeading)*mv*dt;
       const nz = player.position.z + Math.cos(walkHeading)*mv*dt;
-      if (inside!==null){
-        const it = interiors[inside];
+      if (inside){
+        const it = inside.it;
         player.position.x = Math.max(it.cx-it.RW/2+1.5, Math.min(it.cx+it.RW/2-1.5, nx));
         player.position.z = Math.max(it.cz-it.RD/2+1.5, Math.min(it.cz+it.RD/2+2, nz));
       } else if (!collideBuilding(nx,nz,0.8) && !collideNpc(nx,nz,3.5)){
@@ -1103,6 +1207,10 @@ function tick(t){
     document.getElementById('speedNum').textContent = mv? Math.round(Math.abs(mv)*3.6) : 0;
   }
 
+  // fome: gasta devagar; com fome zero, tudo fica lento
+  G.hunger = Math.max(0, G.hunger - dt*0.45);
+  if (G.hunger<=0 && !tick.hwarn){ tick.hwarn=true; toast('Que fome! 🍔😵 Coma no mercado, lanchonete ou quiosque da praia!'); setTimeout(()=>tick.hwarn=false,8000); }
+  document.getElementById('hungerFill').style.width = G.hunger+'%';
   // combustível HUD
   document.getElementById('fuelFill').style.width = (G.fuel/spec.tank*100)+'%';
   document.getElementById('fuelFill').style.background = G.fuel/spec.tank<0.2 ? '#f33' : 'linear-gradient(90deg,#f80,#fc0)';
