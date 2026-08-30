@@ -144,7 +144,7 @@
     <div class="header">
         <div class="logo">🍄</div>
         <div class="title">COGUMELO GAMES</div>
-        <div class="subtitle">JOGOS ONLINE GRÁTIS <span style="color:#00ff88; font-weight:bold; border:1px solid rgba(0,255,136,0.4); border-radius:10px; padding:2px 8px; margin-left:6px; font-size:12px">v391</span></div>
+        <div class="subtitle">JOGOS ONLINE GRÁTIS <span style="color:#00ff88; font-weight:bold; border:1px solid rgba(0,255,136,0.4); border-radius:10px; padding:2px 8px; margin-left:6px; font-size:12px">v392</span></div>
     </div>
 
     <input id="busca" type="search" placeholder="🔍 Pesquisar jogo..." autocomplete="off"
@@ -485,7 +485,23 @@
     </div>
 
     <div class="footer">
-        <span>🍄 Cogumelo Games</span> — feito por Davi
+        <span>🍄 Cogumelo Games</span> — feito por Davi<br>
+        <span id="visitas" style="font-size:13px;color:#00ff88"></span>
+        <script>
+        (function(){
+          var API='https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+          var novo=false;
+          try{ if(!localStorage.getItem('cg_visitou')){ novo=true; localStorage.setItem('cg_visitou','1'); } }catch(e){}
+          var hoje=new Date().toISOString().slice(0,10), conta=true;
+          try{ if(localStorage.getItem('cg_visita_dia')===hoje) conta=false; else localStorage.setItem('cg_visita_dia',hoje); }catch(e){}
+          fetch(API,{method:'POST',headers:{'content-type':'application/json'},
+            body:JSON.stringify(conta?{acao:'visita',novo:novo}:{acao:'visitas'})})
+            .then(function(r){return r.json()})
+            .then(function(d){ if(d&&d.ok) document.getElementById('visitas').textContent=
+              '👀 '+d.total.toLocaleString('pt-BR')+' visitas · '+d.unicos.toLocaleString('pt-BR')+' jogadores'; })
+            .catch(function(){});
+        })();
+        </script>
     </div>
     <script src="/stats.js?v=358"></script>
 <script src="/avisos.js?v=6"></script>
