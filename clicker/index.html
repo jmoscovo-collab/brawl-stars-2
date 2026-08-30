@@ -398,6 +398,12 @@ const ESTEIRAS = [
     { name: 'Esteira 10', req: 20000000, bonus: 30000, color: 0x18ffff },
     { name: 'Esteira 11', req: 60000000, bonus: 80000, color: 0xff4081 },
     { name: 'Esteira 12', req: 150000000, bonus: 200000, color: 0xffffff },
+    { name: 'Esteira 13', req: 400000000, bonus: 500000, color: 0xff1744 },
+    { name: 'Esteira 14', req: 1000000000, bonus: 1200000, color: 0x00e676 },
+    { name: 'Esteira 15', req: 2500000000, bonus: 3000000, color: 0x2979ff },
+    { name: 'Esteira 16', req: 6000000000, bonus: 7500000, color: 0xd500f9 },
+    { name: 'Esteira 17', req: 15000000000, bonus: 18000000, color: 0xffab00 },
+    { name: 'Esteira 18', req: 40000000000, bonus: 45000000, color: 0x1de9b6 },
 ];
 let currentEsteira = 0;
 let speed = 0;
@@ -788,6 +794,9 @@ let raceTrackLength = 100;
 let raceTrackGroup = null;
 let raceBoost = 0;
 let raceCamX = 0, raceCamY = 4;
+let raceLastTime = 0;
+const RACE_MAX_SPEED = 14; // unidades por segundo — trava velocidade máx. p/ percorrer a pista de verdade
+const RACE_MAX_BOOST = 6;
 
 const RACE_ENEMIES = [
     { name: 'Tartaruga', color: 0x4caf50, baseSpeed: 0.30 },
@@ -1015,8 +1024,8 @@ function startRace() {
     if (!raceScene) initRace3D();
     raceBoost = 0;
 
-    // Pista fica mais longa a cada fase
-    raceTrackLength = 100 + corridaFase * 30;
+    // Pista MUITO maior a cada fase (crescimento agressivo)
+    raceTrackLength = 120 + Math.round(corridaFase * 90 + Math.pow(corridaFase, 1.6) * 8);
     buildRaceTrack();
 
     // Remove old meshes
@@ -1024,19 +1033,22 @@ function startRace() {
     raceEnemyMeshes.forEach(m => raceScene.remove(m));
     raceEnemyMeshes = [];
 
-    // Player speed based on academia velocity
-    const playerSpeed = 0.05 + (speed / 500000);
+    // Player speed based on academia velocity — em UNIDADES POR SEGUNDO, com teto (RACE_MAX_SPEED)
+    // para a pista ser sempre percorrida de verdade, nunca "pulada" num único frame.
+    const rawPlayerSpeed = 2 + (speed / 90000);
+    const playerSpeed = Math.min(rawPlayerSpeed, RACE_MAX_SPEED);
     racePlayer = { z: 0, speed: playerSpeed, finished: false, lane: 0 };
     racePlayerMesh = createRacePlayer3D();
     racePlayerMesh.position.set(0, 0, 0);
     raceScene.add(racePlayerMesh);
 
-    // Enemies — ficam MUITO mais rápidos a cada fase
+    // Enemies — ficam MUITO mais rápidos a cada fase (escala real de dificuldade)
     raceEnemies = [];
     const numEnemies = Math.min(corridaFase + 1, 5);
     for (let i = 0; i < numEnemies; i++) {
         const e = RACE_ENEMIES[i % RACE_ENEMIES.length];
-        const spd = e.baseSpeed + (corridaFase - 1) * 0.06 + Math.random() * 0.03;
+        const difficultyMult = 1 + (corridaFase - 1) * 0.22;
+        const spd = (e.baseSpeed * 12) * difficultyMult + Math.random() * 1.2;
         const lane = (i + 1) * 2 - (numEnemies);
         raceEnemies.push({ z: 0, speed: spd, finished: false, lane, data: e });
         const mesh = createRaceEnemy3D(e);
@@ -1045,6 +1057,7 @@ function startRace() {
         raceEnemyMeshes.push(mesh);
     }
 
+    raceLastTime = performance.now();
     corridaRunning = true;
     document.getElementById('corrida-result').style.display = 'none';
     document.getElementById('corrida-fase').textContent = `Fase ${corridaFase}`;
@@ -1060,31 +1073,45 @@ function raceLoop3D() {
 
     const t = Date.now();
 
-    // Move player (speed + boost from clicking)
+    // dt real entre frames, em segundos, com clamp — evita "pulo" quando a aba trava/
+    // perde frames ou quando o navegador demora a renderizar (causa raiz do bug antigo:
+    // o movimento era somado por FRAME, não por TEMPO, e sem teto — em velocidade alta
+    // um único frame avançava mais que a pista inteira, "teleportando" pro fim).
+    const now = performance.now();
+    let dt = (now - raceLastTime) / 1000;
+    raceLastTime = now;
+    if (!(dt > 0)) dt = 1 / 60;
+    dt = Math.min(dt, 0.05); // trava dt (evita salto ao voltar de aba minimizada etc.)
+
+    // Move player (speed + boost from clicking) — sempre em unidades/segundo * dt,
+    // com o boost também travado, então nunca dá pra pular pra frente da pista.
     if (!racePlayer.finished) {
-        racePlayer.z -= racePlayer.speed + raceBoost * 0.02;
-        if (raceBoost > 0) raceBoost *= 0.95;
+        raceBoost = Math.min(raceBoost, RACE_MAX_BOOST);
+        const step = (racePlayer.speed + raceBoost) * dt;
+        racePlayer.z -= step;
+        if (raceBoost > 0) raceBoost *= Math.pow(0.35, dt * 60); // decaimento equivalente a *0.95 por frame a 60fps
         if (raceBoost < 0.01) raceBoost = 0;
-        if (racePlayer.z <= -raceTrackLength) racePlayer.finished = true;
+        if (racePlayer.z <= -raceTrackLength) { racePlayer.z = -raceTrackLength; racePlayer.finished = true; }
     }
     racePlayerMesh.position.z = racePlayer.z;
     // Legs animation
-    const pLegSpeed = racePlayer.speed * 80;
+    const pLegSpeed = racePlayer.speed * 8;
     racePlayerMesh.userData.legL.rotation.x = Math.sin(t * 0.01 * pLegSpeed) * 0.6;
     racePlayerMesh.userData.legR.rotation.x = -Math.sin(t * 0.01 * pLegSpeed) * 0.6;
     // Bounce
     racePlayerMesh.position.y = Math.abs(Math.sin(t * 0.008 * pLegSpeed)) * 0.15;
 
-    // Move enemies
+    // Move enemies — também por dt, com teto implícito (RACE_MAX_SPEED-ish via difficultyMult controlado)
     for (let i = 0; i < raceEnemies.length; i++) {
         const e = raceEnemies[i];
         if (!e.finished) {
-            e.z -= e.speed + (Math.random() - 0.4) * 0.01;
-            if (e.z <= -raceTrackLength) e.finished = true;
+            const eStep = (e.speed + (Math.random() - 0.4) * 0.6) * dt;
+            e.z -= eStep;
+            if (e.z <= -raceTrackLength) { e.z = -raceTrackLength; e.finished = true; }
         }
         raceEnemyMeshes[i].position.z = e.z;
         raceEnemyMeshes[i].position.x = e.lane;
-        const eLegSpd = e.speed * 60;
+        const eLegSpd = e.speed * 6;
         raceEnemyMeshes[i].userData.legL.rotation.x = Math.sin(t * 0.01 * eLegSpd + i) * 0.5;
         raceEnemyMeshes[i].userData.legR.rotation.x = -Math.sin(t * 0.01 * eLegSpd + i) * 0.5;
         raceEnemyMeshes[i].position.y = Math.abs(Math.sin(t * 0.007 * eLegSpd + i)) * 0.1;
@@ -1183,6 +1210,11 @@ const TENIS = [
     { name: '👟 Tênis a Jato', desc: 'Velocidade x5!', cost: 80000000, boost: 5 },
     { name: '👟 Tênis Foguete', desc: 'Velocidade x8!', cost: 200000000, boost: 8 },
     { name: '👟 Tênis Lendário', desc: 'Velocidade x15!', cost: 500000000, boost: 15 },
+    { name: '👟 Tênis Supersônico', desc: 'Velocidade x22!', cost: 1200000000, boost: 22 },
+    { name: '👟 Tênis Cometa', desc: 'Velocidade x32!', cost: 3000000000, boost: 32 },
+    { name: '👟 Tênis Interestelar', desc: 'Velocidade x45!', cost: 7500000000, boost: 45 },
+    { name: '👟 Tênis do Vento', desc: 'Velocidade x65!', cost: 18000000000, boost: 65 },
+    { name: '👟 Tênis Divinos', desc: 'Velocidade x100!', cost: 45000000000, boost: 100 },
 ];
 const MELHORIAS = [
     { name: '💪 Luvas de Força', desc: 'Clique x2!', cost: 7500000, mult: 2 },
@@ -1190,9 +1222,14 @@ const MELHORIAS = [
     { name: '🔥 Modo Fogo', desc: 'Clique x5!', cost: 60000000, mult: 5 },
     { name: '🌟 Estrela Mágica', desc: 'Clique x8!', cost: 150000000, mult: 8 },
     { name: '👑 Coroa do Rei Clique', desc: 'Clique x15!', cost: 400000000, mult: 15 },
+    { name: '🌋 Punho de Lava', desc: 'Clique x22!', cost: 1000000000, mult: 22 },
+    { name: '🌪️ Fúria do Furacão', desc: 'Clique x32!', cost: 2500000000, mult: 32 },
+    { name: '☄️ Impacto de Meteoro', desc: 'Clique x48!', cost: 6000000000, mult: 48 },
+    { name: '🌌 Toque Cósmico', desc: 'Clique x70!', cost: 15000000000, mult: 70 },
+    { name: '👼 Bênção do Cogumelo', desc: 'Clique x100!', cost: 40000000000, mult: 100 },
 ];
-let tenisOwned = [false, false, false, false, false];
-let melhoriasOwned = [false, false, false, false, false];
+let tenisOwned = new Array(TENIS.length).fill(false);
+let melhoriasOwned = new Array(MELHORIAS.length).fill(false);
 
 function tenisBoost() {
     let b = 1;

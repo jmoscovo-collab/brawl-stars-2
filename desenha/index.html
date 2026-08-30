@@ -97,9 +97,15 @@ canvas#tela { width:100%; background:#fff; border-radius:14px; touch-action:none
         <span id="tempoHud">70</span>
     </div>
     <div class="jarea">
-        <div id="canvasBox">
+        <div id="canvasBox" style="position:relative;">
             <canvas id="tela" width="800" height="520"></canvas>
+            <div id="denunciaOverlay" style="display:none;position:absolute;inset:0;background:rgba(20,10,40,0.94);border-radius:14px;align-items:center;justify-content:center;text-align:center;flex-direction:column;gap:8px;padding:20px;">
+                <div style="font-size:40px;">🚩</div>
+                <div style="font-size:18px;font-weight:bold;color:#fff;">Denúncia enviada, obrigado!</div>
+                <div style="font-size:13px;color:#bbb;">Esse desenho ficou escondido só pra você.</div>
+            </div>
             <div id="ferramentas"></div>
+            <div id="denunciaBtnBox" style="margin-top:6px;"></div>
         </div>
         <div id="lateral">
             <div class="card" style="padding:10px;">
@@ -149,7 +155,7 @@ let mp = { ws:null, sala:'', souHost:false, meuNome:'', jogadores:[], pollConvit
 
 // estado do jogo (autoritativo no host)
 let G = { drawer:'', palavra:'', ordem:[], idx:0, total:0, num:0, placar:{},
-    tempo:70, tickTimer:null, roundTimer:null, acertaram:[], inicioRodada:0, souDrawer:false, revelou:false };
+    tempo:70, tickTimer:null, roundTimer:null, acertaram:[], inicioRodada:0, souDrawer:false, revelou:false, denunciado:false };
 
 function mpLogado(){ return !!localStorage.getItem('cg_usuario'); }
 async function mpApi(payload){
@@ -420,8 +426,10 @@ function aplicaRodada(m){
     else G.palavra = m.palavra; // recebida; só o desenhista exibe
     G.souDrawer = (m.drawer === mp.meuNome);
     G.revelou = false;
+    G.denunciado = false;
     G.inicioRodada = Date.now();
     limpaCanvas();
+    const ov = document.getElementById('denunciaOverlay'); if(ov) ov.style.display='none';
     document.getElementById('rankingBox').style.display='none';
     document.getElementById('jogo').style.display='block';
     const vez = document.getElementById('vezHud');
@@ -432,6 +440,7 @@ function aplicaRodada(m){
     document.getElementById('chatInput').disabled = G.souDrawer;
     document.getElementById('chatInput').placeholder = G.souDrawer ? 'Você está desenhando...' : 'Seu chute...';
     montaFerramentas();
+    renderBotaoDenuncia();
     addChat(`🖍️ <span class="sistema">Rodada ${G.num}/${G.total} — ${G.souDrawer?'você está desenhando!':G.drawer+' desenhando'}</span>`);
     iniciaCronometro();
 }
@@ -462,7 +471,7 @@ const tela = document.getElementById('tela');
 const ctx = tela.getContext('2d');
 let corAtual = '#000000', grossuraAtual = 5, desenhando=false, ultimo=null;
 let ferramenta = 'pincel';            // pincel | reta | retangulo | circulo | balde
-let bufferLinha = null, flushTimer = null;
+let bufferLinha = null, flushTimer = null, primeiroLoteDoTraco = true;
 let snapshot = null, inicioForma = null;
 let historico = [];                    // pra desfazer (lista de operações)
 const CORES = ['#000000','#ffffff','#e11d48','#f97316','#facc15','#22c55e','#0ea5e9','#6366f1','#a855f7','#92400e','#ec4899','#94a3b8'];
@@ -500,9 +509,10 @@ function aplicaOp(op, local){
         ctx.beginPath(); ctx.moveTo(op.pts[0][0]*W, op.pts[0][1]*H);
         for(var pi=1; pi<op.pts.length; pi++) ctx.lineTo(op.pts[pi][0]*W, op.pts[pi][1]*H);
         ctx.stroke();
-        // bolinhas nas pontas pra fechar cantos
-        ctx.fillStyle=op.cor; ctx.beginPath(); ctx.arc(op.pts[0][0]*W,op.pts[0][1]*H,op.gr/2,0,7); ctx.fill();
-        var lp=op.pts[op.pts.length-1]; ctx.beginPath(); ctx.arc(lp[0]*W,lp[1]*H,op.gr/2,0,7); ctx.fill();
+        // bolinha só na PONTA REAL do traço (início/fim do gesto), não em cada lote enviado —
+        // senão o traço fica cheio de bolotas no meio pra quem tá vendo (era o motivo do desenho "bugado")
+        if(op.first){ ctx.fillStyle=op.cor; ctx.beginPath(); ctx.arc(op.pts[0][0]*W,op.pts[0][1]*H,op.gr/2,0,7); ctx.fill(); }
+        if(op.last){ var lp=op.pts[op.pts.length-1]; ctx.fillStyle=op.cor; ctx.beginPath(); ctx.arc(lp[0]*W,lp[1]*H,op.gr/2,0,7); ctx.fill(); }
     }
     else if(op.t==='ponto'){ ctx.fillStyle=op.cor; ctx.beginPath(); ctx.arc(op.x0*W,op.y0*H,op.gr/2,0,7); ctx.fill(); }
     else if(op.t==='traco'){ ctx.beginPath(); ctx.moveTo(op.x0*W,op.y0*H); ctx.lineTo(op.x1*W,op.y1*H); ctx.stroke(); }
@@ -533,7 +543,7 @@ function inicioDesenho(e){
         registra(op); mpEnvia(op);
         return;
     }
-    desenhando=true; ultimo=p; inicioForma=p;
+    desenhando=true; ultimo=p; inicioForma=p; primeiroLoteDoTraco=true;
     if(ferramenta==='pincel' || ferramenta==='borracha'){
         // clique = pinta uma bolinha do tamanho do pincel (sem precisar arrastar)
         pintaPonto(p.x, p.y, corEfetiva(), grossuraEfetiva());
@@ -554,7 +564,7 @@ function moveDesenho(e){
         desenhaSegmento(ultimo.x,ultimo.y,p.x,p.y,corEfetiva(),grossuraEfetiva());
         registra({t:'traco',x0:ultimo.x,y0:ultimo.y,x1:p.x,y1:p.y,cor:corEfetiva(),gr:grossuraEfetiva()});
         // acumula os pontos e envia em LOTE (evita listras por mensagem perdida)
-        if(!bufferLinha) bufferLinha = { t:'linha', pts:[[ultimo.x,ultimo.y]], cor:corEfetiva(), gr:grossuraEfetiva() };
+        if(!bufferLinha) bufferLinha = { t:'linha', pts:[[ultimo.x,ultimo.y]], cor:corEfetiva(), gr:grossuraEfetiva(), first:primeiroLoteDoTraco };
         bufferLinha.pts.push([p.x,p.y]);
         if(bufferLinha.pts.length >= 12) flushLinha();
         else if(!flushTimer) flushTimer = setTimeout(flushLinha, 60);
@@ -567,11 +577,14 @@ function moveDesenho(e){
 }
 function flushLinha(){
     if(flushTimer){ clearTimeout(flushTimer); flushTimer=null; }
-    if(bufferLinha && bufferLinha.pts.length>1){ mpEnvia(bufferLinha); }
+    if(bufferLinha && bufferLinha.pts.length>1){ mpEnvia(bufferLinha); primeiroLoteDoTraco=false; }
     bufferLinha = null;
 }
 function fimDesenho(e){
-    if(ferramenta==='pincel' || ferramenta==='borracha') flushLinha();
+    if(ferramenta==='pincel' || ferramenta==='borracha'){
+        if(bufferLinha) bufferLinha.last = true; // marca a ponta final do traço pra quem tá vendo
+        flushLinha();
+    }
 
     if(desenhando && G.souDrawer && ferramenta!=='pincel' && ferramenta!=='borracha' && inicioForma){
         const p = (e && (e.changedTouches?e.changedTouches[0]:e)) ? posCanvas(e) : ultimo;
@@ -622,6 +635,37 @@ function addChat(html, cls){
     c.appendChild(p); c.scrollTop = c.scrollHeight;
 }
 
+// ---------- DENÚNCIA ----------
+function renderBotaoDenuncia(){
+    const box = document.getElementById('denunciaBtnBox'); if(!box) return;
+    // só quem tá adivinhando pode denunciar (o desenhista não denuncia o próprio desenho)
+    if(G.souDrawer || G.denunciado){ box.innerHTML=''; return; }
+    box.innerHTML = `<button class="btn pequeno" style="background:#c00" onclick="denunciarDesenho()">🚩 Denunciar desenho</button>`;
+}
+function denunciarDesenho(){
+    if(G.souDrawer || G.denunciado) return;
+    try{
+        const registro = {
+            desenho: tela.toDataURL('image/png'),
+            palavra: G.palavra || '',
+            desenhista: G.drawer || '',
+            denunciante: mp.meuNome || '',
+            sala: mp.sala || '',
+            data: new Date().toISOString()
+        };
+        const lista = JSON.parse(localStorage.getItem('denuncias') || '[]');
+        lista.push(registro);
+        // mantém só as últimas 50 pra não estourar o localStorage
+        while(lista.length > 50) lista.shift();
+        localStorage.setItem('denuncias', JSON.stringify(lista));
+    }catch(e){ /* localStorage cheio ou indisponível — ainda assim escondemos o desenho */ }
+    G.denunciado = true;
+    const ov = document.getElementById('denunciaOverlay');
+    if(ov) ov.style.display='flex';
+    renderBotaoDenuncia();
+    addChat('🚩 <span class="sistema">Você denunciou este desenho.</span>');
+}
+
 // ---------- PLACAR / RANKING ----------
 function renderPlacar(){
     const el = document.getElementById('placarLista');
@@ -630,6 +674,7 @@ function renderPlacar(){
 }
 function mostraRanking(ranking){
     pararTimers(); mp.emJogo=false;
+    const dbox = document.getElementById('denunciaBtnBox'); if(dbox) dbox.innerHTML='';
     const medalhas=['🥇','🥈','🥉','🎖️'];
     const box = document.getElementById('rankingBox');
     box.style.display='block';

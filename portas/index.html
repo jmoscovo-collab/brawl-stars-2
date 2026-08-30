@@ -118,6 +118,14 @@ function lsSet(k,v){ try{ localStorage.setItem('portas_'+k, JSON.stringify(v)); 
 var moedas = lsGet('moedas', 0);
 var minhas = lsGet('espadas', [true]);
 var eq = lsGet('eq', 0);
+// ===== SISTEMA DE 10 VIDAS DA CAPIVARA =====
+var VIDAS_MAX = 10;
+var vidas = lsGet('vidas', VIDAS_MAX);
+function salvaVidas(){ lsSet('vidas', vidas); }
+function curaVidas(qtd){
+    if(vidas < VIDAS_MAX){ vidas = Math.min(VIDAS_MAX, vidas + qtd); salvaVidas(); return true; }
+    return false;
+}
 // ===== ANDARES: 10 fases, cada uma com +100 portas (100, 200, ... 1000) =====
 var andar = lsGet('andar', 1);
 var zeradas = lsGet('zeradas_' + andar, andar === 1 ? lsGet('zeradas', []) : []);
@@ -330,7 +338,7 @@ function iniciaHub(voltandoDaPorta){
     fase = geraHub();
     // volta DO LADO da porta, não em cima dela
     var px = voltandoDaPorta ? 260 + (voltandoDaPorta-1)*ESPACO - 70 : 60;
-    pl = { x:px, y:CHAO_Y-40, vx:0, vy:0, dir:1, chao:false, vidas:3, inv:0.6, atq:0, extra:1 };
+    pl = { x:px, y:CHAO_Y-40, vx:0, vy:0, dir:1, chao:false, inv:0.6, atq:0, extra:1 };
     dwell = 0; dwellAlvo = null;
     document.getElementById('bSair').style.display = 'none';
     document.getElementById('bLoja').style.display = 'block';
@@ -344,7 +352,8 @@ function inicia(n){
     modo = 'fase';
     portaAtual = n;
     fase = gera(n);
-    pl = { x:60, y:CHAO_Y-100, vx:0, vy:0, dir:1, chao:false, vidas:3, inv:0, atq:0, extra:1 };
+    if(n % 50 === 0) { vidas = VIDAS_MAX; salvaVidas(); } // sala do paraíso cura todas as vidas!
+    pl = { x:60, y:CHAO_Y-100, vx:0, vy:0, dir:1, chao:false, inv:0, atq:0, extra:1 };
     cam = 0; dwell = 0; dwellAlvo = null;
     document.getElementById('bSair').style.display = 'block';
     document.getElementById('bLoja').style.display = 'none';
@@ -404,13 +413,14 @@ function ataca(){
 }
 function machuca(){
     if(pl.inv > 0) return;
-    pl.vidas--; pl.inv = 1.4;
+    vidas--; salvaVidas(); pl.inv = 1.4;
     pl.vy = -420; pl.vx = -pl.dir * 260;
-    if(pl.vidas <= 0){
+    fx.push({x:pl.x, y:pl.y-40, t:'💔', vida:0.9});
+    if(vidas <= 0){
         fx.push({x:pl.x, y:pl.y, t:'💀', vida:1});
         rodando = false;
         lsSet('moedas', moedas);
-        setTimeout(function(){ trancaPorta(portaAtual); iniciaHub(portaAtual); }, 900);
+        setTimeout(function(){ vidas = VIDAS_MAX; salvaVidas(); trancaPorta(portaAtual); iniciaHub(portaAtual); }, 900);
     }
 }
 
@@ -478,6 +488,7 @@ function loop(agora){
                     document.getElementById('novaFasePremio').textContent = '+🪙 ' + premioFase.toLocaleString('pt-BR');
                     document.getElementById('novaFase').style.display = 'flex';
                     for(var s=0;s<30;s++) fx.push({x:pl.x+(Math.random()-0.5)*300, y:pl.y-Math.random()*260, t:['🌀','✨','🌟','💫'][Math.floor(Math.random()*4)], vida:1.6});
+                    vidas = VIDAS_MAX; salvaVidas(); // achar o andar novo cura todas as vidas!
                     iniciaHub(0);
                     return;
                 }
@@ -487,8 +498,8 @@ function loop(agora){
     } else {
         // ===== dentro da porta =====
         if(pl.y > H + 60){
-            pl.vidas--;
-            if(pl.vidas <= 0){ rodando=false; lsSet('moedas',moedas); setTimeout(function(){ trancaPorta(portaAtual); iniciaHub(portaAtual); }, 600); }
+            vidas--; salvaVidas();
+            if(vidas <= 0){ rodando=false; lsSet('moedas',moedas); setTimeout(function(){ vidas = VIDAS_MAX; salvaVidas(); trancaPorta(portaAtual); iniciaHub(portaAtual); }, 600); }
             else { pl.x = Math.max(40, pl.x - 260); pl.y = CHAO_Y - 200; pl.vy = 0; pl.inv = 1.5; }
         }
         fase.espinhos.forEach(function(s){
@@ -511,6 +522,7 @@ function loop(agora){
             if(Math.abs(bb.x-pl.x) < 34 && pl.y > CHAO_Y-40){
                 bb.aberto = true; moedas += bb.valor;
                 fx.push({x:bb.x, y:CHAO_Y-70, t:'🪙+'+bb.valor, vida:1.4});
+                if(Math.random() < 0.4 && curaVidas(1)) fx.push({x:bb.x, y:CHAO_Y-110, t:'❤️+1', vida:1.4});
             }
         });
         var vivos = fase.inimigos.filter(function(i){ return i.vivo; }).length;
@@ -540,6 +552,96 @@ function loop(agora){
 }
 
 // ============ DESENHO ============
+// ============ DESENHO DO CHEFÃO — um monstro diferente por mundo! ============
+function desenhaBoss(ii, hue){
+    var t = performance.now()/1000;
+    var flip = ii.vel > 0 ? -1 : 1;
+    var boca = Math.sin(t*4)*0.15 + 0.15;
+    var flut = Math.sin(t*2.4) * 6;
+    var corCorpo = 'hsl(' + hue + ',70%,40%)';
+    var corCorpo2 = 'hsl(' + hue + ',80%,55%)';
+    var corChifre = 'hsl(' + ((hue+180)%360) + ',80%,70%)';
+    ctx.save();
+    ctx.translate(ii.x, CHAO_Y - ii.tam*0.02 + flut);
+    ctx.scale(flip, 1);
+    var s = ii.tam / 60; // escala geral do desenho
+    ctx.scale(s, s);
+
+    // aura pulsante atrás do chefão
+    var auraR = 46 + Math.sin(t*3)*5;
+    var grad = ctx.createRadialGradient(0,-20,4, 0,-20,auraR);
+    grad.addColorStop(0, 'hsla(' + hue + ',100%,65%,0.55)');
+    grad.addColorStop(1, 'hsla(' + hue + ',100%,50%,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(0,-20,auraR,0,7); ctx.fill();
+
+    // sombra no chão
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(0, 4-flut*0.3, 34, 8, 0, 0, 7); ctx.fill();
+
+    // pernas grossas
+    ctx.fillStyle = corCorpo;
+    ctx.fillRect(-24, -18, 14, 22);
+    ctx.fillRect(10, -18, 14, 22);
+
+    // corpo musculoso
+    ctx.beginPath();
+    ctx.ellipse(0, -46, 30, 34, 0, 0, 7);
+    ctx.fill();
+    // barriga mais clara
+    ctx.fillStyle = corCorpo2;
+    ctx.beginPath(); ctx.ellipse(0, -38, 18, 20, 0, 0, 7); ctx.fill();
+
+    // braços
+    ctx.fillStyle = corCorpo;
+    ctx.beginPath(); ctx.ellipse(-30, -50, 10, 18, 0.5, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(30, -50, 10, 18, -0.5, 0, 7); ctx.fill();
+    // garras
+    ctx.fillStyle = '#fff';
+    for(var g=-1;g<=1;g++){ ctx.beginPath(); ctx.moveTo(-34+g*4,-38); ctx.lineTo(-32+g*4,-30); ctx.lineTo(-30+g*4,-38); ctx.fill(); }
+    for(var g=-1;g<=1;g++){ ctx.beginPath(); ctx.moveTo(34+g*4,-38); ctx.lineTo(32+g*4,-30); ctx.lineTo(30+g*4,-38); ctx.fill(); }
+
+    // cabeça
+    ctx.fillStyle = corCorpo;
+    ctx.beginPath(); ctx.arc(0, -78, 22, 0, 7); ctx.fill();
+
+    // chifres
+    ctx.fillStyle = corChifre;
+    ctx.beginPath(); ctx.moveTo(-14,-92); ctx.quadraticCurveTo(-26,-112,-8,-118); ctx.quadraticCurveTo(-14,-100,-4,-90); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(14,-92); ctx.quadraticCurveTo(26,-112,8,-118); ctx.quadraticCurveTo(14,-100,4,-90); ctx.fill();
+
+    // orelhas pontudas
+    ctx.fillStyle = corCorpo2;
+    ctx.beginPath(); ctx.moveTo(-20,-84); ctx.lineTo(-30,-96); ctx.lineTo(-14,-90); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(20,-84); ctx.lineTo(30,-96); ctx.lineTo(14,-90); ctx.fill();
+
+    // olhos brilhantes (piscam de vez em quando)
+    var pisca = (Math.sin(t*1.3) > 0.94);
+    ctx.fillStyle = pisca ? corCorpo : '#fff';
+    ctx.beginPath(); ctx.ellipse(-9,-80,6,pisca?1:6.5,0,0,7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(9,-80,6,pisca?1:6.5,0,0,7); ctx.fill();
+    if(!pisca){
+        ctx.fillStyle = '#ff2020';
+        ctx.beginPath(); ctx.arc(-9,-80,3,0,7); ctx.fill();
+        ctx.beginPath(); ctx.arc(9,-80,3,0,7); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(-10.5,-81.5,1.1,0,7); ctx.fill();
+        ctx.beginPath(); ctx.arc(7.5,-81.5,1.1,0,7); ctx.fill();
+    }
+    // sobrancelhas bravas
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(-17,-88); ctx.lineTo(-4,-85); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(17,-88); ctx.lineTo(4,-85); ctx.stroke();
+
+    // boca com presas
+    ctx.fillStyle = '#3a0a0a';
+    ctx.beginPath(); ctx.ellipse(0,-66,10,4+boca*10,0,0,7); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.moveTo(-7,-68); ctx.lineTo(-5,-60); ctx.lineTo(-3,-68); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(7,-68); ctx.lineTo(5,-60); ctx.lineTo(3,-68); ctx.fill();
+
+    ctx.restore();
+}
 function desenha(){
     if(!fase) return;
     var n = fase.n;
@@ -598,16 +700,20 @@ function desenha(){
         if(!aberta){ ctx.font='26px Arial'; ctx.fillText('👾×'+vivos, fase.fim-40, CHAO_Y-80); }
         fase.inimigos.forEach(function(ii){
             if(!ii.vivo) return;
-            ctx.font = ii.tam + 'px Arial';
-            ctx.save();
-            ctx.translate(ii.x, CHAO_Y-2);
-            if(ii.vel > 0) ctx.scale(-1,1);
-            ctx.fillText(ii.e, 0, 0);
-            ctx.restore();
-            var bw = ii.tam;
-            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(ii.x-bw/2, CHAO_Y-ii.tam-16, bw, 7);
+            if(ii.boss){
+                desenhaBoss(ii, hue);
+            } else {
+                ctx.font = ii.tam + 'px Arial';
+                ctx.save();
+                ctx.translate(ii.x, CHAO_Y-2);
+                if(ii.vel > 0) ctx.scale(-1,1);
+                ctx.fillText(ii.e, 0, 0);
+                ctx.restore();
+            }
+            var bw = ii.boss ? ii.tam*1.5 : ii.tam;
+            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(ii.x-bw/2, CHAO_Y-ii.tam-(ii.boss?34:16), bw, ii.boss?10:7);
             ctx.fillStyle = ii.boss ? '#ff4444' : '#4dff88';
-            ctx.fillRect(ii.x-bw/2, CHAO_Y-ii.tam-16, bw*Math.max(0,ii.hp/ii.hpMax), 7);
+            ctx.fillRect(ii.x-bw/2, CHAO_Y-ii.tam-(ii.boss?34:16), bw*Math.max(0,ii.hp/ii.hpMax), ii.boss?10:7);
         });
     }
 
@@ -618,32 +724,65 @@ function desenha(){
         if(pl.dir < 0) ctx.scale(-1,1);
         var andando = Math.abs(pl.vx) > 30 && pl.chao;
         var passo = andando ? Math.sin(performance.now()/70)*4 : 0;
+        var respira = Math.sin(performance.now()/450)*1.2;
+        // rabinho fofo
+        ctx.fillStyle = '#8a5c3a';
+        ctx.beginPath(); ctx.ellipse(-24, -22-passo*0.3, 6, 5, 0.3, 0, 7); ctx.fill();
         // perninhas
-        ctx.fillStyle = '#7c5236';
+        ctx.fillStyle = '#6b4529';
         ctx.fillRect(-16, -10 + passo, 8, 10 - passo);
         ctx.fillRect(2,   -10 - passo, 8, 10 + passo);
-        // corpo redondinho
+        // corpo redondinho com sombra de barriga
         ctx.fillStyle = '#a9744f';
-        ctx.beginPath(); ctx.ellipse(-3, -26, 22, 17, 0, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(-3, -26+respira*0.3, 22, 17+respira*0.3, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = '#c69269';
+        ctx.beginPath(); ctx.ellipse(-4, -19, 15, 8, 0, 0, 7); ctx.fill();
+        // pelinho no lombo (textura)
+        ctx.strokeStyle = 'rgba(90,58,36,0.4)'; ctx.lineWidth = 1.5;
+        for(var pp=-14; pp<12; pp+=6){ ctx.beginPath(); ctx.moveTo(pp,-36); ctx.lineTo(pp-2,-30); ctx.stroke(); }
         // cabeça quadradinha de capivara
+        ctx.fillStyle = '#a9744f';
         ctx.beginPath(); ctx.ellipse(15, -36, 13, 11, -0.15, 0, 7); ctx.fill();
+        // bochecha
+        ctx.fillStyle = '#bb8760';
+        ctx.beginPath(); ctx.ellipse(17, -30, 8, 6, 0, 0, 7); ctx.fill();
         // focinho claro
-        ctx.fillStyle = '#c9987a';
-        ctx.beginPath(); ctx.ellipse(24, -33, 6.5, 5.5, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = '#dcb28c';
+        ctx.beginPath(); ctx.ellipse(25, -32, 7, 6, 0, 0, 7); ctx.fill();
         // narina
-        ctx.fillStyle = '#5a3a24';
-        ctx.beginPath(); ctx.arc(26, -34, 1.4, 0, 7); ctx.fill();
-        // orelhinha
+        ctx.fillStyle = '#4a2c18';
+        ctx.beginPath(); ctx.ellipse(27.5, -33, 1.6, 1.1, 0, 0, 7); ctx.fill();
+        // bigodinhos
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(28,-31); ctx.lineTo(36,-33); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(28,-29); ctx.lineTo(36,-28); ctx.stroke();
+        // orelha de trás (mais escura, dá profundidade)
+        ctx.fillStyle = '#6b4529';
+        ctx.beginPath(); ctx.arc(6, -47, 3, 0, 7); ctx.fill();
+        // orelhinha da frente
         ctx.fillStyle = '#8a5a3a';
-        ctx.beginPath(); ctx.arc(10, -46, 3.5, 0, 7); ctx.fill();
-        // olho
+        ctx.beginPath(); ctx.arc(10, -47, 4, 0, 7); ctx.fill();
+        ctx.fillStyle = '#5a3a24';
+        ctx.beginPath(); ctx.arc(10, -47, 2, 0, 7); ctx.fill();
+        // olho com brilho
         ctx.fillStyle = '#1e1208';
-        ctx.beginPath(); ctx.arc(17, -39, 2.2, 0, 7); ctx.fill();
-        // faixa de aventureira na testa
+        ctx.beginPath(); ctx.ellipse(17.5, -39, 2.6, 3, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(18.6, -40.2, 0.9, 0, 7); ctx.fill();
+        // sobrancelha fofa
+        ctx.strokeStyle = '#5a3a24'; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(14,-44); ctx.quadraticCurveTo(18,-46,21,-44); ctx.stroke();
+        // faixa de aventureira na testa com nozinho
         ctx.strokeStyle = '#d8322a'; ctx.lineWidth = 3.5;
         ctx.beginPath(); ctx.moveTo(4, -44); ctx.lineTo(26, -41); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(5, -44); ctx.lineTo(-2, -50); ctx.stroke();
-        // espada na patinha
+        ctx.fillStyle = '#d8322a';
+        ctx.beginPath(); ctx.arc(4, -44, 2.6, 0, 7); ctx.fill();
+        // espada na patinha, com leve rastro quando ataca
+        if(pl.atq > 0){
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(20,-20, 26, -0.3, 0.9); ctx.stroke();
+        }
         ctx.font = '30px Arial'; ctx.textAlign = 'center';
         ctx.save();
         ctx.translate(24, -18);
@@ -671,10 +810,11 @@ function desenha(){
     if(modo === 'hub'){
         ctx.fillText('🏛️' + andar, 14, 94);
     }
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText('❤️' + Math.max(0,vidas) + '/' + VIDAS_MAX, 14, modo==='hub' ? 122 : 152);
+    ctx.font = 'bold 24px Arial';
     if(modo === 'fase'){
         ctx.fillText('🚪' + fase.n, 14, 94);
-        var cor = '❤️'.repeat(Math.max(0,pl.vidas)) + '🖤'.repeat(Math.max(0, 3-pl.vidas));
-        ctx.fillText(cor, 14, 124);
     }
 }
 

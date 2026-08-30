@@ -198,6 +198,7 @@ var mundoG = null;
 var teclas = {};
 
 function el(id){ return document.getElementById(id); }
+function hexCor(n){ return '#'+('000000'+n.toString(16)).slice(-6); }
 var msgTimer = null;
 function mostraMsg(txt, cor, ms){
     var m = el('msg');
@@ -233,6 +234,176 @@ function caixa(w,h,d,cor,x,y,z,pai){
     (pai||mundoG).add(m);
     return m;
 }
+function caixaTex(w,h,d,tex,x,y,z,pai){
+    var m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshLambertMaterial({ map:tex }));
+    m.position.set(x,y,z);
+    (pai||mundoG).add(m);
+    return m;
+}
+function escureceCor(cor, fator){
+    var r=(cor>>16)&255, g=(cor>>8)&255, b=cor&255;
+    r=Math.max(0,Math.round(r*fator)); g=Math.max(0,Math.round(g*fator)); b=Math.max(0,Math.round(b*fator));
+    return (r<<16)|(g<<8)|b;
+}
+function clareiaCor(cor, fator){
+    var r=(cor>>16)&255, g=(cor>>8)&255, b=cor&255;
+    r=Math.min(255,Math.round(r+(255-r)*fator)); g=Math.min(255,Math.round(g+(255-g)*fator)); b=Math.min(255,Math.round(b+(255-b)*fator));
+    return (r<<16)|(g<<8)|b;
+}
+var TEXTURA_PELAGEM_CACHE = {};
+function texturaPelagem(id, corBase, brilhante){
+    var chave = id;
+    if(TEXTURA_PELAGEM_CACHE[chave]) return TEXTURA_PELAGEM_CACHE[chave];
+    var cv = document.createElement('canvas'); cv.width = 128; cv.height = 128;
+    var cx = cv.getContext('2d');
+    var sombra = escureceCor(corBase, 0.72);
+    cx.fillStyle = hexCor(corBase); cx.fillRect(0,0,128,128);
+    cx.fillStyle = hexCor(sombra);
+    for(var i=0;i<55;i++){
+        cx.globalAlpha = 0.08 + Math.random()*0.14;
+        var x=Math.random()*128, y=Math.random()*128, r=2+Math.random()*4.5;
+        cx.beginPath(); cx.ellipse(x,y,r,r*0.6,Math.random()*3,0,Math.PI*2); cx.fill();
+    }
+    cx.globalAlpha = 1;
+    if(brilhante){
+        cx.fillStyle = '#fff8d0';
+        for(var i=0;i<16;i++){
+            cx.globalAlpha = 0.4 + Math.random()*0.5;
+            var x2=Math.random()*128, y2=Math.random()*128, r2=1+Math.random()*1.6;
+            cx.beginPath(); cx.arc(x2,y2,r2,0,Math.PI*2); cx.fill();
+        }
+        cx.globalAlpha = 1;
+    }
+    var tx = new THREE.CanvasTexture(cv);
+    TEXTURA_PELAGEM_CACHE[chave] = tx;
+    return tx;
+}
+
+// ============ INGREDIENTES DESENHADOS (canvas 2D) ============
+var EMOJI_PARA_KEY = {};
+INGREDIENTES.forEach(function(ing){ EMOJI_PARA_KEY[ing[0]] = ing[1]; });
+var TEXTURA_INGREDIENTE_CACHE = {};
+function desenhaIngredienteCanvas(cx, key){
+    cx.save();
+    cx.translate(64, 64);
+    if(key === 'pão'){
+        cx.fillStyle = '#c9903f';
+        cx.beginPath(); cx.moveTo(-46,20); cx.quadraticCurveTo(-46,34,-30,34); cx.lineTo(30,34);
+        cx.quadraticCurveTo(46,34,46,20); cx.lineTo(46,10); cx.lineTo(-46,10); cx.closePath(); cx.fill();
+        cx.fillStyle = '#f0c878'; cx.strokeStyle = '#b87830'; cx.lineWidth = 3;
+        cx.beginPath(); cx.moveTo(-46,12); cx.quadraticCurveTo(-46,-40,0,-40); cx.quadraticCurveTo(46,-40,46,12); cx.closePath();
+        cx.fill(); cx.stroke();
+        cx.fillStyle = '#fff3d0';
+        [[-20,-16],[-2,-24],[16,-14],[-10,-4],[10,-6]].forEach(function(p){
+            cx.save(); cx.translate(p[0],p[1]); cx.rotate(0.4);
+            cx.beginPath(); cx.ellipse(0,0,5,2.4,0,0,Math.PI*2); cx.fill(); cx.restore();
+        });
+    } else if(key === 'carne'){
+        cx.fillStyle = '#8a5232'; cx.beginPath(); cx.arc(0,0,44,0,Math.PI*2); cx.fill();
+        cx.save(); cx.beginPath(); cx.arc(0,0,44,0,Math.PI*2); cx.clip();
+        cx.strokeStyle = '#4a2c18'; cx.lineWidth = 6;
+        for(var i=-40;i<=40;i+=16){ cx.beginPath(); cx.moveTo(i-50,-50); cx.lineTo(i+50,50); cx.stroke(); }
+        for(var j=-40;j<=40;j+=16){ cx.beginPath(); cx.moveTo(j-50,50); cx.lineTo(j+50,-50); cx.stroke(); }
+        cx.restore();
+        cx.strokeStyle = 'rgba(40,20,10,0.55)'; cx.lineWidth = 5;
+        cx.beginPath(); cx.arc(0,0,42,0,Math.PI*2); cx.stroke();
+    } else if(key === 'queijo'){
+        cx.fillStyle = '#ffd93d'; cx.strokeStyle = '#e0a800'; cx.lineWidth = 4;
+        cx.beginPath(); cx.moveTo(-42,32); cx.lineTo(0,-40); cx.lineTo(42,32); cx.closePath();
+        cx.fill(); cx.stroke();
+        cx.globalCompositeOperation = 'destination-out';
+        [[-10,18,7],[14,8,6],[-4,-6,5],[6,26,5]].forEach(function(h){
+            cx.beginPath(); cx.arc(h[0],h[1],h[2],0,Math.PI*2); cx.fill();
+        });
+        cx.globalCompositeOperation = 'source-over';
+    } else if(key === 'alface'){
+        cx.fillStyle = '#8fd94f'; cx.strokeStyle = '#5aa62e'; cx.lineWidth = 2.5;
+        cx.beginPath();
+        var pontos = 10;
+        for(var i=0;i<=pontos;i++){
+            var ang = (i/pontos)*Math.PI*2;
+            var r = 40 + Math.sin(ang*4)*7;
+            var x = Math.cos(ang)*r, y = Math.sin(ang)*r*0.85;
+            if(i===0) cx.moveTo(x,y); else cx.lineTo(x,y);
+        }
+        cx.closePath(); cx.fill(); cx.stroke();
+        cx.strokeStyle = '#5aa62e'; cx.lineWidth = 1.6;
+        for(var i=0;i<5;i++){
+            var ang2 = (i/5)*Math.PI*2;
+            cx.beginPath(); cx.moveTo(0,0); cx.lineTo(Math.cos(ang2)*32, Math.sin(ang2)*28); cx.stroke();
+        }
+    } else if(key === 'tomate'){
+        cx.fillStyle = '#e94b3c'; cx.beginPath(); cx.arc(2,4,40,0,Math.PI*2); cx.fill();
+        cx.fillStyle = 'rgba(255,180,160,0.55)';
+        cx.beginPath(); cx.ellipse(-14,-10,14,9,-0.5,0,Math.PI*2); cx.fill();
+        cx.fillStyle = '#4caf50';
+        [0,1,2,3].forEach(function(i){
+            cx.save(); cx.rotate(i*Math.PI/2);
+            cx.beginPath(); cx.moveTo(0,-38); cx.quadraticCurveTo(8,-48,0,-58); cx.quadraticCurveTo(-8,-48,0,-38); cx.fill();
+            cx.restore();
+        });
+        cx.fillStyle = '#3d8b40'; cx.beginPath(); cx.arc(0,-38,6,0,Math.PI*2); cx.fill();
+    } else if(key === 'bacon'){
+        cx.rotate(-0.15);
+        var cores = ['#c1443c','#f3e0c8','#c1443c','#f3e0c8','#c1443c'];
+        for(var i=0;i<5;i++){
+            cx.fillStyle = cores[i];
+            var y0 = -38 + i*17;
+            cx.beginPath();
+            cx.moveTo(-48, y0);
+            cx.bezierCurveTo(-20, y0-10, 20, y0+10, 48, y0);
+            cx.lineTo(48, y0+13);
+            cx.bezierCurveTo(20, y0+23, -20, y0+3, -48, y0+13);
+            cx.closePath(); cx.fill();
+        }
+    } else if(key === 'ovo'){
+        cx.fillStyle = '#fff8ec';
+        cx.beginPath();
+        var pts=12;
+        for(var i=0;i<=pts;i++){
+            var ang3=(i/pts)*Math.PI*2; var r3=42+Math.sin(ang3*5)*4;
+            var x3=Math.cos(ang3)*r3, y3=Math.sin(ang3)*r3*0.8;
+            if(i===0) cx.moveTo(x3,y3); else cx.lineTo(x3,y3);
+        }
+        cx.closePath(); cx.fill();
+        cx.fillStyle = '#ffcc33'; cx.beginPath(); cx.arc(2,2,20,0,Math.PI*2); cx.fill();
+        cx.fillStyle = 'rgba(255,255,255,0.6)'; cx.beginPath(); cx.arc(-6,-6,6,0,Math.PI*2); cx.fill();
+        cx.strokeStyle = 'rgba(230,200,140,0.5)'; cx.lineWidth = 2;
+        cx.beginPath(); cx.arc(2,2,20,0,Math.PI*2); cx.stroke();
+    } else if(key === 'cebola'){
+        cx.fillStyle = '#d9a8e0'; cx.beginPath(); cx.arc(0,0,42,0,Math.PI*2); cx.fill();
+        cx.strokeStyle = '#9a5aa8'; cx.lineWidth = 3;
+        [42,30,18].forEach(function(r){ cx.beginPath(); cx.arc(0,0,r,0,Math.PI*2); cx.stroke(); });
+        cx.fillStyle = '#fff'; cx.beginPath(); cx.arc(0,0,8,0,Math.PI*2); cx.fill();
+    } else {
+        cx.restore(); return false;
+    }
+    cx.restore();
+    return true;
+}
+function texturaIngrediente(key){
+    if(TEXTURA_INGREDIENTE_CACHE[key]) return TEXTURA_INGREDIENTE_CACHE[key];
+    var cv = document.createElement('canvas'); cv.width = 128; cv.height = 128;
+    var cx = cv.getContext('2d');
+    var ok = desenhaIngredienteCanvas(cx, key);
+    if(!ok) return null;
+    var tx = new THREE.CanvasTexture(cv);
+    TEXTURA_INGREDIENTE_CACHE[key] = tx;
+    return tx;
+}
+function spriteIngrediente(key, tam){
+    var tx = texturaIngrediente(key);
+    if(!tx){ var ing = INGREDIENTES.find(function(i){ return i[1]===key; }); return spriteEmoji(ing?ing[0]:'❓', tam); }
+    var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tx, transparent:true }));
+    sp.scale.set(tam||1.2, tam||1.2, 1);
+    return sp;
+}
+function spriteIngredienteEmoji(emoji, tam){
+    var key = EMOJI_PARA_KEY[emoji];
+    if(key) return spriteIngrediente(key, tam);
+    return spriteEmoji(emoji, tam);
+}
+
 function texturaXadrez(c1, c2){
     var cv = document.createElement('canvas'); cv.width = 256; cv.height = 256;
     var cx = cv.getContext('2d');
@@ -318,7 +489,7 @@ function montaMundo(){
         var ex = -8.6 + i*2.45;
         caixa(1.9, 1.0, 1.6, INGREDIENTES[i][2], ex, 0.5, -6);
         caixa(2.0, 0.12, 1.9, 0xffffff, ex, 1.06, -6);
-        var sp = spriteEmoji(INGREDIENTES[i][0], 1.5);
+        var sp = spriteIngrediente(INGREDIENTES[i][1], 1.5);
         sp.position.set(ex, 2.15, -6);
         mundoG.add(sp);
         estacoes.push({ tipo:'ingrediente', emoji:INGREDIENTES[i][0], x:ex, z:-4.8 });
@@ -368,7 +539,7 @@ function montaBandeja(){
 function desenhaItensBandeja(){
     while(bandejaG.children.length > 5) bandejaG.remove(bandejaG.children[5]);
     itensBandeja.forEach(function(e, i){
-        var sp = spriteEmoji(e, 0.62);
+        var sp = spriteIngredienteEmoji(e, 0.62);
         sp.position.set(0, 0.28 + i*0.19, 0);
         bandejaG.add(sp);
     });
@@ -408,8 +579,10 @@ function atualizaMaoHud(){
 function montaCapivara(skinId, chapeuId){
     var s = SKINS.find(function(x){ return x.id===skinId; }) || SKINS[0];
     var g = new THREE.Group();
-    caixa(1.1, 0.75, 1.5, s.corpo, 0, 0.55, 0, g);
-    caixa(0.85, 0.62, 0.72, s.cabeca, 0, 0.98, -0.85, g);
+    var douradinha = s.id === 'dourada';
+    caixaTex(1.1, 0.75, 1.5, texturaPelagem('corpo_'+s.id, s.corpo, douradinha), 0, 0.55, 0, g);
+    caixaTex(0.85, 0.62, 0.72, texturaPelagem('cabeca_'+s.id, s.cabeca, douradinha), 0, 0.98, -0.85, g);
+    caixa(0.6, 0.3, 1.05, clareiaCor(s.corpo, 0.4), 0, 0.28, 0.12, g);
     caixa(0.2, 0.22, 0.14, 0x7a4a24, -0.28, 1.36, -0.8, g);
     caixa(0.2, 0.22, 0.14, 0x7a4a24, 0.28, 1.36, -0.8, g);
     caixa(0.34, 0.2, 0.22, 0x6a4020, 0, 0.8, -1.26, g);
@@ -425,6 +598,13 @@ function montaCapivara(skinId, chapeuId){
     });
     caixa(1.14, 0.52, 0.1, 0xffffff, 0, 0.55, -0.78, g);
     caixa(0.5, 0.3, 0.12, 0xff6666, 0, 0.62, -0.8, g);
+    if(douradinha){
+        [[-0.5,1.55,-0.35],[0.55,1.75,-0.65],[0.05,2.05,-1.05]].forEach(function(p){
+            var estrela = spriteEmoji('✨', 0.42);
+            estrela.position.set(p[0], p[1], p[2]);
+            g.add(estrela);
+        });
+    }
     var c = CHAPEUS.find(function(x){ return x.id===chapeuId; });
     if(c && c.emoji){ var sp = spriteEmoji(c.emoji, 1.0); sp.position.set(0, 1.9, -0.85); g.add(sp); }
     return g;
@@ -445,7 +625,7 @@ function poeMaoSprite(){
     if(maoSprite && maoSprite.parent) maoSprite.parent.remove(maoSprite);
     maoSprite = null;
     if(maoItem){
-        maoSprite = spriteEmoji(maoItem, 0.75);
+        maoSprite = spriteIngredienteEmoji(maoItem, 0.75);
         maoSprite.position.set(0.55, 1.0, -1.0);
         chefG.add(maoSprite);
     }

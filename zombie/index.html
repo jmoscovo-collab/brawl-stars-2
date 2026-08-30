@@ -1686,28 +1686,59 @@
         // Joystick de bolinha — controla o WASD pela direção do dedo
         const joyBase = document.getElementById('joy-base');
         const joyKnob = document.getElementById('joy-knob');
+        let joyTouchId = null, joyCx = 0, joyCy = 0, joyMax = 1;
         function joyLimpa(){ keys['KeyW']=keys['KeyA']=keys['KeyS']=keys['KeyD']=false; }
-        function joyMexe(e){
-            const t = e.touches[0];
-            const r = joyBase.getBoundingClientRect();
-            const cx = r.left + r.width/2, cy = r.top + r.height/2;
-            let dx = t.clientX - cx, dy = t.clientY - cy;
-            const dist = Math.hypot(dx, dy), max = r.width/2 - 22;
-            const k = Math.min(1, dist/max);
-            const ang = Math.atan2(dy, dx);
-            joyKnob.style.transform = `translate(${Math.cos(ang)*max*k}px, ${Math.sin(ang)*max*k}px)`;
+        function joyReset(){
+            joyTouchId = null;
             joyLimpa();
-            if(dist > 14){
+            joyKnob.style.transform = 'translate(0,0)';
+        }
+        // Pega o toque desse evento que corresponde ao dedo do joystick (por identifier)
+        function pegaToqueJoy(e){
+            for (const t of e.changedTouches) {
+                if (t.identifier === joyTouchId) return t;
+            }
+            return null;
+        }
+        function joyMexe(t){
+            let dx = t.clientX - joyCx, dy = t.clientY - joyCy;
+            const dist = Math.hypot(dx, dy);
+            const k = Math.min(1, dist/joyMax);
+            const ang = Math.atan2(dy, dx);
+            joyKnob.style.transform = `translate(${Math.cos(ang)*joyMax*k}px, ${Math.sin(ang)*joyMax*k}px)`;
+            joyLimpa();
+            const deadzone = 0.15; // ~15% do raio, evita "andar sozinho" com dedo quase parado
+            if(k > deadzone){
                 if(dy < -Math.abs(dx)*0.4) keys['KeyW'] = true;
                 if(dy >  Math.abs(dx)*0.4) keys['KeyS'] = true;
                 if(dx < -Math.abs(dy)*0.4) keys['KeyA'] = true;
                 if(dx >  Math.abs(dy)*0.4) keys['KeyD'] = true;
             }
         }
-        joyBase.addEventListener('touchstart', e => { e.preventDefault(); joyMexe(e); }, { passive: false });
-        joyBase.addEventListener('touchmove', e => { e.preventDefault(); joyMexe(e); }, { passive: false });
-        joyBase.addEventListener('touchend', e => { e.preventDefault(); joyLimpa(); joyKnob.style.transform='translate(0,0)'; }, { passive: false });
-        joyBase.addEventListener('touchcancel', () => { joyLimpa(); joyKnob.style.transform='translate(0,0)'; });
+        joyBase.addEventListener('touchstart', e => {
+            e.preventDefault();
+            if (joyTouchId !== null) return; // já tem um dedo no joystick, ignora outros
+            const t = e.changedTouches[0];
+            joyTouchId = t.identifier;
+            // Centro recalculado agora (cobre scroll/resize/orientação)
+            const r = joyBase.getBoundingClientRect();
+            joyCx = r.left + r.width/2;
+            joyCy = r.top + r.height/2;
+            joyMax = r.width/2 - 22;
+            joyMexe(t);
+        }, { passive: false });
+        joyBase.addEventListener('touchmove', e => {
+            e.preventDefault();
+            const t = pegaToqueJoy(e);
+            if (t) joyMexe(t);
+        }, { passive: false });
+        joyBase.addEventListener('touchend', e => {
+            e.preventDefault();
+            if (pegaToqueJoy(e)) joyReset();
+        }, { passive: false });
+        joyBase.addEventListener('touchcancel', e => {
+            if (pegaToqueJoy(e)) joyReset();
+        });
         // Botão de atacar 🪓
         const atk = document.getElementById('tb-attack');
         atk.addEventListener('touchstart', e => {

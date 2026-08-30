@@ -118,8 +118,22 @@
   renderer.setSize(window.innerWidth, window.innerHeight);
 
   var scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x89c6f0);
-  scene.fog = new THREE.Fog(0x9ed2f5, 140, 640);
+  function criaCeuGradiente() {
+    var cv = document.createElement('canvas'); cv.width = 2; cv.height = 256;
+    var ctx = cv.getContext('2d');
+    var g = ctx.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0, '#1a5aa0'); g.addColorStop(0.35, '#3f8fdc'); g.addColorStop(0.68, '#9ed2f5'); g.addColorStop(1, '#e9f8ff');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 2, 256);
+    var tex = new THREE.CanvasTexture(cv); tex.magFilter = THREE.LinearFilter; return tex;
+  }
+  scene.background = criaCeuGradiente();
+  scene.fog = new THREE.Fog(0x9ed2f5, 140, 660);
+
+  // sol decorativo (bem longe, só visual)
+  var sol3d = new THREE.Mesh(new THREE.SphereGeometry(38, 16, 16), new THREE.MeshBasicMaterial({ color: 0xfff2c0 }));
+  sol3d.position.set(-260, 260, -1400); scene.add(sol3d);
+  var solHalo = new THREE.Mesh(new THREE.SphereGeometry(58, 16, 16), new THREE.MeshBasicMaterial({ color: 0xfff2c0, transparent: true, opacity: 0.22 }));
+  solHalo.position.copy(sol3d.position); scene.add(solHalo);
 
   var camera = new THREE.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.5, 2500);
   var sol = new THREE.DirectionalLight(0xfff4e0, 1.1); sol.position.set(60, 120, 40); scene.add(sol);
@@ -139,8 +153,13 @@
     agua.rotation.x = -Math.PI / 2; agua.position.set(-1800 + r * 480 + Math.random() * 160, -39.7, 0); scene.add(agua);
   }
   function fazNuvem() {
-    var g = new THREE.Group(); var n = 3 + Math.floor(Math.random() * 4);
-    for (var i = 0; i < n; i++) { var b = esf(6 + Math.random() * 8, 0xffffff); b.position.set((Math.random() - 0.5) * 26, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 18); b.material.transparent = true; b.material.opacity = 0.92; g.add(b); }
+    var g = new THREE.Group(); var n = 4 + Math.floor(Math.random() * 5);
+    var tom = Math.random() < 0.25 ? 0xf3e8ff : (Math.random() < 0.5 ? 0xfff8e8 : 0xffffff);
+    for (var i = 0; i < n; i++) {
+      var b = esf(6 + Math.random() * 9, tom); b.position.set((Math.random() - 0.5) * 28, (Math.random() - 0.5) * 7, (Math.random() - 0.5) * 20);
+      b.scale.set(1 + Math.random() * 0.4, 0.75 + Math.random() * 0.3, 1 + Math.random() * 0.4);
+      b.material.transparent = true; b.material.opacity = 0.9; g.add(b);
+    }
     return g;
   }
   var nuvens = [];
@@ -155,17 +174,59 @@
   var nuvensBaixas = [];
   for (var cb = 0; cb < 60; cb++) { var nb = fazNuvemBaixa(); nb.position.set((Math.random() - 0.5) * 1400, -18 + Math.random() * 10, -Math.random() * 2400); scene.add(nb); nuvensBaixas.push(nb); }
 
-  // ---- CIDADE lá embaixo (prédios pra cair em cima) ----
+  // ---- textura de janelas (canvas) pra prédios/arranha-céus ----
+  function criaTexturaJanelas(tomJanela) {
+    var cv = document.createElement('canvas'); cv.width = 64; cv.height = 128;
+    var x = cv.getContext('2d');
+    x.fillStyle = '#2a323c'; x.fillRect(0, 0, 64, 128);
+    for (var ry = 0; ry < 16; ry++) {
+      for (var rx = 0; rx < 6; rx++) {
+        if (Math.random() < 0.78) {
+          x.globalAlpha = 0.5 + Math.random() * 0.45;
+          x.fillStyle = tomJanela;
+          x.fillRect(4 + rx * 10, 3 + ry * 8, 6, 5);
+          x.globalAlpha = 1;
+        }
+      }
+    }
+    var tex = new THREE.CanvasTexture(cv); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; return tex;
+  }
+  var TEX_JANELA_DIA = criaTexturaJanelas('#bfe6ff');
+  var TEX_JANELA_SOL = criaTexturaJanelas('#ffdb7a');
+
+  // ---- CIDADE lá embaixo (prédios pra cair em cima) + ARRANHA-CÉUS bem altos ----
+  var TOPO_NUVENS = 150; // altura máx da camada de nuvens — arranha-céus passam disso
+  function fazPredio(x, z, arranhaCeu) {
+    var w = arranhaCeu ? (13 + Math.random() * 8) : (10 + Math.random() * 12);
+    var h = arranhaCeu ? (TOPO_NUVENS + 40 + Math.random() * 110) : (34 + Math.random() * 74);
+    var colBase = [0x8d99a6, 0x6b7580, 0x9aa0a6, 0xb0a58f, 0x7a8590, 0x606b78];
+    var col = arranhaCeu ? [0x3d4a5c, 0x2f3a48, 0x4a5566][Math.floor(Math.random() * 3)] : colBase[Math.floor(Math.random() * colBase.length)];
+    var g = new THREE.Group();
+    var corpoMat = mat(0xffffff, { map: (Math.random() < 0.5 ? TEX_JANELA_DIA : TEX_JANELA_SOL).clone(), color: col });
+    corpoMat.map.needsUpdate = true; corpoMat.map.repeat.set(Math.max(1, Math.round(w / 6)), Math.max(1, Math.round(h / 12)));
+    var corpo = new THREE.Mesh(new THREE.BoxGeometry(w, h, w), corpoMat);
+    corpo.position.set(0, h / 2 - 40, 0); g.add(corpo);
+    if (arranhaCeu) {
+      var topo = cone(w * 0.42, 16 + Math.random() * 14, col, 4); topo.rotation.y = Math.PI / 4; topo.position.y = h - 40 + 8; g.add(topo);
+      var antena = cil(0.3, 0.3, 14, 0xdadada, 6); antena.position.y = h - 40 + 8 + 15; g.add(antena);
+      var luz = esf(0.9, 0xff3a3a); luz.material.emissive = new THREE.Color(0xff0000); luz.position.y = h - 40 + 8 + 22; g.add(luz);
+    } else {
+      var telhado = box(w * 1.05, 1.4, w * 1.05, col); telhado.position.y = h - 40 + 0.7; g.add(telhado);
+    }
+    g.position.set(x, 0, z);
+    return { mesh: g, x: x, z: z, halfW: w / 2 + 1.5, topoY: -40 + h };
+  }
   function fazCidade(z) {
     var g = new THREE.Group(); var n = 6 + Math.floor(Math.random() * 6);
+    var predios = [];
     for (var i = 0; i < n; i++) {
-      var h = 34 + Math.random() * 74; var w = 10 + Math.random() * 12;
-      var col = [0x8d99a6, 0x6b7580, 0x9aa0a6, 0xb0a58f, 0x7a8590][i % 5];
-      var b = box(w, h, w, col); b.position.set((Math.random() - 0.5) * 420, -40 + h / 2, (Math.random() - 0.5) * 90); g.add(b);
-      var jan = new THREE.Mesh(new THREE.BoxGeometry(w + 0.2, h * 0.72, w + 0.2), mat(0xffe07a, { transparent: true, opacity: 0.14, emissive: 0x4a3a00 }));
-      jan.position.copy(b.position); g.add(jan);
+      var px = (Math.random() - 0.5) * 420, pz = (Math.random() - 0.5) * 90;
+      var arranha = Math.random() < 0.22; // ~22% viram arranha-céus bem altos
+      var pr = fazPredio(px, pz, arranha);
+      g.add(pr.mesh);
+      predios.push({ x: px, z: z + pz, halfW: pr.halfW, topoY: pr.topoY });
     }
-    g.position.z = z; return g;
+    g.position.z = z; return { mesh: g, predios: predios };
   }
 
   // ---- FOGO/fumaça quando o avião cai ----
@@ -684,7 +745,7 @@
       // ---- spawns ----
       while (G.proxArgola > G.z - 720 && G.proxArgola > -DIST) { var g = fazArgola(); var px = (Math.random() - 0.5) * 130, py = 25 + Math.random() * 90; g.position.set(px, py, G.proxArgola); scene.add(g); argolas.push({ mesh: g, x: px, y: py, z: G.proxArgola, pego: false }); G.proxArgola -= 150 + Math.random() * 80; }
       while (G.proxMont > G.z - 720 && G.proxMont > -DIST) { var mm = fazMontanha(); mm.position.set((Math.random() - 0.5) * 240, -40, G.proxMont); scene.add(mm); montanhas.push({ mesh: mm, x: mm.position.x, z: G.proxMont, raio: 32 }); G.proxMont -= 160 + Math.random() * 120; }
-      while (G.proxCidade > G.z - 760) { var cd = fazCidade(G.proxCidade); scene.add(cd); cidades.push({ mesh: cd, z: G.proxCidade }); G.proxCidade -= 220 + Math.random() * 180; }
+      while (G.proxCidade > G.z - 760) { var cd = fazCidade(G.proxCidade); scene.add(cd.mesh); cidades.push({ mesh: cd.mesh, z: G.proxCidade, predios: cd.predios }); G.proxCidade -= 220 + Math.random() * 180; }
 
       // ---- bots ----
       var i, o, dx, dy;
@@ -741,6 +802,19 @@
       // ---- montanhas ----
       if (correndo && !G.morto && !G.chegou && G.imortal <= 0) {
         for (i = 0; i < montanhas.length; i++) { o = montanhas[i]; if (Math.abs(o.z - G.z) < 22 && Math.hypot(G.x - o.x, o.z - G.z) < o.raio && G.y < 62) { G.morto = true; iniciaQueda('Bateu na montanha! ⛰️'); break; } }
+      }
+
+      // ---- prédios / arranha-céus (colisão AABB de verdade) ----
+      if (correndo && !G.morto && !G.chegou && G.imortal <= 0) {
+        for (i = 0; i < cidades.length && !G.morto; i++) {
+          var preds = cidades[i].predios;
+          for (var pj = 0; pj < preds.length; pj++) {
+            var pr2 = preds[pj];
+            if (Math.abs(G.x - pr2.x) < pr2.halfW && Math.abs(G.z - pr2.z) < pr2.halfW && G.y < pr2.topoY) {
+              G.morto = true; iniciaQueda('Bateu num prédio! 🏢'); break;
+            }
+          }
+        }
       }
 
       // ---- argolas (só efeito: turbinho + som) ----

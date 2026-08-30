@@ -300,6 +300,7 @@ function passo(){
     // movimento do jogador
     const esq = teclas['ArrowLeft']||teclas['KeyA']||btn.esq;
     const dir = teclas['ArrowRight']||teclas['KeyD']||btn.dir;
+    eu.moveu = !!(esq||dir);
     if(esq){ eu.x -= 4.5; eu.dir = -1; }   // vira pro lado que você anda!
     if(dir){ eu.x += 4.5; eu.dir = 1; }
     eu.x = Math.max(60, Math.min(W-60, eu.x));
@@ -316,6 +317,7 @@ function passo(){
     [eu, bot].forEach(f=>{ if(f.golpe>0) f.golpe--; if(f.cd>0) f.cd--; if(f.dor>0) f.dor--; });
     // IA do bot: aproxima e ataca
     const dist = Math.abs(bot.x - eu.x);
+    bot.moveu = dist > 95 || dist < 70;
     if(dist > 95) bot.x += bot.dir * bot.vel;
     else if(dist < 70) bot.x -= bot.dir * bot.vel * 0.7; // recua um pouco
     bot.x = Math.max(60, Math.min(W-60, bot.x));
@@ -324,37 +326,101 @@ function passo(){
     }
 }
 
+// facilita curvas suaves (easing) pras animações de golpe ficarem menos "robóticas"
+function easeOutBack(x){ const c1=1.70158, c3=c1+1; return 1 + c3*Math.pow(x-1,3) + c1*Math.pow(x-1,2); }
+function easeInOutQuad(x){ return x<0.5 ? 2*x*x : 1-Math.pow(-2*x+2,2)/2; }
+
+// desenha um braço/perna articulado (2 segmentos com "cotovelo"/"joelho") em forma de cápsula arredondada
+function membroArticulado(ombroX, ombroY, dobraX, dobraY, pontaX, pontaY, espessura, cor, escuro){
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    // sombra/contorno escuro por baixo (dá volume e "peso" ao membro)
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = espessura+4;
+    ctx.beginPath(); ctx.moveTo(ombroX,ombroY); ctx.quadraticCurveTo(dobraX,dobraY,pontaX,pontaY); ctx.stroke();
+    // segmento superior (braço/coxa)
+    ctx.strokeStyle = cor; ctx.lineWidth = espessura;
+    ctx.beginPath(); ctx.moveTo(ombroX,ombroY); ctx.quadraticCurveTo(dobraX,dobraY,pontaX,pontaY); ctx.stroke();
+    // realce clarinho por cima pra dar volume arredondado
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = espessura*0.35;
+    ctx.beginPath(); ctx.moveTo(ombroX,ombroY-espessura*0.2); ctx.quadraticCurveTo(dobraX,dobraY-espessura*0.2,pontaX,pontaY-espessura*0.2); ctx.stroke();
+}
+
 function desenhaLutador(f, emoji, nome){
     ctx.save();
     ctx.globalAlpha = 1;
     ctx.fillStyle = '#ffffff';
     ctx.translate(f.x, CHAO - (f.y||0));
     if(f.dor>0) ctx.translate((Math.random()-0.5)*6, 0); // treme quando apanha
-    // sombra
+    // sombra no chão
     ctx.fillStyle='rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.ellipse(0, 8, 44, 10, 0, 0, 7); ctx.fill();
-    // corpo (emoji gigante)
-    ctx.font='80px Arial'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+
+    const cor = corPata(emoji);
+    const escuro = 'rgba(0,0,0,0.3)';
+    const balanco = Math.sin(t*4 + f.x*0.01); // respiração/balanço idle, levemente fora de sincronia entre os dois
+    const respira = Math.sin(t*2.2 + f.x*0.01) * 2; // sobe/desce sutil (respiração)
+
     ctx.save();
     if(f.dir<0) ctx.scale(-1,1);
+
+    // === PERNAS (sempre visíveis, arredondadas e articuladas) ===
+    if(!(f.golpe>0 && f.tipoGolpe==='chute')){
+        const passoAnda = (f.moveu ? Math.sin(t*10)*10 : balanco*3);
+        membroArticulado(-16,-6, -18-passoAnda*0.4,4, -14-passoAnda,16, 15, cor, escuro);
+        membroArticulado(16,-6, 18+passoAnda*0.4,4, 14+passoAnda,16, 15, cor, escuro);
+        // patinhas
+        ctx.fillStyle=cor;
+        ctx.beginPath(); ctx.ellipse(-14-passoAnda,18,9,6,0,0,7); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(14+passoAnda,18,9,6,0,0,7); ctx.fill();
+    }
+
+    // === BRAÇOS idle (balançam suave) quando não estão socando ===
+    if(!(f.golpe>0 && f.tipoGolpe==='soco')){
+        membroArticulado(-22,-46, -34,-30+balanco*3, -26,-14+balanco*4, 13, cor, escuro);
+        membroArticulado(22,-46, 34,-30-balanco*3, 26,-14-balanco*4, 13, cor, escuro);
+        ctx.fillStyle=cor;
+        ctx.beginPath(); ctx.arc(-26,-14+balanco*4,8,0,7); ctx.fill();
+        ctx.beginPath(); ctx.arc(26,-14-balanco*4,8,0,7); ctx.fill();
+    }
+
+    // corpo (emoji gigante) com contorno escuro suave (dá "cara" e profundidade) e leve respiração
+    ctx.font='80px Arial'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.save();
+    ctx.translate(0, respira);
+    ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 3;
     ctx.fillText(emoji, 0, 0);
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
     ctx.restore();
-    // golpe: braço ou perna DESENHADOS na cor do animal!
+
+    // rosto expressivo extra: sobrepõe reações de acordo com o estado da luta
+    ctx.font = '30px Arial';
+    if(f.dor>0){
+        // "estrelinhas" de dor girando acima da cabeça
+        const ang = t*10;
+        for(let s=0;s<3;s++){
+            const a = ang + s*2.1;
+            ctx.save(); ctx.translate(Math.cos(a)*22, -78+Math.sin(a)*8); ctx.font='18px Arial';
+            ctx.fillText('✨', 0, 0); ctx.restore();
+        }
+    } else if(f.vida/f.vidaMax < 0.3){
+        // suando de preocupação quando a vida tá baixa
+        ctx.save(); ctx.translate(26,-70); ctx.font='20px Arial'; ctx.fillText('💦',0,0); ctx.restore();
+    } else if(f.golpe>0){
+        // gritinho de esforço ao golpear
+        ctx.save(); ctx.translate(0,-92); ctx.font='16px Arial'; ctx.globalAlpha=0.85; ctx.fillText('💢',0,0); ctx.restore();
+    }
+
+    // golpe: braço ou perna DESENHADOS na cor do animal, com easing pra ficar mais fluido!
     if(f.golpe>0){
         const prog = 1 - f.golpe/14;
-        const ext = Math.sin(prog*Math.PI); // 0 → 1 → 0 (estica e volta)
-        const cor = corPata(emoji);
-        const escuro = 'rgba(0,0,0,0.25)';
+        // aceleração rápida na ida (easeOutBack dá uma leve "antecipação") e volta suave (easeInOutQuad)
+        const indo = prog < 0.55;
+        const sub = indo ? prog/0.55 : (prog-0.55)/0.45;
+        const ext = indo ? Math.min(1, easeOutBack(sub)) : 1-easeInOutQuad(sub);
         ctx.save();
-        if(f.dir<0) ctx.scale(-1,1);
         if(f.tipoGolpe==='soco'){
-            // BRAÇO: sai do ombro, estica com punho fechado
+            // BRAÇO: sai do ombro, cotovelo dobra, punho fechado (cápsula arredondada)
             const alc = 88*ext;
-            ctx.strokeStyle = cor; ctx.lineWidth = 14; ctx.lineCap='round';
-            ctx.beginPath(); ctx.moveTo(14,-42); ctx.lineTo(14+alc,-42-6*ext); ctx.stroke();
-            // sombra do braço
-            ctx.strokeStyle = escuro; ctx.lineWidth = 4;
-            ctx.beginPath(); ctx.moveTo(14,-38); ctx.lineTo(14+alc,-38-6*ext); ctx.stroke();
+            membroArticulado(14,-46, 18+alc*0.5,-48-4*ext, 14+alc,-42-6*ext, 15, cor, escuro);
             // punho (pata fechada com dedinhos)
             ctx.fillStyle = cor;
             ctx.beginPath(); ctx.arc(20+alc,-44-6*ext,11,0,7); ctx.fill();
@@ -366,13 +432,10 @@ function desenhaLutador(f, emoji, nome){
                 for(let r=0;r<3;r++){ ctx.beginPath(); ctx.moveTo(alc-20,-56+r*10); ctx.lineTo(alc-40,-56+r*10); ctx.stroke(); }
             }
         } else {
-            // PERNA: chute alto saindo do quadril, corpo inclina pra trás
+            // PERNA: chute alto saindo do quadril, joelho dobra, corpo inclina pra trás
             ctx.rotate(-0.18*ext);
             const alc = 112*ext;
-            ctx.strokeStyle = cor; ctx.lineWidth = 16; ctx.lineCap='round';
-            ctx.beginPath(); ctx.moveTo(6,-16); ctx.quadraticCurveTo(30+alc*0.4,-10, 10+alc,-22-14*ext); ctx.stroke();
-            ctx.strokeStyle = escuro; ctx.lineWidth = 4;
-            ctx.beginPath(); ctx.moveTo(6,-11); ctx.quadraticCurveTo(30+alc*0.4,-6, 8+alc,-18-14*ext); ctx.stroke();
+            membroArticulado(6,-16, 22+alc*0.35,-14-8*ext, 10+alc,-22-14*ext, 17, cor, escuro);
             // patona (pé) com almofadinhas
             ctx.fillStyle = cor;
             ctx.beginPath(); ctx.ellipse(16+alc,-24-14*ext,14,10,0.3,0,7); ctx.fill();
@@ -390,6 +453,7 @@ function desenhaLutador(f, emoji, nome){
         }
         ctx.restore();
     }
+    ctx.restore();
     ctx.restore();
     // barra de vida
     const bx = f===eu ? 40 : W-40-320;

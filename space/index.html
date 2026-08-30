@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="description" content="Street Drive 3D — escolha seu carro, vença corridas e desbloqueie novas pistas! Jogo grátis da Cogumelo Games!">
     <meta property="og:title" content="Street Drive 3D — Cogumelo Games">
-    <meta property="og:description" content="Corrida 3D com 6 carros, 5 pistas e campeonato! Desvie do tráfego e chegue primeiro!">
+    <meta property="og:description" content="Corrida 3D com 17 carros, 8 pistas e campeonato! Desvie do tráfego e chegue primeiro!">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://cogumelogames.com.br/space/">
     <link rel="canonical" href="https://cogumelogames.com.br/space/">
@@ -179,6 +179,11 @@ const CARS = [
     { id: 'ufo', name: 'Disco Voador', emoji: '🛸', color: 0x66ffee, speed: 4.2, accel: 0.022, handling: 0.9, desc: 'Veio do espaço!', price: 12 },
     { id: 'relampago', name: 'Relâmpago', emoji: '⚡', color: 0xdd1111, speed: 4.8, accel: 0.026, handling: 0.85, desc: 'Katchau!', price: 15 },
     { id: 'ouro', name: 'Carro de Ouro', emoji: '👑', color: 0xffd700, speed: 5.1, accel: 0.028, handling: 0.9, desc: 'O rei da pista', price: 20 },
+    { id: 'furgao', name: 'Furgão Pizza', emoji: '🍕', color: 0xdd2222, speed: 2.8, accel: 0.0135, handling: 0.82, desc: 'Entrega rápida!', price: 4 },
+    { id: 'ninja', name: 'Carro Ninja', emoji: '🥷', color: 0x111111, speed: 4.5, accel: 0.024, handling: 0.88, desc: 'Silencioso e veloz', price: 18 },
+    { id: 'dino', name: 'Dino-Carro', emoji: '🦖', color: 0x2e8b2e, speed: 3.6, accel: 0.017, handling: 0.7, desc: 'Rugido de motor!', price: 10 },
+    { id: 'foguete', name: 'Carro-Foguete', emoji: '🚀', color: 0xcccccc, speed: 5.5, accel: 0.031, handling: 0.8, desc: 'Quase decola!', price: 25 },
+    { id: 'arcoiris', name: 'Arco-íris', emoji: '🌈', color: 0xff66cc, speed: 3.9, accel: 0.02, handling: 0.92, desc: 'O mais colorido!', price: 13 },
 ];
 
 // === TRACKS ===
@@ -188,6 +193,9 @@ const TRACKS = [
     { id: 'noite', name: 'Noite', emoji: '🌙', laps: 3, length: 600, traffic: 4, sky: 0x0a0a2a, ground: 0x1a3a1a, road: 0x1a1a1a, unlock: 3 },
     { id: 'neve', name: 'Neve', emoji: '❄️', laps: 2, length: 800, traffic: 2, sky: 0xddeeff, ground: 0xeeeeff, road: 0x444455, unlock: 5 },
     { id: 'vulcao', name: 'Vulcão', emoji: '🌋', laps: 3, length: 700, traffic: 5, sky: 0x331111, ground: 0x2a1a0a, road: 0x1a1a1a, unlock: 8 },
+    { id: 'deserto', name: 'Deserto', emoji: '🏜️', laps: 2, length: 750, traffic: 3, sky: 0xffcc88, ground: 0xddaa66, road: 0x554433, unlock: 10 },
+    { id: 'floresta', name: 'Floresta', emoji: '🌲', laps: 3, length: 650, traffic: 4, sky: 0x66aadd, ground: 0x1a5c1a, road: 0x2a2a2a, unlock: 12 },
+    { id: 'espaco', name: 'Espaço', emoji: '🌌', laps: 3, length: 900, traffic: 2, sky: 0x05051a, ground: 0x222244, road: 0x111122, unlock: 15 },
 ];
 
 // === PROGRESS ===
@@ -655,6 +663,24 @@ function createCarMesh(color, scale) {
     shadow.rotation.x = -Math.PI / 2;
     shadow.position.y = 0.02;
     group.add(shadow);
+
+    // Underglow neon (brilho por baixo, cor do carro — detalhe extra de realismo/estilo)
+    const glowGeo = new THREE.PlaneGeometry(2.6 * s, 5.2 * s);
+    const glowMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22 });
+    const glow = new THREE.Mesh(glowGeo, glowMat);
+    glow.rotation.x = -Math.PI / 2;
+    glow.position.y = 0.06;
+    group.add(glow);
+
+    // License plate (frente e trás)
+    const plateGeo = new THREE.BoxGeometry(0.6 * s, 0.15 * s, 0.02 * s);
+    const plateMat = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.6, metalness: 0.1 });
+    const plateF = new THREE.Mesh(plateGeo, plateMat);
+    plateF.position.set(0, 0.4 * s, -2.51 * s);
+    group.add(plateF);
+    const plateB = plateF.clone();
+    plateB.position.z = 2.51 * s;
+    group.add(plateB);
 
     return group;
 }

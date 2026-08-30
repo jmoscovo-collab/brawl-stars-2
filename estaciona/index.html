@@ -229,29 +229,66 @@ const keys={};
 // -------- construir carrinho low-poly --------
 function buildCar(spec, isPlayer){
   const g = new THREE.Group();
-  const bodyMat = new THREE.MeshLambertMaterial({ color: spec.cor });
+
+  // sombra suave no chão, gruda no carro
+  const shadow = new THREE.Mesh(
+    new THREE.CircleGeometry(Math.max(spec.w, spec.l)*0.62, 16),
+    new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.28, depthWrite:false })
+  );
+  shadow.rotation.x = -Math.PI/2;
+  shadow.position.y = 0.02;
+  g.add(shadow);
+
+  // carroceria metálica com brilho
+  const bodyColor = new THREE.Color(spec.cor);
+  const bodyMat = new THREE.MeshPhongMaterial({ color: bodyColor, shininess: 90, specular: 0xffffff });
   const body = new THREE.Mesh(new THREE.BoxGeometry(spec.w, spec.h*0.6, spec.l), bodyMat);
   body.position.y = spec.h*0.4;
   g.add(body);
-  const cabMat = new THREE.MeshLambertMaterial({ color:0x223 });
+
+  // para-choques cromados
+  const bumperMat = new THREE.MeshPhongMaterial({ color:0xd8d8dc, shininess:140, specular:0xffffff });
+  for(const sz of [-1,1]){
+    const bp = new THREE.Mesh(new THREE.BoxGeometry(spec.w*0.9, spec.h*0.14, 0.14), bumperMat);
+    bp.position.set(0, spec.h*0.22, sz*spec.l*0.51);
+    g.add(bp);
+  }
+
+  // cabine com vidro (levemente translúcido)
+  const cabMat = new THREE.MeshPhongMaterial({ color:0x1b2430, shininess:120, specular:0xaad4ff, transparent:true, opacity:0.92 });
   const cab = new THREE.Mesh(new THREE.BoxGeometry(spec.w*0.82, spec.h*0.5, spec.l*0.5), cabMat);
   cab.position.set(0, spec.h*0.78, -spec.l*0.05);
   g.add(cab);
+
   // faróis (frente = -z)
-  const lightMat = new THREE.MeshLambertMaterial({ color: isPlayer?0xffff66:0x99aabb });
+  const headMat = new THREE.MeshPhongMaterial({ color: isPlayer?0xffff88:0xdff2ff, emissive: isPlayer?0x998f00:0x334455, shininess:150 });
   for(const sx of [-1,1]){
-    const lm = new THREE.Mesh(new THREE.BoxGeometry(0.28,0.22,0.12), lightMat);
+    const lm = new THREE.Mesh(new THREE.BoxGeometry(0.28,0.22,0.12), headMat);
     lm.position.set(sx*spec.w*0.3, spec.h*0.4, -spec.l*0.5);
     g.add(lm);
   }
-  // rodas
-  const wheelMat = new THREE.MeshLambertMaterial({ color:0x111 });
-  const wg = new THREE.CylinderGeometry(spec.h*0.28, spec.h*0.28, 0.3, 10);
+  // lanternas traseiras (trás = +z)
+  const tailMat = new THREE.MeshPhongMaterial({ color:0xcc2222, emissive:0x661111, shininess:150 });
+  for(const sx of [-1,1]){
+    const tl = new THREE.Mesh(new THREE.BoxGeometry(0.28,0.2,0.12), tailMat);
+    tl.position.set(sx*spec.w*0.3, spec.h*0.4, spec.l*0.5);
+    g.add(tl);
+  }
+
+  // rodas com pneu preto + calota prateada
+  const tireMat = new THREE.MeshPhongMaterial({ color:0x111114, shininess:20 });
+  const hubMat = new THREE.MeshPhongMaterial({ color:0xc9c9d2, shininess:150, specular:0xffffff });
+  const wg = new THREE.CylinderGeometry(spec.h*0.28, spec.h*0.28, 0.3, 12);
+  const hg = new THREE.CylinderGeometry(spec.h*0.14, spec.h*0.14, 0.32, 10);
   for(const sx of [-1,1]) for(const sz of [-1,1]){
-    const w = new THREE.Mesh(wg, wheelMat);
+    const w = new THREE.Mesh(wg, tireMat);
     w.rotation.z = Math.PI/2;
     w.position.set(sx*spec.w*0.5, spec.h*0.25, sz*spec.l*0.32);
     g.add(w);
+    const hub = new THREE.Mesh(hg, hubMat);
+    hub.rotation.z = Math.PI/2;
+    hub.position.set(sx*spec.w*0.5, spec.h*0.25, sz*spec.l*0.32);
+    g.add(hub);
   }
   return g;
 }

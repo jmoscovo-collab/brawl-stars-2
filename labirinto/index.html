@@ -660,6 +660,7 @@ function jumpscare(face, after) {
   jumpscareFace.textContent = face;
   jumpscareEl.classList.add('show');
   playScream();
+  if (navigator.vibrate) { try { navigator.vibrate([70, 40, 70, 40, 120]); } catch(e) {} }
   setTimeout(() => {
     jumpscareEl.classList.remove('show');
     jumpscareActive = false;
@@ -698,27 +699,85 @@ camera.add(flashlight.target);
 flashlight.target.position.set(0,0,-1);
 scene.add(camera);
 
-// ===== MACHADO =====
-const axe = new THREE.Group();
-const handle = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.04, 0.04, 0.9, 8),
-  new THREE.MeshStandardMaterial({color: 0x6b3a1a, roughness: 0.9})
-);
-axe.add(handle);
-const blade = new THREE.Mesh(
-  new THREE.BoxGeometry(0.35, 0.25, 0.05),
-  new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.9, roughness: 0.3})
-);
-blade.position.set(0.18, 0.4, 0);
-axe.add(blade);
-axe.position.set(0.45, -0.4, -0.7);
-axe.rotation.set(0.2, -0.3, -0.3);
-camera.add(axe);
+// ===== MACHADO (4 tiers: Pedra → Ferro → Ouro → Diamante) =====
+const axeLevels = [
+  {name: 'Pedra',     blade: 0x9a9a9a, emissive: 0x000000, glow: 0, dmg: 1, range: 2.8},
+  {name: 'Ferro',     blade: 0xd9dde2, emissive: 0x000000, glow: 0, dmg: 2, range: 3.1},
+  {name: 'Ouro',      blade: 0xffcc33, emissive: 0x774f00, glow: 0.5, dmg: 3, range: 3.4},
+  {name: 'Diamante',  blade: 0x9be8ff, emissive: 0x2a6d88, glow: 0.8, dmg: 5, range: 3.8},
+];
+// monta um modelo 3D completo de machado (cabo de madeira c/ veios + couro + lâmina metálica)
+function buildAxeModel(tier) {
+  const t = axeLevels[tier];
+  const group = new THREE.Group();
+  // cabo de madeira
+  const handleMat = new THREE.MeshStandardMaterial({color: 0x7a4a22, roughness: 0.85});
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.05, 0.9, 10), handleMat);
+  group.add(handle);
+  // veios de madeira (anéis mais escuros)
+  const grainMat = new THREE.MeshStandardMaterial({color: 0x4f2f14, roughness: 0.95});
+  for (let i = 0; i < 5; i++) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.006, 6, 12), grainMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = -0.35 + i * 0.17;
+    group.add(ring);
+  }
+  // empunhadura de couro
+  const grip = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.056, 0.06, 0.26, 10),
+    new THREE.MeshStandardMaterial({color: 0x231108, roughness: 0.95})
+  );
+  grip.position.y = -0.3;
+  group.add(grip);
+  // braçadeira metálica (liga cabo à lâmina)
+  const ferrule = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06, 0.058, 0.09, 10),
+    new THREE.MeshStandardMaterial({color: 0x888888, metalness: 0.8, roughness: 0.35})
+  );
+  ferrule.position.y = 0.42;
+  group.add(ferrule);
+  // lâmina — formato de machado (curva), metálica e brilhante
+  const shape = new THREE.Shape();
+  shape.moveTo(0, -0.06);
+  shape.quadraticCurveTo(0.5, 0.02, 0.6, 0.32);
+  shape.quadraticCurveTo(0.5, 0.55, 0.24, 0.5);
+  shape.quadraticCurveTo(0.05, 0.44, 0, 0.24);
+  shape.lineTo(0, -0.06);
+  const bladeGeo = new THREE.ExtrudeGeometry(shape, {depth: 0.05, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 3});
+  bladeGeo.translate(0, 0, -0.025);
+  const bladeMat = new THREE.MeshStandardMaterial({
+    color: t.blade, metalness: 0.92, roughness: 0.15,
+    emissive: t.emissive, emissiveIntensity: t.glow,
+  });
+  const blade = new THREE.Mesh(bladeGeo, bladeMat);
+  blade.position.set(0.02, 0.4, 0);
+  blade.rotation.y = Math.PI / 2;
+  group.add(blade);
+  group.userData.bladeMat = bladeMat;
+  return group;
+}
+let axeLevel = 0;
+let axeModel = buildAxeModel(axeLevel);
+axeModel.position.set(0.45, -0.4, -0.7);
+axeModel.rotation.set(0.2, -0.3, -0.3);
+camera.add(axeModel);
 let axeSwing = 0;
+function equipAxe(tier) {
+  if (tier <= axeLevel) return;
+  axeLevel = tier;
+  camera.remove(axeModel);
+  axeModel = buildAxeModel(axeLevel);
+  axeModel.position.set(0.45, -0.4, -0.7);
+  axeModel.rotation.set(0.2, -0.3, -0.3);
+  camera.add(axeModel);
+  document.getElementById('axe-status').textContent = 'Machado de ' + axeLevels[axeLevel].name.toUpperCase() + ' — ESPAÇO p/ atacar';
+  showToast('🪓 Machado de ' + axeLevels[axeLevel].name + '! Mais dano e alcance!');
+}
 function swingAxe() {
   if (!controls.isLocked || gameOver || axeSwing > 0) return;
   axeSwing = 1;
   playHit();
+  const stats = axeLevels[axeLevel];
   const pp = controls.getObject().position;
   const dir = new THREE.Vector3();
   camera.getWorldDirection(dir);
@@ -726,10 +785,10 @@ function swingAxe() {
     if (g.dead) return;
     const toG = new THREE.Vector3().subVectors(g.mesh.position, pp);
     const dist = toG.length();
-    if (dist < 2.8) {
+    if (dist < stats.range) {
       toG.normalize();
       if (toG.dot(dir) > 0.45) {
-        g.mesh.userData.hp -= 1;
+        g.mesh.userData.hp -= stats.dmg;
         g.hitFlash = 0.3;
         if (g.mesh.userData.hp <= 0) {
           g.dead = true;
@@ -742,10 +801,10 @@ function swingAxe() {
     if (m.dead) return;
     const toM = new THREE.Vector3().subVectors(m.mesh.position, pp);
     const dist = toM.length();
-    if (dist < 2.8) {
+    if (dist < stats.range) {
       toM.normalize();
       if (toM.dot(dir) > 0.45) {
-        m.mesh.userData.hp -= 1;
+        m.mesh.userData.hp -= stats.dmg;
         m.hitFlash = 0.3;
         spawnFloorBlood(m.mesh.position.x, m.mesh.position.z);
         if (m.mesh.userData.hp <= 0) {
@@ -929,6 +988,21 @@ for (let i=0; i<NUM_MONSTERS; i++) {
 }
 function randomOpenCell() { return openCells[Math.floor(Math.random()*openCells.length)]; }
 
+// ===== MACHADOS MELHORES espalhados pelo mapa (upgrade: Ferro → Ouro → Diamante) =====
+const axePickups = [];
+[1, 2, 3].forEach((tier, i) => {
+  const c = openCells[Math.floor(openCells.length * (0.18 + i * 0.3))];
+  const model = buildAxeModel(tier);
+  model.scale.setScalar(0.65);
+  model.rotation.z = Math.PI / 2.3;
+  model.position.set(c.x*CELL, 1.1, c.z*CELL);
+  scene.add(model);
+  const l = new THREE.PointLight(axeLevels[tier].blade, 1.3, 5);
+  l.position.copy(model.position);
+  scene.add(l);
+  axePickups.push({mesh: model, light: l, tier, taken: false});
+});
+
 // ===== ARMÁRIOS =====
 const cabinets = [];
 const NUM_CABINETS = 10;
@@ -1083,6 +1157,11 @@ function endGame(won, msg) {
   }
 }
 
+// ===== Susto surpresa (ambiente, leve, sem sangue) =====
+let ambientScareTimer = 0;
+let nextAmbientScare = 18 + Math.random()*22;
+const ambientFaces = ['👻','😱'];
+
 // ===== Loop =====
 const clock = new THREE.Clock();
 function animate() {
@@ -1128,6 +1207,14 @@ function animate() {
     }
     updateHud();
 
+    // susto surpresa aleatório, leve — some rápido, não machuca
+    ambientScareTimer += dt;
+    if (ambientScareTimer > nextAmbientScare && !jumpscareActive) {
+      ambientScareTimer = 0;
+      nextAmbientScare = 25 + Math.random()*35;
+      jumpscare(ambientFaces[Math.floor(Math.random()*ambientFaces.length)]);
+    }
+
     // vinheta de dano some aos poucos
     if (vignetteTimer > 0) {
       vignetteTimer -= dt;
@@ -1171,6 +1258,19 @@ function animate() {
       }
     });
 
+    // machados-upgrade espalhados no chão
+    axePickups.forEach(p => {
+      if (p.taken) return;
+      p.mesh.rotation.y += dt * 1.6;
+      p.mesh.position.y = 1.1 + Math.sin(clock.elapsedTime*2 + p.tier)*0.15;
+      p.light.position.copy(p.mesh.position);
+      if (p.mesh.position.distanceTo(pp) < 1.3) {
+        p.taken = true;
+        scene.remove(p.mesh); scene.remove(p.light);
+        equipAxe(p.tier);
+      }
+    });
+
     // tochas tremulam
     torches.forEach(t => {
       t.light.intensity = t.baseInt + Math.sin(clock.elapsedTime*15 + t.flame.position.x)*0.4 + (Math.random()-0.5)*0.3;
@@ -1181,9 +1281,9 @@ function animate() {
     if (axeSwing > 0) {
       axeSwing -= dt * 4;
       const t = Math.sin((1-axeSwing) * Math.PI);
-      axe.rotation.x = 0.2 - t * 1.4;
-      axe.rotation.z = -0.3 - t * 0.4;
-      if (axeSwing <= 0) { axeSwing = 0; axe.rotation.set(0.2, -0.3, -0.3); }
+      axeModel.rotation.x = 0.2 - t * 1.4;
+      axeModel.rotation.z = -0.3 - t * 0.4;
+      if (axeSwing <= 0) { axeSwing = 0; axeModel.rotation.set(0.2, -0.3, -0.3); }
     }
 
     // fantasmas perseguem

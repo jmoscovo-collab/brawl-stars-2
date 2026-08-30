@@ -377,7 +377,7 @@ function mostraMsg(txt, cor='#fff', tempo=1400){
 }
 
 // ==================== MUNDO VOXEL ====================
-const MUNDO_W = 200;           // largura em x e em z (cubos) — mapa GRANDÃO pra explorar 🗺️
+const MUNDO_W = 400;           // largura em x e em z (cubos) — mapa BEM MAIS LARGO pra explorar pros lados 🗺️
 const postos    = new Map();   // blocos que apareceram depois (pedra que caiu)
 const quebrados = new Set();   // blocos que o jogador cavou
 const ordemQuebra = [];        // pra podar memória se cavar MUITO
@@ -877,8 +877,30 @@ function ocupado(x, y, z){
 }
 
 // ==================== SUPERFÍCIE / VENDER ====================
+// acha um pedacinho de chão firme na superfície, do LADO do buraco que você cavou
+// (bug clássico: reaparecer sempre no mesmo x,z de sempre cai de novo no buraco que você mesmo fez!)
+function achaChaoSeguro(baseX, baseZ){
+    for (let r = 0; r <= 40; r++){
+        for (let dx = -r; dx <= r; dx++){
+            for (let dz = -r; dz <= r; dz++){
+                if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;   // só o anel de fora, de perto pra longe
+                const gx = Math.floor(baseX) + dx, gz = Math.floor(baseZ) + dz;
+                if (gx < 1 || gx >= MUNDO_W - 1 || gz < 1 || gz >= MUNDO_W - 1) continue;
+                const b = bloco(gx, 0, gz);
+                if (b === 0 || b.tipo === 'lava' || b.tipo === 'gas') continue;   // precisa ser chão firme e seguro
+                if (bloco(gx, 1, gz) !== 0) continue;                             // e ter ar em cima, senão o mineiro fica preso
+                return { x: gx + 0.5, z: gz + 0.5 };
+            }
+        }
+    }
+    // não achou nada num raio de 40 (mundo todo cavado ali perto)? garante um chão de emergência
+    const gx = Math.floor(baseX), gz = Math.floor(baseZ);
+    poeBloco(gx, 0, gz, { tipo:'terra', ore:null, dur:1 });
+    return { x: gx + 0.5, z: gz + 0.5 };
+}
 function vaiPraSuperficie(){
-    p.x = 6.5; p.z = 6.5; p.y = 0.05;
+    const seguro = achaChaoSeguro(p.x, p.z);
+    p.x = seguro.x; p.z = seguro.z; p.y = 0.05;
     p.vx = 0; p.vz = 0; p.vy = 0;
     alvo = null; prog = 0;
     limpaBichos();
@@ -1132,6 +1154,37 @@ function pontoSolido(x,y,z){
     return solido(bloco(Math.floor(x), Math.floor(-y), Math.floor(z)));
 }
 
+// ==================== LAVA ESCORRENDO (espalhamento lateral célula-a-célula) ====================
+let proxLava = 0;
+function espalhaLava(dt){
+    proxLava -= dt;
+    if (proxLava > 0) return;
+    proxLava = 1.2 + Math.random() * 0.5;
+    if (profundidade() < 60) return;   // lava só a partir da camada de pedra
+    const cx = Math.floor(p.x), cy = Math.max(0, Math.floor(-p.y)), cz = Math.floor(p.z);
+    const R = 5;
+    let espalhou = 0;
+    for (let y = Math.max(0, cy - R); y <= cy + R && espalhou < 4; y++){
+        for (let x = cx - R; x <= cx + R && espalhou < 4; x++){
+            for (let z = cz - R; z <= cz + R && espalhou < 4; z++){
+                const b = bloco(x, y, z);
+                if (!b || b.tipo !== 'lava') continue;
+                if (Math.random() > 0.12) continue;    // escorre devagar, não instantâneo
+                const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+                dirs.sort(()=>Math.random()-0.5);
+                for (const [dx,dz] of dirs){
+                    const nx = x + dx, nz = z + dz;
+                    if (nx < 1 || nx >= MUNDO_W - 1 || nz < 1 || nz >= MUNDO_W - 1) continue;
+                    if (bloco(nx, y, nz) !== 0) continue;      // só escorre pro lado que estiver vazio (ar)
+                    poeBloco(nx, y, nz, { tipo:'lava', ore:null, dur:99 });
+                    espalhou++;
+                    break;
+                }
+            }
+        }
+    }
+}
+
 // ==================== LÓGICA PRINCIPAL ====================
 let proxMorcego = 0;
 
@@ -1243,7 +1296,8 @@ function atualiza(dt){
     if (prof >= 1800) ganhaConquista('m1800');
     if (prof <= 0 && mochila.length > 0) vendeTudo();
 
-    // ---- lava encostando ----
+    // ---- lava escorrendo pros lados + dano por contato ----
+    espalhaLava(dt);
     invuln -= dt;
     for (const alt of [0.2, 0.9, 1.5]) {
         const b = bloco(Math.floor(p.x), Math.floor(-(p.y + alt)), Math.floor(p.z));

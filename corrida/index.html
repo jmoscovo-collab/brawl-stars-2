@@ -59,8 +59,15 @@
         #shop-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(136,0,255,0.4); }
         #roleta-btn { padding: 10px 36px; font-size: 16px; font-weight: bold; background: linear-gradient(135deg, #ff44aa, #ffaa00); color: #fff; border: none; border-radius: 25px; cursor: pointer; letter-spacing: 1px; }
         #roleta-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(255,68,170,0.4); }
-        #map-screen, #shop-screen, #mode-screen, #roleta-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #0a0a2a 0%, #1a0533 50%, #0d1b2a 100%); display: none; flex-direction: column; align-items: center; justify-content: safe center; gap: 20px; z-index: 150; overflow-y: auto; padding: 30px 0; }
-        #map-screen h1, #shop-screen h1, #mode-screen h1, #roleta-screen h1 { font-size: 36px; font-weight: 900; background: linear-gradient(to right, #00ccff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        #ghost-btn { padding: 10px 36px; font-size: 16px; font-weight: bold; background: linear-gradient(135deg, #00e0d0, #6644ff); color: #fff; border: none; border-radius: 25px; cursor: pointer; letter-spacing: 1px; }
+        #ghost-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(102,68,255,0.5); }
+        #map-screen, #shop-screen, #mode-screen, #roleta-screen, #ghost-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #0a0a2a 0%, #1a0533 50%, #0d1b2a 100%); display: none; flex-direction: column; align-items: center; justify-content: safe center; gap: 20px; z-index: 150; overflow-y: auto; padding: 30px 0; }
+        #map-screen h1, #shop-screen h1, #mode-screen h1, #roleta-screen h1, #ghost-screen h1 { font-size: 36px; font-weight: 900; background: linear-gradient(to right, #00ccff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        #ghost-list { display: flex; flex-direction: column; gap: 8px; max-width: 420px; width: 90%; }
+        .ghost-row { background: rgba(20,20,50,0.85); border: 2px solid #6644ff; border-radius: 10px; padding: 10px 16px; color: #fff; font-size: 15px; display: flex; justify-content: space-between; }
+        .ghost-row.you { border-color: #00ff88; color: #00ff88; font-weight: bold; }
+        #ghost-info { color: #aaa; font-size: 12px; max-width: 420px; text-align: center; padding: 0 15px; }
+        #hud-ghost { display: none; }
         .map-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; max-width: 820px; width: 90%; }
         @media (min-width: 700px) { .map-grid { grid-template-columns: repeat(3, 1fr); } }
         .map-card { border: 3px solid #333; border-radius: 15px; padding: 20px 10px; text-align: center; cursor: pointer; transition: all 0.2s; }
@@ -157,6 +164,7 @@
         <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;">
             <button id="shop-btn">🛒 LOJA DE CARROS</button>
             <button id="roleta-btn">🎡 ROLETA GRÁTIS</button>
+            <button id="ghost-btn">👻 DESAFIO FANTASMA</button>
         </div>
         <div class="car-grid" id="car-grid"></div>
         <button id="start-btn">CORRER!</button>
@@ -187,11 +195,19 @@
         <div id="roleta-info">1 giro GRÁTIS por hora! Pode vir moedas, carros aleatórios... e carros SECRETOS 🤫 (1% de chance). Carros secretos SÓ existem aqui!</div>
         <button class="back-btn" id="roleta-back-btn">VOLTAR</button>
     </div>
+    <div id="ghost-screen">
+        <h1>👻 DESAFIO FANTASMA</h1>
+        <div id="ghost-list"></div>
+        <div id="ghost-info">Sem internet? Sem problema! Você corre contra os FANTASMAS — os melhores tempos salvos nesse aparelho, incluindo fantasminhas-robô com nomes engraçados. Bata o recorde e vire o novo fantasma nº1!</div>
+        <button id="ghost-start-btn">COMEÇAR CORRIDA 🏁</button>
+        <button class="back-btn" id="ghost-back-btn">VOLTAR</button>
+    </div>
     <div id="hud" style="display:none">
         <span id="hud-time">0:00</span>
         <span id="hud-pos">1º / 10</span>
         <span id="hud-hits">💥 0/5</span>
         <span id="hud-lap">Volta 1/3</span>
+        <span id="hud-ghost">👻 FANTASMA</span>
     </div>
     <div id="crash-msg"></div>
     <div id="touch-controls">
@@ -358,7 +374,12 @@ MAPS.forEach(map => {
     card.onclick = () => {
         selectedMap = map;
         document.getElementById('map-screen').style.display = 'none';
-        startRace();
+        if (ghostMode) {
+            renderGhostList(getGhosts(selectedMap.id, selectedMode.id, selectedMode.laps));
+            document.getElementById('ghost-screen').style.display = 'flex';
+        } else {
+            startRace();
+        }
     };
     mapGrid.appendChild(card);
 });
@@ -384,6 +405,7 @@ MODES.forEach(mode => {
 document.getElementById('mode-back-btn').onclick = () => {
     document.getElementById('mode-screen').style.display = 'none';
     document.getElementById('menu').style.display = 'flex';
+    ghostMode = false;
 };
 
 // ===== Loja =====
@@ -686,33 +708,92 @@ function buildStands(map) {
     scene.add(standsGroup);
 }
 
-// Create car mesh
+// Create car mesh — carroceria metálica com cabine, faróis, rodas com aro e aerofólio
 function createCarMesh(color) {
     const group = new THREE.Group();
-    // Body
-    const bodyGeo = new THREE.BoxGeometry(2.2, 0.8, 4);
-    const bodyMat = new THREE.MeshStandardMaterial({ color, metalness: 0.6, roughness: 0.3 });
+    // Corpo principal (metálico e brilhante)
+    const bodyGeo = new THREE.BoxGeometry(2.2, 0.7, 4);
+    const bodyMat = new THREE.MeshStandardMaterial({ color, metalness: 0.75, roughness: 0.2 });
     const body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 0.6;
+    body.position.y = 0.55;
     body.castShadow = true;
     group.add(body);
-    // Roof
-    const roofGeo = new THREE.BoxGeometry(1.6, 0.6, 2);
-    const roofMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.2 });
+    // Capô frontal levemente inclinado (dá silhueta esportiva)
+    const hoodGeo = new THREE.BoxGeometry(2.0, 0.35, 1.1);
+    const hood = new THREE.Mesh(hoodGeo, bodyMat);
+    hood.position.set(0, 0.75, 1.5);
+    hood.rotation.x = -0.12;
+    hood.castShadow = true;
+    group.add(hood);
+    // Cabine / teto
+    const roofGeo = new THREE.BoxGeometry(1.5, 0.55, 1.9);
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x111318, metalness: 0.85, roughness: 0.15 });
     const roof = new THREE.Mesh(roofGeo, roofMat);
-    roof.position.set(0, 1.1, -0.3);
+    roof.position.set(0, 1.05, -0.3);
     roof.castShadow = true;
     group.add(roof);
-    // Wheels
-    const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 12);
-    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-    const positions = [[-1.1, 0.4, 1.3], [1.1, 0.4, 1.3], [-1.1, 0.4, -1.3], [1.1, 0.4, -1.3]];
+    // Para-brisa (vidro translúcido azulado)
+    const windGeo = new THREE.BoxGeometry(1.45, 0.5, 0.12);
+    const windMat = new THREE.MeshStandardMaterial({ color: 0x88ccff, metalness: 0.9, roughness: 0.05, transparent: true, opacity: 0.55 });
+    const windFront = new THREE.Mesh(windGeo, windMat);
+    windFront.position.set(0, 1.05, 0.65);
+    windFront.rotation.x = -0.35;
+    group.add(windFront);
+    const windBack = new THREE.Mesh(windGeo, windMat);
+    windBack.position.set(0, 1.05, -1.25);
+    windBack.rotation.x = 0.35;
+    group.add(windBack);
+    // Faróis dianteiros (brilham no escuro)
+    const headGeo = new THREE.SphereGeometry(0.16, 8, 8);
+    const headMat = new THREE.MeshStandardMaterial({ color: 0xffffee, emissive: 0xffffaa, emissiveIntensity: 1.1 });
+    [[-0.75, 0.55, 2.0], [0.75, 0.55, 2.0]].forEach(([hx, hy, hz]) => {
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.set(hx, hy, hz);
+        group.add(head);
+    });
+    // Lanternas traseiras (vermelhas)
+    const tailGeo = new THREE.BoxGeometry(0.35, 0.2, 0.08);
+    const tailMat = new THREE.MeshStandardMaterial({ color: 0xff2222, emissive: 0xff0000, emissiveIntensity: 0.7 });
+    [[-0.85, 0.6, -2.0], [0.85, 0.6, -2.0]].forEach(([tx, ty, tz]) => {
+        const tail = new THREE.Mesh(tailGeo, tailMat);
+        tail.position.set(tx, ty, tz);
+        group.add(tail);
+    });
+    // Aerofólio traseiro
+    const wingPostGeo = new THREE.BoxGeometry(0.12, 0.35, 0.12);
+    const wingMat = new THREE.MeshStandardMaterial({ color: 0x181818, metalness: 0.6, roughness: 0.3 });
+    [[-0.8, 0.95, -1.95], [0.8, 0.95, -1.95]].forEach(([wx, wy, wz]) => {
+        const post = new THREE.Mesh(wingPostGeo, wingMat);
+        post.position.set(wx, wy, wz);
+        group.add(post);
+    });
+    const wingGeo = new THREE.BoxGeometry(2.0, 0.1, 0.5);
+    const wing = new THREE.Mesh(wingGeo, wingMat);
+    wing.position.set(0, 1.15, -1.95);
+    wing.castShadow = true;
+    group.add(wing);
+    // Faixa de corrida no capô (detalhe de cor contrastante)
+    const stripeGeo = new THREE.BoxGeometry(0.4, 0.05, 3.6);
+    const stripeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.3, roughness: 0.4 });
+    const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+    stripe.position.set(0, 0.92, -0.1);
+    group.add(stripe);
+    // Rodas com aro prateado
+    const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.32, 16);
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8 });
+    const rimGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.34, 8);
+    const rimMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.15 });
+    const positions = [[-1.15, 0.42, 1.3], [1.15, 0.42, 1.3], [-1.15, 0.42, -1.3], [1.15, 0.42, -1.3]];
     for (const [wx, wy, wz] of positions) {
         const wheel = new THREE.Mesh(wheelGeo, wheelMat);
         wheel.rotation.z = Math.PI / 2;
         wheel.position.set(wx, wy, wz);
         wheel.castShadow = true;
         group.add(wheel);
+        const rim = new THREE.Mesh(rimGeo, rimMat);
+        rim.rotation.z = Math.PI / 2;
+        rim.position.set(wx, wy, wz);
+        group.add(rim);
     }
     return group;
 }
@@ -773,6 +854,64 @@ function clearParticles() {
     particles.forEach(p => { scene.remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose(); });
     particles = [];
 }
+
+// ===== Desafio Fantasma (sem servidor: "corrida online" simulada com localStorage) =====
+// Guarda os melhores tempos por mapa+modo neste aparelho e faz o jogador correr
+// contra fantasmas de bots (nomes engraçados) + os próprios recordes salvos.
+function trackLength() {
+    let len = 0;
+    for (let i = 0; i < TRACK_POINTS.length; i++) {
+        const a = TRACK_POINTS[i], b = TRACK_POINTS[(i + 1) % TRACK_POINTS.length];
+        len += Math.hypot(b.x - a.x, b.z - a.z);
+    }
+    return len;
+}
+const TRACK_LEN = trackLength();
+const GHOST_BOT_NAMES = [
+    'Sombra Veloz 👻', 'Fantasminha Turbo 💨', 'Vovó Metralha 🏎️', 'Capitão Lesma 🐌',
+    'Zé Ligeirinho ⚡', 'Dona Curva Fechada 🌀', 'Assombração Turbo 🔥', 'Espectro Relâmpago',
+    'Cavaleiro sem Cabeça 🐴', 'Poltergeist Pistoneiro'
+];
+function fmtTime(s) { const m = Math.floor(s / 60), sec = Math.round(s % 60); return `${m}:${String(sec).padStart(2, '0')}`; }
+function ghostKey(mapId, modeId) { return `corrida_ghosts_${mapId}_${modeId}`; }
+function getGhosts(mapId, modeId, laps) {
+    let list = null;
+    try { list = JSON.parse(localStorage.getItem(ghostKey(mapId, modeId)) || 'null'); } catch (e) { list = null; }
+    if (!list || !list.length) {
+        const baseTime = laps * 24; // segundos por volta aproximados, pra dar um desafio justo
+        const shuffled = GHOST_BOT_NAMES.slice().sort(() => Math.random() - 0.5).slice(0, 5);
+        list = shuffled.map((name, i) => ({ name, time: Math.round(baseTime * (0.85 + i * 0.09) + Math.random() * 4), bot: true }));
+        list.sort((a, b) => a.time - b.time);
+        localStorage.setItem(ghostKey(mapId, modeId), JSON.stringify(list));
+    }
+    return list;
+}
+function saveGhostTime(mapId, modeId, laps, time) {
+    const list = getGhosts(mapId, modeId, laps);
+    list.push({ name: 'VOCÊ', time, you: true });
+    list.sort((a, b) => a.time - b.time);
+    const top = list.slice(0, 6);
+    localStorage.setItem(ghostKey(mapId, modeId), JSON.stringify(top));
+    return top;
+}
+function renderGhostList(list) {
+    const box = document.getElementById('ghost-list');
+    box.innerHTML = list.map((g, i) => `<div class="ghost-row${g.you ? ' you' : ''}">${i + 1}º ${g.you ? '⭐' : '👻'} ${g.name} — ${fmtTime(g.time)}</div>`).join('');
+}
+let ghostMode = false;
+document.getElementById('ghost-btn').onclick = () => {
+    ghostMode = true;
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('mode-screen').style.display = 'flex';
+};
+document.getElementById('ghost-back-btn').onclick = () => {
+    document.getElementById('ghost-screen').style.display = 'none';
+    document.getElementById('map-screen').style.display = 'flex';
+};
+document.getElementById('ghost-start-btn').onclick = () => {
+    document.getElementById('ghost-screen').style.display = 'none';
+    startRace();
+};
 
 // Race state
 let playerCar, aiCars = [], racing = false;
@@ -864,6 +1003,26 @@ function startRace() {
         aiMesh.rotation.y = -aiAngle + Math.PI / 2;
         scene.add(aiMesh);
         aiCars.push(aiMesh);
+    }
+
+    // Desafio Fantasma: substitui a velocidade dos 5 primeiros bots pelos tempos
+    // salvos (fantasmas de bots + seus próprios recordes), e deixa eles translúcidos
+    document.getElementById('hud-ghost').style.display = ghostMode ? 'inline-block' : 'none';
+    if (ghostMode) {
+        const ghosts = getGhosts(selectedMap.id, selectedMode.id, selectedMode.laps).slice(0, 5);
+        for (let i = 0; i < ghosts.length && i < aiPositions.length; i++) {
+            const g = ghosts[i];
+            const spd = Math.max(0.15, Math.min(1.4, (selectedMode.laps * TRACK_LEN) / (g.time * 60)));
+            aiPositions[i].baseSpeed = spd;
+            aiPositions[i].ghostName = g.name;
+            aiCars[i].traverse(o => {
+                if (o.isMesh) {
+                    o.material = o.material.clone();
+                    o.material.transparent = true;
+                    o.material.opacity = 0.55;
+                }
+            });
+        }
     }
 
     turboFuel = 100;
@@ -1115,17 +1274,28 @@ function endRace() {
     const earned = selectedMode.prizes[rank] || 0;
     if (earned > 0) setCoins(getCoins() + earned);
     const coinMsg = earned > 0 ? ` | 🪙 +${earned} moedas!` : ' | Sem moedas dessa vez 😢';
-    document.getElementById('result-time').textContent = `Tempo: ${min}:${sec.toString().padStart(2, '0')}${coinMsg} (${selectedMode.name})`;
+    let extraMsg = '';
+    if (ghostMode) {
+        const updated = saveGhostTime(selectedMap.id, selectedMode.id, selectedMode.laps, elapsed);
+        const yourRank = updated.findIndex(g => g.you) + 1;
+        extraMsg = yourRank === 1
+            ? ` | 👻 NOVO RECORDE FANTASMA! Você é o fantasma nº1!`
+            : ` | 👻 Ranking Fantasma: ${yourRank}º de ${updated.length}`;
+    }
+    document.getElementById('result-time').textContent = `Tempo: ${min}:${sec.toString().padStart(2, '0')}${coinMsg} (${selectedMode.name})${extraMsg}`;
     document.getElementById('race-result').style.display = 'flex';
     showTouchControls(false);
 }
 
 // CORRER! abre a tela de escolha de modo, depois mapa
 document.getElementById('start-btn').onclick = () => {
+    ghostMode = false;
     document.getElementById('menu').style.display = 'none';
     document.getElementById('mode-screen').style.display = 'flex';
 };
 document.getElementById('result-btn').onclick = () => {
+    ghostMode = false;
+    document.getElementById('hud-ghost').style.display = 'none';
     document.getElementById('race-result').style.display = 'none';
     document.getElementById('menu').style.display = 'flex';
     document.getElementById('hud').style.display = 'none';

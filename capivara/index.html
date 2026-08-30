@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="description" content="Capivara Run — jogo de plataforma grátis! Fuja da capivara, colete moedas, desbloqueie skins e jogue contra o computador. Modos Lua e Hardcore!">
+    <meta name="description" content="Capivara Run — jogo de plataforma grátis! Fuja da capivara, colete moedas, desbloqueie skins e desafie seus amigos. 7 modos incluindo Hardcore!">
     <meta property="og:title" content="Capivara Run — Cogumelo Games">
-    <meta property="og:description" content="Jogo de plataforma grátis! Fuja da capivara malvada, colete moedas e desbloqueie skins. Jogue sozinho ou contra o computador!">
+    <meta property="og:description" content="Jogo de plataforma grátis! Fuja da capivara malvada, colete moedas, desbloqueie skins e desafie o recorde dos seus amigos!">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://cogumelogames.com.br/capivara/">
     <link rel="canonical" href="https://cogumelogames.com.br/capivara/">
@@ -22,7 +22,7 @@
         #menu button { padding: 13px 40px; font-size: 17px; font-weight: bold; color: #fff; border: none; border-radius: 30px; cursor: pointer; min-width: 240px; }
         #menu button:hover { transform: scale(1.05); }
         .btn-1p { background: #4caf50; }
-        .btn-2p { background: #2196f3; }
+        .btn-friend { background: #2196f3; }
         .btn-modes { background: #00bcd4; position: relative; }
         .tag-novo { background: #f44336; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 8px; position: absolute; top: -6px; right: -6px; animation: pulse 1s infinite; }
         @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
@@ -37,6 +37,19 @@
         .mode-desc { color: #aaa; font-size: 12px; line-height: 1.4; }
         #modes-back { padding: 12px 40px; font-size: 18px; background: #ff9800; color: #fff; border: none; border-radius: 25px; cursor: pointer; }
         #modes-back:hover { transform: scale(1.05); }
+        #friend-screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 10, 40, 0.97); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; pointer-events: auto; z-index: 100; padding: 20px; text-align: center; }
+        #friend-screen h1 { font-size: 32px; color: #fff; text-shadow: 2px 2px 0 #2196f3; }
+        #friend-screen p { color: #ccc; font-size: 14px; max-width: 480px; line-height: 1.5; }
+        #friend-link-box { display: flex; gap: 8px; align-items: center; }
+        #friend-link-input { padding: 10px 14px; font-size: 13px; border-radius: 10px; border: 2px solid #2196f3; background: rgba(30,30,70,0.9); color: #fff; width: 280px; font-family: monospace; }
+        #friend-copy-btn { padding: 10px 16px; font-size: 14px; background: #2196f3; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
+        #friend-copy-btn:hover { transform: scale(1.05); }
+        #friend-generate-btn { padding: 12px 30px; font-size: 15px; background: #4caf50; color: #fff; border: none; border-radius: 20px; cursor: pointer; }
+        #friend-generate-btn:hover { transform: scale(1.05); }
+        #friend-ghost-info { background: rgba(33,150,243,0.15); border: 2px dashed #2196f3; border-radius: 12px; padding: 12px 18px; color: #90caf9; font-size: 14px; max-width: 420px; }
+        #friend-back { padding: 12px 40px; font-size: 18px; background: #ff9800; color: #fff; border: none; border-radius: 25px; cursor: pointer; margin-top: 6px; }
+        #friend-back:hover { transform: scale(1.05); }
+        #ghost-hud { position: absolute; top: 34px; left: 50%; transform: translateX(-50%); color: #90caf9; font-size: 13px; font-weight: bold; text-shadow: 1px 1px 3px #000; z-index: 50; background: rgba(0,0,0,0.4); padding: 4px 12px; border-radius: 10px; }
         .hidden { display: none !important; }
         #hud { position: absolute; top: 10px; left: 0; right: 0; display: flex; justify-content: space-around; pointer-events: none; }
         #hud span { color: #fff; font-size: 18px; font-weight: bold; text-shadow: 1px 1px 3px #000; }
@@ -205,12 +218,12 @@
             <h1>🐾 Capivara Run</h1>
             <p>Colete moedas e fuja do monstro!</p>
             <button class="btn-1p" id="btn-1p">1 JOGADOR</button>
-            <button class="btn-2p" id="btn-2p">2 JOGADORES 🤖<br><span style="font-size:11px">Você vs Computador</span></button>
+            <button class="btn-friend" id="btn-friend">👻 DESAFIO DE AMIGO</button>
             <button class="btn-modes" id="btn-modes">MODOS <span class="tag-novo">NOVO</span></button>
             <button class="btn-skins" id="btn-skins">SKINS</button>
             <button class="btn-loja" id="btn-loja">🛒 LOJA</button>
-            <div class="controls-info">
-                Controles: WASD ou Setas | No modo 2 jogadores o robô 🤖 joga sozinho!
+            <div class="controls-info" id="ghost-menu-info">
+                Controles: WASD ou Setas | 7 modos de jogo e skins pra desbloquear!
             </div>
         </div>
         <div id="gameover" class="hidden">
@@ -233,10 +246,46 @@
             <div class="mode-card" id="mode-hardcore">
                 <div class="mode-icon">💀</div>
                 <div class="mode-name">HARDCORE</div>
-                <div class="mode-desc">Apenas 1 vida! 3 capivaras te perseguem ao mesmo tempo!</div>
+                <div class="mode-desc">Apenas 1 vida! 4 capivaras turbo te perseguem e a margem de erro é mínima!</div>
+            </div>
+            <div class="mode-card" id="mode-invertida">
+                <div class="mode-icon">🔄</div>
+                <div class="mode-name">CORRIDA INVERTIDA</div>
+                <div class="mode-desc">Os controles esquerda/direita ficam trocados. Só pra quem tem cabeça fria!</div>
+            </div>
+            <div class="mode-card" id="mode-veloz">
+                <div class="mode-icon">⚡</div>
+                <div class="mode-name">SUPER VELOCIDADE</div>
+                <div class="mode-desc">Tudo quase 2x mais rápido! Reflexo raiz quadrada de bom precisa.</div>
+            </div>
+            <div class="mode-card" id="mode-pulobaixo">
+                <div class="mode-icon">🦵</div>
+                <div class="mode-name">PULO BAIXO</div>
+                <div class="mode-desc">Seu pulo fica bem mais fraco. Planeje cada plataforma com cuidado!</div>
+            </div>
+            <div class="mode-card" id="mode-moedasdobro">
+                <div class="mode-icon">💰</div>
+                <div class="mode-name">MOEDAS EM DOBRO</div>
+                <div class="mode-desc">Cada moeda vale o dobro de 🪙! Ótimo pra juntar grana rápido.</div>
+            </div>
+            <div class="mode-card" id="mode-noturno">
+                <div class="mode-icon">🌑</div>
+                <div class="mode-name">MODO NOTURNO</div>
+                <div class="mode-desc">Escuro total! Só uma lanterna ao seu redor mostra o caminho.</div>
             </div>
         </div>
         <button id="modes-back">VOLTAR</button>
+    </div>
+    <div id="friend-screen">
+        <h1>👻 Desafio de Amigo</h1>
+        <p>O Cogumelo Games não tem servidor pra salas online, mas dá pra desafiar seus amigos do mesmo jeito! Gere um link com o SEU recorde e mande pra ele. Quando ele abrir o link, vai correr contra o <b>fantasma</b> do seu resultado — quem passar mais fases ganha! 🏆</p>
+        <div id="friend-ghost-info"></div>
+        <button id="friend-generate-btn">🔗 GERAR MEU LINK DE DESAFIO</button>
+        <div id="friend-link-box" style="display:none">
+            <input type="text" id="friend-link-input" readonly>
+            <button id="friend-copy-btn">Copiar</button>
+        </div>
+        <button id="friend-back">VOLTAR</button>
     </div>
     <div id="skins-screen">
         <h1>🎨 SKINS</h1>
@@ -276,7 +325,8 @@
         <span id="hud-moedas">Moedas: 0/5</span>
         <span id="hud-vidas">❤️❤️❤️</span>
     </div>
-    <div class="version">v3.1.0</div>
+    <div id="ghost-hud" class="hidden"></div>
+    <div class="version">v3.2.0</div>
 
     <script>
 const canvas = document.getElementById('game');
@@ -323,6 +373,12 @@ const SKINS = [
     { id: 'foguete', name: 'Foguete', icon: '🚀', rarity: 'lendario', req: -3, reqText: 'Compre na Loja' },
     { id: 'fenix', name: 'Fênix', icon: '🔥', rarity: 'lendario', req: -2, reqText: 'Giro Grátis (1% de chance!)' },
     { id: 'tartaruga_ninja', name: 'Tartaruga Ninja', icon: '🐢', rarity: 'cosmico', req: -2, reqText: 'Giro Grátis (0,1% de chance!)' },
+    { id: 'gato', name: 'Gato', icon: '🐱', rarity: 'comum', req: -3, reqText: 'Compre na Loja' },
+    { id: 'urso', name: 'Urso', icon: '🐻', rarity: 'comum', req: -3, reqText: 'Compre na Loja' },
+    { id: 'coelho', name: 'Coelho', icon: '🐰', rarity: 'raro', req: -3, reqText: 'Compre na Loja' },
+    { id: 'tubarao', name: 'Tubarão', icon: '🦈', rarity: 'epico', req: -3, reqText: 'Compre na Loja' },
+    { id: 'polvo', name: 'Polvo', icon: '🐙', rarity: 'epico', req: -1, reqText: 'Caixa de Skin ou Loja' },
+    { id: 'rei', name: 'Rei Capivara', icon: '👑', rarity: 'lendario', req: -3, reqText: 'Compre na Loja' },
 ];
 
 function loadProgress() {
@@ -374,7 +430,8 @@ let players = [];
 let numPlayers = 1;
 let botMode = false; // segundo jogador = computador
 let reviveUsed = false; // vida extra comprada nesta partida?
-let gameMode = 'normal'; // 'normal', 'lua', 'hardcore'
+let gameMode = 'normal'; // 'normal', 'lua', 'hardcore', 'invertida', 'veloz', 'pulobaixo', 'moedasdobro', 'noturno'
+let ghostTarget = null; // { name, streak } — desafio de amigo (fantasma local, sem servidor)
 const GRAVITY = 0.5, JUMP = -13.5, SPEED = 4.5;
 const GROUND_Y = 450;
 const CEILING_Y = 30;
@@ -465,8 +522,10 @@ function generateLevel() {
     }
 
     // Monsters
-    const monsterSpeed = Math.min(1.0 + fase * 0.2, 3.5);
-    const numMonsters = (gameMode === 'hardcore') ? 3 : 1;
+    const monsterSpeed = (gameMode === 'hardcore')
+        ? Math.min(1.6 + fase * 0.28, 4.8)
+        : Math.min(1.0 + fase * 0.2, 3.5);
+    const numMonsters = (gameMode === 'hardcore') ? 4 : 1;
     monsters = [];
     for (let m = 0; m < numMonsters; m++) {
         monsters.push({
@@ -500,7 +559,10 @@ function update() {
 
         const ctrl = CONTROLS[pl.index];
         let moveX = 0;
-        const jumpPower = (gameMode === 'lua') ? JUMP * 2.2 : JUMP;
+        const jumpPower = (gameMode === 'lua') ? JUMP * 2.2
+            : (gameMode === 'pulobaixo') ? JUMP * 0.55
+            : JUMP;
+        const speedMult = (gameMode === 'veloz') ? 1.8 : 1;
         if (pl.isBot) {
             // IA do computador: foge da capivara e busca moedas
             if (pl.botJumpCooldown > 0) pl.botJumpCooldown--;
@@ -564,8 +626,10 @@ function update() {
             }
         }
 
+        if (gameMode === 'invertida') moveX = -moveX;
+
         const grav = (gameMode === 'lua') ? GRAVITY * 0.35 : GRAVITY;
-        pl.vx = moveX * SPEED;
+        pl.vx = moveX * SPEED * speedMult;
         pl.vy += grav;
         pl.x += pl.vx;
         pl.y += pl.vy;
@@ -592,7 +656,7 @@ function update() {
             if (Math.abs(pl.x + 15 - c.x - 8) < 22 && Math.abs(pl.y + 17 - c.y - 8) < 22) {
                 c.collected = true;
                 moedas++;
-                progress.coins++;
+                progress.coins += (gameMode === 'moedasdobro') ? 2 : 1;
                 saveProgress();
                 updateGemDisplay();
                 sfxCoin();
@@ -612,9 +676,11 @@ function update() {
             }
         }
 
-        // Monster hit (check all monsters)
+        // Monster hit (check all monsters) — hardcore tem margem de erro menor
+        const hitX = (gameMode === 'hardcore') ? 33 : 28;
+        const hitY = (gameMode === 'hardcore') ? 37 : 32;
         for (const mon of monsters) {
-            if (pl.invincible <= 0 && Math.abs(pl.x - mon.x) < 28 && Math.abs(pl.y - mon.y) < 32) {
+            if (pl.invincible <= 0 && Math.abs(pl.x - mon.x) < hitX && Math.abs(pl.y - mon.y) < hitY) {
                 loseLife(pl);
                 break;
             }
@@ -623,7 +689,8 @@ function update() {
 
     // Monster AI — each monster chases closest alive player
     const monGrav = (gameMode === 'lua') ? GRAVITY * 0.35 : GRAVITY;
-    const monJump = (gameMode === 'lua') ? JUMP * 2.2 : JUMP;
+    const monJump = (gameMode === 'lua') ? JUMP * 2.2 : (gameMode === 'pulobaixo') ? JUMP * 0.55 : JUMP;
+    const monSpeedMult = (gameMode === 'veloz') ? 1.8 : 1;
     for (const mon of monsters) {
         mon.vy += monGrav;
         mon.y += mon.vy;
@@ -651,7 +718,7 @@ function update() {
         if (closestPlayer) {
             const dx = closestPlayer.x - mon.x;
             if (Math.abs(dx) > 10) {
-                mon.x += Math.sign(dx) * mon.speed;
+                mon.x += Math.sign(dx) * mon.speed * monSpeedMult;
                 mon.facing = Math.sign(dx);
             }
             if (mon.jumpCooldown > 0) mon.jumpCooldown--;
@@ -677,7 +744,7 @@ function loseLife(pl) {
     pl.x = 60 + pl.index * 80;
     pl.y = GROUND_Y - pl.h - 5;
     pl.vy = 0;
-    pl.invincible = 90;
+    pl.invincible = (gameMode === 'hardcore') ? 55 : 90;
     if (!pl.isBot) {
         for (let i = 0; i < monsters.length; i++) {
             monsters[i].x = 600 + i * 80;
@@ -722,8 +789,17 @@ function endGame() {
     sfxDie();
     document.getElementById('gameover').style.display = 'flex';
     document.getElementById('gameover').classList.remove('hidden');
-    document.getElementById('go-text').textContent = `Fase ${fase} | Recorde: ${progress.bestStreak} fases`;
+    let goText = `Fase ${fase} | Recorde: ${progress.bestStreak} fases`;
+    if (ghostTarget) {
+        goText += (fase > ghostTarget.streak)
+            ? ` | 🏆 Você venceu o fantasma de ${ghostTarget.name} (fase ${ghostTarget.streak})!`
+            : (fase === ghostTarget.streak)
+                ? ` | 😅 Empatou com ${ghostTarget.name}! Tenta de novo!`
+                : ` | 👻 O fantasma de ${ghostTarget.name} (fase ${ghostTarget.streak}) venceu dessa vez!`;
+    }
+    document.getElementById('go-text').textContent = goText;
     document.getElementById('hud').classList.add('hidden');
+    document.getElementById('ghost-hud').classList.add('hidden');
     // Oferta de vida extra: 1x por partida, 100 moedas, continua de onde parou
     const reviveBtn = document.getElementById('btn-revive');
     reviveBtn.style.display = (!reviveUsed && progress.coins >= 100) ? 'inline-block' : 'none';
@@ -733,6 +809,14 @@ function updateHUD() {
     document.getElementById('hud-fase').textContent = `Fase ${fase}`;
     document.getElementById('hud-moedas').textContent = `Moedas: ${moedas}/${totalMoedas}`;
     document.getElementById('hud-vidas').textContent = '❤️'.repeat(Math.max(0, vidas));
+    const ghostHud = document.getElementById('ghost-hud');
+    if (ghostTarget) {
+        ghostHud.classList.remove('hidden');
+        const ahead = fase > ghostTarget.streak ? '🔥 Você está na frente!' : (fase === ghostTarget.streak ? '👀 Empatado!' : '👻 Atrás do fantasma');
+        ghostHud.textContent = `👻 Fantasma de ${ghostTarget.name}: fase ${ghostTarget.streak} — ${ahead}`;
+    } else {
+        ghostHud.classList.add('hidden');
+    }
 }
 
 function drawPlayerSkin(pl) {
@@ -1250,6 +1334,203 @@ function drawPlayerSkin(pl) {
         const glow = 0.15 + Math.sin(frameCount * 0.1) * 0.1;
         ctx.fillStyle = `rgba(255,77,210,${glow})`;
         ctx.beginPath(); ctx.ellipse(0, 0, 18, 22, 0, 0, Math.PI*2); ctx.fill();
+    } else if (skin === 'gato') {
+        // Corpo
+        ctx.fillStyle = '#ff9800';
+        ctx.beginPath(); ctx.ellipse(0, 6, 11, 13, 0, 0, Math.PI*2); ctx.fill();
+        // Listras
+        ctx.strokeStyle = '#e65100'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(-4, 4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(4, 4); ctx.stroke();
+        // Cabeça
+        ctx.fillStyle = '#ffb74d';
+        ctx.beginPath(); ctx.arc(0, -8, 11, 0, Math.PI*2); ctx.fill();
+        // Orelhas triangulares
+        ctx.fillStyle = '#ff9800';
+        ctx.beginPath(); ctx.moveTo(-9, -14); ctx.lineTo(-12, -24); ctx.lineTo(-3, -16); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(9, -14); ctx.lineTo(12, -24); ctx.lineTo(3, -16); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#ffccbc';
+        ctx.beginPath(); ctx.moveTo(-8, -15); ctx.lineTo(-9.5, -20); ctx.lineTo(-5, -16); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(8, -15); ctx.lineTo(9.5, -20); ctx.lineTo(5, -16); ctx.closePath(); ctx.fill();
+        // Olhos
+        ctx.fillStyle = '#333';
+        ctx.beginPath(); ctx.ellipse(-4, -8, 2.5, 3, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(4, -8, 2.5, 3, 0, 0, Math.PI*2); ctx.fill();
+        // Nariz
+        ctx.fillStyle = '#e91e63';
+        ctx.beginPath(); ctx.moveTo(-2, -3); ctx.lineTo(2, -3); ctx.lineTo(0, -1); ctx.closePath(); ctx.fill();
+        // Bigodes
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(-3, -2); ctx.lineTo(-14, -4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(-14, 1); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(3, -2); ctx.lineTo(14, -4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(3, 0); ctx.lineTo(14, 1); ctx.stroke();
+        // Boca
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(-1.5, -1, 2, 0.2, Math.PI - 0.2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(1.5, -1, 2, 0.2, Math.PI - 0.2); ctx.stroke();
+        // Rabo
+        ctx.strokeStyle = '#ff9800'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+        const tailWag = Math.sin(frameCount * 0.12) * 4;
+        ctx.beginPath(); ctx.moveTo(9, 14); ctx.quadraticCurveTo(18, 12 + tailWag, 16, 2 + tailWag); ctx.stroke();
+    } else if (skin === 'urso') {
+        // Corpo
+        ctx.fillStyle = '#795548';
+        ctx.beginPath(); ctx.ellipse(0, 8, 13, 14, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#a1887f';
+        ctx.beginPath(); ctx.ellipse(0, 12, 7, 6, 0, 0, Math.PI*2); ctx.fill();
+        // Cabeça
+        ctx.fillStyle = '#8d6e63';
+        ctx.beginPath(); ctx.arc(0, -8, 12, 0, Math.PI*2); ctx.fill();
+        // Orelhas redondas
+        ctx.fillStyle = '#6d4c41';
+        ctx.beginPath(); ctx.arc(-9, -17, 4.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(9, -17, 4.5, 0, Math.PI*2); ctx.fill();
+        // Focinho
+        ctx.fillStyle = '#d7ccc8';
+        ctx.beginPath(); ctx.ellipse(0, -3, 6.5, 5, 0, 0, Math.PI*2); ctx.fill();
+        // Olhos
+        ctx.fillStyle = '#333';
+        ctx.beginPath(); ctx.arc(-5, -9, 2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(5, -9, 2, 0, Math.PI*2); ctx.fill();
+        // Nariz
+        ctx.fillStyle = '#3e2723';
+        ctx.beginPath(); ctx.ellipse(0, -4, 2.5, 2, 0, 0, Math.PI*2); ctx.fill();
+        // Sorriso
+        ctx.strokeStyle = '#3e2723'; ctx.lineWidth = 1.3;
+        ctx.beginPath(); ctx.arc(0, 0, 3.5, 0.2, Math.PI - 0.2); ctx.stroke();
+    } else if (skin === 'coelho') {
+        // Corpo
+        ctx.fillStyle = '#f5f5f5';
+        ctx.beginPath(); ctx.ellipse(0, 8, 10, 13, 0, 0, Math.PI*2); ctx.fill();
+        // Cabeça
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(0, -6, 10, 0, Math.PI*2); ctx.fill();
+        // Orelhas compridas
+        const earFlop = Math.sin(frameCount * 0.1) * 2;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.ellipse(-6, -20 + earFlop, 4, 12, -0.15, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(6, -20 - earFlop, 4, 12, 0.15, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#f8bbd0';
+        ctx.beginPath(); ctx.ellipse(-6, -20 + earFlop, 2, 9, -0.15, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(6, -20 - earFlop, 2, 9, 0.15, 0, Math.PI*2); ctx.fill();
+        // Olhos
+        ctx.fillStyle = '#333';
+        ctx.beginPath(); ctx.arc(-4, -7, 2.3, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(4, -7, 2.3, 0, Math.PI*2); ctx.fill();
+        // Nariz rosa
+        ctx.fillStyle = '#f06292';
+        ctx.beginPath(); ctx.ellipse(0, -2, 2, 1.5, 0, 0, Math.PI*2); ctx.fill();
+        // Dentinho
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-1.5, 0, 3, 4);
+        ctx.strokeStyle = '#ccc'; ctx.lineWidth = 0.5;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 4); ctx.stroke();
+        // Bigodes
+        ctx.strokeStyle = '#ddd'; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(-2, -1); ctx.lineTo(-12, -3); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(2, -1); ctx.lineTo(12, -3); ctx.stroke();
+        // Bolinha de rabo
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(0, 20, 4.5, 0, Math.PI*2); ctx.fill();
+    } else if (skin === 'tubarao') {
+        // Corpo
+        ctx.fillStyle = '#607d8b';
+        ctx.beginPath(); ctx.ellipse(0, 4, 13, 12, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#cfd8dc';
+        ctx.beginPath(); ctx.ellipse(0, 10, 8, 6, 0, 0, Math.PI*2); ctx.fill();
+        // Barbatana dorsal
+        ctx.fillStyle = '#455a64';
+        ctx.beginPath(); ctx.moveTo(-3, -8); ctx.lineTo(0, -20); ctx.lineTo(4, -7); ctx.closePath(); ctx.fill();
+        // Barbatanas laterais
+        ctx.beginPath(); ctx.moveTo(-10, 8); ctx.lineTo(-20, 14); ctx.lineTo(-8, 14); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(10, 8); ctx.lineTo(20, 14); ctx.lineTo(8, 14); ctx.closePath(); ctx.fill();
+        // Cauda
+        ctx.fillStyle = '#607d8b';
+        const finWag = Math.sin(frameCount * 0.2) * 4;
+        ctx.beginPath(); ctx.moveTo(-12, 2); ctx.lineTo(-22, -8 + finWag); ctx.lineTo(-22, 12 + finWag); ctx.closePath(); ctx.fill();
+        // Olhos
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(6, -2, 2.3, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(6.7, -2.7, 0.8, 0, Math.PI*2); ctx.fill();
+        // Boca com dentes
+        ctx.strokeStyle = '#263238'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(4, 8); ctx.quadraticCurveTo(10, 11, 15, 7); ctx.stroke();
+        ctx.fillStyle = '#fff';
+        for (let i = 0; i < 3; i++) ctx.fillRect(6 + i * 3, 8, 2, 3);
+    } else if (skin === 'polvo') {
+        // Cabeça/manto
+        ctx.fillStyle = '#ab47bc';
+        ctx.beginPath(); ctx.ellipse(0, -2, 13, 14, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#ce93d8';
+        ctx.beginPath(); ctx.ellipse(0, -6, 8, 6, 0, 0, Math.PI*2); ctx.fill();
+        // Tentáculos ondulando
+        ctx.fillStyle = '#8e24aa';
+        for (let i = 0; i < 5; i++) {
+            const tx = -16 + i * 8;
+            const wave = Math.sin(frameCount * 0.15 + i) * 4;
+            ctx.beginPath();
+            ctx.moveTo(tx, 8);
+            ctx.quadraticCurveTo(tx + wave, 18, tx + wave * 0.5, 24);
+            ctx.quadraticCurveTo(tx + 3, 18, tx + 4, 8);
+            ctx.closePath(); ctx.fill();
+        }
+        // Olhos grandes
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(-5, -4, 4.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(5, -4, 4.5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#333';
+        ctx.beginPath(); ctx.arc(-5, -4, 2.3, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(5, -4, 2.3, 0, Math.PI*2); ctx.fill();
+        // Sorriso
+        ctx.strokeStyle = '#4a148c'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(0, 2, 4, 0.1, Math.PI - 0.1); ctx.stroke();
+        // Bochechas
+        ctx.fillStyle = 'rgba(255,138,128,0.3)';
+        ctx.beginPath(); ctx.arc(-9, 0, 2.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(9, 0, 2.5, 0, Math.PI*2); ctx.fill();
+    } else if (skin === 'rei') {
+        // Manto
+        ctx.fillStyle = '#7b1fa2';
+        ctx.beginPath(); ctx.ellipse(0, 10, 13, 12, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-13, 16, 26, 6);
+        // Corpo (capivara marrom)
+        ctx.fillStyle = '#8d6e63';
+        ctx.beginPath(); ctx.ellipse(0, 6, 11, 12, 0, 0, Math.PI*2); ctx.fill();
+        // Coroa dourada
+        const crownGrad = ctx.createLinearGradient(-10, -20, 10, -12);
+        crownGrad.addColorStop(0, '#ffd700');
+        crownGrad.addColorStop(0.5, '#fff59d');
+        crownGrad.addColorStop(1, '#ffb300');
+        ctx.fillStyle = crownGrad;
+        ctx.beginPath();
+        ctx.moveTo(-10, -12);
+        ctx.lineTo(-8, -22); ctx.lineTo(-4, -14);
+        ctx.lineTo(0, -24); ctx.lineTo(4, -14);
+        ctx.lineTo(8, -22); ctx.lineTo(10, -12);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#e65100'; ctx.lineWidth = 1;
+        ctx.stroke();
+        // Joias na coroa
+        ctx.fillStyle = '#e91e63';
+        ctx.beginPath(); ctx.arc(0, -18, 1.8, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#2196f3';
+        ctx.beginPath(); ctx.arc(-7, -16, 1.4, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(7, -16, 1.4, 0, Math.PI*2); ctx.fill();
+        // Olhos orgulhosos
+        ctx.fillStyle = '#333';
+        ctx.beginPath(); ctx.arc(-4, -2, 2.3, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(4, -2, 2.3, 0, Math.PI*2); ctx.fill();
+        // Sorriso confiante
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(0, 3, 4, 0.1, Math.PI - 0.1); ctx.stroke();
+        // Brilho
+        ctx.fillStyle = '#fff';
+        const rs = Math.sin(frameCount * 0.1) * 2;
+        ctx.beginPath(); ctx.arc(-9 + rs, -19, 1.2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(9 - rs, -19, 1.2, 0, Math.PI*2); ctx.fill();
     }
 
     // Feet
@@ -1424,6 +1705,23 @@ function draw() {
     // Monsters (Capivaras)
     for (const mon of monsters) {
         drawCapivara(mon.x + 20, mon.y + 20, mon.facing, frameCount);
+    }
+
+    // Modo noturno — escuridão com lanterna ao redor do jogador
+    if (gameMode === 'noturno' && players.length > 0) {
+        const centerX = players[0].x + 15, centerY = players[0].y + 17;
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,10,0.93)';
+        ctx.fillRect(0, 0, 800, 500);
+        ctx.globalCompositeOperation = 'destination-out';
+        const grad = ctx.createRadialGradient(centerX, centerY, 20, centerX, centerY, 130);
+        grad.addColorStop(0, 'rgba(255,255,255,1)');
+        grad.addColorStop(0.7, 'rgba(255,255,255,0.5)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(centerX, centerY, 130, 0, Math.PI * 2); ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.restore();
     }
 }
 
@@ -1647,7 +1945,6 @@ function renderSkinsScreen() {
 
 // Buttons
 document.getElementById('btn-1p').onclick = () => startGame(1, 'normal', false);
-document.getElementById('btn-2p').onclick = () => startGame(2, 'normal', true);
 document.getElementById('btn-retry').onclick = () => startGame(numPlayers, gameMode, botMode);
 document.getElementById('btn-revive').onclick = () => {
     if (reviveUsed || progress.coins < 100) return;
@@ -1690,6 +1987,76 @@ document.getElementById('modes-back').onclick = () => {
 };
 document.getElementById('mode-lua').onclick = () => startGame(numPlayers || 1, 'lua');
 document.getElementById('mode-hardcore').onclick = () => startGame(numPlayers || 1, 'hardcore');
+document.getElementById('mode-invertida').onclick = () => startGame(numPlayers || 1, 'invertida');
+document.getElementById('mode-veloz').onclick = () => startGame(numPlayers || 1, 'veloz');
+document.getElementById('mode-pulobaixo').onclick = () => startGame(numPlayers || 1, 'pulobaixo');
+document.getElementById('mode-moedasdobro').onclick = () => startGame(numPlayers || 1, 'moedasdobro');
+document.getElementById('mode-noturno').onclick = () => startGame(numPlayers || 1, 'noturno');
+
+// Desafio de Amigo — sem backend: gera um link com o recorde embutido em base64.
+// Quem abrir o link corre contra o "fantasma" (recorde) do amigo.
+function encodeChallenge(name, streak) {
+    return btoa(encodeURIComponent(JSON.stringify({ n: name, s: streak }))).replace(/=+$/, '');
+}
+function decodeChallenge(code) {
+    try {
+        const pad = code + '='.repeat((4 - code.length % 4) % 4);
+        const data = JSON.parse(decodeURIComponent(atob(pad)));
+        if (data && typeof data.n === 'string' && typeof data.s === 'number') return { name: data.n.slice(0, 20), streak: Math.max(0, Math.floor(data.s)) };
+    } catch (e) {}
+    return null;
+}
+function checkIncomingChallenge() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('desafio');
+    if (!code) return;
+    const decoded = decodeChallenge(code);
+    if (decoded) {
+        ghostTarget = decoded;
+        document.getElementById('ghost-menu-info').textContent = `👻 Você foi desafiado por ${decoded.name}! Recorde a bater: fase ${decoded.streak}. Boa sorte!`;
+    }
+}
+checkIncomingChallenge();
+
+document.getElementById('btn-friend').onclick = () => {
+    document.getElementById('menu').classList.add('hidden');
+    document.getElementById('friend-screen').style.display = 'flex';
+    const info = document.getElementById('friend-ghost-info');
+    if (ghostTarget) {
+        info.style.display = 'block';
+        info.textContent = `Agora mesmo você está no desafio de ${ghostTarget.name} (fase ${ghostTarget.streak})! Jogue em "1 JOGADOR" pra competir.`;
+    } else {
+        info.style.display = 'none';
+    }
+    document.getElementById('friend-link-box').style.display = 'none';
+};
+document.getElementById('friend-back').onclick = () => {
+    document.getElementById('friend-screen').style.display = 'none';
+    document.getElementById('menu').classList.remove('hidden');
+};
+document.getElementById('friend-generate-btn').onclick = () => {
+    const name = playerName || 'Jogador Misterioso';
+    const streak = progress.bestStreak || 0;
+    const code = encodeChallenge(name, streak);
+    const url = `${window.location.origin}${window.location.pathname}?desafio=${code}`;
+    const input = document.getElementById('friend-link-input');
+    input.value = url;
+    document.getElementById('friend-link-box').style.display = 'flex';
+    input.select();
+};
+document.getElementById('friend-copy-btn').onclick = () => {
+    const input = document.getElementById('friend-link-input');
+    input.select();
+    try {
+        navigator.clipboard.writeText(input.value);
+    } catch (e) {
+        document.execCommand('copy');
+    }
+    const btn = document.getElementById('friend-copy-btn');
+    const old = btn.textContent;
+    btn.textContent = '✅ Copiado!';
+    setTimeout(() => { btn.textContent = old; }, 1500);
+};
 document.getElementById('btn-skins').onclick = () => {
     renderSkinsScreen();
     document.getElementById('menu').classList.add('hidden');

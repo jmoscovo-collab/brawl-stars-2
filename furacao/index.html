@@ -64,7 +64,7 @@
 
 <div id="menu" class="overlay">
   <h1 class="titulo">🌪️ FURACÃO.IO</h1>
-  <div class="sub">Você é um FURACÃO numa cidade 3D! Engula flores, carros, casas e até PRÉDIOS pra crescer!<br>Cuidado com os outros furacões... o maior engole o menor! 😱</div>
+  <div class="sub">Você é um FURACÃO numa cidade 3D! Engula flores, carros, pessoas correndo, casas, PRÉDIOS e até o SHOPPING pra crescer!<br>Cuidado com os outros furacões... o maior engole o menor! 😱</div>
   <button class="btn verde" id="btnOnline">🌍 JOGAR ONLINE</button>
   <button class="btn" id="btnJogar">🤖 JOGAR COM BOTS</button>
   <button class="btn azul" id="btnLoja">🛒 LOJA</button>
@@ -375,8 +375,41 @@ function makeQuadra(r){ // quadra de futebol
   var bola=esf(r*0.14,'#ffffff'); bola.position.set(r*0.4,r*0.2,r*0.3); g.add(bola);
   return g;
 }
+function makeEstatua(r){ // estátua de pracinha
+  var g=new THREE.Group();
+  var pedestal=box(r*0.8,r*0.5,r*0.8,'#9a9a95'); pedestal.position.y=r*0.25; g.add(pedestal);
+  var corpo=cyl(r*0.18,r*0.24,r*1.1,'#7a7a75',8); corpo.position.y=r*1.05; g.add(corpo);
+  var cabeca=esf(r*0.22,'#7a7a75'); cabeca.position.y=r*1.75; g.add(cabeca);
+  var braco=box(r*0.62,r*0.14,r*0.14,'#7a7a75'); braco.position.y=r*1.3; g.add(braco);
+  return g;
+}
+function makePessoa(r){ // pessoa correndo do furacão!
+  var g=new THREE.Group();
+  var corPele='#e8b98a';
+  var roupas=['#e05050','#4090d0','#50c060','#e0b030','#a050c0','#ff8ac0'];
+  var roupa=roupas[Math.floor(Math.random()*roupas.length)];
+  var corpo=box(r*0.5,r*0.7,r*0.3,roupa); corpo.position.y=r*0.75; g.add(corpo);
+  var cabeca=esf(r*0.3,corPele); cabeca.position.y=r*1.32; g.add(cabeca);
+  var braE=box(r*0.14,r*0.5,r*0.14,corPele); braE.position.set(-r*0.32,r*0.7,0); braE.rotation.x=0.6; g.add(braE);
+  var braD=box(r*0.14,r*0.5,r*0.14,corPele); braD.position.set(r*0.32,r*0.7,0); braD.rotation.x=-0.6; g.add(braD);
+  var perE=box(r*0.16,r*0.55,r*0.16,'#2a3a55'); perE.position.set(-r*0.14,r*0.28,r*0.1); perE.rotation.x=-0.4; g.add(perE);
+  var perD=box(r*0.16,r*0.55,r*0.16,'#2a3a55'); perD.position.set(r*0.14,r*0.28,-r*0.1); perD.rotation.x=0.4; g.add(perD);
+  return g;
+}
+function makeShopping(r){ // shopping enorme, vale muito!
+  var g=new THREE.Group();
+  var w=r*2.6, h=r*1.3, d=r*1.8;
+  var base=box(w,h,d,'#c8c0b0'); base.position.y=h/2; g.add(base);
+  var t=janelaTex('#8aa0b8');
+  var vidro=new THREE.Mesh(new THREE.BoxGeometry(w*0.96,h*0.7,Math.max(1,d*0.02)),
+    new THREE.MeshLambertMaterial({map:t}));
+  vidro.castShadow=true; vidro.position.set(0,h*0.55,d/2+0.5); g.add(vidro);
+  var letreiro=box(w*0.5,r*0.32,r*0.1,'#e0341f'); letreiro.position.set(0,h+r*0.2,d*0.3); g.add(letreiro);
+  var estac=box(w*1.6,r*0.03,d*1.6,'#4a4d52'); estac.position.y=r*0.02; estac.castShadow=false; g.add(estac);
+  return g;
+}
 var FABS_T0=[makeFlor,makeCone,makeCorreio,makePedra,makeCaixa,makeHidrante,makeBancoPraca];
-var FABS_T1=[makeArvore,makeCarro,makePoste,makeBanca,makeSemaforo,makePontoOnibus];
+var FABS_T1=[makeArvore,makeCarro,makePoste,makeBanca,makeSemaforo,makePontoOnibus,makeEstatua];
 var FABS_T2=[makeCasa,makeOnibus];
 
 // ============ FURACÃO 3D ============
@@ -475,8 +508,8 @@ function makeLabel(txt, cor){
 }
 
 // ============ MUNDO / PARTIDA ============
-var TIERPTS=[1,5,20,80];
-var TIERR=[[6,10],[14,22],[30,42],[55,80]];
+var TIERPTS=[1,5,20,80,300];
+var TIERR=[[6,10],[14,22],[30,42],[55,80],[95,125]];
 var objs=[], furas=[], flut=[];
 var worldGroup=new THREE.Group(); scene.add(worldGroup);
 var player=null, tempo=0, jogando=false, ultT=0;
@@ -507,6 +540,40 @@ function addObj(tier, fab, x, z, extra){
   objs.push(o);
   return o;
 }
+// ============ RESPAWN PROGRESSIVO ============
+// quando um pedaço da cidade fica "limpo" (tudo engolido), coisas novas vão brotando aos poucos ali,
+// de preferência longe da tela do jogador, pra parecer mágica quando ele voltar!
+var respawnTimer=0;
+function contaBlocoOcupado(bi,bj){
+  var c=0;
+  for(var i=0;i<objs.length;i++){
+    var o=objs[i];
+    if(!o.viva||o.mov||o.correndo) continue; // só conta decoração parada do quarteirão
+    if(Math.floor(o.x/GSZ)===bi && Math.floor(o.y/GSZ)===bj) c++;
+  }
+  return c;
+}
+function respawnTick(dt){
+  if(!player) return;
+  respawnTimer-=dt;
+  if(respawnTimer>0) return;
+  respawnTimer=1.2+Math.random()*1.3;
+  if(objs.length>480) return; // teto de segurança pra não pesar o jogo
+  // escolhe um quarteirão, preferindo o mais LONGE do jogador (de preferência fora da tela!)
+  var melhorBi=0, melhorBj=0, melhorD=-1;
+  for(var tries=0;tries<6;tries++){
+    var bi=Math.floor(Math.random()*NB), bj=Math.floor(Math.random()*NB);
+    var cx=bi*GSZ+GSZ/2, cz=bj*GSZ+GSZ/2;
+    var d=(cx-player.x)*(cx-player.x)+(cz-player.y)*(cz-player.y);
+    if(d>melhorD){ melhorD=d; melhorBi=bi; melhorBj=bj; }
+  }
+  if(contaBlocoOcupado(melhorBi,melhorBj)>=3) return; // quarteirão ainda tem coisa, não precisa
+  var lim=GSZ/2-ROAD/2-24, p={x:melhorBi*GSZ+GSZ/2+(Math.random()*2-1)*lim, z:melhorBj*GSZ+GSZ/2+(Math.random()*2-1)*lim};
+  var r=Math.random();
+  if(r<0.55) addObj(0, FABS_T0[Math.floor(Math.random()*FABS_T0.length)], p.x, p.z);
+  else if(r<0.92) addObj(1, FABS_T1[Math.floor(Math.random()*FABS_T1.length)], p.x, p.z);
+  else addObj(2, Math.random()<0.5?makeCasa:makeOnibus, p.x, p.z);
+}
 function criaCidade(){
   // limpa
   while(worldGroup.children.length) worldGroup.remove(worldGroup.children[0]);
@@ -514,6 +581,13 @@ function criaCidade(){
   var i,p;
   // tier 3: prédios nos quarteirões (30)
   for(i=0;i<30;i++){ p=posQuarteirao(40); addObj(3, makePredio, p.x, p.z); }
+  // tier 4: shoppings enormes, valem MUITO (3, bem espalhados)
+  for(i=0;i<3;i++){ p=posQuarteirao(70); addObj(4, makeShopping, p.x, p.z); }
+  // pessoas correndo do furacão! (40, fogem quando o furacão chega perto)
+  for(i=0;i<40;i++){
+    p=posQuarteirao(6);
+    var pe=addObj(0, makePessoa, p.x, p.z, {correndo:true, pts:12, wA:Math.random()*6.28});
+  }
   // tier 2: casas/ônibus (48)
   for(i=0;i<48;i++){
     if(Math.random()<0.75){ p=posQuarteirao(25); addObj(2, makeCasa, p.x, p.z); }
@@ -783,6 +857,33 @@ function atualiza(dt){
     else { o.x=o.linha+10*o.sg; o.y=o.s; o.mesh.rotation.y=o.sg>0?-Math.PI/2:Math.PI/2; }
     o.mesh.position.set(o.x,0,o.y);
   }
+  // pessoas correndo do furacão!
+  for(j=0;j<objs.length;j++){
+    o=objs[j];
+    if(!o.correndo||!o.viva||o.morrendo>0) continue;
+    var per=null, pd2=1e9;
+    for(var pf=0;pf<furas.length;pf++){
+      var pfu=furas[pf]; if(!pfu.viva) continue;
+      var ddx=pfu.x-o.x, ddy=pfu.y-o.y, ddd=ddx*ddx+ddy*ddy;
+      if(ddd<pd2){ pd2=ddd; per=pfu; }
+    }
+    var fugeR=170+(per?per.r*2.2:0);
+    var vx=0, vy=0;
+    if(per && pd2<fugeR*fugeR){
+      var pdd=Math.sqrt(pd2)||1;
+      vx=(o.x-per.x)/pdd; vy=(o.y-per.y)/pdd;
+    } else {
+      o.wA=(o.wA||0)+(Math.random()-0.5)*dt*1.2;
+      vx=Math.cos(o.wA)*0.35; vy=Math.sin(o.wA)*0.35;
+    }
+    var velp=95;
+    o.x+=vx*velp*dt; o.y+=vy*velp*dt;
+    o.x=Math.max(20,Math.min(WORLD-20,o.x)); o.y=Math.max(20,Math.min(WORLD-20,o.y));
+    if(vx||vy) o.mesh.rotation.y=Math.atan2(vx,vy);
+    o.mesh.position.set(o.x, Math.abs(Math.sin(performance.now()/110+j))*2.2, o.y);
+  }
+  // respawn progressivo: quando um pedaço do mapa fica limpo, coisas novas vão aparecendo!
+  respawnTick(dt);
   // furacões
   for(i=0;i<furas.length;i++){
     f=furas[i];

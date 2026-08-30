@@ -167,9 +167,16 @@ const SKINS = [
   { id: 'azul',      nome: 'Azul Turbo',    cor: 0x1e88e5, pinta: 0xffffff, preco: 30,  css: '#1e88e5' },
   { id: 'verde',     nome: 'Verdinho',      cor: 0x43a047, pinta: 0xfff59d, preco: 60,  css: '#43a047' },
   { id: 'rosa',      nome: 'Rosa Choque',   cor: 0xec407a, pinta: 0xffffff, preco: 100, css: '#ec407a' },
+  { id: 'zumbi',     nome: 'Zumbi Verde',   cor: 0x7cb342, pinta: 0x33691e, preco: 130, css: '#7cb342', glow: 0x9ccc65 },
+  { id: 'fantasma',  nome: 'Fantasminha',   cor: 0xe3f2fd, pinta: 0xb3e5fc, preco: 160, css: '#e3f2fd', glow: 0x81d4fa, opacidade: 0.75 },
   { id: 'ninja',     nome: 'Ninja Sombra',  cor: 0x263238, pinta: 0xff1744, preco: 180, css: '#263238' },
+  { id: 'gelo',      nome: 'Congelado',     cor: 0x4fc3f7, pinta: 0xffffff, preco: 210, css: '#4fc3f7', glow: 0x80deea },
+  { id: 'fogo',      nome: 'Flamejante',    cor: 0xff5722, pinta: 0xffeb3b, preco: 250, css: '#ff5722', glow: 0xff9800 },
+  { id: 'veneno',    nome: 'Venenoso',      cor: 0x76ff03, pinta: 0x1b5e20, preco: 280, css: '#76ff03', glow: 0xccff00 },
   { id: 'dourado',   nome: 'Dourado',       cor: 0xffb300, pinta: 0xfff8e1, preco: 300, css: '#ffb300' },
-  { id: 'galactico', nome: 'Galáctico',     cor: 0x7c4dff, pinta: 0x00e5ff, preco: 500, css: '#7c4dff' },
+  { id: 'realeza',   nome: 'Realeza',       cor: 0x8e24aa, pinta: 0xffd54f, preco: 380, css: '#8e24aa', glow: 0xffd54f },
+  { id: 'galactico', nome: 'Galáctico',     cor: 0x7c4dff, pinta: 0x00e5ff, preco: 500, css: '#7c4dff', glow: 0x00e5ff },
+  { id: 'arcoiris',  nome: 'Arco-Íris',     cor: 0xff0080, pinta: 0xffffff, preco: 650, css: 'linear-gradient(90deg,red,orange,yellow,green,blue,violet)', glow: 0xffffff, anim: true },
 ];
 let carteira = parseInt(localStorage.getItem('parkour_carteira') || '0');
 let skinsCompradas = JSON.parse(localStorage.getItem('parkour_skins') || '["classico"]');
@@ -278,7 +285,11 @@ function criarCogumelo() {
   const g = new THREE.Group();
 
   const skin = getSkin();
-  const chapeuMat = new THREE.MeshStandardMaterial({ color: skin.cor, roughness: 0.45, metalness: 0.05 });
+  const chapeuMat = new THREE.MeshStandardMaterial({
+    color: skin.cor, roughness: 0.4, metalness: skin.glow ? 0.35 : 0.05,
+    emissive: skin.glow || 0x000000, emissiveIntensity: skin.glow ? 0.35 : 0,
+    transparent: !!skin.opacidade, opacity: skin.opacidade || 1
+  });
   const cabeca = new THREE.Mesh(new THREE.SphereGeometry(0.62, 28, 18, 0, Math.PI*2, 0, Math.PI/2), chapeuMat);
   cabeca.position.y = 0.72; cabeca.scale.set(1.12, 0.92, 1.12); cabeca.castShadow = true;
   g.add(cabeca);
@@ -286,6 +297,17 @@ function criarCogumelo() {
   const borda = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.08, 12, 28), chapeuMat);
   borda.position.y = 0.72; borda.rotation.x = Math.PI/2;
   g.add(borda);
+  g.userData.chapeuMat = chapeuMat;
+  g.userData.skinId = skin.id;
+  // anel brilhante para skins especiais
+  if (skin.glow) {
+    const anelMat = new THREE.MeshBasicMaterial({ color: skin.glow, transparent: true, opacity: 0.55, fog: false });
+    const anel = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.025, 8, 32), anelMat);
+    anel.position.y = 0.5; anel.rotation.x = Math.PI/2;
+    g.add(anel);
+    g.userData.anel = anel;
+    g.userData.anelMat = anelMat;
+  }
 
   const pintaMat = new THREE.MeshStandardMaterial({ color: skin.pinta, roughness: 0.6 });
   for (let i = 0; i < 7; i++) {
@@ -469,6 +491,52 @@ function explodirMoeda(pos) {
   }
 }
 
+// ---------- PARTÍCULAS AMBIENTE (vagalumes/brasas/neve/poeira) ----------
+let ambienteSys = null;
+function criarAmbiente(mundo) {
+  if (ambienteSys) { scene.remove(ambienteSys); ambienteSys = null; }
+  const n = 140;
+  const pos = new Float32Array(n * 3);
+  const vel = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    pos[i*3] = (Math.random() - 0.5) * 34;
+    pos[i*3+1] = Math.random() * 11;
+    pos[i*3+2] = -Math.random() * 100;
+    vel[i] = 0.01 + Math.random() * 0.02;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const sobe = mundo.decoTipo !== 'pinheiro'; // neve cai, resto sobe/flutua
+  const cor = mundo.decoTipo === 'rocha' ? 0xff8a50
+    : mundo.decoTipo === 'pinheiro' ? 0xffffff
+    : mundo.decoTipo === 'cristal' ? 0xce93d8
+    : mundo.decoTipo === 'cacto' ? 0xfff59d
+    : 0xccff90;
+  const mat = new THREE.PointsMaterial({ color: cor, size: mundo.decoTipo === 'pinheiro' ? 0.14 : 0.11, transparent: true, opacity: 0.8, fog: false });
+  const pts = new THREE.Points(g, mat);
+  pts.userData.vel = vel; pts.userData.sobe = sobe;
+  scene.add(pts); ambienteSys = pts;
+}
+function animarAmbiente() {
+  if (!ambienteSys) return;
+  const posAttr = ambienteSys.geometry.attributes.position;
+  const vel = ambienteSys.userData.vel; const sobe = ambienteSys.userData.sobe;
+  for (let i = 0; i < posAttr.count; i++) {
+    let y = posAttr.getY(i);
+    y += sobe ? vel[i] : -vel[i] * 1.6;
+    if (sobe && y > 11) y = 0;
+    if (!sobe && y < 0) y = 11;
+    posAttr.setY(i, y);
+    let z = posAttr.getZ(i) + vel + 0.15;
+    if (z > 9) z -= 100;
+    posAttr.setZ(i, z);
+  }
+  posAttr.needsUpdate = true;
+}
+
+// ---------- TRILHOS BRILHANTES DA PISTA ----------
+const railMats = [];
+
 // ---------- ESTADO ----------
 let jogador, obstaculos, moedas, decos, chaoSegmentos;
 let score, moedasColetadas, best, mundoIdx, vel;
@@ -503,6 +571,8 @@ function aplicarMundo(idx) {
   // pinta as montanhas do fundo com o clima do mundo
   const corMont = new THREE.Color(m.fog).lerp(new THREE.Color(0x334455), 0.45);
   montanhaMats.forEach(mt => mt.color.copy(corMont));
+  criarAmbiente(m);
+  railMats.forEach(mt => { mt.color.setHex(m.deco); mt.emissive.setHex(m.deco); });
 }
 
 function limparGrupo(arr) { arr.forEach(o => scene.remove(o)); arr.length = 0; }
@@ -526,6 +596,7 @@ function init() {
   jogador.position.set(0, 0, 0);
   scene.add(jogador);
 
+  railMats.length = 0;
   for (let i = 0; i < NUM_CHAO; i++) {
     const seg = new THREE.Mesh(new THREE.BoxGeometry(11, 0.5, SEG_LEN),
       new THREE.MeshStandardMaterial({ color: i % 2 ? MUNDOS[0].chao2 : MUNDOS[0].chao, roughness: 0.95 }));
@@ -536,6 +607,20 @@ function init() {
       const linha = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.02, SEG_LEN),
         new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35 }));
       linha.position.set(x, 0.27, 0); seg.add(linha);
+    }
+    // trilhos brilhantes nas bordas da pista
+    for (const x of [-5.35, 5.35]) {
+      const railMat = new THREE.MeshStandardMaterial({ color: MUNDOS[0].deco, emissive: MUNDOS[0].deco, emissiveIntensity: 0.6 });
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, SEG_LEN), railMat);
+      rail.position.set(x, 0.31, 0); seg.add(rail);
+      railMats.push(railMat);
+    }
+    // decoraçãozinha de tijolos/manchas no piso pra dar textura
+    for (let k = 0; k < 3; k++) {
+      const mancha = new THREE.Mesh(new THREE.BoxGeometry(1.4 + Math.random(), 0.02, 1.2),
+        new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.06 }));
+      mancha.position.set((Math.random()-0.5)*9, 0.26, (Math.random()-0.5)*SEG_LEN*0.9);
+      seg.add(mancha);
     }
     scene.add(seg); chaoSegmentos.push(seg);
   }
@@ -700,6 +785,17 @@ function loop() {
     jogador.userData.pernas[1].rotation.x = pulando ? 0.5 : -corr * 0.6;
   }
   if (jogador.userData.bracos) jogador.userData.bracos.rotation.x = pulando ? -0.8 : -corr * 0.4;
+  // efeitos de skin especial
+  if (jogador.userData.anel) {
+    jogador.userData.anel.rotation.z += 0.05;
+    jogador.userData.anel.position.y = 0.5 + Math.sin(frame*0.08)*0.05;
+  }
+  if (jogador.userData.skinId === 'arcoiris' && jogador.userData.chapeuMat) {
+    const hue = (frame * 0.01) % 1;
+    jogador.userData.chapeuMat.color.setHSL(hue, 0.85, 0.55);
+    jogador.userData.chapeuMat.emissive.setHSL(hue, 0.85, 0.4);
+    if (jogador.userData.anelMat) jogador.userData.anelMat.color.setHSL((hue+0.5)%1, 0.9, 0.6);
+  }
 
   // câmera
   camera.position.set(playerX * 0.35, 3.2, 6.5);
@@ -786,6 +882,9 @@ function loop() {
 
   // estrelas acompanham
   if (estrelas) estrelas.rotation.y += 0.0003;
+
+  // partículas ambiente (vagalumes/brasas/neve/poeira)
+  animarAmbiente();
 
   // acelera devagar
   vel += 0.00004;
