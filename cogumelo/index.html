@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Chuva de Cogumelos 🍄 - Cogumelo Games</title>
+<meta name="description" content="Pegue os cogumelos que caem do céu com a sua cesta! Cuidado com os venenosos!">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#12261a; font-family:'Comic Sans MS','Chalkboard SE',cursive,sans-serif; touch-action:none; }
+  #c { display:block; width:100%; height:100%; }
+  .overlay {
+    position:fixed; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; z-index:10;
+    background:linear-gradient(180deg, rgba(15,35,20,.93), rgba(45,20,40,.95));
+    color:#fff; text-align:center; padding:20px;
+  }
+  .hidden { display:none !important; }
+  h1.titulo {
+    font-size:clamp(34px, 8.5vw, 70px); color:#ff6b81;
+    text-shadow: 4px 4px 0 #6d1030, -2px -2px 0 #2e7d32;
+    animation: balanca 2s ease-in-out infinite; margin-bottom:6px;
+  }
+  @keyframes balanca { 0%,100%{transform:rotate(-2deg) scale(1);} 50%{transform:rotate(2deg) scale(1.04);} }
+  .subtitulo { font-size:clamp(15px,3.5vw,22px); color:#aef29b; margin-bottom:20px; text-shadow:2px 2px 0 #000; max-width:520px; }
+  .btn {
+    font-family:inherit; font-size:clamp(18px,4.5vw,28px); font-weight:bold;
+    padding:14px 42px; margin:8px; border:none; border-radius:50px; cursor:pointer;
+    color:#fff; background:linear-gradient(180deg,#ff7b91,#c2185b);
+    box-shadow:0 6px 0 #7a0f3a, 0 10px 16px rgba(0,0,0,.4); transition:transform .08s;
+  }
+  .btn:active { transform:translateY(4px); box-shadow:0 2px 0 #7a0f3a; }
+  .btn.verde { background:linear-gradient(180deg,#5ec24a,#2e7d32); box-shadow:0 6px 0 #1b4d1e,0 10px 16px rgba(0,0,0,.4); }
+  .recorde { font-size:clamp(16px,4vw,24px); color:#ffd54a; margin-top:16px; text-shadow:2px 2px 0 #000; }
+  .legenda { margin-top:22px; display:flex; gap:18px; flex-wrap:wrap; justify-content:center; font-size:clamp(14px,3.2vw,18px); }
+  .legenda div { background:rgba(0,0,0,.35); border-radius:14px; padding:8px 14px; }
+  #hud { position:fixed; top:0; left:0; right:0; z-index:5; padding:10px 14px; display:none; justify-content:space-between; pointer-events:none; }
+  .hud-item { background:rgba(0,0,0,.45); border-radius:14px; padding:6px 14px; color:#fff; font-size:clamp(15px,3.8vw,22px); font-weight:bold; text-shadow:2px 2px 0 #000; }
+  #msg-final { font-size:clamp(20px,5vw,34px); color:#ffd54a; margin-bottom:12px; text-shadow:2px 2px 0 #000; }
+  .voltar { position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:11; color:#aef29b; font-size:14px; text-decoration:none; text-shadow:1px 1px 0 #000; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div class="hud-item" id="hud-pontos">🍄 0</div>
+  <div class="hud-item" id="hud-nivel">Nível 1</div>
+  <div class="hud-item" id="hud-vidas">❤️❤️❤️</div>
+</div>
+
+<div class="overlay" id="menu">
+  <a class="voltar" href="/" style="position:static; margin-bottom:10px">⬅ Voltar pro site</a>
+  <h1 class="titulo">🍄 Chuva de Cogumelos</h1>
+  <div class="subtitulo">Cogumelos estão caindo do céu! Mova a cesta e pegue o máximo que puder. Mas cuidado: os roxos são VENENOSOS! ☠️</div>
+  <button class="btn" id="btn-jogar">▶ JOGAR</button>
+  <div class="legenda">
+    <div>🍄 = 1 ponto</div>
+    <div>✨ dourado = 5 pontos</div>
+    <div>🟣 veneno = perde vida</div>
+    <div>❤️ raro = vida extra</div>
+  </div>
+  <div class="recorde" id="recorde-menu"></div>
+</div>
+
+<div class="overlay hidden" id="fim">
+  <h1 class="titulo">🍄 Fim!</h1>
+  <div id="msg-final"></div>
+  <button class="btn verde" id="btn-denovo">🔄 JOGAR DE NOVO</button>
+  <button class="btn" onclick="location.href='/'">🏠 OUTROS JOGOS</button>
+</div>
+
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let W, H; function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight; } resize(); addEventListener('resize', resize);
+
+const hud = document.getElementById('hud');
+const KEY = 'cogumelo-chuva-recorde';
+let recorde = +(localStorage.getItem(KEY)||0);
+document.getElementById('recorde-menu').textContent = recorde ? '🏆 Recorde: '+recorde : '';
+
+let jogando=false, pontos=0, vidas=3, nivel=1, itens=[], parts=[], tSpawn=0, tempo=0;
+const cesta = { x:0, w:110, y:0 };
+let teclas = {};
+
+addEventListener('keydown', e=>teclas[e.key]=true);
+addEventListener('keyup', e=>teclas[e.key]=false);
+let alvoX=null;
+function pointer(e){ const t=e.touches?e.touches[0]:e; alvoX=t.clientX; }
+addEventListener('mousemove', pointer);
+addEventListener('touchstart', pointer, {passive:true});
+addEventListener('touchmove', pointer, {passive:true});
+
+function iniciar(){
+  pontos=0; vidas=3; nivel=1; itens=[]; parts=[]; tSpawn=0; tempo=0;
+  cesta.x=W/2; alvoX=null;
+  document.getElementById('menu').classList.add('hidden');
+  document.getElementById('fim').classList.add('hidden');
+  hud.style.display='flex';
+  jogando=true;
+}
+document.getElementById('btn-jogar').onclick=iniciar;
+document.getElementById('btn-denovo').onclick=iniciar;
+
+function fim(){
+  jogando=false; hud.style.display='none';
+  const novo = pontos>recorde;
+  if(novo){ recorde=pontos; localStorage.setItem(KEY, recorde); }
+  document.getElementById('msg-final').innerHTML =
+    'Você pegou <b>'+pontos+'</b> pontos!' + (novo?'<br>🎉 NOVO RECORDE! 🎉':'<br>🏆 Recorde: '+recorde);
+  document.getElementById('fim').classList.remove('hidden');
+}
+
+function spawn(){
+  const r=Math.random();
+  let tipo='normal';
+  if(r<0.05 && vidas<5) tipo='vida';
+  else if(r<0.17) tipo='dourado';
+  else if(r<0.17+Math.min(0.35, 0.12+nivel*0.03)) tipo='veneno';
+  itens.push({ x:40+Math.random()*(W-80), y:-40, tipo,
+    v:(2.2+nivel*0.55)*(0.8+Math.random()*0.5)*(H/700),
+    ang:Math.random()*6.28, giro:(Math.random()-0.5)*0.08 });
+}
+
+function boom(x,y,cor,n){ for(let i=0;i<n;i++) parts.push({x,y,vx:(Math.random()-0.5)*7,vy:-Math.random()*6,vida:1,cor}); }
+
+function desenhaCogu(it){
+  ctx.save(); ctx.translate(it.x,it.y); ctx.rotate(it.ang);
+  ctx.font='38px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  if(it.tipo==='veneno'){ ctx.filter='hue-rotate(260deg) saturate(2)'; ctx.fillText('🍄',0,0); ctx.filter='none'; ctx.font='18px serif'; ctx.fillText('☠️',0,-26); }
+  else if(it.tipo==='dourado'){ ctx.shadowColor='#ffd54a'; ctx.shadowBlur=18; ctx.filter='hue-rotate(45deg) brightness(1.4)'; ctx.fillText('🍄',0,0); ctx.filter='none'; }
+  else if(it.tipo==='vida'){ ctx.fillText('❤️',0,0); }
+  else ctx.fillText('🍄',0,0);
+  ctx.restore();
+}
+
+let ultimo=0;
+function loop(t){
+  requestAnimationFrame(loop);
+  const dt=Math.min((t-ultimo)/16.7,3); ultimo=t;
+
+  // fundo
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#1c3d57'); g.addColorStop(0.7,'#2a5a35'); g.addColorStop(1,'#1c3a22');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  // grama
+  ctx.fillStyle='#2e7d32'; ctx.fillRect(0,H-46,W,46);
+  ctx.font='24px serif';
+  for(let x=10;x<W;x+=90){ ctx.fillText('🌿', x, H-14); }
+
+  if(jogando){
+    tempo+=dt/60;
+    nivel=1+Math.floor(tempo/15);
+    // movimento cesta
+    const vel=9*dt;
+    if(teclas['ArrowLeft']||teclas['a']) cesta.x-=vel*1.4;
+    if(teclas['ArrowRight']||teclas['d']) cesta.x+=vel*1.4;
+    if(alvoX!==null) cesta.x += (alvoX-cesta.x)*Math.min(0.25*dt,1);
+    cesta.x=Math.max(cesta.w/2, Math.min(W-cesta.w/2, cesta.x));
+    cesta.y=H-64;
+
+    tSpawn-=dt;
+    if(tSpawn<=0){ spawn(); tSpawn=Math.max(14, 46-nivel*4)+Math.random()*20; }
+
+    for(let i=itens.length-1;i>=0;i--){
+      const it=itens[i]; it.y+=it.v*dt; it.ang+=it.giro*dt;
+      // pegou?
+      if(it.y>cesta.y-18 && it.y<cesta.y+26 && Math.abs(it.x-cesta.x)<cesta.w/2){
+        if(it.tipo==='veneno'){ vidas--; boom(it.x,it.y,'#b04ad6',18); if(vidas<=0){ itens.splice(i,1); fim(); break; } }
+        else if(it.tipo==='vida'){ vidas=Math.min(5,vidas+1); boom(it.x,it.y,'#ff6b81',14); }
+        else if(it.tipo==='dourado'){ pontos+=5; boom(it.x,it.y,'#ffd54a',16); }
+        else { pontos++; boom(it.x,it.y,'#ff5252',10); }
+        itens.splice(i,1); continue;
+      }
+      // caiu no chão
+      if(it.y>H-40){
+        if(it.tipo==='normal'||it.tipo==='dourado') boom(it.x,H-46,'#888',6);
+        itens.splice(i,1);
+      }
+    }
+    document.getElementById('hud-pontos').textContent='🍄 '+pontos;
+    document.getElementById('hud-nivel').textContent='Nível '+nivel;
+    document.getElementById('hud-vidas').textContent='❤️'.repeat(vidas);
+  }
+
+  // itens
+  itens.forEach(desenhaCogu);
+
+  // partículas
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i]; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=0.25*dt; p.vida-=0.03*dt;
+    if(p.vida<=0){ parts.splice(i,1); continue; }
+    ctx.globalAlpha=p.vida; ctx.fillStyle=p.cor;
+    ctx.beginPath(); ctx.arc(p.x,p.y,4,0,6.28); ctx.fill(); ctx.globalAlpha=1;
+  }
+
+  // cesta
+  if(jogando || document.getElementById('menu').classList.contains('hidden')===false){
+    const cx=jogando?cesta.x:W/2, cy=H-64;
+    ctx.font='56px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('🧺', cx, cy+8);
+  }
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
