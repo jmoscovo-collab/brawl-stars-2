@@ -236,7 +236,8 @@ var coinTimer, spawnTimer, dashCd, invulnT, shieldT, freezeT, tapTimes, skillUse
 var TYPES = [
   // weight relativo; recalculado com dificuldade
   { id:'verde',   w:30 }, { id:'laranja', w:18 }, { id:'preto', w:3 },
-  { id:'vida',    w:6  }, { id:'mist',    w:8  }, { id:'moeda', w:22 }
+  { id:'vida',    w:6  }, { id:'mist',    w:8  }, { id:'moeda', w:22 },
+  { id:'dourado', w:2  }, { id:'arcoiris', w:1 }
 ];
 
 function startGame(){
@@ -473,6 +474,16 @@ function burst(x, y, color, n){
 
 function hitShroom(m){
   if(m.type==='moeda'){ runCoins++; snd.coin(); burst(m.x, m.y, '#ffd93b', 8); return; }
+  if(m.type==='dourado'){
+    runCoins += 10; snd.buy(); toast('🌟 Cogumelo DOURADO! +10 moedas!');
+    burst(m.x, m.y, '#ffd21c', 20); return;
+  }
+  if(m.type==='arcoiris'){
+    snd.power(); toast('🌈 ARCO-ÍRIS! Tudo virou moeda!');
+    shrooms.forEach(function(o){ if(o !== m) o.type = 'moeda'; });
+    burst(m.x, m.y, '#ff5da2', 12); burst(m.x, m.y, '#5dc8ff', 12); burst(m.x, m.y, '#ffe45c', 12);
+    return;
+  }
   if(m.type==='vida'){
     if(lives < 5){ lives++; toast('❤️ +1 vida!'); } else toast('Vidas cheias!');
     snd.heal(); burst(m.x, m.y, '#9dfc9d', 8); return;
@@ -568,6 +579,18 @@ function draw(){
       case 'moeda':
         ctx.shadowColor = '#ffe45c'; ctx.shadowBlur = 12*s;
         drawShroomShape(wx, m.y, m.r, '#ffd21c', '#fff2a8'); break;
+      case 'dourado':
+        ctx.shadowColor = '#fff2a8'; ctx.shadowBlur = 22*s;
+        drawShroomShape(wx, m.y, m.r*1.15, '#f7b500', '#fff8d0', '#ffe9a8');
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#fff'; ctx.font = 'bold ' + (m.r*0.8) + 'px sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText('★', wx, m.y - m.r*0.2);
+        break;
+      case 'arcoiris':
+        var cores = ['#ff5da2','#ff9c1a','#ffe45c','#5bbf3f','#4aa3e0','#a86ae0'];
+        ctx.shadowColor = cores[Math.floor(elapsed*8)%6]; ctx.shadowBlur = 20*s;
+        drawShroomShape(wx, m.y, m.r*1.1, cores[Math.floor(elapsed*8)%6], '#ffffff');
+        break;
     }
     if(freezeT > 0){
       ctx.shadowBlur = 0;
