@@ -142,6 +142,20 @@
     position:fixed; inset:0; background:linear-gradient(160deg,#0f2027,#203a43,#2c5364);
     z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff;
   }
+  /* Chat do servidor */
+  #chatBox {
+    position:absolute; top:150px; left:16px; width:250px; max-width:70vw;
+    background:rgba(0,0,0,.65); border-radius:12px; padding:8px; display:none;
+    pointer-events:auto; z-index:12;
+  }
+  #chatMsgs { max-height:150px; overflow-y:auto; font-size:13px; color:#fff; line-height:1.5; }
+  #chatMsgs b { color:#0ff; }
+  #chatRow { display:flex; gap:5px; margin-top:6px; }
+  #chatInput { flex:1; border:none; border-radius:8px; padding:7px; font-size:13px; }
+  #chatSend { background:#0ff; border:none; border-radius:8px; padding:0 12px; font-weight:bold; cursor:pointer; }
+  #onlinePill { position:absolute; top:60px; right:20px; background:rgba(0,0,0,.6); color:#8f8; padding:5px 12px; border-radius:14px; font-size:13px; font-weight:bold; }
+  @media (max-width:820px){ #chatBox { top:auto; bottom:290px; width:210px; } #chatMsgs{ max-height:90px; } }
+
   #startScreen h1 { font-size:60px; text-shadow:0 0 30px #0ff; margin-bottom:8px; }
   #startScreen p { font-size:18px; opacity:.8; margin-bottom:30px; }
   #startBtn {
@@ -155,11 +169,11 @@
 
 <div id="startScreen">
   <h1>🌆 MEGA SP</h1>
-  <p>A maior cidade do Brasil é sua: aeroporto, estádio, praia e muito mais! — feito pelo Davi 🍄</p>
+  <p>Agora ONLINE! Encontre seus amigos no servidor: banco, prisão, shopping, praia com píer e muito mais! — feito pelo Davi 🍄</p>
   <button id="startBtn">▶ JOGAR</button>
   <div id="controls">
     ⬆️⬇️⬅️➡️ ou WASD — dirigir / andar &nbsp;|&nbsp; ESPAÇO — freio de mão<br>
-    E — sair / entrar no carro 🚶 &nbsp;|&nbsp; C — celular 📱 &nbsp;|&nbsp; F — interagir (posto, mercado...)
+    E — sair / entrar no carro 🚶 &nbsp;|&nbsp; C — celular 📱 &nbsp;|&nbsp; F — interagir &nbsp;|&nbsp; T — chat 💬
   </div>
 </div>
 
@@ -185,7 +199,17 @@
     <button id="tE">🚶<br>E</button>
     <button id="tF">✋<br>F</button>
     <button id="tC">📱<br>C</button>
+    <button id="tT">💬</button>
     <button id="tB">🛑</button>
+  </div>
+
+  <div id="onlinePill">🌍 ...</div>
+  <div id="chatBox">
+    <div id="chatMsgs"></div>
+    <div id="chatRow">
+      <input id="chatInput" placeholder="Fala aí..." maxlength="80">
+      <button id="chatSend">➤</button>
+    </div>
   </div>
 
   <div id="phone">
@@ -201,6 +225,7 @@ const G = {
   money: 500, carIdx: 0, ownedCars: [0], ownedHomes: [],
   job: null, jobPhase: 0, fuel: 100, hunger: 100, lots: {}, time: 8*60,
   geladeira: 0, day: 1, dest: null,
+  bank: 0, inv: {}, shirt: 0x22cc66, cap: 0xdd2233,
 };
 try { const s = JSON.parse(localStorage.getItem('spcity_save')); if (s) Object.assign(G, s); } catch(e) {}
 if (G.fuel === undefined) G.fuel = 100;
@@ -209,6 +234,10 @@ if (!G.lots) G.lots = {};
 if (G.time === undefined || isNaN(G.time)) G.time = 8*60;
 if (G.geladeira === undefined) G.geladeira = 0;
 if (G.day === undefined) G.day = 1;
+if (G.bank === undefined) G.bank = 0;
+if (!G.inv) G.inv = {};
+if (!G.shirt) G.shirt = 0x22cc66;
+if (!G.cap) G.cap = 0xdd2233;
 function save(){ try{ localStorage.setItem('spcity_save', JSON.stringify(G)); }catch(e){} }
 
 const CARS = [
@@ -226,6 +255,8 @@ const HOMES = [
   {name:'🏰 Mansão no Morumbi', price:300000},
   {name:'🏯 Mansão Alphaville', price:600000},
   {name:'🏖️ Mansão da Praia', price:1200000},
+  {name:'🏡 Casinha da Vila', price:800},
+  {name:'🌇 Loft do Centro', price:8000},
 ];
 const JOBS = [
   {label:'🍕 Entregar pizza', pay:300},
@@ -233,6 +264,10 @@ const JOBS = [
   {label:'🚕 Corrida de táxi', pay:600},
   {label:'💼 Motorista executivo', pay:900},
   {label:'🏥 Entrega urgente de remédio', pay:1200},
+  {label:'🏖️ Salva-vidas na praia', pay:500},
+  {label:'📰 Entregar jornais', pay:350},
+  {label:'🚌 Levar turistas pro shopping', pay:750},
+  {label:'💎 Transporte de joias pro banco', pay:1500},
 ];
 
 // ============ CENA ============
@@ -291,7 +326,7 @@ function makeFacade(base){
 }
 
 // ============ CIDADE ============
-const CELL=80, BLOCK=60, GRID=16, CITY=GRID*CELL;
+const CELL=80, BLOCK=60, GRID=20, CITY=GRID*CELL; // mapa maior!
 const buildings=[]; // colisões {x,z,w,d}
 const pois=[];      // pontos de interação {x,z,type,label}
 
@@ -314,7 +349,7 @@ sea.rotation.x=-Math.PI/2; sea.position.y=-0.5; scene.add(sea);
 // guarda-sóis e coqueiros na praia
 const rngList=[];
 let seed=42; function rand(a,b){ seed=(seed*16807)%2147483647; const r=(seed-1)/2147483646; return a+r*(b-a); }
-for(let i=0;i<40;i++){
+for(let i=0;i<75;i++){
   const edge = Math.floor(rand(0,4));
   let x,z;
   const off = rand(-CITY/2+50, CITY/2-50);
@@ -330,7 +365,50 @@ for(let i=0;i<40;i++){
     pole.position.set(x,2.5,z); scene.add(pole);
     const top = new THREE.Mesh(new THREE.ConeGeometry(3,1.6,8), new THREE.MeshLambertMaterial({color:[0xff4444,0x44ff44,0xff44ff,0x4488ff][Math.floor(rand(0,4))]}));
     top.position.set(x,5.3,z); scene.add(top);
+    // cadeira de praia do lado
+    const cadeira = new THREE.Mesh(new THREE.BoxGeometry(2,0.4,4), new THREE.MeshLambertMaterial({color:[0xffcc44,0x44ccff,0xff6688][Math.floor(rand(0,3))]}));
+    cadeira.position.set(x+3,0.6,z); cadeira.rotation.x=-0.25; scene.add(cadeira);
   }
+}
+// ===== PÍER de madeira entrando no mar =====
+{
+  const madeira = new THREE.MeshLambertMaterial({color:0x8a6a3a});
+  const pier = new THREE.Mesh(new THREE.BoxGeometry(10,1,140), madeira);
+  pier.position.set(200, 1.2, CITY/2+SAND_W+40); pier.castShadow=true; scene.add(pier);
+  for(let pz2=0;pz2<140;pz2+=20){
+    [[-4],[4]].forEach(([pxx])=>{
+      const pilar = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.6,4,6), madeira);
+      pilar.position.set(200+pxx, -0.5, CITY/2+SAND_W-30+pz2); scene.add(pilar);
+    });
+  }
+  // quiosque na ponta do píer
+  const kb = new THREE.Mesh(new THREE.BoxGeometry(7,3.5,5), new THREE.MeshLambertMaterial({color:0xcc8844}));
+  kb.position.set(200,3.4,CITY/2+SAND_W+100); scene.add(kb);
+  const kt = new THREE.Mesh(new THREE.ConeGeometry(6,3,8), new THREE.MeshLambertMaterial({color:0xbfa04a}));
+  kt.position.set(200,7,CITY/2+SAND_W+100); scene.add(kt);
+  pois.push({x:200, z:CITY/2+SAND_W+95, type:'kiosk', label:'🍤 Porção no píer R$ 20'});
+}
+// ===== VÔLEI DE PRAIA + POSTO DE SALVA-VIDAS =====
+{
+  const zP = CITY/2+60;
+  // rede de vôlei
+  [[-4],[4]].forEach(([vx])=>{
+    const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,4,6), new THREE.MeshLambertMaterial({color:0xdddddd}));
+    poste.position.set(-150+vx*2.5,2,zP); scene.add(poste);
+  });
+  const rede = new THREE.Mesh(new THREE.PlaneGeometry(10,1.6), new THREE.MeshLambertMaterial({color:0xffffff, transparent:true, opacity:0.6, side:THREE.DoubleSide}));
+  rede.position.set(-150,3,zP); scene.add(rede);
+  const bola = new THREE.Mesh(new THREE.SphereGeometry(0.7,10,8), new THREE.MeshLambertMaterial({color:0xffee44}));
+  bola.position.set(-146,0.7,zP+4); scene.add(bola);
+  // torre de salva-vidas
+  const tsv = new THREE.Mesh(new THREE.BoxGeometry(5,4,5), new THREE.MeshLambertMaterial({color:0xff5544}));
+  tsv.position.set(-250,5,zP); scene.add(tsv);
+  [[-2,-2],[2,-2],[-2,2],[2,2]].forEach(([lx,lz])=>{
+    const perna = new THREE.Mesh(new THREE.BoxGeometry(0.5,6,0.5), new THREE.MeshLambertMaterial({color:0xffffff}));
+    perna.position.set(-250+lx,3,zP+lz); scene.add(perna);
+  });
+  const boia = new THREE.Mesh(new THREE.TorusGeometry(1,0.35,8,16), new THREE.MeshLambertMaterial({color:0xff3322}));
+  boia.position.set(-250,7,zP+2.8); scene.add(boia);
 }
 
 // faixas das ruas
@@ -432,7 +510,54 @@ SHOPS.imobil  = makeShop(12,12,'imobil','🏠 Imobiliária','IMÓVEIS SP','#22aa
 SHOPS.mercado1 = makeShop(6,10,'mercado','🛒 Mercado','MERCADÃO','#2255cc',0x667788);
 SHOPS.mercado2 = makeShop(11,4,'mercado','🛒 Mercado','SUPER SP','#2255cc',0x667788);
 SHOPS.lanche = makeShop(8,13,'mercado','🍔 Lanchonete','DAVI BURGER','#dd4400',0x775544);
-makePosto(2,8); makePosto(8,2); makePosto(13,8); makePosto(8,14);
+SHOPS.armas  = makeShop(17,5,'armas','🔫 Loja de Armas','ARMAS DO ZÉ','#992222',0x554444);
+SHOPS.roupas = makeShop(16,9,'roupas','👕 Loja de Roupas','MODA SP','#cc44aa',0x665577);
+SHOPS.rest   = makeShop(18,12,'restaurante','🍝 Restaurante','CANTINA DA NONNA','#22aa77',0x775555);
+SHOPS.banco  = makeShop(17,14,'banco','🏦 Banco','BANCO SP','#226699',0x445577);
+SHOPS.shopping = makeShop(18,8,'shopping','🏬 Shopping','SHOPPING SP','#8844cc',0x998899);
+makePosto(2,8); makePosto(8,2); makePosto(13,8); makePosto(8,14); makePosto(17,17);
+
+// ===== DELEGACIA + PRISÃO =====
+{
+  const dx2 = -CITY/2+16*CELL+CELL/2, dz2 = -CITY/2+2*CELL+CELL/2;
+  // delegacia
+  const del = new THREE.Mesh(new THREE.BoxGeometry(42,16,30), new THREE.MeshLambertMaterial({color:0x8899bb}));
+  del.position.set(dx2,8,dz2); del.castShadow=true; scene.add(del);
+  const faixaDel = new THREE.Mesh(new THREE.BoxGeometry(42.4,3,30.4), new THREE.MeshLambertMaterial({color:0x224488}));
+  faixaDel.position.set(dx2,3,dz2); scene.add(faixaDel);
+  const sDel = new THREE.Mesh(new THREE.BoxGeometry(34,6,1), makeSign('👮 DELEGACIA','#224488'));
+  sDel.position.set(dx2,20,dz2+15.5); scene.add(sDel);
+  buildings.push({x:dx2,z:dz2,w:42,d:30});
+  // viatura estacionada
+  const viat = new THREE.Mesh(new THREE.BoxGeometry(4,1.5,8), new THREE.MeshPhongMaterial({color:0xeeeeee}));
+  viat.position.set(dx2+15,1,dz2+22); scene.add(viat);
+  const viatLuz = new THREE.Mesh(new THREE.BoxGeometry(1.6,0.5,0.9), new THREE.MeshBasicMaterial({color:0xff2222}));
+  viatLuz.position.set(dx2+15,2.2,dz2+22); scene.add(viatLuz);
+  pois.push({x:dx2, z:dz2+22, type:'delegacia', label:'👮 Delegacia — chamar polícia'});
+  // prisão ao lado
+  const px2 = -CITY/2+17*CELL+CELL/2;
+  const muro = new THREE.MeshLambertMaterial({color:0x777788});
+  [[0,-25,54,2],[0,25,54,2],[-27,0,2,50],[27,0,2,50]].forEach(([mx,mz,mw,md])=>{
+    const m = new THREE.Mesh(new THREE.BoxGeometry(mw,10,md), muro);
+    m.position.set(px2+mx,5,dz2+mz); m.castShadow=true; scene.add(m);
+  });
+  const cela = new THREE.Mesh(new THREE.BoxGeometry(30,12,20), new THREE.MeshLambertMaterial({color:0x66666f}));
+  cela.position.set(px2,6,dz2); cela.castShadow=true; scene.add(cela);
+  buildings.push({x:px2,z:dz2,w:56,d:52});
+  // grades nas janelas
+  for(let gi=-10;gi<=10;gi+=5){
+    const grade = new THREE.Mesh(new THREE.BoxGeometry(0.4,5,0.4), new THREE.MeshLambertMaterial({color:0x222}));
+    grade.position.set(px2+gi,7,dz2+10.3); scene.add(grade);
+  }
+  // torre de vigia
+  const torre = new THREE.Mesh(new THREE.CylinderGeometry(2,2.5,18,8), muro);
+  torre.position.set(px2+24,9,dz2+22); scene.add(torre);
+  const torreTop = new THREE.Mesh(new THREE.CylinderGeometry(3.5,3.5,3,8), new THREE.MeshPhongMaterial({color:0xffee88, emissive:0x443300}));
+  torreTop.position.set(px2+24,19.5,dz2+22); scene.add(torreTop);
+  const sPri = new THREE.Mesh(new THREE.BoxGeometry(24,5,1), makeSign('🔒 PRISÃO','#555566'));
+  sPri.position.set(px2,15,dz2+26.5); scene.add(sPri);
+  pois.push({x:px2, z:dz2+30, type:'prisao', label:'🔒 Prisão'});
+}
 
 // ===== CASAS COMPRÁVEIS (lotes fixos na cidade) =====
 const HOME_CELLS = [[13,6],[12,3],[6,6],[4,11],[1,13],[14,14]];
@@ -445,10 +570,14 @@ const HOME_STYLE = [
   {w:34,h:14,d:26, col:0xfff0d0, roof:0xcc8833},  // mansão
   {w:40,h:18,d:30, col:0xe8e8f5, roof:0x445566},  // alphaville
   {w:42,h:15,d:32, col:0xfff8e0, roof:0x2288aa},  // praia
+  {w:9,h:4.5,d:8, col:0xffe0a0, roof:0xcc6633},   // casinha da vila (pequenininha por fora!)
+  {w:14,h:20,d:12, col:0x99aacc, roof:0x445566},  // loft
 ];
-// posições: 6 na cidade + mansão da praia na areia
+// posições: 6 na cidade + mansão da praia na areia + 2 novas
 const HOME_POS = HOME_CELLS.map(([gx,gz])=>({x:-CITY/2+gx*CELL+CELL/2, z:-CITY/2+gz*CELL+CELL/2}));
 HOME_POS.push({x:0, z:CITY/2+SAND_W/2+5});
+HOME_POS.push({x:-CITY/2+18*CELL+CELL/2, z:-CITY/2+17*CELL+CELL/2});
+HOME_POS.push({x:-CITY/2+3*CELL+CELL/2, z:-CITY/2+17*CELL+CELL/2});
 HOME_POS.forEach(({x,z},i)=>{
   const s = HOME_STYLE[i];
   // gramado do lote
@@ -566,9 +695,9 @@ let flyPlane;
 
 // ===== INTERIORES das lojas =====
 const shopInts = [];
-const SHOP_KINDS = ['concess','imobil','mercado','mercado','lanche']; // ordem de criação
+const SHOP_KINDS = ['concess','imobil','mercado','mercado','lanche','armas','roupas','restaurante','banco','shopping']; // ordem de criação
 SHOP_KINDS.forEach((kind,i)=>{
-  const cx = 8000 + i*300, cz = 0, RW = 44, RD = 32, WH = 9;
+  const cx = 8000 + i*300, cz = 0, RW = kind==='shopping'?78:44, RD = kind==='shopping'?52:32, WH = kind==='shopping'?13:9;
   const g = new THREE.Group();
   // piso xadrez
   const fcv = document.createElement('canvas'); fcv.width=64; fcv.height=64;
@@ -642,6 +771,68 @@ SHOP_KINDS.forEach((kind,i)=>{
     const maqueta = new THREE.Mesh(new THREE.ConeGeometry(2,3,4), new THREE.MeshLambertMaterial({color:0xddccaa}));
     maqueta.position.set(cx,4,cz-RD/2+4); g.add(maqueta);
     pois.push({x:cx, z:cz-RD/2+7, type:'counterHomes', label:'🏠 Falar com corretor'});
+  } else if (kind==='armas'){
+    // vitrine de equipamentos (de brincadeira!)
+    for (let r=0;r<4;r++){
+      const rack = new THREE.Mesh(new THREE.BoxGeometry(4,5,1), new THREE.MeshLambertMaterial({color:0x554433}));
+      rack.position.set(cx-13+r*9, 2.5, cz-RD/2+1.5); g.add(rack);
+      const item = new THREE.Mesh(new THREE.BoxGeometry(2.4,0.8,0.6), new THREE.MeshPhongMaterial({color:[0x44aaff,0xffaa22,0x99ff44,0xcccccc][r], shininess:80}));
+      item.position.set(cx-13+r*9, 3, cz-RD/2+2.2); g.add(item);
+    }
+    pois.push({x:cx, z:cz-RD/2+7, type:'counterArmas', label:'🔫 Falar com o Zé'});
+  } else if (kind==='roupas'){
+    // araras de roupas coloridas
+    for (let r=0;r<3;r++){
+      const arara = new THREE.Mesh(new THREE.BoxGeometry(0.4,4.5,10), new THREE.MeshLambertMaterial({color:0x999}));
+      arara.position.set(cx-12+r*12, 2.2, cz+4); g.add(arara);
+      for(let rp=0;rp<4;rp++){
+        const camisa = new THREE.Mesh(new THREE.BoxGeometry(1.6,2.2,0.4), new THREE.MeshLambertMaterial({color:[0x22cc66,0xdd2233,0x2266dd,0xffcc22,0xcc44aa,0x222222,0xffffff,0xff8822,0x22ccdd,0x8844cc,0xaaff44,0xff4488][r*4+rp]}));
+        camisa.position.set(cx-12+r*12, 2.6, cz+rp*2.4); g.add(camisa);
+      }
+    }
+    pois.push({x:cx, z:cz-RD/2+7, type:'counterRoupas', label:'👕 Provar roupas'});
+  } else if (kind==='restaurante'){
+    for (let t=0;t<4;t++){
+      const mesa = new THREE.Mesh(new THREE.BoxGeometry(4,0.3,4), new THREE.MeshLambertMaterial({color:0xffffff}));
+      mesa.position.set(cx-13+t*9, 2.4, cz+5); g.add(mesa);
+      const perna = new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.5,2.4,8), new THREE.MeshLambertMaterial({color:0x6a4a2a}));
+      perna.position.set(cx-13+t*9, 1.2, cz+5); g.add(perna);
+      const prato = new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,0.15,12), new THREE.MeshLambertMaterial({color:0xffeecc}));
+      prato.position.set(cx-13+t*9, 2.65, cz+5); g.add(prato);
+    }
+    pois.push({x:cx, z:cz-RD/2+7, type:'buyRest', label:'🍝 Ver cardápio'});
+  } else if (kind==='banco'){
+    // cofre gigante
+    const cofre = new THREE.Mesh(new THREE.CylinderGeometry(4,4,6,16), new THREE.MeshPhongMaterial({color:0x99a0aa, shininess:100}));
+    cofre.rotation.x=Math.PI/2; cofre.position.set(cx-12,4,cz-RD/2+3); g.add(cofre);
+    const roda = new THREE.Mesh(new THREE.TorusGeometry(1.5,0.3,8,16), new THREE.MeshPhongMaterial({color:0xffcc44}));
+    roda.position.set(cx-12,4,cz-RD/2+6.2); g.add(roda);
+    // pilhas de dinheiro
+    for(let d2=0;d2<3;d2++){
+      const grana = new THREE.Mesh(new THREE.BoxGeometry(2,0.8+d2*0.5,1.4), new THREE.MeshLambertMaterial({color:0x33aa55}));
+      grana.position.set(cx+8+d2*4, 0.6, cz-RD/2+3); g.add(grana);
+    }
+    pois.push({x:cx, z:cz-RD/2+7, type:'counterBank', label:'🏦 Falar com o gerente'});
+  } else if (kind==='shopping'){
+    // praça de alimentação + lojinhas dentro
+    const lojas = [['🍔 LANCHES','#dd4400',-24],['👕 MODA','#cc44aa',0],['🎮 GAMES','#4444dd',24]];
+    lojas.forEach(([txt,cor,ldx])=>{
+      const box = new THREE.Mesh(new THREE.BoxGeometry(18,7,10), new THREE.MeshLambertMaterial({color:0xddddee}));
+      box.position.set(cx+ldx,3.5,cz-RD/2+6); g.add(box);
+      const pl = new THREE.Mesh(new THREE.BoxGeometry(14,3,0.5), makeSign(txt.slice(txt.indexOf(' ')+1), cor));
+      pl.position.set(cx+ldx,8.5,cz-RD/2+11.3); g.add(pl);
+    });
+    pois.push({x:cx-24, z:cz-RD/2+14, type:'buyRest', label:'🍔 Praça de alimentação'});
+    pois.push({x:cx, z:cz-RD/2+14, type:'counterRoupas', label:'👕 Loja de roupas'});
+    pois.push({x:cx+24, z:cz-RD/2+14, type:'buyToy', label:'🎮 Loja de games R$ 80'});
+    // fonte no meio
+    const fonte = new THREE.Mesh(new THREE.CylinderGeometry(5,6,1.4,16), new THREE.MeshPhongMaterial({color:0x66bbee, shininess:90}));
+    fonte.position.set(cx,0.9,cz+8); g.add(fonte);
+    // bancos
+    [[-12],[12]].forEach(([bx3])=>{
+      const banco2 = new THREE.Mesh(new THREE.BoxGeometry(7,1,2.4), new THREE.MeshLambertMaterial({color:0x8a5a2a}));
+      banco2.position.set(cx+bx3,0.7,cz+8); g.add(banco2);
+    });
   }
   const lamp = new THREE.PointLight(0xffffff, 0.9, 70);
   lamp.position.set(cx, WH-1, cz); g.add(lamp);
@@ -745,8 +936,8 @@ HOMES.forEach((h,i)=>{
   const rich = i; // 0 pobre → 4 mansão
   const RW = 34+rich*6, RD = 26+rich*4, WH = 8;
   const g = new THREE.Group();
-  const floorCols=[0x8a7a5a,0xc0a070,0xd8c8a8,0xe8e0d0,0xf0e8e0,0xe0e8f0,0xf5efd8];
-  const wallCols=[0x9a9a8a,0xd0c8b0,0xb0c8d8,0xe0d8e8,0xf5ecd8,0xdde8f5,0xf8f0dd];
+  const floorCols=[0x8a7a5a,0xc0a070,0xd8c8a8,0xe8e0d0,0xf0e8e0,0xe0e8f0,0xf5efd8,0xd0b080,0xb8c8d8];
+  const wallCols=[0x9a9a8a,0xd0c8b0,0xb0c8d8,0xe0d8e8,0xf5ecd8,0xdde8f5,0xf8f0dd,0xf0d8b0,0xc8d8e8];
   const floor = new THREE.Mesh(new THREE.BoxGeometry(RW,0.4,RD), new THREE.MeshLambertMaterial({color:floorCols[i]}));
   floor.position.set(cx,0.2,cz); floor.receiveShadow=true; g.add(floor);
   const wallMat = new THREE.MeshLambertMaterial({color:wallCols[i]});
@@ -774,7 +965,7 @@ HOMES.forEach((h,i)=>{
   table.position.set(cx-6, 2.4, cz+2); g.add(table);
   const tleg = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.7,2.4,8), new THREE.MeshLambertMaterial({color:0x6a4a2a}));
   tleg.position.set(cx-6, 1.2, cz+2); g.add(tleg);
-  const rug = new THREE.Mesh(new THREE.CylinderGeometry(6,6,0.1,20), new THREE.MeshLambertMaterial({color:[0x996644,0xaa5566,0x5588aa,0x8866aa,0xddaa44,0x66aacc,0x33ccaa][i]}));
+  const rug = new THREE.Mesh(new THREE.CylinderGeometry(6,6,0.1,20), new THREE.MeshLambertMaterial({color:[0x996644,0xaa5566,0x5588aa,0x8866aa,0xddaa44,0x66aacc,0x33ccaa,0xcc8844,0x7788cc][i]}));
   rug.position.set(cx+4, 0.45, cz+2); g.add(rug);
   if (rich>=2){ // planta e luminária nos chiques
     const vase = new THREE.Mesh(new THREE.CylinderGeometry(1,1.4,2.4,10), new THREE.MeshLambertMaterial({color:0xcc7733}));
@@ -826,6 +1017,7 @@ HOMES.forEach((h,i)=>{
 let inside = null, outPos = null; // inside = {it:{cx,cz,RW,RD}}
 
 const shopCells = new Set(['3,3','12,12','6,10','11,4','8,13','2,8','8,2','13,8','8,14',
+  '17,5','16,9','18,12','17,14','18,8','17,17','16,2','17,2','18,17','3,17',
   ...HOME_CELLS.map(c=>c[0]+','+c[1]), ...LOT_CELLS.map(c=>c[0]+','+c[1]),
   '0,4','0,5','0,6','0,7','9,9','10,9']);
 
@@ -991,7 +1183,8 @@ scene.add(car);
 const player = new THREE.Group();
 {
   const skin = new THREE.MeshLambertMaterial({color:0xf0c090});
-  const shirtMat = new THREE.MeshPhongMaterial({color:0x22cc66, shininess:30});
+  const shirtMat = new THREE.MeshPhongMaterial({color:G.shirt, shininess:30});
+  window._shirtMat = shirtMat;
   // corpo (camiseta verde com detalhe)
   const shirt = new THREE.Mesh(new THREE.BoxGeometry(1.15,1.3,0.65), shirtMat);
   shirt.position.y=2.05; shirt.castShadow=true; player.add(shirt);
@@ -1013,7 +1206,8 @@ const player = new THREE.Group();
   const smile = new THREE.Mesh(new THREE.TorusGeometry(0.16,0.035,8,12,Math.PI), new THREE.MeshBasicMaterial({color:0xaa3322}));
   smile.position.set(0,3.08,0.46); smile.rotation.z=Math.PI; player.add(smile);
   // boné com aba
-  const capMat = new THREE.MeshPhongMaterial({color:0xdd2233, shininess:40});
+  const capMat = new THREE.MeshPhongMaterial({color:G.cap, shininess:40});
+  window._capMat = capMat;
   const cap = new THREE.Mesh(new THREE.SphereGeometry(0.55,16,8,0,Math.PI*2,0,Math.PI/2.2), capMat);
   cap.position.y=3.42; player.add(cap);
   const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.42,0.07,12,1,false,-Math.PI/2,Math.PI), capMat);
@@ -1060,6 +1254,7 @@ function toggleMode(){
     mode='walk';
     player.position.set(car.position.x + Math.cos(heading)*5, 0, car.position.z - Math.sin(heading)*5);
     player.rotation.y = heading;
+    walkHeading = camYaw = heading;
     player.visible=true; speed=0;
     document.getElementById('exitBtn').textContent='🚗 ENTRAR NO CARRO (E)';
   } else {
@@ -1101,6 +1296,32 @@ for(let i=0;i<25;i++){
   scene.add(c); npcs.push(c);
 }
 
+// ===== PEDESTRES (pessoas andando pelo mapa) =====
+const pedestres = [];
+function makePessoa(){
+  const g = new THREE.Group();
+  const cores = [0x22cc66,0xdd2233,0x2266dd,0xffcc22,0xcc44aa,0xff8822,0x22ccdd,0x8844cc];
+  const pele = [0xf0c090,0xd0a070,0x9a6a4a,0xf5d5b5][Math.floor(Math.random()*4)];
+  const corpo = new THREE.Mesh(new THREE.BoxGeometry(1.1,1.3,0.6), new THREE.MeshLambertMaterial({color:cores[Math.floor(Math.random()*cores.length)]}));
+  corpo.position.y=2.0; corpo.castShadow=true; g.add(corpo);
+  const cabeca = new THREE.Mesh(new THREE.SphereGeometry(0.48,12,10), new THREE.MeshLambertMaterial({color:pele}));
+  cabeca.position.y=3.1; g.add(cabeca);
+  const short2 = new THREE.Mesh(new THREE.BoxGeometry(1.1,0.5,0.6), new THREE.MeshLambertMaterial({color:[0x223a8a,0x333333,0x8a5a2a][Math.floor(Math.random()*3)]}));
+  short2.position.y=1.2; g.add(short2);
+  const pl2 = new THREE.Mesh(new THREE.BoxGeometry(0.38,1.1,0.4), new THREE.MeshLambertMaterial({color:pele}));
+  pl2.position.set(-0.28,0.55,0); g.add(pl2);
+  const pr2 = pl2.clone(); pr2.position.x=0.28; g.add(pr2);
+  g.userData.pernas=[pl2,pr2];
+  return g;
+}
+for(let i=0;i<22;i++){
+  const p = makePessoa();
+  p.position.set(rand(-CITY/2+30,CITY/2-30), 0, rand(-CITY/2+30,CITY/2-30));
+  p.userData.dir = Math.random()*Math.PI*2;
+  p.userData.t = Math.random()*10;
+  scene.add(p); pedestres.push(p);
+}
+
 // ============ CONTROLES ============
 const keys={};
 addEventListener('keydown', e=>{
@@ -1109,10 +1330,11 @@ addEventListener('keydown', e=>{
   if(e.code==='KeyC') togglePhone();
   if(e.code==='KeyE') toggleMode();
   if(e.code==='KeyF') doInteract();
+  if(e.code==='KeyT') window.abrirChat();
 });
 addEventListener('keyup', e=>{ keys[e.code]=false; });
 
-let speed=0, heading=0, walkHeading=0, walkT=0;
+let speed=0, heading=0, walkHeading=0, walkT=0, camYaw=0;
 
 // ===== JOYSTICK DE TOQUE =====
 if ('ontouchstart' in window || navigator.maxTouchPoints > 0){
@@ -1156,6 +1378,7 @@ if ('ontouchstart' in window || navigator.maxTouchPoints > 0){
   bind('tE', ()=>toggleMode(), null);
   bind('tF', ()=>doInteract(), null);
   bind('tC', ()=>togglePhone(), null);
+  bind('tT', ()=>window.abrirChat(), null);
   bind('tB', null, 'Space');
 }
 function collideNpc(x,z,pad){
@@ -1231,14 +1454,14 @@ function doInteract(){
     const it = interiors[i];
     inside = {it};
     player.position.set(it.cx, 0, it.cz+it.RD/2-4);
-    player.rotation.y = walkHeading = Math.PI;
+    player.rotation.y = walkHeading = Math.PI; camYaw = Math.PI;
     camera.position.set(it.cx, 6, it.cz+it.RD/2+8);
     toast(`Bem-vindo: ${HOMES[i].name}! 🏡`);
   } else if (nearPoi.type==='homeExit' || nearPoi.type==='shopExit'){
     if (!inside) return;
     inside = null;
     player.position.set(outPos.x, 0, outPos.z);
-    walkHeading = 0; player.rotation.y = 0;
+    walkHeading = camYaw = 0; player.rotation.y = 0;
     toast('Saiu de casa! 🌆');
   } else if (nearPoi.type==='shopEnter'){
     if (mode==='car'){ mode='walk'; player.visible=true; speed=0; document.getElementById('exitBtn').textContent='🚗 ENTRAR NO CARRO (E)'; }
@@ -1246,7 +1469,7 @@ function doInteract(){
     const it = shopInts[nearPoi.sidx];
     inside = {it};
     player.position.set(it.cx, 0, it.cz+it.RD/2-4);
-    player.rotation.y = walkHeading = Math.PI;
+    player.rotation.y = walkHeading = Math.PI; camYaw = Math.PI;
     camera.position.set(it.cx, 6, it.cz+it.RD/2+8);
   } else if (nearPoi.type==='buyFood'){
     if (!phoneOpen) togglePhone();
@@ -1276,6 +1499,27 @@ function doInteract(){
     } else {
       toast(`${BUILDS[G.lots[i]].name} — rendendo R$ ${BUILDS[G.lots[i]].income} por ciclo! 🤑`);
     }
+  } else if (nearPoi.type==='buyRest'){
+    if (!phoneOpen) togglePhone();
+    window.appRest();
+  } else if (nearPoi.type==='buyToy'){
+    if (G.money < 80){ toast('Precisa de R$ 80! 😢'); return; }
+    G.money -= 80; G.inv['🎮 Videogame portátil'] = (G.inv['🎮 Videogame portátil']||0)+1;
+    updateMoney(); save(); toast('Comprou um videogame! 🎮 Foi pro inventário!');
+  } else if (nearPoi.type==='counterArmas'){
+    if (!phoneOpen) togglePhone();
+    window.appArmas();
+  } else if (nearPoi.type==='counterRoupas'){
+    if (!phoneOpen) togglePhone();
+    window.appRoupas();
+  } else if (nearPoi.type==='counterBank'){
+    if (!phoneOpen) togglePhone();
+    window.appBank();
+  } else if (nearPoi.type==='delegacia'){
+    window.chamarPolicia();
+    toast('👮 Falou com o delegado! Viatura saindo da delegacia!');
+  } else if (nearPoi.type==='prisao'){
+    toast('🔒 Prisão de MEGA SP — é aqui que os ladrões vão parar! 😎');
   } else if (nearPoi.type==='counterCars'){
     if(!phoneOpen) togglePhone();
     window.appCars();
@@ -1304,6 +1548,8 @@ function showHome(){
       <button class="appIcon" onclick="appFone()"><span class="emoji">📞</span>Telefone</button>
       <button class="appIcon" onclick="appClock()"><span class="emoji">⏰</span>Relógio</button>
       <button class="appIcon" onclick="appCalc()"><span class="emoji">🧮</span>Calculadora</button>
+      <button class="appIcon" onclick="appInv()"><span class="emoji">🎒</span>Inventário</button>
+      <button class="appIcon" onclick="abrirChat()"><span class="emoji">💬</span>Chat</button>
       <button class="appIcon" onclick="appMaps()" style="grid-column:1 / -1;background:rgba(60,180,90,.3)"><span class="emoji">🗺️</span>Maps + Uber</button>
     </div>`;
 }
@@ -1596,6 +1842,9 @@ window.appMaps = function(){
     c.font='10px sans-serif'; c.textAlign='center';
     const marks=[[SHOPS.concess.x,SHOPS.concess.z,'🚙'],[SHOPS.imobil.x,SHOPS.imobil.z,'🏠'],
       [SHOPS.mercado1.x,SHOPS.mercado1.z,'🛒'],[SHOPS.mercado2.x,SHOPS.mercado2.z,'🛒'],[SHOPS.lanche.x,SHOPS.lanche.z,'🍔'],
+      [SHOPS.armas.x,SHOPS.armas.z,'🔫'],[SHOPS.roupas.x,SHOPS.roupas.z,'👕'],
+      [SHOPS.rest.x,SHOPS.rest.z,'🍝'],[SHOPS.banco.x,SHOPS.banco.z,'🏦'],[SHOPS.shopping.x,SHOPS.shopping.z,'🏬'],
+      [-CITY/2+16*CELL+CELL/2,-CITY/2+2*CELL+CELL/2,'👮'],[-CITY/2+17*CELL+CELL/2,-CITY/2+2*CELL+CELL/2,'🔒'],
       [-CITY/2+40,-CITY/2+6*CELL,'✈️'],[160,120,'⚽']];
     for (const p of pois) if (p.type==='posto') marks.push([p.x,p.z,'⛽']);
     HOME_POS.forEach((h,i)=>{ if(G.ownedHomes.includes(i)) marks.push([h.x,h.z,'🏡']); });
@@ -1603,6 +1852,14 @@ window.appMaps = function(){
     if (G.dest){ const [px,py]=toM(G.dest.x,G.dest.z);
       c.fillStyle='#2f6'; c.beginPath(); c.arc(px,py,6,0,7); c.fill();
       c.strokeStyle='#fff'; c.lineWidth=2; c.stroke(); }
+    // amigos online no mapa (laranja, com nome)
+    for (const q of Object.keys(peers)){
+      const p = peers[q];
+      const [ox,oy]=toM(p.x,p.z);
+      c.fillStyle='#fa0'; c.beginPath(); c.arc(ox,oy,5,0,7); c.fill();
+      c.strokeStyle='#fff'; c.lineWidth=1.5; c.stroke();
+      c.fillStyle='#fff'; c.font='bold 9px sans-serif'; c.fillText(p.nome, ox, oy-8); c.font='10px sans-serif';
+    }
     const ax = mode==='car'?car.position.x:player.position.x;
     const az = mode==='car'?car.position.z:player.position.z;
     const [px,py]=toM(ax,az);
@@ -1634,6 +1891,15 @@ window.appMaps = function(){
 
 // ===== UBER =====
 let uber = null;
+// rota Manhattan pelas ruas: anda até a rua mais perto, segue as pistas e só sai no fim
+function snapRua(v){
+  const p = -CITY/2 + Math.round((v+CITY/2)/CELL)*CELL;
+  return Math.max(-CITY/2, Math.min(CITY/2, p));
+}
+function makeRota(x, z, tx, tz){
+  const zr = snapRua(z), xr = snapRua(tx);
+  return [{x, z:zr}, {x:xr, z:zr}, {x:xr, z:tz}, {x:tx, z:tz}];
+}
 function makeCarSimples(cor){
   const c = new THREE.Group();
   const body = new THREE.Mesh(new THREE.BoxGeometry(3.8,1.3,7), new THREE.MeshPhongMaterial({color:cor, shininess:70}));
@@ -1712,6 +1978,115 @@ window.comprarComida = function(tipo){
     toast(`Compras feitas! 🛍️ Leve pra casa — ${G.geladeira} comidas na geladeira 🧊`);
   }
 };
+// ===== RESTAURANTE =====
+const PRATOS = [
+  {nome:'🍝 Macarrão da Nonna', preco:45, fome:65},
+  {nome:'🍛 Feijoada completa', preco:60, fome:90},
+  {nome:'🍗 Frango com fritas', preco:35, fome:50},
+  {nome:'🍨 Sorvete gigante', preco:15, fome:20},
+  {nome:'🥤 Suco de laranja', preco:8, fome:10},
+];
+window.appRest = function(){
+  let html = `<button class="backBtn" onclick="togglePhone()">← Fechar</button><b style="font-size:16px">🍝 Cardápio</b>`;
+  PRATOS.forEach((p,i)=>{
+    html += `<div class="card"><b>${p.nome}</b>💰 R$ ${p.preco} · 🍔 +${p.fome} de fome<br><button ${G.money<p.preco?'disabled':''} onclick="comerPrato(${i})">PEDIR</button></div>`;
+  });
+  screenEl.innerHTML = html;
+};
+window.comerPrato = function(i){
+  const p = PRATOS[i];
+  if (G.money < p.preco) return;
+  G.money -= p.preco; G.hunger = Math.min(100, G.hunger + p.fome);
+  updateMoney(); save();
+  toast(`${p.nome} — que delícia! 😋`);
+  window.appRest();
+};
+// ===== LOJA DE ARMAS (equipamentos de defesa!) =====
+const ARMAS = [
+  {nome:'🪀 Estilingue', preco:100},
+  {nome:'🔫 Pistola de água', preco:250},
+  {nome:'💣 Bomba de fumaça', preco:400},
+  {nome:'🛡️ Escudo do herói', preco:600},
+];
+window.appArmas = function(){
+  let html = `<button class="backBtn" onclick="togglePhone()">← Fechar</button>
+    <b style="font-size:16px">🔫 Armas do Zé</b>
+    <div style="font-size:11px;opacity:.7;margin-bottom:6px">Com um equipamento no inventário, o ladrão foge sem roubar você! 😎</div>`;
+  ARMAS.forEach((a,i)=>{
+    const tem = G.inv[a.nome];
+    html += `<div class="card"><b>${a.nome}</b>💰 R$ ${a.preco}
+      ${tem?'<div class="owned">✅ Você tem!</div>':`<button ${G.money<a.preco?'disabled':''} onclick="buyArma(${i})">COMPRAR</button>`}</div>`;
+  });
+  screenEl.innerHTML = html;
+};
+window.buyArma = function(i){
+  const a = ARMAS[i];
+  if (G.money < a.preco) return;
+  G.money -= a.preco; G.inv[a.nome] = (G.inv[a.nome]||0)+1;
+  updateMoney(); save();
+  toast(`Comprou ${a.nome}! Agora o ladrão vai correr de medo! 😤`);
+  window.appArmas();
+};
+// ===== LOJA DE ROUPAS =====
+const ROUPAS = [
+  {nome:'Verde', cor:0x22cc66},{nome:'Vermelha', cor:0xdd2233},{nome:'Azul', cor:0x2266dd},
+  {nome:'Amarela', cor:0xffcc22},{nome:'Rosa', cor:0xcc44aa},{nome:'Preta', cor:0x222222},
+  {nome:'Branca', cor:0xffffff},{nome:'Laranja', cor:0xff8822},
+];
+window.appRoupas = function(){
+  let html = `<button class="backBtn" onclick="togglePhone()">← Fechar</button><b style="font-size:16px">👕 Moda SP — R$ 50 cada</b>
+    <div style="font-size:12px;opacity:.75;margin:4px 0">Camiseta:</div><div style="display:flex;flex-wrap:wrap;gap:6px">`;
+  ROUPAS.forEach((r,i)=>{
+    html += `<button onclick="vestir('shirt',${i})" style="width:44px;height:44px;border-radius:10px;border:${G.shirt===r.cor?'3px solid #fff':'none'};background:#${r.cor.toString(16).padStart(6,'0')}"></button>`;
+  });
+  html += `</div><div style="font-size:12px;opacity:.75;margin:8px 0 4px">Boné:</div><div style="display:flex;flex-wrap:wrap;gap:6px">`;
+  ROUPAS.forEach((r,i)=>{
+    html += `<button onclick="vestir('cap',${i})" style="width:44px;height:44px;border-radius:50%;border:${G.cap===r.cor?'3px solid #fff':'none'};background:#${r.cor.toString(16).padStart(6,'0')}"></button>`;
+  });
+  html += `</div>`;
+  screenEl.innerHTML = html;
+};
+window.vestir = function(tipo, i){
+  const r = ROUPAS[i];
+  if ((tipo==='shirt'?G.shirt:G.cap) === r.cor) return;
+  if (G.money < 50){ toast('Roupa custa R$ 50! 😢'); return; }
+  G.money -= 50;
+  if (tipo==='shirt'){ G.shirt = r.cor; window._shirtMat.color.setHex(r.cor); }
+  else { G.cap = r.cor; window._capMat.color.setHex(r.cor); }
+  updateMoney(); save();
+  toast(`Look novo! ${tipo==='shirt'?'👕 Camiseta':'🧢 Boné'} ${r.nome}!`);
+  window.appRoupas();
+};
+// ===== BANCO =====
+window.appBank = function(){
+  screenEl.innerHTML = `<button class="backBtn" onclick="togglePhone()">← Fechar</button>
+    <b style="font-size:16px">🏦 Banco SP</b>
+    <div class="card"><b>💰 Na carteira: R$ ${G.money.toLocaleString('pt-BR')}</b></div>
+    <div class="card"><b>🏦 No banco: R$ ${G.bank.toLocaleString('pt-BR')}</b>
+    <span style="font-size:12px;opacity:.75">Dinheiro guardado no banco o ladrão NÃO rouba! 🔒</span></div>
+    <div class="card"><button onclick="bankOp('dep')">⬇️ GUARDAR TUDO</button>
+    <button onclick="bankOp('saq')" style="background:#2288cc">⬆️ SACAR TUDO</button></div>`;
+};
+window.bankOp = function(op){
+  if (op==='dep'){
+    if (G.money<=0){ toast('Carteira vazia! 😅'); return; }
+    G.bank += G.money; toast(`Guardou R$ ${G.money.toLocaleString('pt-BR')} no cofre! 🔒`); G.money = 0;
+  } else {
+    if (G.bank<=0){ toast('Conta zerada! 😅'); return; }
+    G.money += G.bank; toast(`Sacou R$ ${G.bank.toLocaleString('pt-BR')}! 💵`); G.bank = 0;
+  }
+  updateMoney(); save(); window.appBank();
+};
+// ===== INVENTÁRIO =====
+window.appInv = function(){
+  let html = `<button class="backBtn" onclick="showHome()">← Voltar</button><b style="font-size:16px">🎒 Inventário</b>`;
+  html += `<div class="card"><b>🧊 Geladeira de casa</b>${G.geladeira} comida(s) guardada(s)</div>`;
+  html += `<div class="card"><b>🏦 No banco</b>R$ ${G.bank.toLocaleString('pt-BR')}</div>`;
+  const itens = Object.entries(G.inv).filter(([,q])=>q>0);
+  if (!itens.length) html += `<div class="card">Mochila vazia! Compre coisas na loja de armas ou no shopping. 🛍️</div>`;
+  itens.forEach(([nome,q])=>{ html += `<div class="card"><b>${nome}</b>x${q}</div>`; });
+  screenEl.innerHTML = html;
+};
 window.showHome = showHome;
 window.togglePhone = togglePhone;
 
@@ -1723,6 +2098,135 @@ function toast(msg){
   t.textContent = msg; t.style.display='block';
   clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.style.display='none', 2800);
 }
+
+// ============ MULTIPLAYER (servidor MEGA SP) ============
+const NET_URL = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=spcity';
+const MEU_ID = Math.random().toString(36).slice(2, 9);
+let ws = null, netTimer = null, peers = {};
+let meuNome = '';
+try { meuNome = localStorage.getItem('spcity_nome') || ''; } catch(e){}
+
+function makeNameSprite(nome){
+  const cv = document.createElement('canvas'); cv.width=256; cv.height=64;
+  const c = cv.getContext('2d');
+  c.font='bold 34px Arial'; c.textAlign='center'; c.lineWidth=6;
+  c.strokeStyle='#000'; c.fillStyle='#fff';
+  c.strokeText(nome,128,42); c.fillText(nome,128,42);
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv), transparent:true, depthTest:false}));
+  spr.scale.set(7,1.75,1); spr.position.y=4.6;
+  return spr;
+}
+function makePeerMesh(p){
+  const g = makePessoa();
+  // camiseta na cor do amigo
+  g.children[0].material = new THREE.MeshLambertMaterial({color:p.shirt||0x22cc66});
+  g.add(makeNameSprite(p.nome));
+  g.position.set(p.x,0,p.z);
+  scene.add(g);
+  return g;
+}
+function netConnect(){
+  if (ws) return;
+  try { ws = new WebSocket(NET_URL); } catch(e){ ws = null; return; }
+  ws.onopen = ()=>{ netTimer = setInterval(netSendEstado, 250); atualizaOnline(); };
+  ws.onmessage = ev=>{ let m; try{ m = JSON.parse(ev.data); }catch(e){ return; } handleNet(m); };
+  ws.onclose = ()=>{
+    ws = null;
+    if (netTimer){ clearInterval(netTimer); netTimer = null; }
+    Object.values(peers).forEach(p=>scene.remove(p.mesh)); peers = {};
+    atualizaOnline();
+    setTimeout(netConnect, 4000); // tenta voltar
+  };
+  ws.onerror = ()=>{};
+}
+function netSend(o){ if (ws && ws.readyState===1){ try{ ws.send(JSON.stringify(o)); }catch(e){} } }
+function netSendEstado(){
+  if (!running) return;
+  const ax = mode==='car'?car.position.x:(mode==='uber'&&uber?uber.car.position.x:player.position.x);
+  const az = mode==='car'?car.position.z:(mode==='uber'&&uber?uber.car.position.z:player.position.z);
+  netSend({acao:'estado', t:'estado', id:MEU_ID, nome:meuNome||'Jogador',
+    x:+ax.toFixed(1), z:+az.toFixed(1), ang:+(mode==='car'?heading:walkHeading).toFixed(2), shirt:G.shirt});
+}
+function handleNet(m){
+  if (!m || !m.quem) return;
+  const q = m.quem;
+  if (m.t==='estado'){
+    let p = peers[q];
+    if (!p){
+      p = peers[q] = {x:m.x||0, z:m.z||0, tx:m.x||0, tz:m.z||0, ang:m.ang||0, nome:m.nome||'Jogador', shirt:m.shirt, last:Date.now()};
+      p.mesh = makePeerMesh(p);
+      toast('🎮 ' + p.nome + ' entrou em MEGA SP!');
+      addChatMsg('🌍', p.nome + ' entrou no servidor');
+      atualizaOnline();
+    }
+    if (m.nome && m.nome !== p.nome || (m.shirt && m.shirt !== p.shirt)){
+      scene.remove(p.mesh); p.nome = m.nome || p.nome; p.shirt = m.shirt || p.shirt;
+      p.mesh = makePeerMesh(p);
+    }
+    p.tx = m.x||0; p.tz = m.z||0; p.tang = m.ang||0; p.last = Date.now();
+  } else if (m.t==='chat'){
+    const p = peers[q];
+    addChatMsg((m.nome || (p&&p.nome) || 'Alguém'), m.txt);
+    if (p) p.last = Date.now();
+  }
+}
+function updatePeers(){
+  const now = Date.now();
+  let mudou = false;
+  for (const q of Object.keys(peers)){
+    const p = peers[q];
+    if (now - p.last > 8000){ scene.remove(p.mesh); delete peers[q]; mudou = true; continue; }
+    p.x += (p.tx-p.x)*0.15; p.z += (p.tz-p.z)*0.15;
+    let da = (p.tang||0)-p.ang;
+    while(da>Math.PI)da-=Math.PI*2; while(da<-Math.PI)da+=Math.PI*2;
+    p.ang += da*0.15;
+    p.mesh.position.set(p.x,0,p.z);
+    p.mesh.rotation.y = p.ang;
+    const andando = Math.hypot(p.tx-p.x, p.tz-p.z) > 0.5;
+    p.animT = (p.animT||0) + (andando?0.25:0);
+    p.mesh.userData.pernas[0].rotation.x = Math.sin(p.animT)*0.6;
+    p.mesh.userData.pernas[1].rotation.x = -Math.sin(p.animT)*0.6;
+  }
+  if (mudou) atualizaOnline();
+}
+function atualizaOnline(){
+  const n = Object.keys(peers).length;
+  document.getElementById('onlinePill').textContent = ws ? `🌍 ${n+1} online` : '🌍 conectando...';
+}
+// ===== CHAT do servidor =====
+const chatBox = document.getElementById('chatBox');
+const chatMsgs = document.getElementById('chatMsgs');
+const chatInput = document.getElementById('chatInput');
+let chatAberto = false;
+function addChatMsg(nome, txt){
+  const d = document.createElement('div');
+  const bn = document.createElement('b'); bn.textContent = nome + ': ';
+  d.appendChild(bn); d.appendChild(document.createTextNode(String(txt).slice(0,80)));
+  chatMsgs.appendChild(d);
+  while (chatMsgs.children.length > 25) chatMsgs.removeChild(chatMsgs.firstChild);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+  if (!chatAberto) window.abrirChat(true);
+}
+window.abrirChat = function(force){
+  if (!meuNome){
+    const n = prompt('Qual seu nome no servidor? 😄');
+    if (n && n.trim()){ meuNome = n.trim().slice(0,14); try{ localStorage.setItem('spcity_nome', meuNome); }catch(e){} }
+    else return;
+  }
+  chatAberto = force===true ? true : !chatAberto;
+  chatBox.style.display = chatAberto ? 'block' : 'none';
+  if (phoneOpen) togglePhone();
+};
+function enviarChat(){
+  const txt = chatInput.value.trim();
+  if (!txt) return;
+  chatInput.value = '';
+  addChatMsg('⭐ ' + (meuNome||'Você'), txt);
+  netSend({acao:'estado', t:'chat', id:MEU_ID, nome:meuNome||'Jogador', txt});
+  chatInput.blur();
+}
+document.getElementById('chatSend').onclick = enviarChat;
+chatInput.addEventListener('keydown', e=>{ if(e.key==='Enter') enviarChat(); e.stopPropagation(); });
 
 // restaura missão
 if (G.job){
@@ -1765,6 +2269,15 @@ function drawMinimap(){
     const [px,py]=toM(G.job.x,G.job.z);
     mm.fillStyle='#f35'; mm.beginPath(); mm.arc(px,py,6,0,7); mm.fill();
     mm.strokeStyle='#fff'; mm.lineWidth=1.5; mm.stroke();
+  }
+  // setas dos outros jogadores (laranja)
+  for (const q of Object.keys(peers)){
+    const p = peers[q];
+    const [ox,oy]=toM(p.x,p.z);
+    mm.save(); mm.translate(ox,oy); mm.rotate(Math.PI - p.ang);
+    mm.fillStyle='#fa0';
+    mm.beginPath(); mm.moveTo(0,-6); mm.lineTo(4.5,4.5); mm.lineTo(-4.5,4.5); mm.closePath(); mm.fill();
+    mm.restore();
   }
   const ax = mode==='car'?car.position.x:player.position.x;
   const az = mode==='car'?car.position.z:player.position.z;
@@ -1862,10 +2375,15 @@ function tick(t){
       player.userData.arms[0].rotation.x = 0;
       player.userData.arms[1].rotation.x = 0;
     }
+    // câmera livre: só gira se o jogador andar na direção contrária dela
+    if (mv!==0){
+      let dCam = ((walkHeading - camYaw) % (Math.PI*2) + Math.PI*3) % (Math.PI*2) - Math.PI;
+      if (Math.abs(dCam) > 2.2) camYaw += Math.sign(dCam)*1.6*dt;
+    }
     camera.position.lerp(new THREE.Vector3(
-      player.position.x - Math.sin(walkHeading)*10,
+      player.position.x - Math.sin(camYaw)*10,
       6,
-      player.position.z - Math.cos(walkHeading)*10), 0.12);
+      player.position.z - Math.cos(camYaw)*10), 0.12);
     camera.lookAt(player.position.x, 2.5, player.position.z);
     document.getElementById('speedNum').textContent = mv? Math.round(Math.abs(mv)*3.6) : 0;
   }
@@ -1900,36 +2418,58 @@ function tick(t){
     else { c.position.z += u.dir*u.speed*dt; if(Math.abs(c.position.z)>CITY/2) u.dir*=-1, c.rotation.y+=Math.PI; }
   }
 
-  // ===== UBER =====
+  // pedestres passeando
+  for (const p of pedestres){
+    const u = p.userData;
+    u.t += dt;
+    if (u.t > 4 + (p.id%5)){ u.t = 0; u.dir += (Math.random()-0.5)*2; }
+    const nx = p.position.x + Math.sin(u.dir)*3.2*dt;
+    const nz = p.position.z + Math.cos(u.dir)*3.2*dt;
+    if (Math.abs(nx)>CITY/2-10 || Math.abs(nz)>CITY/2-10 || collideBuilding(nx,nz,1)){ u.dir += Math.PI/2 + Math.random(); }
+    else { p.position.x = nx; p.position.z = nz; }
+    p.rotation.y = u.dir;
+    u.anim = (u.anim||0) + dt*8;
+    p.userData.pernas[0].rotation.x = Math.sin(u.anim)*0.6;
+    p.userData.pernas[1].rotation.x = -Math.sin(u.anim)*0.6;
+  }
+
+  // ===== UBER (agora dirige pelas pistas!) =====
   if (uber){
     const u = uber;
-    if (u.phase === 'vindo'){
-      const dx = player.position.x - u.car.position.x, dz = player.position.z - u.car.position.z;
-      const d = Math.hypot(dx,dz);
-      if (d > 6){
-        u.car.position.x += dx/d*32*dt; u.car.position.z += dz/d*32*dt;
-        u.car.rotation.y = Math.atan2(dx,dz);
-      } else {
-        u.phase = 'corrida';
-        mode = 'uber'; player.visible = false;
-        G.money -= u.fare; updateMoney(); save();
-        toast(`Entrou no Uber! 🚕 -R$ ${u.fare}`);
-      }
-    } else if (u.phase === 'corrida'){
-      const dx = G.dest.x - u.car.position.x, dz = G.dest.z - u.car.position.z;
-      const d = Math.hypot(dx,dz);
-      if (d > 8){
-        u.car.position.x += dx/d*40*dt; u.car.position.z += dz/d*40*dt;
-        u.car.rotation.y = Math.atan2(dx,dz);
+    const alvo = u.phase==='vindo' ? {x:player.position.x, z:player.position.z} : G.dest;
+    // recalcula a rota pelas ruas se precisar
+    u.rotaT = (u.rotaT||0) + dt;
+    if (!u.rota || (u.phase==='vindo' && u.rotaT > 2)){
+      u.rota = makeRota(u.car.position.x, u.car.position.z, alvo.x, alvo.z);
+      u.wi = 0; u.rotaT = 0;
+    }
+    const vel = u.phase==='vindo' ? 34 : 42;
+    let wp = u.rota[u.wi];
+    let dx = wp.x - u.car.position.x, dz = wp.z - u.car.position.z;
+    let d = Math.hypot(dx,dz);
+    if (d < 4 && u.wi < u.rota.length-1){ u.wi++; wp = u.rota[u.wi]; dx = wp.x-u.car.position.x; dz = wp.z-u.car.position.z; d = Math.hypot(dx,dz); }
+    const chegouFim = u.wi >= u.rota.length-1 && d < (u.phase==='vindo'?6:8);
+    if (!chegouFim && d > 0.5){
+      u.car.position.x += dx/d*vel*dt; u.car.position.z += dz/d*vel*dt;
+      // vira suave na direção da pista
+      const angAlvo = Math.atan2(dx,dz);
+      let dA = ((angAlvo - u.car.rotation.y) % (Math.PI*2) + Math.PI*3) % (Math.PI*2) - Math.PI;
+      u.car.rotation.y += dA * Math.min(1, 6*dt);
+      if (u.phase === 'corrida'){
         camera.position.lerp(new THREE.Vector3(u.car.position.x - Math.sin(u.car.rotation.y)*16, 10, u.car.position.z - Math.cos(u.car.rotation.y)*16), 0.1);
         camera.lookAt(u.car.position.x, 3, u.car.position.z);
-      } else {
-        player.position.set(u.car.position.x+4, 0, u.car.position.z);
-        player.visible = true; mode = 'walk';
-        scene.remove(u.car); uber = null;
-        clearDest();
-        toast('Chegou no destino! 🚕✅ Obrigado por viajar de Uber!');
       }
+    } else if (u.phase === 'vindo'){
+      u.phase = 'corrida'; u.rota = null;
+      mode = 'uber'; player.visible = false;
+      G.money -= u.fare; updateMoney(); save();
+      toast(`Entrou no Uber! 🚕 -R$ ${u.fare}`);
+    } else {
+      player.position.set(u.car.position.x+4, 0, u.car.position.z);
+      player.visible = true; mode = 'walk'; camYaw = walkHeading;
+      scene.remove(u.car); uber = null;
+      clearDest();
+      toast('Chegou no destino! 🚕✅ Obrigado por viajar de Uber!');
     }
   }
 
@@ -1984,6 +2524,9 @@ function tick(t){
         L.mesh.position.x += dx/d*10.5*dt; L.mesh.position.z += dz/d*10.5*dt;
         L.mesh.rotation.y = Math.atan2(dx,dz);
         if (L.t > 30){ scene.remove(L.mesh); ladrao = null; }
+      } else if (['🪀 Estilingue','🔫 Pistola de água','💣 Bomba de fumaça','🛡️ Escudo do herói'].some(a=>G.inv[a])){
+        L.phase = 'fugindo'; L.dir = Math.random()*Math.PI*2; L.t = 0;
+        toast('😤 O ladrão viu seu equipamento e FUGIU sem roubar nada! 🛡️');
       } else {
         const roubo = Math.min(200, Math.max(10, Math.floor(G.money*0.08)));
         G.money = Math.max(0, G.money - roubo);
@@ -2071,6 +2614,7 @@ function tick(t){
     }
   }
 
+  updatePeers();
   checkPoi();
   drawMinimap();
   renderer.render(scene, camera);
@@ -2080,6 +2624,7 @@ requestAnimationFrame(tick);
 document.getElementById('startBtn').onclick = ()=>{
   document.getElementById('startScreen').style.display='none';
   running = true; last = performance.now();
+  netConnect();
 };
 </script>
 </body>

@@ -1,5 +1,20 @@
 # Changelog - Cogumelo Games (site)
 
+## v395 (2026-08-31)
+- MEGA SP ONLINE: servidor multiplayer — veja outros jogadores no mundo e no mapa
+  (setas laranja com nome), chat do servidor (tecla T ou app 💬)
+- Uber agora dirige PELAS PISTAS (rota pelas ruas, sem cortar quarteirão)
+- Mapa 25% maior (16x16 → 20x20) com zona nova: Banco 🏦 (dinheiro guardado o ladrão
+  não rouba), Delegacia 👮 + Prisão 🔒, Loja de Armas 🔫 (equipamento espanta o ladrão),
+  Loja de Roupas 👕 (troca cor da camiseta e do boné), Restaurante 🍝 (5 pratos novos),
+  Shopping 🏬 (praça de alimentação, moda e games) e +1 posto
+- Praia melhorada: píer de madeira com quiosque, vôlei de praia, torre de salva-vidas,
+  cadeiras e muito mais coqueiro/guarda-sol
+- +2 casas compráveis: Casinha da Vila (R$ 800 — pequena por fora, GIGANTE por dentro!)
+  e Loft do Centro; +4 empregos novos
+- Inventário 🎒 no celular, pedestres andando pela cidade, câmera livre a pé
+  (só gira quando você anda contra ela)
+
 ## v378 (2026-08-21)
 - 2 JOGOS NOVOS: Desvia do Laser 🔴 (fuga de lasers, meteoros e círculos com fases secretas
   a cada 10s, + loja de 10 skins pagas com moedas) e Piso Certo 3D 🟦 (2 pistas, uma é falsa
