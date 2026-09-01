@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>RETROCEDER — Cogumelo Games</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0a18; overflow:hidden; font-family:Arial,sans-serif; }
+  #game { width:100vw; height:100vh; }
+  .tbtn {
+    position:fixed; bottom:18px; z-index:10; width:64px; height:64px; border-radius:50%;
+    border:none; font-size:26px; background:rgba(255,184,77,.25); color:#ffb84d;
+    touch-action:none; display:none;
+  }
+  body.touch .tbtn { display:block; }
+  #bL{left:16px} #bR{left:92px} #bJ{right:92px} #bE{right:16px}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<button class="tbtn" id="bL">◀</button>
+<button class="tbtn" id="bR">▶</button>
+<button class="tbtn" id="bJ">⤒</button>
+<button class="tbtn" id="bE">✋</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
+<script>
+// ============================================================================
+// RETROCEDER — andar pra frente avança o tempo, andar pra trás rebobina.
+// Arquitetura: T escalar global; cenário = f(T) (tracks); objetos carregados
+// ganham OVERRIDE (incoerência temporal) e ignoram T.
+// ============================================================================
+const W = 2400, H = 600;          // mundo
+const T_MAX = 100;
+const T_PER_PX = 0.045;           // quanto T anda por pixel andado
+
+let T = 0;                        // tempo do mundo (vai e volta)
+let player, keys, touch = {L:0,R:0,J:0,E:0};
+let carried = null;               // objeto na mão
+let msg, tbar, tbarBg, venceu = false;
+
+// ---------- helpers de track: estado do cenário como função de T ----------
+const lerp = (a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
+
+// ponte: inteira para T<55, desaba (some) para T>=55
+const ponteExiste = () => T < 55;
+// pedregulho: pendurado no alto para T<28, cai e bloqueia o corredor para T>=28
+const pedraY = () => T < 28 ? 120 : lerp(120, 448, (T-28)/6);
+// sol/cor do mundo muda com T (passado azul → futuro laranja)
+const corFundo = () => {
+  const t = T/T_MAX;
+  const r = Math.round(lerp(14, 60, t)), g = Math.round(lerp(16, 30, t)), b = Math.round(lerp(46, 18, t));
+  return Phaser.Display.Color.GetColor(r,g,b);
+};
+
+// ---------- entidades ----------
+// plataformas fixas: [x, y, w, h]
+const SOLIDOS_FIXOS = [
+  [0, 520, 760, 80],        // chão esquerdo
+  [1060, 520, 1340, 80],    // chão direito (depois do abismo)
+  [180, 380, 120, 20],      // plataforma do portão (em cima)
+  [40, 260, 120, 20],       // plataforma da porta final
+];
+const PONTE = [760, 520, 300, 80];      // cobre o abismo
+const PEDRA = { x: 320, w: 56, h: 72 }; // cai no corredor da porta
+const PLACA = { x: 200, y: 372, w: 80 };  // placa de pressão na plataforma do portão
+const PORTAO = { x: 120, y: 260, w: 24, h: 120 }; // fecha o acesso à porta final
+const PORTA = { x: 60, y: 196, w: 44, h: 64 };    // porta da vitória
+const ENG_INICIO = { x: 2200, y: 480 };  // engrenagem lá longe, depois da ponte
+
+// engrenagem: track padrão = parada no ENG_INICIO; override = onde o jogador largar
+let eng = { override: null, hold: false };
+function engPos(){
+  if (eng.hold) return { x: player.x, y: player.y - 40 };
+  if (eng.override) return eng.override;
+  return { x: ENG_INICIO.x, y: ENG_INICIO.y };
+}
+function portaoAberto(){
+  if (eng.hold) return false;
+  const p = engPos();
+  return Math.abs(p.x - (PLACA.x + PLACA.w/2)) < 50 && p.y < 400 && p.y > 330;
+}
+
+// ---------- física própria (AABB simples e determinística) ----------
+const P = { x: 80, y: 400, vx: 0, vy: 0, w: 30, h: 46, chao: false };
+
+function solidosAtuais(){
+  const s = SOLIDOS_FIXOS.map(a=>({x:a[0],y:a[1],w:a[2],h:a[3]}));
+  if (ponteExiste()) s.push({x:PONTE[0],y:PONTE[1],w:PONTE[2],h:PONTE[3]});
+  s.push({x:PEDRA.x, y:pedraY(), w:PEDRA.w, h:PEDRA.h});
+  if (!portaoAberto()) s.push({x:PORTAO.x, y:PORTAO.y, w:PORTAO.w, h:PORTAO.h});
+  return s;
+}
+function colide(px,py,pw,ph,s){ return px < s.x+s.w && px+pw > s.x && py < s.y+s.h && py+ph > s.y; }
+
+// ============================================================================
+new Phaser.Game({
+  type: Phaser.AUTO, parent: 'game', backgroundColor: '#0e1030',
+  scale: { mode: Phaser.Scale.RESIZE },
+  scene: { create, update }
+});
+
+let gfx, cam, textos = [];
+function create(){
+  const sc = this;
+  gfx = sc.add.graphics();
+  cam = sc.cameras.main;
+  cam.setBounds(0, 0, W, H);
+
+  keys = sc.input.keyboard.addKeys('LEFT,RIGHT,UP,SPACE,A,D,W,E,F');
+
+  // HUD fixa
+  tbarBg = sc.add.rectangle(0,0,10,10,0x000000,0.5).setScrollFactor(0).setDepth(10);
+  tbar = sc.add.rectangle(0,0,10,10,0xffb84d).setScrollFactor(0).setDepth(11);
+  msg = sc.add.text(0, 0, '', {fontSize:'16px', color:'#ffe9b0', align:'center'}).setScrollFactor(0).setDepth(12);
+
+  // dicas no mundo
+  const dica = (x,y,t)=>{ textos.push(sc.add.text(x,y,t,{fontSize:'15px',color:'#8fa3ff',align:'center'}).setOrigin(0.5)); };
+  dica(300, 470, '➡️ andar pra FRENTE avança o tempo\n⬅️ andar pra TRÁS rebobina!');
+  dica(900, 430, 'cuidado: no futuro\na ponte DESABA');
+  dica(2200, 400, 'pegue a engrenagem (E)\ne leve pro PASSADO');
+  dica(230, 320, 'placa de pressão:\nsolte a engrenagem aqui (E)');
+
+  // toque
+  if ('ontouchstart' in window || navigator.maxTouchPoints > 0){
+    document.body.classList.add('touch');
+    const bind=(id,k)=>{ const el=document.getElementById(id);
+      el.addEventListener('touchstart',e=>{e.preventDefault();touch[k]=1;},{passive:false});
+      el.addEventListener('touchend',()=>touch[k]=0);
+    };
+    bind('bL','L'); bind('bR','R'); bind('bJ','J'); bind('bE','E');
+  }
+}
+
+let ePrev = false;
+function update(_, dms){
+  const sc = this;
+  const dt = Math.min(dms/1000, 0.033);
+  if (venceu) return;
+
+  // ---------- input ----------
+  const esq = keys.LEFT.isDown || keys.A.isDown || touch.L;
+  const dir = keys.RIGHT.isDown || keys.D.isDown || touch.R;
+  const pulo = keys.UP.isDown || keys.SPACE.isDown || keys.W.isDown || touch.J;
+  const acao = keys.E.isDown || keys.F.isDown || touch.E;
+
+  const VEL = 220, PULO = -520, GRAV = 1300;
+  P.vx = dir ? VEL : esq ? -VEL : 0;
+  if (pulo && P.chao) P.vy = PULO;
+  P.vy += GRAV*dt;
+
+  // ---------- mover X (e o TEMPO junto!) ----------
+  const oldX = P.x;
+  P.x = Math.max(10, Math.min(W-40, P.x + P.vx*dt));
+  let dx = P.x - oldX;
+  for (const s of solidosAtuais()){
+    if (colide(P.x, P.y, P.w, P.h, s)){
+      P.x = dx > 0 ? s.x - P.w : s.x + s.w;
+      dx = P.x - oldX;
+    }
+  }
+  T = Math.max(0, Math.min(T_MAX, T + dx * T_PER_PX));
+
+  // ---------- mover Y ----------
+  P.y += P.vy*dt;
+  P.chao = false;
+  for (const s of solidosAtuais()){
+    if (colide(P.x, P.y, P.w, P.h, s)){
+      if (P.vy > 0){ P.y = s.y - P.h; P.chao = true; }
+      else { P.y = s.y + s.h; }
+      P.vy = 0;
+    }
+  }
+  if (P.y > H+100){ P.x = 80; P.y = 400; P.vy = 0; T = Math.min(T, 10); } // caiu: volta
+
+  // esmagado pela pedra? empurra
+  // (a pedra é sólida; se rebobinar com o jogador embaixo, ele é empurrado pro lado)
+
+  // ---------- pegar / soltar (E) ----------
+  const ep = engPos();
+  if (acao && !ePrev){
+    if (eng.hold){
+      eng.hold = false;
+      eng.override = { x: P.x + P.w/2, y: P.y + P.h - 14 }; // solta no chão onde está
+    } else if (Math.hypot(P.x+P.w/2 - ep.x, P.y+P.h/2 - ep.y) < 60){
+      eng.hold = true; eng.override = null;
+    }
+  }
+  ePrev = acao;
+
+  // ---------- vitória ----------
+  if (portaoAberto() && colide(P.x,P.y,P.w,P.h,{x:PORTA.x,y:PORTA.y,w:PORTA.w,h:PORTA.h})){
+    venceu = true;
+    msg.setText('🎉 VOCÊ QUEBROU A LINHA DO TEMPO! 🎉\nA engrenagem do futuro abriu a porta do passado.\n(F5 pra jogar de novo)');
+  }
+
+  // ---------- render ----------
+  const g = gfx; g.clear();
+  cam.setBackgroundColor(corFundo());
+  cam.startFollow({x:P.x, y:P.y}, true, 0.15, 0.15);
+
+  // estrelas do passado / brasas do futuro
+  g.fillStyle(T<50 ? 0x8fa3ff : 0xff8844, 0.5);
+  for (let i=0;i<40;i++){ const sx=(i*211)%W, sy=(i*137)%300; g.fillRect(sx, sy, 2, 2); }
+
+  // sólidos fixos
+  g.fillStyle(0x2e3560);
+  for (const a of SOLIDOS_FIXOS) g.fillRect(a[0],a[1],a[2],a[3]);
+  g.fillStyle(0x4a5490);
+  for (const a of SOLIDOS_FIXOS) g.fillRect(a[0],a[1],a[2],6);
+
+  // ponte (com rachaduras conforme T sobe)
+  if (ponteExiste()){
+    const rachadura = Math.max(0,(T-35)/20);
+    g.fillStyle(Phaser.Display.Color.GetColor(120-rachadura*70, 90-rachadura*50, 60), 1);
+    g.fillRect(PONTE[0],PONTE[1],PONTE[2],20);
+    if (rachadura>0.2){ g.fillStyle(0x000000,0.6);
+      for(let i=0;i<6;i++) g.fillRect(PONTE[0]+40+i*45, PONTE[1], 3, 20*rachadura); }
+  } else {
+    g.fillStyle(0x1a1030); g.fillRect(PONTE[0], PONTE[1]+60, PONTE[2], 20); // escombros lá embaixo
+  }
+
+  // pedra que cai
+  g.fillStyle(0x8a7a6a); g.fillRect(PEDRA.x, pedraY(), PEDRA.w, PEDRA.h);
+  g.fillStyle(0x6a5a4a); g.fillRect(PEDRA.x+8, pedraY()+10, PEDRA.w-16, 8);
+
+  // placa de pressão
+  g.fillStyle(portaoAberto() ? 0x33ff88 : 0xcc4444);
+  g.fillRect(PLACA.x, PLACA.y+4, PLACA.w, 6);
+
+  // portão
+  if (!portaoAberto()){
+    g.fillStyle(0xaa3355); g.fillRect(PORTAO.x, PORTAO.y, PORTAO.w, PORTAO.h);
+    g.fillStyle(0xdd6688); for(let i=0;i<4;i++) g.fillRect(PORTAO.x, PORTAO.y+10+i*28, PORTAO.w, 4);
+  }
+
+  // porta final
+  g.fillStyle(portaoAberto()?0xffd700:0x555577);
+  g.fillRect(PORTA.x, PORTA.y, PORTA.w, PORTA.h);
+  g.fillStyle(0x332200); g.fillRect(PORTA.x+30, PORTA.y+30, 6, 10);
+
+  // engrenagem (dourada; pisca se for incoerência)
+  const inco = eng.override && !eng.hold;
+  g.fillStyle(0xffb84d, inco ? (0.7+0.3*Math.sin(Date.now()/150)) : 1);
+  g.fillCircle(ep.x, ep.y, 14);
+  g.fillStyle(0x0a0a18); g.fillCircle(ep.x, ep.y, 5);
+  for (let i=0;i<8;i++){ const a=i/8*Math.PI*2 + T*0.1;
+    g.fillStyle(0xffb84d,1); g.fillRect(ep.x+Math.cos(a)*16-3, ep.y+Math.sin(a)*16-3, 6, 6); }
+
+  // jogador (com "eco temporal" atrás)
+  g.fillStyle(0x66ddff, 0.25); g.fillRect(P.x - (P.vx>0?8:-8), P.y, P.w, P.h);
+  g.fillStyle(0x66ddff); g.fillRect(P.x, P.y, P.w, P.h);
+  g.fillStyle(0xffffff); g.fillRect(P.x + (P.vx>=0?18:4), P.y+10, 6, 6); // olho
+
+  // HUD: barra do tempo
+  const vw = cam.width;
+  tbarBg.setPosition(vw/2, 24).setSize(vw*0.6, 14);
+  tbar.setPosition(vw/2 - vw*0.3 + (T/T_MAX)*vw*0.6/2, 24).setSize((T/T_MAX)*vw*0.6, 10);
+  if (!venceu) msg.setText(`⏱️ T=${Math.round(T)}  ${eng.hold?'✋ carregando engrenagem':''}  ${inco?'⚡ INCOERÊNCIA CRIADA!':''}`);
+  msg.setPosition(vw/2 - msg.width/2, 40);
+}
+</script>
+</body>
+</html>
