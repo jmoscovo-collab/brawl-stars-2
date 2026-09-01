@@ -326,7 +326,7 @@ function makeFacade(base){
 }
 
 // ============ CIDADE ============
-const CELL=80, BLOCK=60, GRID=20, CITY=GRID*CELL; // mapa maior!
+const CELL=100, BLOCK=78, GRID=20, CITY=GRID*CELL; // quarteirões maiores!
 const buildings=[]; // colisões {x,z,w,d}
 const pois=[];      // pontos de interação {x,z,type,label}
 
@@ -2404,7 +2404,7 @@ function tick(t){
   document.getElementById('clockHud').textContent =
     '🕐 ' + String(Math.floor(G.time/60)).padStart(2,'0') + ':' + String(Math.floor(G.time%60)).padStart(2,'0');
   // fome: gasta devagar; com fome zero, tudo fica lento
-  G.hunger = Math.max(0, G.hunger - dt*0.225);
+  G.hunger = Math.max(0, G.hunger - dt*0.11);
   if (G.hunger<=0 && !tick.hwarn){ tick.hwarn=true; toast('Que fome! 🍔😵 Coma no mercado, lanchonete ou quiosque da praia!'); setTimeout(()=>tick.hwarn=false,8000); }
   document.getElementById('hungerFill').style.width = G.hunger+'%';
   // combustível HUD
@@ -2565,16 +2565,17 @@ function tick(t){
     if (dentroCidade){
       const um = ((cxm+CITY/2) % CELL + CELL) % CELL;
       const vm = ((czm+CITY/2) % CELL + CELL) % CELL;
-      const naCalcada = um > 16 && um < 64 && vm > 16 && vm < 64;
+      const margem = (CELL-BLOCK)/2 + 6;
+      const naCalcada = um > margem && um < CELL-margem && vm > margem && vm < CELL-margem;
       const isento = cxm < -CITY/2 + CELL ||
         Math.hypot(cxm-160, czm-120) < 75 ||
         pois.some(p => Math.hypot(cxm-p.x, czm-p.z) < 42);
       if (naCalcada && !isento){
         if (!tick.multou){
           tick.multou = true;
-          G.money = Math.max(0, G.money - 100);
+          G.money = Math.max(0, G.money - 30);
           updateMoney(); save();
-          toast('🚨 MULTA R$ 100! Não pode dirigir na calçada!');
+          toast('🚨 MULTA R$ 30! Não pode dirigir na calçada!');
         }
       } else tick.multou = false;
     } else tick.multou = false;

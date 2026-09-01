@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v398 (2026-08-31)
+- Mega SP: multa da calçada reduzida (R$ 100 → R$ 30)
+- Mega SP: quarteirões maiores (80→100 por célula, blocos 60→78)
+- Mega SP: barra de fome gasta 2x mais devagar
+
 ## v395 (2026-08-31)
 - MEGA SP ONLINE: servidor multiplayer — veja outros jogadores no mundo e no mapa
   (setas laranja com nome), chat do servidor (tecla T ou app 💬)
