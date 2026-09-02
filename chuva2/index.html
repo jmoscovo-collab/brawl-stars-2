@@ -1,0 +1,718 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Chuva de Cogumelos 2 ⛈️🍄</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#1a2340; font-family:'Comic Sans MS','Chalkboard SE',cursive,sans-serif; touch-action:manipulation; }
+  #wrap { position:relative; width:100%; height:100%; }
+  canvas { display:block; width:100%; height:100%; }
+  .screen { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:linear-gradient(#1a2340,#33456e 60%,#3a6a3a); z-index:10; text-align:center; padding:20px; }
+  .hidden { display:none !important; }
+  h1 { font-size:clamp(28px,7vw,56px); color:#fff; text-shadow:3px 3px 0 #e35d5d, -2px -2px 0 #b03a3a; }
+  h2 { font-size:clamp(22px,5vw,36px); color:#ffe9c9; text-shadow:2px 2px 0 #000; }
+  .btn { font-family:inherit; font-size:clamp(18px,4vw,26px); padding:12px 34px; border:none; border-radius:18px; cursor:pointer; color:#fff; background:#ff8c42; box-shadow:0 5px 0 #c9611e; transition:transform .08s; }
+  .btn:active { transform:translateY(4px); box-shadow:0 1px 0 #c9611e; }
+  .btn.verde { background:#5bbf3f; box-shadow:0 5px 0 #3a8a26; }
+  .btn.azul  { background:#4aa3e0; box-shadow:0 5px 0 #2b6f9e; }
+  .btn.roxo  { background:#a86ae0; box-shadow:0 5px 0 #7440a5; }
+  .coins-tag { font-size:clamp(18px,4vw,26px); color:#5a3a1a; background:#fff6d8; border:3px solid #e8c34a; border-radius:14px; padding:6px 18px; }
+  .device-row { display:flex; gap:10px; align-items:center; }
+  .dev-btn { font-size:26px; padding:8px 16px; border-radius:14px; border:3px solid transparent; background:#ffffffaa; cursor:pointer; }
+  .dev-btn.sel { border-color:#ff8c42; background:#fff; }
+  .card { background:#fffdf2; border:4px solid #e8c34a; border-radius:20px; padding:14px 18px; width:min(92vw,420px); display:flex; align-items:center; gap:12px; text-align:left; }
+  .card .emoji { font-size:38px; }
+  .card .info { flex:1; }
+  .card .info b { color:#5a3a1a; font-size:18px; }
+  .card .info small { color:#8a6a3a; display:block; font-size:13px; }
+  /* HUD */
+  #hud { position:absolute; top:0; left:0; right:0; padding:10px 14px; display:flex; justify-content:space-between; align-items:flex-start; z-index:5; pointer-events:none; font-size:clamp(18px,4vw,26px); }
+  #hearts { color:#ff4d6d; text-shadow:1px 1px 0 #7a1030; letter-spacing:2px; }
+  #hudRight { text-align:right; }
+  #hudCoins { background:#fff6d8cc; border:2px solid #e8c34a; border-radius:12px; padding:2px 12px; color:#5a3a1a; }
+  #hudSkill,#hudDash,#hudTime { font-size:14px; color:#fff; text-shadow:1px 1px 2px #0008; margin-top:4px; }
+  /* mobile controls */
+  #padL,#padR { position:absolute; bottom:12px; z-index:6; display:flex; gap:12px; }
+  #padL { left:12px; } #padR { right:12px; }
+  .pad { width:64px; height:64px; border-radius:50%; border:none; font-size:26px; background:#ffffffbb; box-shadow:0 4px 0 #0003; user-select:none; }
+  .pad:active { background:#ffd27a; }
+  #toast { position:absolute; top:38%; left:50%; transform:translateX(-50%); background:#000a; color:#fff; padding:8px 20px; border-radius:14px; font-size:20px; z-index:20; pointer-events:none; opacity:0; transition:opacity .3s; }
+</style>
+
+<div id="wrap">
+  <canvas id="cv"></canvas>
+
+  <div id="hud" class="hidden">
+    <div>
+      <div id="hearts"></div>
+      <div id="hudTime">⏱️ 0s</div>
+    </div>
+    <div id="hudRight">
+      <div id="hudCoins">🪙 0</div>
+      <div id="hudDash">💨 DASH pronto!</div>
+      <div id="hudSkill"></div>
+    </div>
+  </div>
+
+  <div id="padL" class="hidden">
+    <button class="pad" id="bLeft">◀</button>
+    <button class="pad" id="bRight">▶</button>
+  </div>
+  <div id="padR" class="hidden">
+    <button class="pad" id="bDash">💨</button>
+    <button class="pad" id="bJump">⬆️</button>
+  </div>
+
+  <div id="toast"></div>
+
+  <!-- MENU -->
+  <div id="scrMenu" class="screen">
+    <h1>⛈️ Chuva de Cogumelos 2 🍄</h1>
+    <div style="color:#cfe0ff;font-size:15px">Agora é TEMPESTADE à noite! Cogumelo RAIO ⚡, GIGANTE 🍄 e PULO DUPLO!</div>
+    <div class="coins-tag" id="menuCoins">🪙 0 moedas</div>
+    <div id="menuRecord" style="color:#cfe0ff"></div>
+    <button class="btn verde" id="btnPlay">▶️ JOGAR</button>
+    <button class="btn azul" id="btnShop">🛒 LOJA</button>
+    <button class="btn roxo" id="btnInv">🎒 INVENTÁRIO</button>
+    <div class="device-row">
+      <span style="color:#cfe0ff">Onde você joga?</span>
+      <button class="dev-btn" id="devPC">💻</button>
+      <button class="dev-btn" id="devMob">📱</button>
+    </div>
+  </div>
+
+  <!-- LOJA -->
+  <div id="scrShop" class="screen hidden">
+    <h2>🛒 Lojinha do Cogumelo</h2>
+    <div class="coins-tag" id="shopCoins">🪙 0</div>
+    <div id="shopList" style="display:flex;flex-direction:column;gap:10px;max-height:55vh;overflow-y:auto"></div>
+    <button class="btn" id="shopBack">⬅️ Voltar</button>
+  </div>
+
+  <!-- INVENTÁRIO -->
+  <div id="scrInv" class="screen hidden">
+    <h2>🎒 Meu Inventário</h2>
+    <div class="coins-tag" id="invCoins">🪙 0</div>
+    <div id="invList" style="display:flex;flex-direction:column;gap:10px;max-height:55vh;overflow-y:auto"></div>
+    <div style="color:#cfe0ff;font-size:14px">Na partida: toca 2 vezes no meio da tela pra usar a equipada!</div>
+    <button class="btn" id="invBack">⬅️ Voltar</button>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="scrOver" class="screen hidden">
+    <h2 id="overTitle">💀 Fim de jogo!</h2>
+    <div id="overStats" style="color:#ffe9c9;font-size:20px;line-height:1.6"></div>
+    <button class="btn verde" id="btnAgain">🔄 Jogar de novo</button>
+    <button class="btn" id="btnMenu">🏠 Menu</button>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+// ---------- persistência ----------
+var LS = {
+  get: function(k, d){ try { var v = localStorage.getItem('chuva2_'+k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set: function(k, v){ try { localStorage.setItem('chuva2_'+k, JSON.stringify(v)); } catch(e){} }
+};
+var coins   = LS.get('coins', 0);
+var stock   = LS.get('stock', { vidas:0, escudo:0, gelo:0 });
+var equip   = LS.get('equip', null);           // 'vidas' | 'escudo' | 'gelo' | null
+var record  = LS.get('record', 0);
+var device  = LS.get('device', ('ontouchstart' in window) ? 'mob' : 'pc');
+
+var SKILLS = {
+  vidas:  { emoji:'❤️', nome:'+3 Vidas',        preco:30, desc:'Ganha 3 vidas extras na hora!' },
+  escudo: { emoji:'🛡️', nome:'Escudo',           preco:25, desc:'Fica imortal por 5 segundos!' },
+  gelo:   { emoji:'❄️', nome:'Tempo Congelado',  preco:40, desc:'Congela TODOS os cogumelos por 4 segundos!' }
+};
+
+// ---------- sons (WebAudio) ----------
+var AC = null;
+function ac(){ if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(AC && AC.state==='suspended') AC.resume(); return AC; }
+function beep(freq, dur, type, vol, slide){
+  var c = ac(); if(!c) return;
+  var o = c.createOscillator(), g = c.createGain();
+  o.type = type||'square'; o.frequency.value = freq;
+  if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(30,slide), c.currentTime+dur);
+  g.gain.value = vol||0.12; g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime+dur);
+  o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+dur);
+}
+var snd = {
+  coin:  function(){ beep(880,0.09,'square',0.10); beep(1320,0.12,'square',0.08); },
+  hit:   function(){ beep(180,0.25,'sawtooth',0.16,80); },
+  death: function(){ beep(220,0.5,'sawtooth',0.18,40); beep(110,0.7,'triangle',0.15,30); },
+  heal:  function(){ beep(523,0.1,'sine',0.12); beep(659,0.1,'sine',0.12); beep(784,0.18,'sine',0.12); },
+  troll: function(){ beep(400,0.08,'triangle',0.10); beep(300,0.12,'triangle',0.10); },
+  jump:  function(){ beep(300,0.12,'square',0.08,600); },
+  dash:  function(){ beep(200,0.15,'sawtooth',0.10,900); },
+  buy:   function(){ beep(660,0.08,'square',0.1); beep(990,0.15,'square',0.1); },
+  power: function(){ beep(440,0.1,'sine',0.14); beep(880,0.2,'sine',0.14); },
+  no:    function(){ beep(160,0.2,'square',0.12); }
+};
+
+// ---------- UI helpers ----------
+function $(id){ return document.getElementById(id); }
+var toastT = null;
+function toast(msg){
+  var t = $('toast'); t.textContent = msg; t.style.opacity = 1;
+  clearTimeout(toastT); toastT = setTimeout(function(){ t.style.opacity = 0; }, 1600);
+}
+function show(id){
+  ['scrMenu','scrShop','scrInv','scrOver'].forEach(function(s){ $(s).classList.add('hidden'); });
+  if(id) $(id).classList.remove('hidden');
+}
+function fmtCoins(){ return '🪙 ' + coins; }
+
+function refreshMenu(){
+  $('menuCoins').textContent = fmtCoins() + ' moedas';
+  $('menuRecord').textContent = record > 0 ? '🏆 Recorde: ' + record + ' segundos' : '';
+  $('devPC').classList.toggle('sel', device==='pc');
+  $('devMob').classList.toggle('sel', device==='mob');
+}
+function refreshShop(){
+  $('shopCoins').textContent = fmtCoins();
+  var box = $('shopList'); box.innerHTML = '';
+  Object.keys(SKILLS).forEach(function(k){
+    var s = SKILLS[k];
+    var card = document.createElement('div'); card.className = 'card';
+    card.innerHTML = '<div class="emoji">'+s.emoji+'</div><div class="info"><b>'+s.nome+'</b><small>'+s.desc+'</small><small>Você tem: '+(stock[k]||0)+'</small></div>';
+    var b = document.createElement('button'); b.className = 'btn verde'; b.style.fontSize='16px';
+    b.textContent = '🪙 ' + s.preco;
+    b.onclick = function(){
+      if(coins >= s.preco){
+        coins -= s.preco; stock[k] = (stock[k]||0) + 1;
+        LS.set('coins', coins); LS.set('stock', stock);
+        snd.buy(); toast('Comprou ' + s.emoji + ' ' + s.nome + '!');
+        refreshShop();
+      } else { snd.no(); toast('Moedas insuficientes! 😅'); }
+    };
+    card.appendChild(b); box.appendChild(card);
+  });
+}
+function refreshInv(){
+  $('invCoins').textContent = fmtCoins();
+  var box = $('invList'); box.innerHTML = '';
+  var any = false;
+  Object.keys(SKILLS).forEach(function(k){
+    if(!(stock[k] > 0)) return;
+    any = true;
+    var s = SKILLS[k];
+    var card = document.createElement('div'); card.className = 'card';
+    card.innerHTML = '<div class="emoji">'+s.emoji+'</div><div class="info"><b>'+s.nome+'</b><small>Estoque: '+stock[k]+'</small></div>';
+    var b = document.createElement('button'); b.className = 'btn ' + (equip===k ? 'roxo':'azul'); b.style.fontSize='15px';
+    b.textContent = equip===k ? '⭐ EQUIPADA' : 'EQUIPAR';
+    b.onclick = function(){
+      equip = (equip===k) ? null : k;
+      LS.set('equip', equip);
+      refreshInv();
+    };
+    card.appendChild(b); box.appendChild(card);
+  });
+  if(!any){
+    var p = document.createElement('div'); p.style.color = '#8a6a3a';
+    p.textContent = 'Nada aqui ainda... passa na LOJA! 🛒';
+    box.appendChild(p);
+  }
+}
+
+// ---------- canvas ----------
+var cv = $('cv'), ctx = cv.getContext('2d');
+var W = 0, H = 0, GROUND = 0;
+function resize(){
+  W = cv.width = window.innerWidth * (window.devicePixelRatio||1);
+  H = cv.height = window.innerHeight * (window.devicePixelRatio||1);
+  cv.style.width = window.innerWidth + 'px';
+  cv.style.height = window.innerHeight + 'px';
+  GROUND = H * 0.82;
+}
+window.addEventListener('resize', resize); resize();
+function S(){ return Math.min(W,H)/480; } // escala
+
+// ---------- estado do jogo ----------
+var playing = false;
+var player, shrooms, particles, clouds, elapsed, lives, runCoins, lastTs;
+var coinTimer, spawnTimer, dashCd, invulnT, shieldT, freezeT, tapTimes, skillUsed;
+
+var TYPES = [
+  // weight relativo; recalculado com dificuldade
+  { id:'verde',   w:26 }, { id:'laranja', w:16 }, { id:'preto', w:3 },
+  { id:'vida',    w:6  }, { id:'mist',    w:8  }, { id:'moeda', w:22 },
+  { id:'dourado', w:2  }, { id:'arcoiris', w:1 },
+  { id:'raio',    w:7  }, { id:'gigante', w:5  }
+];
+
+function startGame(){
+  ac();
+  show(null);
+  $('hud').classList.remove('hidden');
+  var mob = device === 'mob';
+  $('padL').classList.toggle('hidden', !mob);
+  $('padR').classList.toggle('hidden', !mob);
+  var s = S();
+  player = { x:W/2, y:GROUND, w:34*s, h:44*s, vx:0, vy:0, onGround:true, face:1 };
+  shrooms = []; particles = []; elapsed = 0; lives = 5; runCoins = 0;
+  coinTimer = 0; spawnTimer = 0; dashCd = 0; invulnT = 0; shieldT = 0; freezeT = 0;
+  window._nivelChuva = 1; window._nivelMsgT = 0;
+  tapTimes = []; skillUsed = false;
+  clouds = [];
+  for(var i=0;i<5;i++) clouds.push({ x:Math.random()*W, y:Math.random()*H*0.35, s:(0.6+Math.random())*s, v:(6+Math.random()*12)*s });
+  playing = true; lastTs = performance.now();
+  requestAnimationFrame(loop);
+}
+
+function endGame(){
+  playing = false;
+  $('hud').classList.add('hidden');
+  $('padL').classList.add('hidden');
+  $('padR').classList.add('hidden');
+  snd.death();
+  coins += runCoins; LS.set('coins', coins);
+  var t = Math.floor(elapsed);
+  var novo = t > record;
+  if(novo){ record = t; LS.set('record', record); }
+  $('overTitle').textContent = novo ? '🏆 NOVO RECORDE!' : '💀 Fim de jogo!';
+  $('overStats').innerHTML = '⏱️ Você sobreviveu <b>' + t + ' segundos</b>!<br>🪙 Ganhou <b>' + runCoins + ' moedas</b> (total: ' + coins + ')<br>🏆 Recorde: ' + record + 's';
+  show('scrOver');
+}
+
+// ---------- input ----------
+var keys = {};
+window.addEventListener('keydown', function(e){
+  keys[e.code] = true;
+  if(playing && (e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW')) { jump(); e.preventDefault(); }
+  if(playing && (e.code==='ShiftLeft'||e.code==='ShiftRight')) dash();
+});
+window.addEventListener('keyup', function(e){ keys[e.code] = false; });
+
+var touchL = false, touchR = false;
+function bindHold(id, on, off){
+  var el = $(id);
+  ['touchstart','mousedown'].forEach(function(ev){ el.addEventListener(ev, function(e){ e.preventDefault(); on(); }); });
+  ['touchend','touchcancel','mouseup','mouseleave'].forEach(function(ev){ el.addEventListener(ev, function(e){ e.preventDefault(); off(); }); });
+}
+bindHold('bLeft',  function(){ touchL=true; }, function(){ touchL=false; });
+bindHold('bRight', function(){ touchR=true; }, function(){ touchR=false; });
+bindHold('bJump',  function(){ jump(); }, function(){});
+bindHold('bDash',  function(){ dash(); }, function(){});
+
+function jump(){
+  if(!player) return;
+  if(player.onGround){ player.vy = -720*S(); player.onGround = false; player.jumps = 1; snd.jump(); }
+  else if((player.jumps||0) < 2){ player.vy = -640*S(); player.jumps = (player.jumps||1) + 1; snd.jump();
+    for(var i=0;i<6;i++) particles.push({ x:player.x, y:player.y, vx:(Math.random()-0.5)*160*S(), vy:(60+Math.random()*80)*S(), t:0.35, c:'#cfe9ff' });
+  }
+}
+function dash(){
+  if(!player || dashCd > 0) return;
+  var dir = player.face || 1;
+  player.vx = dir * 900 * S();
+  dashCd = 5;
+  snd.dash();
+  for(var i=0;i<8;i++) particles.push({ x:player.x, y:player.y-player.h/2, vx:-dir*(80+Math.random()*180)*S(), vy:(Math.random()-0.5)*120*S(), t:0.4, c:'#ffffff' });
+}
+
+// 2 toques no meio da tela = ativar habilidade equipada
+function midTap(x, y){
+  if(!playing) return;
+  var cx = window.innerWidth/2, cy = window.innerHeight/2;
+  if(Math.abs(x-cx) > window.innerWidth*0.22 || Math.abs(y-cy) > window.innerHeight*0.28) return;
+  var now = performance.now();
+  tapTimes.push(now);
+  tapTimes = tapTimes.filter(function(t){ return now - t < 600; });
+  if(tapTimes.length >= 2){ tapTimes = []; activateSkill(); }
+}
+cv.addEventListener('pointerdown', function(e){ midTap(e.clientX, e.clientY); });
+
+function activateSkill(){
+  if(!equip){ toast('Nenhuma habilidade equipada! 🎒'); snd.no(); return; }
+  if(skillUsed){ toast('Já usou nessa partida!'); snd.no(); return; }
+  if(!(stock[equip] > 0)){ toast('Acabou o estoque! Compra na loja 🛒'); snd.no(); return; }
+  stock[equip]--; LS.set('stock', stock);
+  skillUsed = true;
+  snd.power();
+  if(equip==='vidas'){ lives = Math.min(lives+3, 8); toast('❤️ +3 vidas!'); }
+  else if(equip==='escudo'){ shieldT = 5; toast('🛡️ Escudo por 5s!'); }
+  else if(equip==='gelo'){ freezeT = 4; toast('❄️ Tudo congelado!'); }
+}
+
+// ---------- cogumelos ----------
+function pickType(diff){
+  var pool = [];
+  TYPES.forEach(function(t){
+    var w = t.w;
+    if(t.id==='preto') w = Math.min(3 + diff*1.2, 8); // sobe pouco
+    pool.push({ id:t.id, w:w });
+  });
+  var tot = pool.reduce(function(a,b){ return a+b.w; }, 0);
+  var r = Math.random()*tot;
+  for(var i=0;i<pool.length;i++){ r -= pool[i].w; if(r<=0) return pool[i].id; }
+  return 'verde';
+}
+function spawn(diff){
+  var s = S();
+  var t = pickType(diff);
+  var r = (14 + Math.random()*8) * s;
+  var vy = (120 + Math.random()*80 + diff*45) * s;
+  if(t === 'raio'){ vy *= 1.8; }
+  if(t === 'gigante'){ r *= 2.2; vy *= 0.55; }
+  shrooms.push({
+    type: t,
+    x: (0.04 + Math.random()*0.92) * W,
+    y: -60*s,
+    r: r,
+    vy: vy,
+    wob: Math.random()*Math.PI*2
+  });
+}
+
+// ---------- update / draw ----------
+function desenhaAvisoNivel(){
+  if(window._nivelMsgT > 0 && window._nivelChuva > 1){
+    ctx.save();
+    ctx.font = 'bold ' + Math.round(34*S()) + 'px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff5544';
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 5;
+    ctx.strokeText('⚠️ NÍVEL ' + window._nivelChuva + ' — MAIS DIFÍCIL!', W/2, H*0.25);
+    ctx.fillText('⚠️ NÍVEL ' + window._nivelChuva + ' — MAIS DIFÍCIL!', W/2, H*0.25);
+    ctx.restore();
+  }
+}
+function loop(ts){
+  if(!playing) return;
+  var dt = Math.min((ts - lastTs)/1000, 0.05); lastTs = ts;
+  update(dt);
+  draw();
+  desenhaAvisoNivel();
+  requestAnimationFrame(loop);
+}
+
+function update(dt){
+  var s = S();
+  elapsed += dt;
+  var diff = elapsed/12; // dificuldade (sobe rápido!)
+
+  // moeda automática a cada 2s
+  coinTimer += dt;
+  if(coinTimer >= 2){ coinTimer -= 2; runCoins++; snd.coin(); }
+
+  // aviso de dificuldade a cada 15s: "NÍVEL X — MAIS RÁPIDO!"
+  var nivelAtualChuva = Math.floor(elapsed/15) + 1;
+  if(nivelAtualChuva > (window._nivelChuva||1)){
+    window._nivelChuva = nivelAtualChuva;
+    window._nivelMsgT = 2;
+    try{ snd.coin(); }catch(e){}
+  }
+  if(window._nivelMsgT > 0) window._nivelMsgT -= dt;
+
+  // timers
+  if(dashCd > 0) dashCd = Math.max(0, dashCd - dt);
+  if(invulnT > 0) invulnT -= dt;
+  if(shieldT > 0) shieldT -= dt;
+  if(freezeT > 0) freezeT -= dt;
+
+  // spawn
+  spawnTimer -= dt;
+  if(spawnTimer <= 0){
+    spawn(diff);
+    spawnTimer = Math.max(0.10, 0.85 - diff*0.13);
+  }
+
+  // player
+  var acc = 2600*s, maxV = 420*s;
+  var left = keys['KeyA']||keys['ArrowLeft']||touchL;
+  var right = keys['KeyD']||keys['ArrowRight']||touchR;
+  if(left && !right){ player.vx -= acc*dt; player.face = -1; }
+  else if(right && !left){ player.vx += acc*dt; player.face = 1; }
+  else player.vx *= Math.pow(0.0008, dt); // atrito
+  var cap = Math.abs(player.vx) > maxV*1.2 ? 1100*s : maxV; // dash pode exceder
+  player.vx = Math.max(-cap, Math.min(cap, player.vx));
+  player.vy += 1800*s*dt;
+  player.x += player.vx*dt;
+  player.y += player.vy*dt;
+  if(player.x < player.w/2) { player.x = player.w/2; player.vx = 0; }
+  if(player.x > W-player.w/2) { player.x = W-player.w/2; player.vx = 0; }
+  if(player.y >= GROUND){ player.y = GROUND; player.vy = 0; player.onGround = true; player.jumps = 0; }
+
+  // nuvens
+  clouds.forEach(function(c){ c.x += c.v*dt; if(c.x > W + 100*s) c.x = -100*s; });
+
+  // cogumelos
+  var frozen = freezeT > 0;
+  for(var i = shrooms.length-1; i >= 0; i--){
+    var m = shrooms[i];
+    if(!frozen){
+      m.y += m.vy*dt; m.wob += dt*3;
+      if(m.type === 'raio'){
+        m.x += Math.sin(m.wob*2.5) * 260 * s * dt;
+        if(m.x < m.r) m.x = m.r;
+        if(m.x > W - m.r) m.x = W - m.r;
+      }
+    }
+    if(m.y - m.r > H){ shrooms.splice(i,1); continue; }
+    // colisão círculo × retângulo do player
+    var px = player.x, py = player.y - player.h/2;
+    var dx = m.x - Math.max(px-player.w/2, Math.min(m.x, px+player.w/2));
+    var dy = m.y - Math.max(py-player.h/2, Math.min(m.y, py+player.h/2));
+    if(dx*dx + dy*dy < m.r*m.r*0.85){
+      hitShroom(m);
+      shrooms.splice(i,1);
+      if(!playing) return;
+    }
+  }
+
+  // partículas
+  for(var j = particles.length-1; j >= 0; j--){
+    var p = particles[j];
+    p.t -= dt; p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 400*s*dt;
+    if(p.t <= 0) particles.splice(j,1);
+  }
+
+  // HUD
+  var hearts = '';
+  for(var h=0; h<lives; h++) hearts += '❤️';
+  $('hearts').textContent = hearts || '💔';
+  $('hudCoins').textContent = '🪙 ' + (coins + runCoins);
+  $('hudTime').textContent = '⏱️ ' + Math.floor(elapsed) + 's';
+  $('hudDash').textContent = dashCd > 0 ? '💨 ' + dashCd.toFixed(1) + 's' : '💨 DASH pronto!';
+  var sk = '';
+  if(shieldT > 0) sk = '🛡️ ' + shieldT.toFixed(1) + 's';
+  else if(freezeT > 0) sk = '❄️ ' + freezeT.toFixed(1) + 's';
+  else if(equip && !skillUsed && stock[equip] > 0) sk = SKILLS[equip].emoji + ' 2 toques no meio pra usar';
+  else if(equip && skillUsed) sk = SKILLS[equip].emoji + ' usada';
+  $('hudSkill').textContent = sk;
+}
+
+function burst(x, y, color, n){
+  for(var i=0;i<(n||10);i++)
+    particles.push({ x:x, y:y, vx:(Math.random()-0.5)*300*S(), vy:(Math.random()-0.9)*260*S(), t:0.5+Math.random()*0.3, c:color });
+}
+
+function hitShroom(m){
+  if(m.type==='moeda'){ runCoins++; snd.coin(); burst(m.x, m.y, '#ffd93b', 8); return; }
+  if(m.type==='dourado'){
+    runCoins += 10; snd.buy(); toast('🌟 Cogumelo DOURADO! +10 moedas!');
+    burst(m.x, m.y, '#ffd21c', 20); return;
+  }
+  if(m.type==='arcoiris'){
+    snd.power(); toast('🌈 ARCO-ÍRIS! Tudo virou moeda!');
+    shrooms.forEach(function(o){ if(o !== m) o.type = 'moeda'; });
+    burst(m.x, m.y, '#ff5da2', 12); burst(m.x, m.y, '#5dc8ff', 12); burst(m.x, m.y, '#ffe45c', 12);
+    return;
+  }
+  if(m.type==='vida'){
+    if(lives < 5){ lives++; toast('❤️ +1 vida!'); } else toast('Vidas cheias!');
+    snd.heal(); burst(m.x, m.y, '#9dfc9d', 8); return;
+  }
+  if(m.type==='mist'){ snd.troll(); toast(['Nada! 😜','Trollado! 🤪','Era só um susto! 😝'][Math.floor(Math.random()*3)]); burst(m.x, m.y, '#ffffff', 6); return; }
+  // daninhos
+  if(shieldT > 0 || invulnT > 0){ burst(m.x, m.y, '#8ecdf7', 6); return; }
+  if(m.type==='preto'){ lives = 0; burst(m.x, m.y, '#333333', 16); endGame(); return; }
+  if(m.type==='raio'){
+    lives -= 2;
+    snd.hit(); toast('⚡ RAIO! -2 vidas!');
+    burst(m.x, m.y, '#ffe94a', 18);
+    invulnT = 1;
+    if(lives <= 0) endGame();
+    return;
+  }
+  // verde / laranja / gigante
+  lives--;
+  snd.hit();
+  burst(m.x, m.y, m.type==='verde' ? '#4caf50' : '#ff7b1c', 12);
+  invulnT = 1;
+  if(lives <= 0) endGame();
+}
+
+// ---------- desenho ----------
+function drawShroomShape(x, y, r, cap, spots, stem){
+  ctx.fillStyle = stem || '#f5e9d0';
+  ctx.fillRect(x - r*0.35, y - r*0.1, r*0.7, r*1.0);
+  ctx.fillStyle = cap;
+  ctx.beginPath();
+  ctx.arc(x, y, r, Math.PI, 0);
+  ctx.closePath(); ctx.fill();
+  if(spots){
+    ctx.fillStyle = spots;
+    ctx.beginPath(); ctx.arc(x - r*0.4, y - r*0.35, r*0.16, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + r*0.3, y - r*0.5, r*0.14, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + r*0.05, y - r*0.15, r*0.12, 0, 7); ctx.fill();
+  }
+}
+
+function draw(){
+  var s = S();
+  // céu
+  var g = ctx.createLinearGradient(0,0,0,GROUND);
+  g.addColorStop(0,'#1a2340'); g.addColorStop(0.7,'#33456e'); g.addColorStop(1,'#4a5f8a');
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,GROUND);
+  // lua
+  ctx.fillStyle = '#f2f0d8';
+  ctx.beginPath(); ctx.arc(W*0.85, H*0.12, 30*s, 0, 7); ctx.fill();
+  ctx.fillStyle = '#1a2340';
+  ctx.beginPath(); ctx.arc(W*0.85 + 12*s, H*0.12 - 6*s, 24*s, 0, 7); ctx.fill();
+  // chuva de fundo
+  ctx.strokeStyle = 'rgba(170,200,255,0.35)'; ctx.lineWidth = 1.5*s;
+  ctx.beginPath();
+  for(var ri=0; ri<40; ri++){
+    var rx = ((ri*127 + elapsed*260*s) % (W + 40*s)) - 20*s;
+    var ry = ((ri*211 + elapsed*820*s) % (GROUND + 60*s)) - 30*s;
+    ctx.moveTo(rx, ry); ctx.lineTo(rx - 4*s, ry + 16*s);
+  }
+  ctx.stroke();
+  // relâmpago de vez em quando
+  if(Math.sin(elapsed*0.9) > 0.995 || (elapsed % 7) < 0.12){
+    ctx.fillStyle = 'rgba(255,255,220,0.14)'; ctx.fillRect(0,0,W,GROUND);
+  }
+  // nuvens
+  ctx.fillStyle = 'rgba(90,100,130,0.9)';
+  clouds.forEach(function(c){
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, 22*c.s, 0, 7);
+    ctx.arc(c.x+24*c.s, c.y+6*c.s, 18*c.s, 0, 7);
+    ctx.arc(c.x-24*c.s, c.y+6*c.s, 16*c.s, 0, 7);
+    ctx.fill();
+  });
+  // terra + gramado
+  ctx.fillStyle = '#8a5a2b'; ctx.fillRect(0, GROUND, W, H-GROUND);
+  ctx.fillStyle = '#6e4620';
+  for(var i=0;i<W;i+=40*s) ctx.fillRect(i + (i/(40*s))%2*10*s, GROUND+20*s, 14*s, 8*s);
+  ctx.fillStyle = '#57b03c'; ctx.fillRect(0, GROUND-10*s, W, 22*s);
+  ctx.fillStyle = '#6cc94e';
+  for(var gx=0; gx<W; gx+=14*s){
+    ctx.beginPath();
+    ctx.moveTo(gx, GROUND+12*s); ctx.lineTo(gx+5*s, GROUND-16*s); ctx.lineTo(gx+10*s, GROUND+12*s);
+    ctx.fill();
+  }
+
+  // cogumelos caindo
+  shrooms.forEach(function(m){
+    var wx = m.x + Math.sin(m.wob)*4*s;
+    ctx.save();
+    if(freezeT > 0) ctx.globalAlpha = 0.85;
+    switch(m.type){
+      case 'verde':   drawShroomShape(wx, m.y, m.r, '#3fae3f', '#2a7a2a'); break;
+      case 'laranja':
+        ctx.shadowColor = '#ff9c1a'; ctx.shadowBlur = 16*s;
+        drawShroomShape(wx, m.y, m.r, '#ff7b1c', '#ffd23b'); break;
+      case 'preto':
+        ctx.shadowColor = '#ff0044'; ctx.shadowBlur = 10*s;
+        drawShroomShape(wx, m.y, m.r, '#1d1d1d', '#3c3c3c', '#c9c2b5');
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#fff'; ctx.font = 'bold ' + (m.r*0.9) + 'px sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText('☠', wx, m.y - m.r*0.15);
+        break;
+      case 'vida':
+        drawShroomShape(wx, m.y, m.r, '#ffffff', null);
+        ctx.strokeStyle = '#8fe08f'; ctx.lineWidth = m.r*0.24; ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(wx, m.y - m.r*0.75); ctx.lineTo(wx, m.y - m.r*0.15);
+        ctx.moveTo(wx - m.r*0.3, m.y - m.r*0.45); ctx.lineTo(wx + m.r*0.3, m.y - m.r*0.45);
+        ctx.stroke();
+        break;
+      case 'mist':
+        drawShroomShape(wx, m.y, m.r, '#ffffff', null);
+        ctx.fillStyle = '#9a7ad0'; ctx.font = 'bold ' + (m.r*0.9) + 'px sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText('?', wx, m.y - m.r*0.2);
+        break;
+      case 'moeda':
+        ctx.shadowColor = '#ffe45c'; ctx.shadowBlur = 12*s;
+        drawShroomShape(wx, m.y, m.r, '#ffd21c', '#fff2a8'); break;
+      case 'dourado':
+        ctx.shadowColor = '#fff2a8'; ctx.shadowBlur = 22*s;
+        drawShroomShape(wx, m.y, m.r*1.15, '#f7b500', '#fff8d0', '#ffe9a8');
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#fff'; ctx.font = 'bold ' + (m.r*0.8) + 'px sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText('★', wx, m.y - m.r*0.2);
+        break;
+      case 'raio':
+        ctx.shadowColor = '#ffe94a'; ctx.shadowBlur = 18*s;
+        drawShroomShape(wx, m.y, m.r, '#ffdd1c', '#fff8b0', '#e8d27a');
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#7a4a00'; ctx.font = 'bold ' + (m.r*0.95) + 'px sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText('⚡', wx, m.y - m.r*0.1);
+        break;
+      case 'gigante':
+        ctx.shadowColor = '#a86ae0'; ctx.shadowBlur = 14*s;
+        drawShroomShape(wx, m.y, m.r, '#8a4ac0', '#c9a0f0', '#e0d0f0');
+        break;
+      case 'arcoiris':
+        var cores = ['#ff5da2','#ff9c1a','#ffe45c','#5bbf3f','#4aa3e0','#a86ae0'];
+        ctx.shadowColor = cores[Math.floor(elapsed*8)%6]; ctx.shadowBlur = 20*s;
+        drawShroomShape(wx, m.y, m.r*1.1, cores[Math.floor(elapsed*8)%6], '#ffffff');
+        break;
+    }
+    if(freezeT > 0){
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#aee6ff'; ctx.lineWidth = 2*s;
+      ctx.strokeRect(wx - m.r, m.y - m.r, m.r*2, m.r*2);
+    }
+    ctx.restore();
+  });
+
+  // player (cogumelinho bonequinho)
+  ctx.save();
+  if(invulnT > 0 && Math.floor(invulnT*10)%2===0) ctx.globalAlpha = 0.4;
+  var px = player.x, py = player.y;
+  // perninhas
+  ctx.strokeStyle = '#b0722d'; ctx.lineWidth = 5*s; ctx.lineCap='round';
+  var step = player.onGround && Math.abs(player.vx)>30*s ? Math.sin(elapsed*14)*6*s : 0;
+  ctx.beginPath();
+  ctx.moveTo(px-7*s, py-14*s); ctx.lineTo(px-9*s+step, py);
+  ctx.moveTo(px+7*s, py-14*s); ctx.lineTo(px+9*s-step, py);
+  ctx.stroke();
+  // corpo
+  ctx.fillStyle = '#ffe9c9';
+  ctx.beginPath(); ctx.arc(px, py-24*s, 13*s, 0, 7); ctx.fill();
+  // olhos
+  ctx.fillStyle = '#333';
+  ctx.beginPath(); ctx.arc(px-4*s+player.face*2*s, py-26*s, 2.4*s, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(px+4*s+player.face*2*s, py-26*s, 2.4*s, 0, 7); ctx.fill();
+  // sorriso
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 1.8*s;
+  ctx.beginPath(); ctx.arc(px+player.face*2*s, py-22*s, 4.5*s, 0.2, Math.PI-0.2); ctx.stroke();
+  // chapéu de cogumelo
+  ctx.fillStyle = '#e84d4d';
+  ctx.beginPath(); ctx.arc(px, py-33*s, 17*s, Math.PI, 0); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(px-7*s, py-38*s, 3.4*s, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(px+6*s, py-40*s, 2.8*s, 0, 7); ctx.fill();
+  // escudo
+  if(shieldT > 0){
+    ctx.strokeStyle = '#4ac6ff'; ctx.lineWidth = 3*s; ctx.globalAlpha = 0.65 + Math.sin(elapsed*10)*0.2;
+    ctx.beginPath(); ctx.arc(px, py-22*s, 30*s, 0, 7); ctx.stroke();
+  }
+  ctx.restore();
+
+  // partículas
+  particles.forEach(function(p){
+    ctx.globalAlpha = Math.max(0, p.t*2);
+    ctx.fillStyle = p.c;
+    ctx.fillRect(p.x-3*s, p.y-3*s, 6*s, 6*s);
+  });
+  ctx.globalAlpha = 1;
+
+  // overlay gelo
+  if(freezeT > 0){ ctx.fillStyle = 'rgba(140,210,255,0.12)'; ctx.fillRect(0,0,W,H); }
+}
+
+// ---------- botões ----------
+$('btnPlay').onclick = startGame;
+$('btnAgain').onclick = startGame;
+$('btnShop').onclick = function(){ refreshShop(); show('scrShop'); };
+$('btnInv').onclick = function(){ refreshInv(); show('scrInv'); };
+$('shopBack').onclick = function(){ refreshMenu(); show('scrMenu'); };
+$('invBack').onclick = function(){ refreshMenu(); show('scrMenu'); };
+$('btnMenu').onclick = function(){ refreshMenu(); show('scrMenu'); };
+$('devPC').onclick = function(){ device='pc'; LS.set('device', device); refreshMenu(); };
+$('devMob').onclick = function(){ device='mob'; LS.set('device', device); refreshMenu(); };
+
+refreshMenu();
+show('scrMenu');
+})();
+</script>
+<script src="/stats.js?v=358"></script>
+<script src="/avisos.js?v=6"></script>
+<script>if (window.initStats) initStats('chuva2');</script>
+<script src="/mascote.js"></script>
