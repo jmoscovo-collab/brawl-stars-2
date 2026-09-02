@@ -71,7 +71,7 @@ const PORTA = { x: 60, y: 266, w: 44, h: 64 };    // porta da vitória
 const ENG_INICIO = { x: 2200, y: 480 };  // engrenagem lá longe, depois da ponte
 
 // engrenagem: track padrão = parada no ENG_INICIO; override = onde o jogador largar
-let eng = { override: null, hold: false };
+let eng = { override: null, hold: false, podePegar: true };
 function engPos(){
   if (eng.hold) return { x: P.x + P.w/2, y: P.y - 20 };
   if (eng.override) return eng.override;
@@ -120,7 +120,7 @@ function create(){
   const dica = (x,y,t)=>{ textos.push(sc.add.text(x,y,t,{fontSize:'15px',color:'#8fa3ff',align:'center'}).setOrigin(0.5)); };
   dica(300, 470, '➡️ andar pra FRENTE avança o tempo\n⬅️ andar pra TRÁS rebobina!');
   dica(900, 430, 'a ponte só existe numa ÉPOCA:\nno passado ainda não foi construída,\nno futuro já DESABOU!');
-  dica(2200, 400, 'pegue a engrenagem (E)\ne leve pro PASSADO');
+  dica(2200, 400, 'encoste pra pegar a engrenagem\ne leve pro PASSADO');
   dica(240, 400, 'placa de pressão:\nsolte a engrenagem aqui (E)');
 
   // toque
@@ -129,6 +129,7 @@ function create(){
     const bind=(id,k)=>{ const el=document.getElementById(id);
       el.addEventListener('touchstart',e=>{e.preventDefault();touch[k]=1;},{passive:false});
       el.addEventListener('touchend',()=>touch[k]=0);
+      el.addEventListener('touchcancel',()=>touch[k]=0);
     };
     bind('bL','L'); bind('bR','R'); bind('bJ','J'); bind('bE','E');
   }
@@ -178,13 +179,21 @@ function update(_, dms){
   // esmagado pela pedra? empurra
   // (a pedra é sólida; se rebobinar com o jogador embaixo, ele é empurrado pro lado)
 
-  // ---------- pegar / soltar (E) ----------
+  // ---------- pegar / soltar ----------
+  // encostar na engrenagem já pega; E/✋ solta. Depois de soltar, só
+  // volta a pegar automático quando o jogador se afastar (senão ele
+  // arrancaria a engrenagem da placa sem querer).
   const ep = engPos();
+  const distEng = Math.hypot(P.x+P.w/2 - ep.x, P.y+P.h/2 - ep.y);
+  if (!eng.hold && distEng > 70) eng.podePegar = true;
+  if (!eng.hold && eng.podePegar && distEng < 44){
+    eng.hold = true; eng.override = null;
+  }
   if (acao && !ePrev){
     if (eng.hold){
-      eng.hold = false;
+      eng.hold = false; eng.podePegar = false;
       eng.override = { x: P.x + P.w/2, y: P.y + P.h - 14 }; // solta no chão onde está
-    } else if (Math.hypot(P.x+P.w/2 - ep.x, P.y+P.h/2 - ep.y) < 60){
+    } else if (distEng < 60){
       eng.hold = true; eng.override = null;
     }
   }
