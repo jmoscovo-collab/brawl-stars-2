@@ -43,8 +43,9 @@ let msg, tbar, tbarBg, venceu = false;
 // ---------- helpers de track: estado do cenário como função de T ----------
 const lerp = (a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
 
-// ponte: inteira para T<55, desaba (some) para T>=55
-const ponteExiste = () => T < 55;
+// ponte: só existe numa JANELA do tempo — no passado distante ainda não foi
+// construída (T<16) e no futuro desaba (T>=55). Rebobinar demais em cima dela = queda!
+const ponteExiste = () => T >= 16 && T < 55;
 // pedregulho: pendurado no alto para T<28, cai e bloqueia o corredor para T>=28
 const pedraY = () => T < 28 ? 120 : lerp(120, 448, (T-28)/6);
 // sol/cor do mundo muda com T (passado azul → futuro laranja)
@@ -118,7 +119,7 @@ function create(){
   // dicas no mundo
   const dica = (x,y,t)=>{ textos.push(sc.add.text(x,y,t,{fontSize:'15px',color:'#8fa3ff',align:'center'}).setOrigin(0.5)); };
   dica(300, 470, '➡️ andar pra FRENTE avança o tempo\n⬅️ andar pra TRÁS rebobina!');
-  dica(900, 430, 'cuidado: no futuro\na ponte DESABA');
+  dica(900, 430, 'a ponte só existe numa ÉPOCA:\nno passado ainda não foi construída,\nno futuro já DESABOU!');
   dica(2200, 400, 'pegue a engrenagem (E)\ne leve pro PASSADO');
   dica(240, 400, 'placa de pressão:\nsolte a engrenagem aqui (E)');
 
@@ -217,6 +218,10 @@ function update(_, dms){
     g.fillRect(PONTE[0],PONTE[1],PONTE[2],20);
     if (rachadura>0.2){ g.fillStyle(0x000000,0.6);
       for(let i=0;i<6;i++) g.fillRect(PONTE[0]+40+i*45, PONTE[1], 3, 20*rachadura); }
+  } else if (T < 16) { // ainda em obra no passado
+    g.fillStyle(0x6a5a3a, 0.8);
+    for(let i=0;i<4;i++) g.fillRect(PONTE[0]+20+i*80, PONTE[1], 8, 60);
+    g.fillStyle(0x8a7a5a, 0.5); g.fillRect(PONTE[0], PONTE[1]+56, PONTE[2]*(T/16), 8);
   } else {
     g.fillStyle(0x1a1030); g.fillRect(PONTE[0], PONTE[1]+60, PONTE[2], 20); // escombros lá embaixo
   }
