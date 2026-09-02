@@ -28,69 +28,131 @@
 <script>
 // ============================================================================
 // RETROCEDER — andar pra frente avança o tempo, andar pra trás rebobina.
-// Arquitetura: T escalar global; cenário = f(T) (tracks); objetos carregados
-// ganham OVERRIDE (incoerência temporal) e ignoram T.
+// Agora com FASES: cada fase é um mundo com suas pontes (janelas de época),
+// pedras que caem em momentos diferentes e a engrenagem pra levar até a placa.
 // ============================================================================
-const W = 2400, H = 600;          // mundo
+const H = 600;
 const T_MAX = 100;
-const T_PER_PX = 0.045;           // quanto T anda por pixel andado
+const T_PER_PX = 0.045;
 
-let T = 0;                        // tempo do mundo (vai e volta)
+// kit padrão do lado esquerdo: plataforma do portão + porta final
+const KIT_PLATS = [[180,440,120,20],[40,330,120,20]];
+const KIT = {
+  placa: {x:200, y:432, w:80},
+  portao: {x:150, y:230, w:24, h:100},
+  porta: {x:60, y:266, w:44, h:64},
+};
+
+// pedra: fica em yA até T=tq, depois desce/sobe até yB em `dur` de T
+const pedra = (x,tq,dur=6)=>({x, w:56, h:72, yA:120, yB:448, tq, dur});
+
+const LEVELS = [
+{ nome:'O Despertar', W:2400, spawn:{x:80,y:400},
+  solidos:[[0,520,760,80],[1060,520,1340,80],...KIT_PLATS],
+  pontes:[{x:760,y:520,w:300,h:80,t0:16,t1:55}],
+  pedras:[pedra(320,28)],
+  eng:{x:2200,y:480}, ...KIT,
+  dicas:[[300,470,'➡️ andar pra FRENTE avança o tempo\n⬅️ andar pra TRÁS rebobina!'],
+         [900,430,'a ponte só existe numa ÉPOCA:\nno passado ainda não foi construída,\nno futuro já DESABOU!'],
+         [2200,400,'encoste pra pegar a engrenagem\ne leve pro PASSADO'],
+         [240,400,'placa de pressão:\nsolte a engrenagem aqui (E)']] },
+
+{ nome:'Duas Épocas', W:2800, spawn:{x:80,y:400},
+  solidos:[[0,520,600,80],[900,520,700,80],[1900,520,900,80],...KIT_PLATS],
+  pontes:[{x:600,y:520,w:300,h:80,t0:4,t1:60},{x:1600,y:520,w:300,h:80,t0:25,t1:96}],
+  pedras:[],
+  eng:{x:2650,y:480}, ...KIT,
+  dicas:[[750,430,'cada ponte pertence\na uma ÉPOCA diferente!'],
+         [1750,430,'esta aqui é do FUTURO —\ncuidado ao rebobinar em cima dela!']] },
+
+{ nome:'Chuva de Pedras', W:2400, spawn:{x:80,y:400},
+  solidos:[[0,520,760,80],[1060,520,1340,80],...KIT_PLATS],
+  pontes:[{x:760,y:520,w:300,h:80,t0:12,t1:70}],
+  pedras:[pedra(320,28), pedra(1350,55,5), pedra(1550,45,5)],
+  eng:{x:2250,y:480}, ...KIT,
+  dicas:[[1450,430,'pedras caem em épocas diferentes —\nrebobine pra levantá-las de novo!']] },
+
+{ nome:'A Travessia', W:2600, spawn:{x:80,y:400},
+  solidos:[[0,520,700,80],[1250,520,1350,80],...KIT_PLATS],
+  pontes:[{x:700,y:520,w:550,h:80,t0:14,t1:58}],
+  pedras:[pedra(320,30)],
+  eng:{x:2450,y:480}, ...KIT,
+  dicas:[[970,430,'ponte COMPRIDA: o tempo passa\nenquanto você atravessa... não pare!']] },
+
+{ nome:'Ruínas no Céu', W:2600, spawn:{x:80,y:400},
+  solidos:[[0,520,700,80],[1700,520,900,80],
+           [850,470,110,16],[1030,410,110,16],[1210,410,110,16],[1390,470,110,16],[1550,500,130,16],
+           ...KIT_PLATS],
+  pontes:[],
+  pedras:[pedra(320,26)],
+  eng:{x:2450,y:480}, ...KIT,
+  dicas:[[1200,340,'a ponte virou RUÍNAS —\npule pelos pedaços flutuantes!']] },
+
+{ nome:'O Colapso', W:2800, spawn:{x:80,y:400},
+  solidos:[[0,520,700,80],[1900,520,900,80],...KIT_PLATS],
+  pontes:[{x:700,y:520,w:1200,h:80,t0:8,t1:92}],
+  pedras:[pedra(1000,80,4), pedra(1400,88,4), pedra(320,30)],
+  eng:{x:2650,y:480}, ...KIT,
+  dicas:[[1300,430,'a ponte GIGANTE apodrece no futuro...\npegue a engrenagem e CORRA de volta!']] },
+
+{ nome:'Caminho Inverso', W:2600, spawn:{x:80,y:400},
+  solidos:[[0,520,1100,80],[1400,520,1200,80],
+           [2280,440,120,20],[2440,330,120,20]],
+  pontes:[{x:1100,y:520,w:300,h:80,t0:5,t1:70}],
+  pedras:[],
+  eng:{x:350,y:480},
+  placa:{x:2300,y:432,w:80},
+  portao:{x:2410,y:230,w:24,h:100},
+  porta:{x:2500,y:266,w:44,h:64},
+  dicas:[[350,430,'desta vez a engrenagem está AQUI —\nleve-a para o FUTURO!'],
+         [2330,400,'solte a engrenagem\nna placa (E)']] },
+
+{ nome:'Quebra-Tempo Final', W:3000, spawn:{x:80,y:400},
+  solidos:[[0,520,760,80],[1060,520,600,80],[1960,520,1040,80],...KIT_PLATS],
+  pontes:[{x:760,y:520,w:300,h:80,t0:4,t1:55},{x:1660,y:520,w:300,h:80,t0:30,t1:97}],
+  pedras:[pedra(320,28), pedra(1450,70,5)],
+  eng:{x:2850,y:480}, ...KIT,
+  dicas:[[1400,430,'FASE FINAL: tudo junto!\nduas pontes, pedras e o caminho de volta...']] },
+];
+
+let fase = Math.min(parseInt(localStorage.getItem('retroceder_fase')||'0',10)||0, LEVELS.length-1);
+let LV = LEVELS[fase];
+
+let T = 0;
 let keys, touch = {L:0,R:0,J:0,E:0};
-let carried = null;               // objeto na mão
 let msg, tbar, tbarBg, venceu = false;
 
-// ---------- helpers de track: estado do cenário como função de T ----------
 const lerp = (a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
 
-// ponte: só existe numa JANELA do tempo — no passado distante ainda não foi
-// construída (T<16) e no futuro desaba (T>=55). Rebobinar demais em cima dela = queda!
-const ponteExiste = () => T >= 16 && T < 55;
-// pedregulho: pendurado no alto para T<28, cai e bloqueia o corredor para T>=28
-const pedraY = () => T < 28 ? 120 : lerp(120, 448, (T-28)/6);
-// sol/cor do mundo muda com T (passado azul → futuro laranja)
+const ponteExiste = (p) => T >= p.t0 && T < p.t1;
+const pedraY = (p) => T < p.tq ? p.yA : lerp(p.yA, p.yB, (T-p.tq)/p.dur);
 const corFundo = () => {
   const t = T/T_MAX;
   const r = Math.round(lerp(14, 60, t)), g = Math.round(lerp(16, 30, t)), b = Math.round(lerp(46, 18, t));
   return Phaser.Display.Color.GetColor(r,g,b);
 };
 
-// ---------- entidades ----------
-// plataformas fixas: [x, y, w, h]
-const SOLIDOS_FIXOS = [
-  [0, 520, 760, 80],        // chão esquerdo
-  [1060, 520, 1340, 80],    // chão direito (depois do abismo)
-  [180, 440, 120, 20],      // plataforma do portão (em cima)
-  [40, 330, 120, 20],       // plataforma da porta final
-];
-const PONTE = [760, 520, 300, 80];      // cobre o abismo
-const PEDRA = { x: 320, w: 56, h: 72 }; // cai no corredor da porta
-const PLACA = { x: 200, y: 432, w: 80 };  // placa de pressão na plataforma do portão
-const PORTAO = { x: 150, y: 230, w: 24, h: 100 }; // fecha o acesso à porta final
-const PORTA = { x: 60, y: 266, w: 44, h: 64 };    // porta da vitória
-const ENG_INICIO = { x: 2200, y: 480 };  // engrenagem lá longe, depois da ponte
-
-// engrenagem: track padrão = parada no ENG_INICIO; override = onde o jogador largar
+// engrenagem: track padrão = parada em LV.eng; override = onde o jogador largar
 let eng = { override: null, hold: false, podePegar: true };
 function engPos(){
   if (eng.hold) return { x: P.x + P.w/2, y: P.y - 20 };
   if (eng.override) return eng.override;
-  return { x: ENG_INICIO.x, y: ENG_INICIO.y };
+  return { x: LV.eng.x, y: LV.eng.y };
 }
 function portaoAberto(){
   if (eng.hold) return false;
   const p = engPos();
-  return Math.abs(p.x - (PLACA.x + PLACA.w/2)) < 50 && p.y < 460 && p.y > 390;
+  return Math.abs(p.x - (LV.placa.x + LV.placa.w/2)) < 50 && p.y < LV.placa.y + 28 && p.y > LV.placa.y - 42;
 }
 
 // ---------- física própria (AABB simples e determinística) ----------
 const P = { x: 80, y: 400, vx: 0, vy: 0, w: 30, h: 46, chao: false };
 
 function solidosAtuais(){
-  const s = SOLIDOS_FIXOS.map(a=>({x:a[0],y:a[1],w:a[2],h:a[3]}));
-  if (ponteExiste()) s.push({x:PONTE[0],y:PONTE[1],w:PONTE[2],h:PONTE[3]});
-  s.push({x:PEDRA.x, y:pedraY(), w:PEDRA.w, h:PEDRA.h});
-  if (!portaoAberto()) s.push({x:PORTAO.x, y:PORTAO.y, w:PORTAO.w, h:PORTAO.h});
+  const s = LV.solidos.map(a=>({x:a[0],y:a[1],w:a[2],h:a[3]}));
+  for (const p of LV.pontes) if (ponteExiste(p)) s.push({x:p.x,y:p.y,w:p.w,h:p.h});
+  for (const p of LV.pedras) s.push({x:p.x, y:pedraY(p), w:p.w, h:p.h});
+  if (!portaoAberto()) s.push({x:LV.portao.x, y:LV.portao.y, w:LV.portao.w, h:LV.portao.h});
   return s;
 }
 function colide(px,py,pw,ph,s){ return px < s.x+s.w && px+pw > s.x && py < s.y+s.h && py+ph > s.y; }
@@ -102,12 +164,24 @@ new Phaser.Game({
   scene: { create, update }
 });
 
-let gfx, cam, textos = [];
+let gfx, cam, textos = [], scRef;
+function loadLevel(sc, idx){
+  fase = idx; LV = LEVELS[idx];
+  localStorage.setItem('retroceder_fase', String(idx));
+  T = 0; venceu = false;
+  eng = { override: null, hold: false, podePegar: true };
+  P.x = LV.spawn.x; P.y = LV.spawn.y; P.vx = 0; P.vy = 0;
+  cam.setBounds(0, 0, LV.W, H);
+  for (const t of textos) t.destroy();
+  textos = [];
+  for (const [x,y,t] of LV.dicas)
+    textos.push(sc.add.text(x,y,t,{fontSize:'15px',color:'#8fa3ff',align:'center'}).setOrigin(0.5));
+}
+
 function create(){
-  const sc = this;
+  const sc = scRef = this;
   gfx = sc.add.graphics();
   cam = sc.cameras.main;
-  cam.setBounds(0, 0, W, H);
 
   keys = sc.input.keyboard.addKeys('LEFT,RIGHT,UP,SPACE,A,D,W,E,F');
 
@@ -116,12 +190,7 @@ function create(){
   tbar = sc.add.rectangle(0,0,10,10,0xffb84d).setScrollFactor(0).setDepth(11);
   msg = sc.add.text(0, 0, '', {fontSize:'16px', color:'#ffe9b0', align:'center'}).setScrollFactor(0).setDepth(12);
 
-  // dicas no mundo
-  const dica = (x,y,t)=>{ textos.push(sc.add.text(x,y,t,{fontSize:'15px',color:'#8fa3ff',align:'center'}).setOrigin(0.5)); };
-  dica(300, 470, '➡️ andar pra FRENTE avança o tempo\n⬅️ andar pra TRÁS rebobina!');
-  dica(900, 430, 'a ponte só existe numa ÉPOCA:\nno passado ainda não foi construída,\nno futuro já DESABOU!');
-  dica(2200, 400, 'encoste pra pegar a engrenagem\ne leve pro PASSADO');
-  dica(240, 400, 'placa de pressão:\nsolte a engrenagem aqui (E)');
+  loadLevel(sc, fase);
 
   // toque
   if ('ontouchstart' in window || navigator.maxTouchPoints > 0){
@@ -137,7 +206,6 @@ function create(){
 
 let ePrev = false;
 function update(_, dms){
-  const sc = this;
   const dt = Math.min(dms/1000, 0.033);
   if (venceu) return;
 
@@ -154,7 +222,7 @@ function update(_, dms){
 
   // ---------- mover X (e o TEMPO junto!) ----------
   const oldX = P.x;
-  P.x = Math.max(10, Math.min(W-40, P.x + P.vx*dt));
+  P.x = Math.max(10, Math.min(LV.W-40, P.x + P.vx*dt));
   let dx = P.x - oldX;
   for (const s of solidosAtuais()){
     if (colide(P.x, P.y, P.w, P.h, s)){
@@ -174,10 +242,7 @@ function update(_, dms){
       P.vy = 0;
     }
   }
-  if (P.y > H+100){ P.x = 80; P.y = 400; P.vy = 0; T = Math.min(T, 10); } // caiu: volta
-
-  // esmagado pela pedra? empurra
-  // (a pedra é sólida; se rebobinar com o jogador embaixo, ele é empurrado pro lado)
+  if (P.y > H+100){ P.x = LV.spawn.x; P.y = LV.spawn.y; P.vy = 0; T = Math.min(T, 10); } // caiu: volta
 
   // ---------- pegar / soltar ----------
   // encostar na engrenagem já pega; E/✋ solta. Depois de soltar, só
@@ -200,9 +265,15 @@ function update(_, dms){
   ePrev = acao;
 
   // ---------- vitória ----------
-  if (portaoAberto() && colide(P.x,P.y,P.w,P.h,{x:PORTA.x,y:PORTA.y,w:PORTA.w,h:PORTA.h})){
+  if (portaoAberto() && colide(P.x,P.y,P.w,P.h,LV.porta)){
     venceu = true;
-    msg.setText('🎉 VOCÊ QUEBROU A LINHA DO TEMPO! 🎉\nA engrenagem do futuro abriu a porta do passado.\n(F5 pra jogar de novo)');
+    if (fase < LEVELS.length - 1){
+      msg.setText(`🎉 FASE ${fase+1} COMPLETA! 🎉\npreparando a próxima época...`);
+      scRef.time.delayedCall(2000, ()=> loadLevel(scRef, fase+1));
+    } else {
+      localStorage.removeItem('retroceder_fase');
+      msg.setText('🏆 VOCÊ QUEBROU A LINHA DO TEMPO INTEIRA! 🏆\nTodas as fases completas — você é o mestre do tempo!\n(F5 pra recomeçar da fase 1)');
+    }
   }
 
   // ---------- render ----------
@@ -212,47 +283,53 @@ function update(_, dms){
 
   // estrelas do passado / brasas do futuro
   g.fillStyle(T<50 ? 0x8fa3ff : 0xff8844, 0.5);
-  for (let i=0;i<40;i++){ const sx=(i*211)%W, sy=(i*137)%300; g.fillRect(sx, sy, 2, 2); }
+  for (let i=0;i<40;i++){ const sx=(i*211)%LV.W, sy=(i*137)%300; g.fillRect(sx, sy, 2, 2); }
 
   // sólidos fixos
   g.fillStyle(0x2e3560);
-  for (const a of SOLIDOS_FIXOS) g.fillRect(a[0],a[1],a[2],a[3]);
+  for (const a of LV.solidos) g.fillRect(a[0],a[1],a[2],a[3]);
   g.fillStyle(0x4a5490);
-  for (const a of SOLIDOS_FIXOS) g.fillRect(a[0],a[1],a[2],6);
+  for (const a of LV.solidos) g.fillRect(a[0],a[1],a[2],6);
 
-  // ponte (com rachaduras conforme T sobe)
-  if (ponteExiste()){
-    const rachadura = Math.max(0,(T-35)/20);
-    g.fillStyle(Phaser.Display.Color.GetColor(120-rachadura*70, 90-rachadura*50, 60), 1);
-    g.fillRect(PONTE[0],PONTE[1],PONTE[2],20);
-    if (rachadura>0.2){ g.fillStyle(0x000000,0.6);
-      for(let i=0;i<6;i++) g.fillRect(PONTE[0]+40+i*45, PONTE[1], 3, 20*rachadura); }
-  } else if (T < 16) { // ainda em obra no passado
-    g.fillStyle(0x6a5a3a, 0.8);
-    for(let i=0;i<4;i++) g.fillRect(PONTE[0]+20+i*80, PONTE[1], 8, 60);
-    g.fillStyle(0x8a7a5a, 0.5); g.fillRect(PONTE[0], PONTE[1]+56, PONTE[2]*(T/16), 8);
-  } else {
-    g.fillStyle(0x1a1030); g.fillRect(PONTE[0], PONTE[1]+60, PONTE[2], 20); // escombros lá embaixo
+  // pontes (com rachaduras conforme T se aproxima do fim da época)
+  for (const p of LV.pontes){
+    if (ponteExiste(p)){
+      const rachadura = Math.max(0,(T-(p.t1-20))/20);
+      g.fillStyle(Phaser.Display.Color.GetColor(120-rachadura*70, 90-rachadura*50, 60), 1);
+      g.fillRect(p.x,p.y,p.w,20);
+      if (rachadura>0.2){ g.fillStyle(0x000000,0.6);
+        const n = Math.max(3, Math.floor(p.w/60));
+        for(let i=0;i<n;i++) g.fillRect(p.x+40+i*(p.w-80)/n, p.y, 3, 20*rachadura); }
+    } else if (T < p.t0) { // ainda em obra no passado
+      g.fillStyle(0x6a5a3a, 0.8);
+      for(let i=0;i<4;i++) g.fillRect(p.x+20+i*(p.w/4), p.y, 8, 60);
+      g.fillStyle(0x8a7a5a, 0.5); g.fillRect(p.x, p.y+56, p.w*(T/p.t0), 8);
+    } else {
+      g.fillStyle(0x1a1030); g.fillRect(p.x, p.y+60, p.w, 20); // escombros lá embaixo
+    }
   }
 
-  // pedra que cai
-  g.fillStyle(0x8a7a6a); g.fillRect(PEDRA.x, pedraY(), PEDRA.w, PEDRA.h);
-  g.fillStyle(0x6a5a4a); g.fillRect(PEDRA.x+8, pedraY()+10, PEDRA.w-16, 8);
+  // pedras que caem
+  for (const p of LV.pedras){
+    const py = pedraY(p);
+    g.fillStyle(0x8a7a6a); g.fillRect(p.x, py, p.w, p.h);
+    g.fillStyle(0x6a5a4a); g.fillRect(p.x+8, py+10, p.w-16, 8);
+  }
 
   // placa de pressão
   g.fillStyle(portaoAberto() ? 0x33ff88 : 0xcc4444);
-  g.fillRect(PLACA.x, PLACA.y+4, PLACA.w, 6);
+  g.fillRect(LV.placa.x, LV.placa.y+4, LV.placa.w, 6);
 
   // portão
   if (!portaoAberto()){
-    g.fillStyle(0xaa3355); g.fillRect(PORTAO.x, PORTAO.y, PORTAO.w, PORTAO.h);
-    g.fillStyle(0xdd6688); for(let i=0;i<4;i++) g.fillRect(PORTAO.x, PORTAO.y+10+i*28, PORTAO.w, 4);
+    g.fillStyle(0xaa3355); g.fillRect(LV.portao.x, LV.portao.y, LV.portao.w, LV.portao.h);
+    g.fillStyle(0xdd6688); for(let i=0;i<4;i++) g.fillRect(LV.portao.x, LV.portao.y+10+i*28, LV.portao.w, 4);
   }
 
   // porta final
   g.fillStyle(portaoAberto()?0xffd700:0x555577);
-  g.fillRect(PORTA.x, PORTA.y, PORTA.w, PORTA.h);
-  g.fillStyle(0x332200); g.fillRect(PORTA.x+30, PORTA.y+30, 6, 10);
+  g.fillRect(LV.porta.x, LV.porta.y, LV.porta.w, LV.porta.h);
+  g.fillStyle(0x332200); g.fillRect(LV.porta.x+30, LV.porta.y+30, 6, 10);
 
   // engrenagem (dourada; pisca se for incoerência)
   const inco = eng.override && !eng.hold;
@@ -271,7 +348,7 @@ function update(_, dms){
   const vw = cam.width;
   tbarBg.setPosition(vw/2, 24).setSize(vw*0.6, 14);
   tbar.setPosition(vw/2 - vw*0.3 + (T/T_MAX)*vw*0.6/2, 24).setSize((T/T_MAX)*vw*0.6, 10);
-  if (!venceu) msg.setText(`⏱️ T=${Math.round(T)}  ${eng.hold?'✋ carregando engrenagem':''}  ${inco?'⚡ INCOERÊNCIA CRIADA!':''}`);
+  if (!venceu) msg.setText(`🕹️ FASE ${fase+1}/${LEVELS.length}: ${LV.nome}  ⏱️ T=${Math.round(T)}  ${eng.hold?'✋ carregando engrenagem':''}  ${inco?'⚡ INCOERÊNCIA!':''}`);
   msg.setPosition(vw/2 - msg.width/2, 40);
 }
 </script>
