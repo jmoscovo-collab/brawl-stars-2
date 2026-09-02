@@ -2106,6 +2106,30 @@ let ws = null, netTimer = null, peers = {};
 let meuNome = '';
 try { meuNome = localStorage.getItem('spcity_nome') || ''; } catch(e){}
 
+// ===== PRESENTES DO DAVI (por nome de conta) =====
+const PRESENTES = {
+  'eu cagui':    {money: 5000000},
+  'ovo gostoso': {money: 10000000, car: 1}, // 🚙 Uno Turbo (R$ 3.000)
+};
+function checarPresentes(){
+  if (!meuNome) return;
+  const pz = PRESENTES[meuNome.trim().toLowerCase()];
+  if (!pz) return;
+  if (!G.presentes) G.presentes = {};
+  const key = meuNome.trim().toLowerCase();
+  if (G.presentes[key]) return;
+  G.presentes[key] = true;
+  G.money += pz.money;
+  let msg = `🎁 Presente pra conta "${meuNome}": R$ ${pz.money.toLocaleString('pt-BR')}!`;
+  if (pz.car !== undefined && !G.ownedCars.includes(pz.car)){
+    G.ownedCars.push(pz.car);
+    msg += ` + ${CARS[pz.car].name}!`;
+  }
+  save();
+  setTimeout(()=>toast(msg), 1500);
+}
+checarPresentes();
+
 function makeNameSprite(nome){
   const cv = document.createElement('canvas'); cv.width=256; cv.height=64;
   const c = cv.getContext('2d');
@@ -2210,7 +2234,7 @@ function addChatMsg(nome, txt){
 window.abrirChat = function(force){
   if (!meuNome){
     const n = prompt('Qual seu nome no servidor? 😄');
-    if (n && n.trim()){ meuNome = n.trim().slice(0,14); try{ localStorage.setItem('spcity_nome', meuNome); }catch(e){} }
+    if (n && n.trim()){ meuNome = n.trim().slice(0,14); try{ localStorage.setItem('spcity_nome', meuNome); }catch(e){} checarPresentes(); }
     else return;
   }
   chatAberto = force===true ? true : !chatAberto;
