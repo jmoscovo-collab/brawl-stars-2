@@ -81,7 +81,7 @@
 <!-- MENU -->
 <div id="telaMenu" class="tela on">
   <h1>🧠 Perguntas e Respostas</h1>
-  <p class="sub">Responda mais rápido que o bot e vença! 🧠⚡</p>
+  <p class="sub">Responda certo e rápido pra ganhar moedas! 🧠⚡</p>
   <div class="card">
     <h2>Escolha o nível 👇</h2>
     <button class="btn verde nivelBtn" onclick="escolheNivel('facil')">😀 FÁCIL</button>
@@ -89,7 +89,7 @@
     <button class="btn laranja nivelBtn" onclick="escolheNivel('dificil')">🤯 DIFÍCIL</button>
   </div>
   <button class="btn" style="font-size:22px;padding:18px 30px;" onclick="abreOnline()">🌍 ONLINE (contra amigos)</button>
-  <p class="sub">🏆 Vitórias: <b id="recordeTxt">0</b></p>
+  <p class="sub">🏆 Recorde de acertos: <b id="recordeTxt">0</b></p>
 </div>
 
 <!-- ESCOLHA DE MATÉRIA (solo) -->
@@ -106,7 +106,7 @@
 <div id="telaJogo" class="tela">
   <div id="placar">
     <div class="jogadorBox"><div id="nomeA">VOCÊ</div><div class="pts" id="ptsA">0</div></div>
-    <div class="jogadorBox"><div id="nomeB">BOT</div><div class="pts" id="ptsB">0</div></div>
+    <div class="jogadorBox"><div id="nomeB">RECORDE 🏆</div><div class="pts" id="ptsB">0</div></div>
   </div>
   <div id="cronoBar"><div id="cronoFill"></div></div>
   <div class="card">
@@ -760,12 +760,13 @@ function salvaMoedas(){ localStorage.setItem('quiz_moedas', moedas); atualizaSal
 function atualizaSaldo(){ document.getElementById('saldoTopo').textContent='🪙 '+moedas; document.getElementById('recordeTxt').textContent=recorde; }
 
 /* =========================================================
-   MODO SOLO (contra bot)
+   MODO SOLO (você contra o relógio)
    ========================================================= */
+const N_SOLO = 10;
 const CFG = {
-  facil:   { tempo:15000, botAcerto:0.55, botMin:5000, botMax:12000, moedaVit:20 },
-  medio:   { tempo:12000, botAcerto:0.70, botMin:3500, botMax:9000,  moedaVit:35 },
-  dificil: { tempo:9000,  botAcerto:0.85, botMin:2000, botMax:6000,  moedaVit:50 },
+  facil:   { tempo:15000, moedaVit:20 },
+  medio:   { tempo:12000, moedaVit:35 },
+  dificil: { tempo:9000,  moedaVit:50 },
 };
 let solo = null;
 
@@ -801,42 +802,31 @@ function iniciaSolo(nivel, materia){
   localStorage.setItem('quiz_materia', materia);
   solo = {
     nivel, materia, cfg:CFG[nivel],
-    perguntas: sorteiaPerguntas(nivel, materia, 40),
-    idx:0, ptsVoce:0, ptsBot:0,
-    respondido:false, tRestante:0, crono:null, botTimer:null,
+    perguntas: sorteiaPerguntas(nivel, materia, N_SOLO),
+    idx:0, acertos:0,
+    respondido:false, tRestante:0, crono:null,
     moedasGanhas:0, inicioRodada:0,
   };
   document.getElementById('nomeA').textContent='VOCÊ 😎';
-  document.getElementById('nomeB').textContent='BOT 🤖';
+  document.getElementById('nomeB').textContent='RECORDE 🏆';
   atualizaPlacarSolo();
   mostraTela('telaJogo');
   proximaSolo();
 }
 function atualizaPlacarSolo(){
-  document.getElementById('ptsA').textContent=solo.ptsVoce;
-  document.getElementById('ptsB').textContent=solo.ptsBot;
+  document.getElementById('ptsA').textContent=solo.acertos;
+  document.getElementById('ptsB').textContent=recorde;
 }
 function proximaSolo(){
-  if(solo.ptsVoce>=5 || solo.ptsBot>=5){ return fimSolo(); }
-  const p = solo.perguntas[solo.idx % solo.perguntas.length];
-  solo.pergAtual=p; solo.respondido=false; solo.botRespondeu=false;
+  if(solo.idx>=solo.perguntas.length){ return fimSolo(); }
+  const p = solo.perguntas[solo.idx];
+  solo.pergAtual=p; solo.respondido=false;
   document.getElementById('statusRodada').textContent='';
-  document.getElementById('numPergunta').innerHTML='Pergunta '+(solo.idx+1)+' • '+niveLabel(solo.nivel)+' '+seloMateriaHtml(p.materia);
+  document.getElementById('numPergunta').innerHTML='Pergunta '+(solo.idx+1)+'/'+solo.perguntas.length+' • '+niveLabel(solo.nivel)+' '+seloMateriaHtml(p.materia);
   document.getElementById('perguntaTxt').textContent=p.q;
   renderOpcoes(p, respondeSolo);
   solo.inicioRodada=Date.now();
-  // cronômetro
   iniciaCrono(solo.cfg.tempo, ()=>{ if(!solo.respondido) respondeSolo(-1); });
-  // bot decide quando responde e se acerta
-  const botDelay = solo.cfg.botMin + Math.random()*(solo.cfg.botMax-solo.cfg.botMin);
-  const botAcerta = Math.random() < solo.cfg.botAcerto;
-  solo.botTimer = setTimeout(()=>{
-    solo.botRespondeu = true; solo.botAcertou = botAcerta;
-    if(!solo.respondido && botAcerta){
-      // bot acertou primeiro
-      resolveRodadaSolo('bot');
-    }
-  }, botDelay);
 }
 function niveLabel(n){ return n==='facil'?'😀 Fácil':n==='medio'?'🤔 Médio':'🤯 Difícil'; }
 
@@ -847,48 +837,27 @@ function respondeSolo(escolha){
   const p=solo.pergAtual;
   const acertou = escolha===p.correta;
   marcaOpcoes(p.correta, escolha);
-  if(acertou){
-    // você acertou. Ganha o ponto se o bot ainda não acertou antes
-    if(solo.botRespondeu && solo.botAcertou){
-      resolveRodadaSolo('bot','O bot respondeu primeiro! 🤖');
-    } else {
-      clearTimeout(solo.botTimer);
-      resolveRodadaSolo('voce');
-    }
-  } else {
-    // você errou (ou estourou o tempo) → ponto do bot se ele acertar
-    clearTimeout(solo.botTimer);
-    if(solo.botAcertou){
-      resolveRodadaSolo('bot', escolha===-1?'⏰ Tempo esgotado!':'Você errou! 😅');
-    } else {
-      resolveRodadaSolo('ninguem', escolha===-1?'⏰ Tempo esgotado! O bot também errou.':'Os dois erraram! 😆');
-    }
-  }
-}
-function resolveRodadaSolo(quem, extra){
   const st=document.getElementById('statusRodada');
-  if(quem==='voce'){
-    solo.ptsVoce++; solo.moedasGanhas+=5; moedas+=5; salvaMoedas();
-    st.textContent='✅ Você marcou o ponto! (+5 🪙)'; somAcerto(); soltaConfete(12);
-  } else if(quem==='bot'){
-    solo.ptsBot++;
-    st.textContent='🤖 Ponto do bot! '+(extra||''); somErro();
+  if(acertou){
+    solo.acertos++; solo.moedasGanhas+=5; moedas+=5; salvaMoedas();
+    st.textContent='✅ Você acertou! (+5 🪙)'; somAcerto(); soltaConfete(12);
   } else {
-    st.textContent='😐 Ninguém pontuou. '+(extra||'');
+    st.textContent = escolha===-1 ? '⏰ Tempo esgotado!' : 'Você errou! 😅';
+    somErro();
   }
   atualizaPlacarSolo();
-  setTimeout(()=>{ solo.idx++; proximaSolo(); }, 2100);
+  setTimeout(()=>{ solo.idx++; proximaSolo(); }, 1900);
 }
 
 function fimSolo(){
-  paraCrono(); clearTimeout(solo.botTimer);
-  const venceu = solo.ptsVoce>=5;
+  paraCrono();
+  const venceu = solo.acertos >= Math.ceil(solo.perguntas.length*0.7);
   if(venceu){
     const b=solo.cfg.moedaVit; moedas+=b; solo.moedasGanhas+=b; salvaMoedas();
-    recorde++; localStorage.setItem('quiz_recorde', recorde);
   }
-  document.getElementById('fimTitulo').textContent = venceu ? '🏆 VOCÊ VENCEU!' : '😢 O bot venceu...';
-  document.getElementById('fimPlacar').textContent = `VOCÊ ${solo.ptsVoce} × ${solo.ptsBot} BOT`;
+  if(solo.acertos>recorde){ recorde=solo.acertos; localStorage.setItem('quiz_recorde', recorde); }
+  document.getElementById('fimTitulo').textContent = venceu ? '🏆 MANDOU BEM!' : '💪 QUASE LÁ!';
+  document.getElementById('fimPlacar').textContent = `VOCÊ ACERTOU ${solo.acertos}/${solo.perguntas.length}`;
   document.getElementById('fimMoedas').textContent = venceu
     ? `Você ganhou 🪙 ${solo.moedasGanhas} moedas nessa partida!`
     : `Você ganhou 🪙 ${solo.moedasGanhas} moedas. Tenta de novo! 💪`;
@@ -904,7 +873,6 @@ function deNovo(){
 }
 function voltaMenu(){
   paraCrono();
-  if(solo){ clearTimeout(solo.botTimer); }
   mpFechaWs();
   mostraTela('telaMenu');
   atualizaSaldo();
