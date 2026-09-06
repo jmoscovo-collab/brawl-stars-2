@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Ilha da Sobrevivência — Cogumelo Games</title>
+<meta name="description" content="Explore a ilha, colete recursos, construa sua fogueira, descubra cavernas e sobreviva 99 noites do bicho misterioso!">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+html,body { height:100%; overflow:hidden; }
+body { background:#0a3a2c; font-family:Arial,sans-serif; color:#fff; user-select:none; }
+canvas { display:block; position:fixed; inset:0; touch-action:none; }
+#bAcao { position:fixed; right:18px; bottom:calc(20px + env(safe-area-inset-bottom)); z-index:6; width:96px; height:96px; border-radius:50%;
+    border:4px solid #fff; background:linear-gradient(135deg,#2f8a43,#5dd97a); color:#fff; font-size:38px; cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,0.5); text-align:center; line-height:1; display:flex; align-items:center; justify-content:center; }
+#bAcao:active { transform:scale(0.9); }
+#bComer { position:fixed; right:22px; bottom:calc(128px + env(safe-area-inset-bottom)); z-index:6; width:56px; height:56px; border-radius:50%;
+    border:3px solid #fff; background:linear-gradient(135deg,#c85a2a,#ff9944); color:#fff; font-size:26px; cursor:pointer; box-shadow:0 3px 10px rgba(0,0,0,0.5); }
+#bComer:active { transform:scale(0.9); }
+#bBase, #bMissoes { position:fixed; top:12px; z-index:6; font-size:24px; width:50px; height:50px; border-radius:14px; color:#fff; cursor:pointer; }
+#bBase { right:12px; border:2px solid #ffaa00; background:rgba(255,170,0,0.25); }
+#bMissoes { right:70px; border:2px solid #4dd0ff; background:rgba(77,208,255,0.25); }
+.painel { position:fixed; inset:0; z-index:20; background:rgba(4,15,10,0.88); display:none; align-items:center; justify-content:center; }
+.painel .cartao { background:linear-gradient(180deg,#14402a,#0b2a1a); border:3px solid #5dd97a; border-radius:22px; padding:20px;
+    width:min(94vw,440px); max-height:86vh; overflow:auto; text-align:center; }
+.painel h2 { font-size:28px; margin-bottom:12px; }
+.item { display:flex; align-items:center; gap:10px; width:100%; margin:7px 0; padding:10px 14px; border:2px solid rgba(255,255,255,0.25);
+    border-radius:14px; cursor:pointer; background:rgba(255,255,255,0.08); color:#fff; font-size:15px; font-weight:bold; text-align:left; }
+.item:active { transform:scale(0.96); }
+.item .ic { font-size:28px; flex-shrink:0; }
+.item .info { flex:1; }
+.item small { display:block; font-weight:normal; font-size:11px; color:#a8e0c0; }
+.item.feito { border-color:#4dff88; background:rgba(77,255,136,0.12); opacity:0.75; }
+.item.caro { opacity:0.45; }
+.item.pronto { border-color:#4dff88; }
+.fechar { font-size:22px; margin-top:10px; padding:8px 26px; border:none; border-radius:14px; cursor:pointer; background:#345; color:#fff; }
+a.voltar { position:fixed; bottom:8px; left:12px; color:#a8e0c0; text-decoration:none; font-weight:bold; font-size:13px; z-index:6; }
+#joyBase { position:fixed; left:22px; bottom:calc(40px + env(safe-area-inset-bottom)); z-index:6; width:130px; height:130px; border-radius:50%;
+    background:rgba(255,255,255,0.14); border:3px solid rgba(255,255,255,0.4); display:none; touch-action:none; }
+#joyKnob { position:absolute; left:50%; top:50%; width:58px; height:58px; border-radius:50%; transform:translate(-50%,-50%);
+    background:rgba(255,255,255,0.55); box-shadow:0 3px 8px rgba(0,0,0,0.4); pointer-events:none; }
+#popup { position:fixed; inset:0; z-index:30; display:none; align-items:center; justify-content:center; flex-direction:column;
+    background:rgba(2,10,6,0.82); text-align:center; }
+#popup .ic { font-size:100px; filter:drop-shadow(0 0 30px rgba(255,215,0,0.9)); animation:pula 0.6s ease infinite alternate; }
+@keyframes pula { from{ transform:scale(1) rotate(-4deg);} to{ transform:scale(1.15) rotate(4deg);} }
+#popup .nome { font-size:28px; font-weight:900; color:#ffd700; margin:10px 0; text-shadow:0 0 16px rgba(255,215,0,0.7); }
+#popup .desc { font-size:18px; font-weight:bold; color:#4dff88; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div class="painel" id="disp" style="display:flex; z-index:40">
+    <div class="cartao">
+        <h2>🏝️ Ilha da Sobrevivência</h2>
+        <div style="font-size:17px; color:#a8e0c0; margin-bottom:12px">Onde você está jogando?</div>
+        <button class="item" style="justify-content:center; border-color:#4dff88; background:rgba(77,255,136,0.15); font-size:19px" onclick="escolheDisp('pc')">💻 COMPUTADOR</button>
+        <button class="item" style="justify-content:center; border-color:#ffd24a; background:rgba(255,210,74,0.15); font-size:19px" onclick="escolheDisp('celular')">📱 CELULAR</button>
+        <div style="font-size:13px; color:#a8e0c0; margin-top:10px">💻 setas/WASD andam · F, espaço ou E interage<br>📱 bolinha anda · botão ✋ interage · 🍖 come</div>
+    </div>
+</div>
+
+<button id="bAcao">✋</button>
+<button id="bComer" onclick="comer()">🍖</button>
+<div id="joyBase"><div id="joyKnob"></div></div>
+<button id="bMissoes" onclick="abreMissoes()">📋</button>
+<button id="bBase" onclick="abreBase()">🛠️</button>
+<a class="voltar" href="/">← jogos</a>
+
+<div class="painel" id="missoes">
+    <div class="cartao">
+        <h2>📋 Missões</h2>
+        <div id="listaMissoes"></div>
+        <button class="fechar" onclick="fecha('missoes')">❌</button>
+    </div>
+</div>
+
+<div class="painel" id="base">
+    <div class="cartao">
+        <h2>🛠️ Base &amp; Equipamentos</h2>
+        <div id="listaBase"></div>
+        <button class="fechar" onclick="fecha('base')">❌</button>
+    </div>
+</div>
+
+<div id="popup" onclick="fechaPopup()">
+    <div class="ic" id="popupIc">🎁</div>
+    <div class="nome" id="popupNome">TESOURO!</div>
+    <div class="desc" id="popupDesc">+moedas</div>
+</div>
+
+<script src="/stats.js?v=358"></script>
+<script src="/avisos.js?v=6"></script>
+<script>
+if (window.initStats) initStats('ilha');
+
+function lsGet(k,d){ try{ var v=localStorage.getItem('ilha_'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }
+function lsSet(k,v){ try{ localStorage.setItem('ilha_'+k, JSON.stringify(v)); }catch(e){} }
+
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+var W, H;
+var ehCel = matchMedia('(pointer:coarse)').matches || ('ontouchstart' in window);
+var DPR = ehCel ? 1 : Math.min(devicePixelRatio||1, 1.5);
+function resize(){
+    W = innerWidth; H = innerHeight;
+    cv.width = W*DPR; cv.height = H*DPR;
+    cv.style.width = W+'px'; cv.style.height = H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+addEventListener('resize', resize); resize();
+function rnd(seed){
+    var a = seed >>> 0;
+    return function(){ a|=0; a=a+0x6D2B79F5|0; var t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+}
+
+// ============ DADOS ============
+var ZONAS = [
+    { nome:'Praia Inicial',    ic:'🏖️', xIni:0,    xFim:1300, corDia:'#e6d089', corNoite:'#252b46' },
+    { nome:'Floresta Sombria', ic:'🌲', xIni:1300, xFim:2600, corDia:'#a8ce7a', corNoite:'#182617', gate:{madeira:20} },
+    { nome:'Montanha Gelada',  ic:'⛰️', xIni:2600, xFim:3800, corDia:'#dfe6ea', corNoite:'#252533', gate:{pedra:25, chaves:1} }
+];
+var MW = 3800, MH = 1500;
+var CAMP = { x:520, y:760 };
+
+var MACHADO = [
+    { nome:'Machado de Pedra', rend:1 },
+    { nome:'Machado de Ferro', rend:2, custo:{pedra:15, moedas:50} },
+    { nome:'Machado Dourado',  rend:4, custo:{ouro:8, moedas:150} }
+];
+var PICARETA = [
+    { nome:'Picareta de Pedra', rend:1 },
+    { nome:'Picareta de Ferro', rend:2, custo:{pedra:20, moedas:60} },
+    { nome:'Picareta Dourada',  rend:4, custo:{ouro:10, moedas:180} }
+];
+var TOCHA = [
+    { nome:'Sem tocha', raio:0 },
+    { nome:'Tocha Simples',   raio:90,  custo:{ouro:5, moedas:40} },
+    { nome:'Tocha Brilhante', raio:150, custo:{ouro:15, moedas:120} }
+];
+var MISSOES = [
+    { id:'m1', ic:'🪵', desc:'Colete 10 madeira', premio:20, check:function(){ return est.madeiraTotal>=10; } },
+    { id:'m2', ic:'🪨', desc:'Colete 5 pedra', premio:20, check:function(){ return est.pedraTotal>=5; } },
+    { id:'m3', ic:'🔥', desc:'Construa a fogueira', premio:30, check:function(){ return base.fogueira; } },
+    { id:'m4', ic:'🌙', desc:'Sobreviva à 1ª noite', premio:30, check:function(){ return noitesSobrevividas>=1; } },
+    { id:'m5', ic:'🕳️', desc:'Descubra uma caverna', premio:40, check:function(){ return Object.keys(cavernasVisitadas).length>=1; } },
+    { id:'m6', ic:'🎁', desc:'Encontre um tesouro', premio:40, check:function(){ return Object.keys(bausAbertos).length>=1; } },
+    { id:'m7', ic:'🌲', desc:'Libere a Floresta Sombria', premio:50, check:function(){ return zonasLiberadas[1]; } },
+    { id:'m8', ic:'⚒️', desc:'Melhore um equipamento', premio:50, check:function(){ return equip.machado>1 || equip.picareta>1; } },
+    { id:'m9', ic:'⛰️', desc:'Libere a Montanha Gelada', premio:60, check:function(){ return zonasLiberadas[2]; } },
+    { id:'m10', ic:'🏆', desc:'Sobreviva 99 noites!', premio:500, check:function(){ return noitesSobrevividas>=99; } }
+];
+
+// ============ ESTADO (salvo) ============
+var inv = lsGet('inv', { madeira:0, pedra:0, comida:2, ouro:0 });
+var moedas = lsGet('moedas', 0);
+var est = lsGet('est', { madeiraTotal:0, pedraTotal:0 }); // contadores pra missão (nunca diminuem)
+var equip = lsGet('equip', { machado:1, picareta:1, tocha:0 });
+var base = lsGet('base', { fogueira:false, cerca:false, barraca:false, fuel:0 });
+var zonasLiberadas = lsGet('zonas', [true,false,false]);
+var missoesFeitas = lsGet('missoesFeitas', {});
+var bausAbertos = lsGet('baus', {});
+var cavernasVisitadas = lsGet('cavernas', {});
+var noitesSobrevividas = lsGet('noites', 0);
+var vitoriaMostrada = lsGet('vitoriaMostrada', false);
+var vida = lsGet('vida', 100), fome = lsGet('fome', 100);
+var pl = lsGet('pos', { x:CAMP.x, y:CAMP.y+80 });
+function salvar(){
+    lsSet('inv',inv); lsSet('moedas',moedas); lsSet('est',est); lsSet('equip',equip); lsSet('base',base);
+    lsSet('zonas',zonasLiberadas); lsSet('missoesFeitas',missoesFeitas); lsSet('baus',bausAbertos);
+    lsSet('cavernas',cavernasVisitadas); lsSet('noites',noitesSobrevividas); lsSet('vitoriaMostrada',vitoriaMostrada);
+    lsSet('vida',vida); lsSet('fome',fome); lsSet('pos',{x:pl.x,y:pl.y});
+}
+pl.dir = 1;
+
+// ============ MUNDO ============
+var objetosMundo = [], gatesMundo = [];
+function limiteX(){
+    if(!zonasLiberadas[1]) return ZONAS[0].xFim - 20;
+    if(!zonasLiberadas[2]) return ZONAS[1].xFim - 20;
+    return MW - 50;
+}
+function gerarMundo(){
+    objetosMundo = [];
+    ZONAS.forEach(function(z, zi){
+        var r = rnd(zi*7331 + 51);
+        var conf = zi===0 ? {arv:11,ped:6,arb:7} : zi===1 ? {arv:14,ped:10,arb:8} : {arv:6,ped:16,arb:4};
+        function pos(){ return { x: z.xIni + 60 + r()*(z.xFim-z.xIni-120), y: 60 + r()*(MH-120) }; }
+        for(var i=0;i<conf.arv;i++){ var p=pos(); objetosMundo.push({ tipo:'arvore', x:p.x, y:p.y, cd:0 }); }
+        for(var i=0;i<conf.ped;i++){ var p=pos(); objetosMundo.push({ tipo:'pedra', x:p.x, y:p.y, cd:0 }); }
+        for(var i=0;i<conf.arb;i++){ var p=pos(); objetosMundo.push({ tipo:'arbusto', x:p.x, y:p.y, cd:0 }); }
+        objetosMundo.push({ tipo:'bau', id:'bauZona'+zi, x: z.xIni + (z.xFim-z.xIni)*0.5 + (r()-0.5)*300, y: 200 + r()*(MH-400) });
+    });
+    objetosMundo.push({ tipo:'caverna', id:'cave1', x: 1900, y: 1100, cave:1 });
+    objetosMundo.push({ tipo:'caverna', id:'cave2', x: 3300, y: 400, cave:2 });
+    objetosMundo.push({ tipo:'fogueira', x: CAMP.x, y: CAMP.y });
+    gatesMundo = [
+        { x: ZONAS[0].xFim, y: 760, alvoZona:1, custo: ZONAS[1].gate },
+        { x: ZONAS[1].xFim, y: 760, alvoZona:2, custo: ZONAS[2].gate }
+    ];
+}
+gerarMundo();
+
+var CW = 1100, CH = 700;
+function gerarCaverna(id){
+    var r = rnd(id*8123 + 5);
+    var lista = [];
+    for(var i=0;i<6;i++) lista.push({ tipo:'ouro', x: 100+r()*(CW-200), y: 100+r()*(CH-200), cd:0 });
+    for(var i=0;i<3;i++) lista.push({ tipo:'pedra', x: 100+r()*(CW-200), y: 100+r()*(CH-200), cd:0 });
+    lista.push({ tipo:'bau', id:'cave'+id+'_bau', x: CW/2 + (id===1?-260:260), y: CH*0.35 });
+    lista.push({ tipo:'saida', x: CW/2, y: CH-70 });
+    return lista;
+}
+var objetosCaverna = { 1: null, 2: null };
+
+var cena = 'mundo'; // 'mundo' | 'caverna'
+var caveAtual = 0, voltaX = pl.x, voltaY = pl.y;
+function objetosAtuais(){ return cena==='mundo' ? objetosMundo : objetosCaverna[caveAtual]; }
+function mundoW(){ return cena==='mundo' ? MW : CW; }
+function mundoH(){ return cena==='mundo' ? MH : CH; }
+
+// ============ TOASTS / POPUP ============
+var toasts = [];
+function toast(msg){ toasts.unshift({ texto:msg, vida:3.2 }); if(toasts.length>4) toasts.length=4; }
+function mostraPopup(ic, nome, desc){
+    document.getElementById('popupIc').textContent = ic;
+    document.getElementById('popupNome').textContent = nome;
+    document.getElementById('popupDesc').textContent = desc;
+    document.getElementById('popup').style.display = 'flex';
+    setTimeout(fechaPopup, 2200);
+}
+function fechaPopup(){ document.getElementById('popup').style.display = 'none'; }
+window.fechaPopup = fechaPopup;
+
+// ============ MISSÕES / CONQUISTAS ============
+function checaMissoes(){
+    MISSOES.forEach(function(m){
+        if(!missoesFeitas[m.id] && m.check()){
+            missoesFeitas[m.id] = true;
+            moedas += m.premio;
+            salvar();
+            toast('📋 Missão completa: ' + m.desc + ' (+🪙' + m.premio + ')');
+        }
+    });
+}
+function abreMissoes(){
+    var el = document.getElementById('listaMissoes');
+    el.innerHTML = '';
+    MISSOES.forEach(function(m){
+        var feita = !!missoesFeitas[m.id];
+        var d = document.createElement('div');
+        d.className = 'item' + (feita ? ' feito' : '');
+        d.innerHTML = '<span class="ic">'+m.ic+'</span><span class="info">'+m.desc+'<small>recompensa: 🪙'+m.premio+'</small></span>' + (feita?'✅':'');
+        el.appendChild(d);
+    });
+    document.getElementById('missoes').style.display = 'flex';
+}
+window.abreMissoes = abreMissoes;
+
+// ============ BASE / EQUIPAMENTOS ============
+function temRecurso(custo){
+    for(var k in custo){
+        if(k==='moedas'){ if(moedas < custo[k]) return false; }
+        else if((inv[k]||0) < custo[k]) return false;
+    }
+    return true;
+}
+function gastaRecurso(custo){
+    for(var k in custo){ if(k==='moedas') moedas -= custo[k]; else inv[k] -= custo[k]; }
+}
+function descreveCusto(custo){
+    var partes = [];
+    var nomes = { madeira:'🪵', pedra:'🪨', ouro:'🔶', comida:'🍖', moedas:'🪙', chaves:'🗝️' };
+    for(var k in custo) partes.push(nomes[k]+custo[k]);
+    return partes.join(' ');
+}
+function abreBase(){
+    var el = document.getElementById('listaBase');
+    el.innerHTML = '';
+    function linha(html){ var d=document.createElement('div'); d.innerHTML=html; el.appendChild(d.firstChild); }
+    var t0 = document.createElement('small'); t0.style.cssText='display:block;color:#a8e0c0;margin:6px 0'; t0.textContent='🏕️ BASE';
+    el.appendChild(t0);
+    if(!base.fogueira){
+        linha('<div class="item"><span class="ic">🔥</span><span class="info">Fogueira<small>vá até o acampamento na Praia e aperte ✋ pra construir (🪵10)</small></span></div>');
+    } else {
+        var bCerca = document.createElement('button');
+        bCerca.className = 'item' + (base.cerca ? ' feito' : (temRecurso({madeira:15,pedra:10})?'':' caro'));
+        bCerca.innerHTML = '<span class="ic">🪵</span><span class="info">Cerca de Proteção<small>aumenta o raio de luz da fogueira</small></span>' +
+            (base.cerca ? '✅' : descreveCusto({madeira:15,pedra:10}));
+        bCerca.onclick = function(){
+            if(base.cerca) return;
+            if(temRecurso({madeira:15,pedra:10})){ gastaRecurso({madeira:15,pedra:10}); base.cerca=true; salvar(); toast('🪵 Cerca construída!'); abreBase(); }
+        };
+        el.appendChild(bCerca);
+        var bBarraca = document.createElement('button');
+        bBarraca.className = 'item' + (base.barraca ? ' feito' : (temRecurso({madeira:10,comida:5})?'':' caro'));
+        bBarraca.innerHTML = '<span class="ic">⛺</span><span class="info">Barraca<small>permite descansar e curar toda vida</small></span>' +
+            (base.barraca ? '✅' : descreveCusto({madeira:10,comida:5}));
+        bBarraca.onclick = function(){
+            if(base.barraca) return;
+            if(temRecurso({madeira:10,comida:5})){ gastaRecurso({madeira:10,comida:5}); base.barraca=true; salvar(); toast('⛺ Barraca construída!'); abreBase(); }
+        };
+        el.appendChild(bBarraca);
+        if(base.barraca){
+            var descansoOk = (window._descansoT||0) <= 0;
+            var bDescansa = document.createElement('button');
+            bDescansa.className = 'item' + (descansoOk ? '' : ' caro');
+            bDescansa.innerHTML = '<span class="ic">😴</span><span class="info">Descansar<small>'+(descansoOk?'cura toda a vida':'espere um pouco...')+'</small></span>';
+            bDescansa.onclick = function(){
+                if((window._descansoT||0) <= 0){ vida = 100; window._descansoT = 60; salvar(); toast('😴 Descansou! Vida cheia!'); abreBase(); }
+            };
+            el.appendChild(bDescansa);
+        }
+    }
+    var t1 = document.createElement('small'); t1.style.cssText='display:block;color:#a8e0c0;margin:10px 0 6px'; t1.textContent='🪓 MACHADO (madeira por golpe)';
+    el.appendChild(t1);
+    MACHADO.forEach(function(m,i){
+        if(i===0) return;
+        if(equip.machado > i) return;
+        var pronto = equip.machado === i;
+        var b = document.createElement('button');
+        b.className = 'item' + (pronto && temRecurso(m.custo) ? ' pronto' : ' caro');
+        b.innerHTML = '<span class="ic">🪓</span><span class="info">'+m.nome+'<small>rende '+m.rend+' madeira por golpe</small></span>' + descreveCusto(m.custo);
+        b.onclick = function(){
+            if(equip.machado===i && temRecurso(m.custo)){ gastaRecurso(m.custo); equip.machado=i+1; salvar(); toast('🪓 '+m.nome+' equipado!'); abreBase(); }
+        };
+        el.appendChild(b);
+    });
+    var t2 = document.createElement('small'); t2.style.cssText='display:block;color:#a8e0c0;margin:10px 0 6px'; t2.textContent='⛏️ PICARETA (pedra/ouro por golpe)';
+    el.appendChild(t2);
+    PICARETA.forEach(function(m,i){
+        if(i===0) return;
+        if(equip.picareta > i) return;
+        var pronto = equip.picareta === i;
+        var b = document.createElement('button');
+        b.className = 'item' + (pronto && temRecurso(m.custo) ? ' pronto' : ' caro');
+        b.innerHTML = '<span class="ic">⛏️</span><span class="info">'+m.nome+'<small>rende '+m.rend+' por golpe</small></span>' + descreveCusto(m.custo);
+        b.onclick = function(){
+            if(equip.picareta===i && temRecurso(m.custo)){ gastaRecurso(m.custo); equip.picareta=i+1; salvar(); toast('⛏️ '+m.nome+' equipada!'); abreBase(); }
+        };
+        el.appendChild(b);
+    });
+    var t3 = document.createElement('small'); t3.style.cssText='display:block;color:#a8e0c0;margin:10px 0 6px'; t3.textContent='🔦 TOCHA (afasta o bicho à noite)';
+    el.appendChild(t3);
+    TOCHA.forEach(function(m,i){
+        if(i===0) return;
+        if(equip.tocha > i) return;
+        var pronto = equip.tocha === i;
+        var b = document.createElement('button');
+        b.className = 'item' + (pronto && temRecurso(m.custo) ? ' pronto' : ' caro');
+        b.innerHTML = '<span class="ic">🔦</span><span class="info">'+m.nome+'<small>raio de luz '+m.raio+'</small></span>' + descreveCusto(m.custo);
+        b.onclick = function(){
+            if(equip.tocha===i && temRecurso(m.custo)){ gastaRecurso(m.custo); equip.tocha=i+1; salvar(); toast('🔦 '+m.nome+' equipada!'); abreBase(); }
+        };
+        el.appendChild(b);
+    });
+    document.getElementById('base').style.display = 'flex';
+}
+window.abreBase = abreBase;
+function fecha(id){ document.getElementById(id).style.display = 'none'; }
+window.fecha = fecha;
+
+// ============ COMER ============
+function comer(){
+    if(inv.comida > 0){ inv.comida--; fome = Math.min(100, fome+30); salvar(); toast('🍖 Comeu! Fome recuperada.'); }
+    else toast('❌ Sem comida! Colete em arbustos 🫐');
+}
+window.comer = comer;
+
+// ============ CONTROLES ============
+var modoCel = false;
+function escolheDisp(d){
+    modoCel = (d === 'celular');
+    document.getElementById('joyBase').style.display = modoCel ? 'block' : 'none';
+    document.getElementById('disp').style.display = 'none';
+}
+window.escolheDisp = escolheDisp;
+var joyX = 0, joyY = 0, joyId = null;
+var joyBase = document.getElementById('joyBase'), joyKnob = document.getElementById('joyKnob');
+function joyMexe(e){
+    var r = joyBase.getBoundingClientRect();
+    var cx = r.left + r.width/2, cy = r.top + r.height/2;
+    var dx = e.clientX - cx, dy = e.clientY - cy;
+    var d = Math.hypot(dx,dy), max = r.width/2 - 10;
+    if(d > max){ dx = dx/d*max; dy = dy/d*max; }
+    joyX = dx/max; joyY = dy/max;
+    joyKnob.style.transform = 'translate(calc(-50% + '+dx+'px), calc(-50% + '+dy+'px))';
+}
+function joySolta(){ joyId = null; joyX = 0; joyY = 0; joyKnob.style.transform = 'translate(-50%,-50%)'; }
+joyBase.addEventListener('pointerdown', function(e){ e.preventDefault(); joyId = e.pointerId; joyBase.setPointerCapture(e.pointerId); joyMexe(e); });
+joyBase.addEventListener('pointermove', function(e){ if(e.pointerId === joyId) joyMexe(e); });
+joyBase.addEventListener('pointerup', joySolta);
+joyBase.addEventListener('pointercancel', joySolta);
+var tec = {};
+addEventListener('keydown', function(e){
+    var k = e.key.toLowerCase();
+    tec[k] = true;
+    if(k===' '||k==='e'||k==='j'||k==='f'){ e.preventDefault(); acao(); }
+});
+addEventListener('keyup', function(e){ tec[e.key.toLowerCase()] = false; });
+document.getElementById('bAcao').addEventListener('pointerdown', function(e){ e.preventDefault(); acao(); });
+
+// ============ AÇÃO / INTERAÇÃO ============
+function alvoProximo(){
+    var lista = objetosAtuais(), melhor = null, melhorD = 999999;
+    lista.forEach(function(o){
+        if((o.tipo==='arvore'||o.tipo==='pedra'||o.tipo==='arbusto'||o.tipo==='ouro') && o.cd>0) return;
+        if(o.tipo==='bau' && bausAbertos[o.id]) return;
+        var alcance = (o.tipo==='bau'||o.tipo==='caverna'||o.tipo==='saida'||o.tipo==='fogueira') ? 75 : 58;
+        var d = Math.hypot(o.x-pl.x, o.y-pl.y);
+        if(d < alcance && d < melhorD){ melhorD = d; melhor = o; }
+    });
+    if(cena==='mundo'){
+        gatesMundo.forEach(function(g){
+            if(zonasLiberadas[g.alvoZona]) return;
+            var d = Math.hypot(g.x-pl.x, g.y-pl.y);
+            if(d < 90 && d < melhorD){ melhorD = d; melhor = { tipo:'gate', g:g }; }
+        });
+    }
+    return melhor;
+}
+function icAcao(alvo){
+    if(!alvo) return '✋';
+    if(alvo.tipo==='arvore') return '🪓';
+    if(alvo.tipo==='pedra') return '⛏️';
+    if(alvo.tipo==='ouro') return '⛏️';
+    if(alvo.tipo==='arbusto') return '🖐️';
+    if(alvo.tipo==='bau') return '🎁';
+    if(alvo.tipo==='caverna') return '🕳️';
+    if(alvo.tipo==='saida') return '🪜';
+    if(alvo.tipo==='gate') return '🚧';
+    if(alvo.tipo==='fogueira') return base.fogueira ? '🪵' : '🔥';
+    return '✋';
+}
+function acao(){
+    var alvo = alvoProximo();
+    if(!alvo) return;
+    if(alvo.tipo==='arvore'){ inv.madeira += MACHADO[equip.machado-1].rend; est.madeiraTotal += MACHADO[equip.machado-1].rend; alvo.cd = 9; salvar(); checaMissoes(); }
+    else if(alvo.tipo==='pedra'){ inv.pedra += PICARETA[equip.picareta-1].rend; est.pedraTotal += PICARETA[equip.picareta-1].rend; alvo.cd = 12; salvar(); checaMissoes(); }
+    else if(alvo.tipo==='ouro'){ inv.ouro += PICARETA[equip.picareta-1].rend; alvo.cd = 22; salvar(); }
+    else if(alvo.tipo==='arbusto'){ inv.comida += 1; alvo.cd = 8; salvar(); }
+    else if(alvo.tipo==='bau'){ abreBau(alvo); }
+    else if(alvo.tipo==='caverna'){ entrarCaverna(alvo.cave); }
+    else if(alvo.tipo==='saida'){ sairCaverna(); }
+    else if(alvo.tipo==='gate'){ abrirPortao(alvo.g); }
+    else if(alvo.tipo==='fogueira'){
+        if(!base.fogueira){
+            if(inv.madeira >= 10){ inv.madeira -= 10; base.fogueira = true; base.fuel = 60; salvar(); checaMissoes(); toast('🔥 Fogueira construída! Alimente com madeira pra ela não apagar.'); }
+            else toast('❌ Precisa de 🪵10 pra construir a fogueira!');
+        } else {
+            if(inv.madeira >= 1){ inv.madeira -= 1; base.fuel = Math.min(300, base.fuel + 40); salvar(); toast('🪵 Fogueira alimentada! (+40s de luz)'); }
+            else toast('❌ Sem madeira pra alimentar a fogueira!');
+        }
+    }
+}
+function abreBau(alvo){
+    bausAbertos[alvo.id] = true;
+    var moedasGanhas = 0, extra = '';
+    if(alvo.id==='bauZona0'){ moedasGanhas = 60; }
+    else if(alvo.id==='bauZona1'){ moedasGanhas = 100; }
+    else if(alvo.id==='bauZona2'){ moedasGanhas = 150; }
+    else if(alvo.id==='cave1_bau'){ moedasGanhas = 40; inv.chaves = (inv.chaves||0)+1; extra = ' + 🗝️ CHAVE MISTERIOSA'; }
+    else if(alvo.id==='cave2_bau'){ moedasGanhas = 250; extra = ' — TESOURO LENDÁRIO!'; }
+    moedas += moedasGanhas;
+    salvar(); checaMissoes();
+    mostraPopup('🎁', 'TESOURO ENCONTRADO!', '+🪙'+moedasGanhas+extra);
+}
+function abrirPortao(g){
+    var custo = g.custo, ok = true;
+    for(var k in custo){ if((inv[k]||0) < custo[k]) ok = false; }
+    if(ok){
+        for(var k in custo) inv[k] -= custo[k];
+        zonasLiberadas[g.alvoZona] = true;
+        salvar(); checaMissoes();
+        toast('🚧 ' + ZONAS[g.alvoZona].nome + ' liberada! Explore!');
+    } else {
+        toast('❌ Falta: ' + descreveCusto(custo));
+    }
+}
+function entrarCaverna(id){
+    if(!cavernasVisitadas[id]){ cavernasVisitadas[id] = true; salvar(); checaMissoes(); }
+    if(!objetosCaverna[id]) objetosCaverna[id] = gerarCaverna(id);
+    voltaX = pl.x; voltaY = pl.y; caveAtual = id; cena = 'caverna';
+    pl.x = CW/2; pl.y = CH-110;
+    toast('🕳️ Você entrou na caverna!');
+}
+function sairCaverna(){ cena = 'mundo'; pl.x = voltaX; pl.y = voltaY; toast('☀️ Você saiu da caverna.'); }
+
+// ============ DIA/NOITE + MONSTRO ============
+var DIA_DUR = 40, NOITE_DUR = 30;
+var faseAtual = 'dia', faseTimer = DIA_DUR;
+var monstro = { x:0, y:0, ativo:false };
+var invuln = 0;
+function iniciaNoite(){
+    var ang = Math.random()*Math.PI*2;
+    var dist = 550 + Math.random()*250;
+    monstro.x = Math.max(50, Math.min(limiteX(), pl.x + Math.cos(ang)*dist));
+    monstro.y = Math.max(50, Math.min(MH-50, pl.y + Math.sin(ang)*dist));
+    monstro.ativo = true;
+    toast('🌙 A noite caiu... o bicho misterioso apareceu!');
+}
+function terminaNoite(){
+    monstro.ativo = false;
+    noitesSobrevividas++;
+    salvar();
+    checaMissoes();
+    toast('☀️ Amanheceu! Noite ' + noitesSobrevividas + ' sobrevivida.');
+    if(noitesSobrevividas >= 99 && !vitoriaMostrada){
+        vitoriaMostrada = true; salvar();
+        mostraPopup('🏆', 'VOCÊ SOBREVIVEU 99 NOITES!', 'Lenda da Ilha! Continue jogando à vontade 🎉');
+    }
+}
+function raioFogo(){
+    if(!base.fogueira || base.fuel <= 0) return 0;
+    return 220 + (base.cerca ? 40 : 0);
+}
+function raioTocha(){ return TOCHA[equip.tocha].raio; }
+
+// ============ LOOP ============
+var ultimoT = 0;
+function loop(agora){
+    var dt = Math.min((agora-ultimoT)/1000, 0.05);
+    ultimoT = agora;
+
+    // movimento
+    var alvoMov = { x: pl.x, y: pl.y };
+    if(modoCel && (Math.abs(joyX) > 0.15 || Math.abs(joyY) > 0.15)){
+        alvoMov.x = pl.x + joyX*90; alvoMov.y = pl.y + joyY*90;
+    } else {
+        var mx=0, my=0;
+        if(tec['arrowleft']||tec['a']) mx -= 1;
+        if(tec['arrowright']||tec['d']) mx += 1;
+        if(tec['arrowup']||tec['w']) my -= 1;
+        if(tec['arrowdown']||tec['s']) my += 1;
+        alvoMov.x = pl.x + mx*60; alvoMov.y = pl.y + my*60;
+    }
+    var dx = alvoMov.x - pl.x, dy = alvoMov.y - pl.y, dist = Math.hypot(dx,dy);
+    pl.andando = dist > 6;
+    if(dist > 6){
+        var vel = 210*dt;
+        pl.x += dx/dist * Math.min(vel, dist);
+        pl.y += dy/dist * Math.min(vel, dist);
+        if(Math.abs(dx) > 4) pl.dir = dx > 0 ? 1 : -1;
+    }
+    var lim = cena==='mundo' ? limiteX() : mundoW()-50;
+    pl.x = Math.max(50, Math.min(lim, pl.x));
+    pl.y = Math.max(50, Math.min(mundoH()-50, pl.y));
+
+    // cooldowns dos recursos
+    objetosAtuais().forEach(function(o){ if(o.cd>0) o.cd -= dt; });
+
+    // fome e vida
+    fome = Math.max(0, fome - dt*100/420);
+    if(fome <= 0) vida = Math.max(0, vida - dt*4);
+    else if(fome > 30 && faseAtual==='dia') vida = Math.min(100, vida + dt*1.5);
+    if(base.fogueira && base.fuel > 0) base.fuel = Math.max(0, base.fuel - dt);
+    if(invuln > 0) invuln -= dt;
+    if(window._descansoT > 0) window._descansoT -= dt;
+
+    // ciclo dia/noite (só corre no mundo aberto)
+    if(cena==='mundo'){
+        faseTimer -= dt;
+        if(faseTimer <= 0){
+            if(faseAtual==='dia'){ faseAtual='noite'; faseTimer=NOITE_DUR; iniciaNoite(); }
+            else { faseAtual='dia'; faseTimer=DIA_DUR; terminaNoite(); }
+        }
+        // monstro
+        if(monstro.ativo){
+            var dxp = pl.x-monstro.x, dyp = pl.y-monstro.y, dpp = Math.hypot(dxp,dyp)||0.001;
+            var velBase = 55 + Math.min(noitesSobrevividas,25)*3;
+            if(equip.tocha>0 && dpp < raioTocha()) velBase *= 0.45;
+            var passo = velBase*dt;
+            var novoX = monstro.x + dxp/dpp*passo, novoY = monstro.y + dyp/dpp*passo;
+            var rf = raioFogo();
+            if(rf > 0){
+                var dCampoNovo = Math.hypot(novoX-CAMP.x, novoY-CAMP.y);
+                if(dCampoNovo < rf){
+                    var angNovo = Math.atan2(novoY-CAMP.y, novoX-CAMP.x);
+                    novoX = CAMP.x + Math.cos(angNovo)*rf;
+                    novoY = CAMP.y + Math.sin(angNovo)*rf;
+                }
+            }
+            monstro.x = novoX; monstro.y = novoY;
+            if(dpp < 32 && invuln <= 0){
+                vida = Math.max(0, vida - 15);
+                invuln = 1.5;
+                var kx = (pl.x-monstro.x)/dpp, ky=(pl.y-monstro.y)/dpp;
+                pl.x += kx*45; pl.y += ky*45;
+                toast('💥 O bicho misterioso te pegou! Corra pra fogueira!');
+            }
+        }
+    }
+
+    // morte
+    if(vida <= 0){
+        vida = 50; fome = Math.max(fome, 30);
+        inv.madeira = Math.floor(inv.madeira*0.6); inv.pedra = Math.floor(inv.pedra*0.6);
+        cena = 'mundo'; pl.x = CAMP.x; pl.y = CAMP.y+90; invuln = 2;
+        salvar();
+        toast('😵 Você desmaiou e foi levado de volta pra fogueira...');
+    }
+
+    desenha(agora);
+    requestAnimationFrame(loop);
+}
+
+// ============ DESENHO ============
+var camX = 0, camY = 0;
+function corZona(x){
+    for(var i=0;i<ZONAS.length;i++) if(x < ZONAS[i].xFim) return ZONAS[i];
+    return ZONAS[ZONAS.length-1];
+}
+function desenha(agora){
+    var mw = mundoW(), mh = mundoH();
+    camX = Math.max(0, Math.min(pl.x - W/2, Math.max(0,mw-W)));
+    camY = Math.max(0, Math.min(pl.y - H/2, Math.max(0,mh-H)));
+
+    var escuro = 0;
+    if(cena==='mundo'){
+        if(faseAtual==='noite') escuro = Math.min(1, Math.min(faseTimer, NOITE_DUR-faseTimer)/4 + 0.4);
+        if(faseAtual==='dia' && faseTimer < 5) escuro = (5-faseTimer)/5*0.6;
+    }
+    escuro = Math.max(0, Math.min(1, escuro));
+
+    if(cena==='caverna'){
+        ctx.fillStyle = '#1a1420'; ctx.fillRect(0,0,W,H);
+    } else {
+        ctx.fillStyle = '#1a5c8a'; ctx.fillRect(0,0,W,H);
+    }
+    ctx.save();
+    ctx.translate(-camX, -camY);
+
+    if(cena==='mundo'){
+        ZONAS.forEach(function(z){
+            ctx.fillStyle = z.corDia;
+            ctx.fillRect(z.xIni, 0, z.xFim-z.xIni, mh);
+        });
+        // areia pontilhada
+        ctx.fillStyle = 'rgba(0,0,0,0.06)';
+        var gx0 = Math.floor(camX/150)*150, gy0 = Math.floor(camY/150)*150;
+        for(var gx=gx0; gx<camX+W+150; gx+=150) for(var gy=gy0; gy<camY+H+150; gy+=150)
+            ctx.fillRect(gx+(gx*7+gy*13)%100, gy+(gx*11+gy*3)%100, 3, 3);
+        // portões
+        gatesMundo.forEach(function(g){
+            if(zonasLiberadas[g.alvoZona]) return;
+            if(g.x < camX-60 || g.x > camX+W+60) return;
+            ctx.strokeStyle = 'rgba(120,80,40,0.8)'; ctx.lineWidth = 10;
+            ctx.beginPath(); ctx.moveTo(g.x, 0); ctx.lineTo(g.x, mh); ctx.stroke();
+            ctx.font = '46px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText('🚧', g.x, g.y);
+            ctx.font = 'bold 13px Arial'; ctx.fillStyle='#fff';
+            var lbl = ZONAS[g.alvoZona].nome + ' (' + descreveCusto(g.custo) + ')';
+            var lw = ctx.measureText(lbl).width;
+            ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(g.x-lw/2-8, g.y-70, lw+16, 20);
+            ctx.fillStyle='#ffd700'; ctx.fillText(lbl, g.x, g.y-60);
+        });
+    } else {
+        ctx.fillStyle = '#2a2035';
+        ctx.fillRect(0,0,mw,mh);
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        for(var i=0;i<40;i++){ var sx=(i*257)%mw, sy=(i*131)%mh; ctx.beginPath(); ctx.arc(sx,sy,3,0,7); ctx.fill(); }
+    }
+
+    // objetos
+    var lista = objetosAtuais();
+    lista.forEach(function(o){
+        if(o.x < camX-70 || o.x > camX+W+70 || o.y < camY-70 || o.y > camY+H+70) return;
+        if(o.tipo==='bau' && bausAbertos[o.id]) return;
+        ctx.save();
+        var opac = (o.cd && o.cd>0) ? 0.35 : 1;
+        ctx.globalAlpha = opac;
+        ctx.font = '40px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillStyle='rgba(0,0,0,0.18)';
+        ctx.beginPath(); ctx.ellipse(o.x, o.y+16, 16, 6, 0, 0, 7); ctx.fill();
+        var emo = { arvore:'🌳', pedra:'🪨', arbusto:'🫐', ouro:'🔶', bau:'🎁', caverna:'🕳️', saida:'🪜' }[o.tipo];
+        if(o.tipo==='fogueira') emo = (base.fogueira && base.fuel>0) ? '🔥' : (base.fogueira ? '🪵' : '🏕️');
+        ctx.font = (o.tipo==='fogueira'||o.tipo==='bau'||o.tipo==='caverna') ? '48px Arial' : '38px Arial';
+        ctx.fillText(emo, o.x, o.y);
+        ctx.restore();
+        if(base.cerca && o.tipo==='fogueira'){
+            ctx.save();
+            ctx.strokeStyle = 'rgba(180,120,60,0.6)'; ctx.lineWidth = 4; ctx.setLineDash([10,8]);
+            ctx.beginPath(); ctx.arc(o.x, o.y, 46, 0, 7); ctx.stroke();
+            ctx.restore();
+        }
+    });
+
+    // luz da fogueira (glow visível à noite)
+    if(cena==='mundo'){
+        var rf = raioFogo();
+        if(rf > 0){
+            var g = ctx.createRadialGradient(CAMP.x, CAMP.y, 20, CAMP.x, CAMP.y, rf);
+            g.addColorStop(0, 'rgba(255,180,60,0.35)');
+            g.addColorStop(1, 'rgba(255,180,60,0)');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(CAMP.x, CAMP.y, rf, 0, 7); ctx.fill();
+        }
+    }
+
+    // monstro
+    if(cena==='mundo' && monstro.ativo){
+        ctx.save();
+        ctx.translate(monstro.x, monstro.y);
+        var wob = Math.sin(agora/150)*4;
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.beginPath(); ctx.ellipse(0, 22, 22, 7, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = '#241030';
+        ctx.beginPath(); ctx.ellipse(0, wob*0.3, 26, 28, 0, 0, 7); ctx.fill();
+        for(var i=0;i<5;i++){
+            ctx.beginPath();
+            var ax = -20 + i*10;
+            ctx.moveTo(ax, -18); ctx.lineTo(ax+5, -30+Math.sin(agora/100+i)*4); ctx.lineTo(ax+10,-18); ctx.fill();
+        }
+        ctx.fillStyle = '#ff2b3b';
+        ctx.beginPath(); ctx.arc(-9, -2, 5, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.arc(9, -2, 5, 0, 7); ctx.fill();
+        ctx.restore();
+    }
+
+    // jogador (pixel simples)
+    ctx.save();
+    ctx.translate(pl.x, pl.y);
+    if(invuln > 0 && Math.floor(invuln*10)%2===0) ctx.globalAlpha = 0.4;
+    if(pl.dir < 0) ctx.scale(-1,1);
+    var passo = pl.andando ? Math.sin(agora/90) : 0;
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath(); ctx.ellipse(0, 20, 18, 6, 0, 0, 7); ctx.fill();
+    ctx.rotate(passo*0.08);
+    ctx.fillStyle = '#3a6a3a'; ctx.fillRect(-9, 2, 7, 16); ctx.fillRect(3, 2, 7, 16);
+    ctx.fillStyle = '#c8863a';
+    ctx.beginPath(); ctx.ellipse(0, -10, 13, 13, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#f0b088';
+    ctx.beginPath(); ctx.arc(0, -28, 10, 0, 7); ctx.fill();
+    ctx.fillStyle = '#a85a2a';
+    ctx.beginPath(); ctx.ellipse(0, -33, 15, 5, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -35, 9, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(5, -29, 1.8, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#f0b088'; ctx.lineWidth = 5; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(9,-12); ctx.lineTo(23,-4); ctx.stroke();
+    var alvoAgora = alvoProximo();
+    if(alvoAgora && (alvoAgora.tipo==='arvore'||alvoAgora.tipo==='pedra'||alvoAgora.tipo==='ouro')){
+        ctx.font='22px Arial';
+        ctx.fillText(alvoAgora.tipo==='arvore'?'🪓':'⛏️', 26, 2);
+    }
+    ctx.restore();
+
+    // tocha do jogador (glow pessoal à noite)
+    if(cena==='mundo' && faseAtual==='noite' && raioTocha()>0){
+        var g2 = ctx.createRadialGradient(pl.x, pl.y, 10, pl.x, pl.y, raioTocha());
+        g2.addColorStop(0, 'rgba(255,220,120,0.3)');
+        g2.addColorStop(1, 'rgba(255,220,120,0)');
+        ctx.fillStyle = g2;
+        ctx.beginPath(); ctx.arc(pl.x, pl.y, raioTocha(), 0, 7); ctx.fill();
+    }
+
+    ctx.restore();
+
+    // escurecer à noite (por cima de tudo, exceto HUD)
+    if(escuro > 0){
+        ctx.fillStyle = 'rgba(6,8,28,' + (escuro*0.72) + ')';
+        ctx.fillRect(0,0,W,H);
+        if(escuro > 0.3){
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            for(var i=0;i<50;i++){
+                var sx=(i*137)%W, sy=(i*97+ (i*i*3)%211)%Math.floor(H*0.5);
+                ctx.fillRect(sx, sy, 2, 2);
+            }
+        }
+    }
+
+    // ===== HUD =====
+    ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    ctx.font='bold 20px Arial'; ctx.fillStyle='#fff';
+    // vida
+    ctx.fillText('❤️', 14, 30);
+    ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.fillRect(42,16,120,16);
+    ctx.fillStyle = vida>40?'#4dff88':'#ff4444'; ctx.fillRect(42,16,120*(vida/100),16);
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.strokeRect(42,16,120,16);
+    // fome
+    ctx.fillStyle='#fff'; ctx.fillText('🍖', 14, 56);
+    ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.fillRect(42,42,120,16);
+    ctx.fillStyle = fome>30?'#ffcc44':'#ff8844'; ctx.fillRect(42,42,120*(fome/100),16);
+    ctx.strokeStyle='#fff'; ctx.strokeRect(42,42,120,16);
+    // recursos
+    ctx.font='bold 18px Arial'; ctx.fillStyle='#fff';
+    ctx.fillText('🪵'+inv.madeira+'  🪨'+inv.pedra+'  🍖'+inv.comida+'  🔶'+(inv.ouro||0)+'  🗝️'+(inv.chaves||0), 14, 90);
+    ctx.fillText('🪙 '+moedas.toLocaleString('pt-BR'), 14, 114);
+    // noite / fase
+    ctx.font='bold 22px Arial';
+    ctx.fillStyle = faseAtual==='noite' ? '#a8c0ff' : '#ffdd66';
+    ctx.textAlign='center';
+    ctx.fillText((faseAtual==='noite'?'🌙 NOITE ':'☀️ Dia — noite ') + (noitesSobrevividas+1) + '/99', W/2, 32);
+    if(base.fogueira){
+        ctx.font='bold 15px Arial'; ctx.fillStyle = base.fuel>0 ? '#ffaa44' : '#ff5555';
+        ctx.fillText(base.fuel>0 ? ('🔥 combustível: '+Math.ceil(base.fuel)+'s') : '🔥 A FOGUEIRA APAGOU!', W/2, 54);
+    }
+    if(cena==='caverna'){ ctx.font='bold 16px Arial'; ctx.fillStyle='#c8a0ff'; ctx.fillText('🕳️ dentro da caverna', W/2, 76); }
+    ctx.textAlign='left';
+
+    // toasts
+    toasts.forEach(function(t,i){ t.vida -= 1/60; });
+    toasts = toasts.filter(function(t){ return t.vida>0; });
+    ctx.textAlign='center'; ctx.font='bold 15px Arial';
+    toasts.forEach(function(t,i){
+        var y = 130 + i*30;
+        var alpha = Math.min(1, t.vida);
+        var lw = ctx.measureText(t.texto).width;
+        ctx.fillStyle = 'rgba(0,0,0,'+(0.55*alpha)+')';
+        ctx.fillRect(W/2-lw/2-10, y-16, lw+20, 24);
+        ctx.fillStyle = 'rgba(255,255,255,'+alpha+')';
+        ctx.fillText(t.texto, W/2, y);
+    });
+    ctx.textAlign='left';
+
+    // botão de ação: rótulo contextual
+    var alvo2 = alvoProximo();
+    document.getElementById('bAcao').textContent = icAcao(alvo2);
+}
+
+ultimoT = performance.now();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
