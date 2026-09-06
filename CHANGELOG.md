@@ -1,11 +1,15 @@
 # Changelog - Cogumelo Games (site)
 
+## v409 (2026-09-06)
+- Ilha da Sobrevivência: removida a trava de áreas bloqueadas — as 3 zonas (Praia, Floresta
+  Sombria, Montanha Gelada) já começam liberadas, sem precisar juntar recursos pra abrir portão
+
 ## v408 (2026-09-06)
 - JOGO NOVO: Ilha da Sobrevivência 🏝️ — explore a ilha em 3 zonas (Praia, Floresta Sombria,
   Montanha Gelada), colete madeira/pedra/comida/ouro, construa a fogueira e a base (cerca +
   barraca), descubra 2 cavernas, encontre tesouros (baús com moedas e uma chave misteriosa),
-  libere novas áreas cortando o caminho, melhore machado/picareta/tocha e sobreviva 99 noites
-  do bicho misterioso — fique perto da luz da fogueira que ele não consegue te pegar!
+  melhore machado/picareta/tocha e sobreviva 99 noites do bicho misterioso — fique perto da
+  luz da fogueira que ele não consegue te pegar!
 
 ## v398 (2026-08-31)
 - Mega SP: multa da calçada reduzida (R$ 100 → R$ 30)
