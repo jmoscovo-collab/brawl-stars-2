@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v411 (2026-09-06)
+- Ilha da Sobrevivência: visual da interface (painéis, botões, barras, fonte) redesenhado com
+  tema rústico de madeira/couro, deixando de usar o mesmo estilo visual dos outros jogos do site
+
 ## v410 (2026-09-06)
 - Ilha da Sobrevivência: reescrita em 3D real com three.js (terreno, árvores, monstro e
   personagem em 3D, câmera em terceira pessoa, sol/lua e fogueira com luz e sombra de verdade,

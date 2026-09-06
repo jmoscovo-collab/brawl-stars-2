@@ -6,62 +6,74 @@
 <title>Ilha da Sobrevivência 3D — Cogumelo Games</title>
 <meta name="description" content="Explore a ilha em 3D, colete recursos, construa sua fogueira, descubra cavernas, enfrente frio e sede e sobreviva 99 noites do bicho misterioso!">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Rye&family=Kalam:wght@400;700&display=swap');
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 html,body { height:100%; overflow:hidden; }
-body { background:#0a3a2c; font-family:Arial,sans-serif; color:#fff; user-select:none; }
+body { background:#1c1206; font-family:'Kalam',cursive; color:#f0dfb8; user-select:none; }
 canvas { display:block; position:fixed; inset:0; touch-action:none; }
 #hud { position:fixed; inset:0; z-index:5; pointer-events:none; }
-#bAcao { position:fixed; right:18px; bottom:calc(20px + env(safe-area-inset-bottom)); z-index:6; width:96px; height:96px; border-radius:50%;
-    border:4px solid #fff; background:linear-gradient(135deg,#2f8a43,#5dd97a); color:#fff; font-size:38px; cursor:pointer;
-    box-shadow:0 4px 14px rgba(0,0,0,0.5); text-align:center; line-height:1; display:flex; align-items:center; justify-content:center; pointer-events:auto; }
-#bAcao:active { transform:scale(0.9); }
-#bComer { position:fixed; right:22px; bottom:calc(128px + env(safe-area-inset-bottom)); z-index:6; width:56px; height:56px; border-radius:50%;
-    border:3px solid #fff; background:linear-gradient(135deg,#c85a2a,#ff9944); color:#fff; font-size:26px; cursor:pointer; box-shadow:0 3px 10px rgba(0,0,0,0.5); pointer-events:auto; }
-#bComer:active { transform:scale(0.9); }
-#bBeber { position:fixed; right:88px; bottom:calc(128px + env(safe-area-inset-bottom)); z-index:6; width:56px; height:56px; border-radius:50%;
-    border:3px solid #fff; background:linear-gradient(135deg,#1c6faa,#4dc7ff); color:#fff; font-size:26px; cursor:pointer; box-shadow:0 3px 10px rgba(0,0,0,0.5); pointer-events:auto; }
-#bBeber:active { transform:scale(0.9); }
-#bBase, #bMissoes { position:fixed; top:12px; z-index:6; font-size:24px; width:50px; height:50px; border-radius:14px; color:#fff; cursor:pointer; pointer-events:auto; }
-#bBase { right:12px; border:2px solid #ffaa00; background:rgba(255,170,0,0.25); }
-#bMissoes { right:70px; border:2px solid #4dd0ff; background:rgba(77,208,255,0.25); }
-.painel { position:fixed; inset:0; z-index:20; background:rgba(4,15,10,0.88); display:none; align-items:center; justify-content:center; pointer-events:auto; }
-.painel .cartao { background:linear-gradient(180deg,#14402a,#0b2a1a); border:3px solid #5dd97a; border-radius:22px; padding:20px;
+#bAcao { position:fixed; right:18px; bottom:calc(20px + env(safe-area-inset-bottom)); z-index:6; width:96px; height:96px; border-radius:20px;
+    border:4px solid #2a1a0c; background:linear-gradient(160deg,#c9973f,#8a5a24 65%,#6b4319); color:#3a2410; font-size:38px; cursor:pointer;
+    box-shadow:0 5px 0 #3a2410, 0 8px 16px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,224,160,0.4); text-align:center; line-height:1;
+    display:flex; align-items:center; justify-content:center; pointer-events:auto; transform:rotate(-2deg); }
+#bAcao:active { transform:scale(0.92) rotate(-2deg); box-shadow:0 2px 0 #3a2410, 0 4px 8px rgba(0,0,0,0.6); }
+#bComer { position:fixed; right:22px; bottom:calc(128px + env(safe-area-inset-bottom)); z-index:6; width:56px; height:56px; border-radius:16px;
+    border:3px solid #3a2410; background:linear-gradient(160deg,#b25a2a,#7a3410); color:#fff0dd; font-size:26px; cursor:pointer;
+    box-shadow:0 4px 0 #3a2410, 0 6px 10px rgba(0,0,0,0.55); pointer-events:auto; transform:rotate(3deg); }
+#bComer:active { transform:scale(0.9) rotate(3deg); box-shadow:0 1px 0 #3a2410; }
+#bBeber { position:fixed; right:88px; bottom:calc(128px + env(safe-area-inset-bottom)); z-index:6; width:56px; height:56px; border-radius:16px;
+    border:3px solid #14344a; background:linear-gradient(160deg,#2a7ea8,#155470); color:#eaf7ff; font-size:26px; cursor:pointer;
+    box-shadow:0 4px 0 #14344a, 0 6px 10px rgba(0,0,0,0.55); pointer-events:auto; transform:rotate(-3deg); }
+#bBeber:active { transform:scale(0.9) rotate(-3deg); box-shadow:0 1px 0 #14344a; }
+#bBase, #bMissoes { position:fixed; top:12px; z-index:6; font-size:22px; width:50px; height:50px; border-radius:12px; color:#f0dfb8; cursor:pointer;
+    pointer-events:auto; box-shadow:0 3px 0 rgba(0,0,0,0.5); }
+#bBase { right:12px; border:3px solid #6b4319; background:linear-gradient(160deg,#8a5a24,#5a3712); }
+#bMissoes { right:70px; border:3px solid #2f5b47; background:linear-gradient(160deg,#3d7a5c,#274f39); }
+.painel { position:fixed; inset:0; z-index:20; background:rgba(10,6,2,0.86); display:none; align-items:center; justify-content:center; pointer-events:auto; }
+.painel .cartao { background:
+        repeating-linear-gradient(90deg, rgba(0,0,0,0.12) 0 3px, transparent 3px 26px),
+        linear-gradient(180deg,#5a3a1c,#3a2410);
+    border:6px solid #2a1808; border-radius:10px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.6), inset 0 0 0 3px rgba(240,223,184,0.15);
     width:min(94vw,440px); max-height:86vh; overflow:auto; text-align:center; }
-.painel h2 { font-size:28px; margin-bottom:12px; }
-.item { display:flex; align-items:center; gap:10px; width:100%; margin:7px 0; padding:10px 14px; border:2px solid rgba(255,255,255,0.25);
-    border-radius:14px; cursor:pointer; background:rgba(255,255,255,0.08); color:#fff; font-size:15px; font-weight:bold; text-align:left; }
-.item:active { transform:scale(0.96); }
+.painel h2 { font-family:'Rye',cursive; font-weight:normal; font-size:26px; margin-bottom:12px; color:#ffd88a; text-shadow:2px 2px 0 #2a1808; letter-spacing:1px; }
+.item { display:flex; align-items:center; gap:10px; width:100%; margin:8px 0; padding:10px 14px; border:2px solid #2a1808;
+    border-radius:8px; cursor:pointer; background:linear-gradient(160deg,rgba(255,224,160,0.16),rgba(0,0,0,0.18)); color:#f0dfb8; font-size:15px; font-weight:bold; text-align:left;
+    box-shadow:0 3px 0 rgba(0,0,0,0.4); }
+.item:active { transform:scale(0.96) translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,0.4); }
 .item .ic { font-size:28px; flex-shrink:0; }
 .item .info { flex:1; }
-.item small { display:block; font-weight:normal; font-size:11px; color:#a8e0c0; }
-.item.feito { border-color:#4dff88; background:rgba(77,255,136,0.12); opacity:0.75; }
+.item small { display:block; font-weight:normal; font-size:11px; color:#c9a66b; }
+.item.feito { border-color:#7bbf5e; background:linear-gradient(160deg,rgba(123,191,94,0.25),rgba(0,0,0,0.18)); opacity:0.75; }
 .item.caro { opacity:0.45; }
-.item.pronto { border-color:#4dff88; }
-.fechar { font-size:22px; margin-top:10px; padding:8px 26px; border:none; border-radius:14px; cursor:pointer; background:#345; color:#fff; }
-a.voltar { position:fixed; bottom:8px; left:12px; color:#a8e0c0; text-decoration:none; font-weight:bold; font-size:13px; z-index:6; pointer-events:auto; }
+.item.pronto { border-color:#7bbf5e; }
+.fechar { font-family:'Rye',cursive; font-size:18px; margin-top:10px; padding:9px 28px; border:3px solid #2a1808; border-radius:8px; cursor:pointer;
+    background:linear-gradient(160deg,#a8402c,#6e2318); color:#fff0dd; box-shadow:0 3px 0 #2a1808; }
+.fechar:active { transform:translateY(2px); box-shadow:none; }
+a.voltar { position:fixed; bottom:8px; left:12px; color:#c9a66b; text-decoration:none; font-weight:bold; font-size:13px; z-index:6; pointer-events:auto; }
 #joyBase { position:fixed; left:22px; bottom:calc(40px + env(safe-area-inset-bottom)); z-index:6; width:130px; height:130px; border-radius:50%;
-    background:rgba(255,255,255,0.14); border:3px solid rgba(255,255,255,0.4); display:none; touch-action:none; pointer-events:auto; }
+    background:radial-gradient(circle,rgba(240,223,184,0.14),rgba(0,0,0,0.1)); border:3px dashed rgba(240,223,184,0.45); display:none; touch-action:none; pointer-events:auto; }
 #joyKnob { position:absolute; left:50%; top:50%; width:58px; height:58px; border-radius:50%; transform:translate(-50%,-50%);
-    background:rgba(255,255,255,0.55); box-shadow:0 3px 8px rgba(0,0,0,0.4); pointer-events:none; }
+    background:radial-gradient(circle at 35% 30%,#e8cf9e,#8a5a24); box-shadow:0 3px 8px rgba(0,0,0,0.5); pointer-events:none; }
 #lookZone { position:fixed; top:0; right:0; bottom:0; width:56%; z-index:4; display:none; pointer-events:auto; }
 #popup { position:fixed; inset:0; z-index:30; display:none; align-items:center; justify-content:center; flex-direction:column;
-    background:rgba(2,10,6,0.82); text-align:center; pointer-events:auto; }
+    background:rgba(10,6,2,0.85); text-align:center; pointer-events:auto; }
 #popup .ic { font-size:100px; filter:drop-shadow(0 0 30px rgba(255,215,0,0.9)); animation:pula 0.6s ease infinite alternate; }
 @keyframes pula { from{ transform:scale(1) rotate(-4deg);} to{ transform:scale(1.15) rotate(4deg);} }
-#popup .nome { font-size:28px; font-weight:900; color:#ffd700; margin:10px 0; text-shadow:0 0 16px rgba(255,215,0,0.7); }
-#popup .desc { font-size:18px; font-weight:bold; color:#4dff88; }
-#barras { position:fixed; left:14px; top:12px; z-index:6; font-family:Arial,sans-serif; }
+#popup .nome { font-family:'Rye',cursive; font-size:26px; margin:10px 0; color:#ffd700; text-shadow:0 0 16px rgba(255,215,0,0.7); }
+#popup .desc { font-size:18px; font-weight:bold; color:#7bbf5e; }
+#barras { position:fixed; left:14px; top:12px; z-index:6; }
 .barraLinha { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
 .barraIc { font-size:18px; width:22px; text-align:center; }
-.barraFundo { width:120px; height:15px; border-radius:8px; background:rgba(255,255,255,0.25); border:2px solid #fff; overflow:hidden; }
-.barraCheia { height:100%; border-radius:6px; transition:width 0.25s; }
-#recursos { position:fixed; left:14px; top:90px; z-index:6; font-weight:bold; font-size:15px; text-shadow:1px 1px 3px rgba(0,0,0,0.8); }
-#topoFase { position:fixed; top:8px; left:50%; transform:translateX(-50%); z-index:6; text-align:center; font-weight:bold; text-shadow:1px 1px 3px rgba(0,0,0,0.8); }
-#faseTxt { font-size:21px; }
+.barraFundo { width:120px; height:15px; border-radius:4px; background:rgba(0,0,0,0.4); border:2px solid #2a1808; overflow:hidden; box-shadow:inset 0 2px 3px rgba(0,0,0,0.5); }
+.barraCheia { height:100%; border-radius:2px; transition:width 0.25s; }
+#recursos { position:fixed; left:14px; top:90px; z-index:6; font-weight:bold; font-size:15px; color:#f0dfb8; text-shadow:1px 1px 3px rgba(0,0,0,0.9); }
+#topoFase { position:fixed; top:8px; left:50%; transform:translateX(-50%); z-index:6; text-align:center; font-weight:bold; text-shadow:1px 1px 3px rgba(0,0,0,0.9); }
+#faseTxt { font-family:'Rye',cursive; font-size:20px; color:#ffd88a; }
 #fuelTxt { font-size:14px; margin-top:2px; }
-#caveTxt { font-size:15px; color:#c8a0ff; margin-top:2px; }
+#caveTxt { font-size:15px; color:#c9a66b; margin-top:2px; }
 #toasts { position:fixed; top:135px; left:50%; transform:translateX(-50%); z-index:6; display:flex; flex-direction:column; gap:6px; align-items:center; }
-.toast { background:rgba(0,0,0,0.6); color:#fff; font-weight:bold; font-size:14px; padding:5px 12px; border-radius:8px; text-align:center; opacity:0; transition:opacity 0.3s; }
+.toast { background:linear-gradient(160deg,#5a3a1c,#3a2410); border:2px solid #2a1808; color:#f0dfb8; font-weight:bold; font-size:14px; padding:5px 12px;
+    border-radius:6px; text-align:center; opacity:0; transition:opacity 0.3s; }
 .toast.show { opacity:1; }
 #chuvaOverlay { position:fixed; inset:0; z-index:3; pointer-events:none; background:linear-gradient(rgba(120,140,180,0.06),rgba(120,140,180,0.06)); display:none; }
 </style>
@@ -73,10 +85,10 @@ a.voltar { position:fixed; bottom:8px; left:12px; color:#a8e0c0; text-decoration
 <div class="painel" id="disp" style="display:flex; z-index:40">
     <div class="cartao">
         <h2>🏝️ Ilha da Sobrevivência 3D</h2>
-        <div style="font-size:17px; color:#a8e0c0; margin-bottom:12px">Onde você está jogando?</div>
+        <div style="font-size:17px; color:#c9a66b; margin-bottom:12px">Onde você está jogando?</div>
         <button class="item" style="justify-content:center; border-color:#4dff88; background:rgba(77,255,136,0.15); font-size:19px" onclick="escolheDisp('pc')">💻 COMPUTADOR</button>
         <button class="item" style="justify-content:center; border-color:#ffd24a; background:rgba(255,210,74,0.15); font-size:19px" onclick="escolheDisp('celular')">📱 CELULAR</button>
-        <div style="font-size:13px; color:#a8e0c0; margin-top:10px">💻 setas/WASD andam · arraste o mouse com botão direito pra girar câmera · F, espaço ou E interage<br>📱 bolinha anda · arraste do lado direito da tela pra girar a câmera · botão ✋ interage · 🍖 come · 💧 bebe</div>
+        <div style="font-size:13px; color:#c9a66b; margin-top:10px">💻 setas/WASD andam · arraste o mouse com botão direito pra girar câmera · F, espaço ou E interage<br>📱 bolinha anda · arraste do lado direito da tela pra girar a câmera · botão ✋ interage · 🍖 come · 💧 bebe</div>
     </div>
 </div>
 
@@ -335,7 +347,7 @@ function descreveCusto(custo){
 function abreBase(){
     var el = document.getElementById('listaBase');
     el.innerHTML = '';
-    function titulo(txt){ var t=document.createElement('small'); t.style.cssText='display:block;color:#a8e0c0;margin:10px 0 6px'; t.textContent=txt; el.appendChild(t); }
+    function titulo(txt){ var t=document.createElement('small'); t.style.cssText='display:block;color:#c9a66b;margin:10px 0 6px'; t.textContent=txt; el.appendChild(t); }
     titulo('🏕️ BASE');
     if(!base.fogueira){
         var p = document.createElement('div');
