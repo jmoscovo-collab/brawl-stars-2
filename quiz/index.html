@@ -721,10 +721,8 @@ function sorteiaPerguntas(nivel, materia, n){
   // fallback final: se ainda vazio (nível sem perguntas), usa tudo
   if(pool.length===0) pool = PERGUNTAS.slice();
   for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
-  const escolhidas = [];
-  let i=0;
-  while(escolhidas.length<n){ escolhidas.push(pool[i % pool.length]); i++; }
-  return escolhidas.map(embaralhaOpcoes);
+  // pega no máximo o tamanho do pool, sem repetir nenhuma pergunta
+  return pool.slice(0, Math.min(n, pool.length)).map(embaralhaOpcoes);
 }
 function mostraMsg(txt,cor,ms){
   const el=document.getElementById('msg');
@@ -1089,7 +1087,8 @@ function mpComecaHost(){
   if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
   mp.ptsEu=0; mp.ptsEle=0; mp.idx=0;
   // host escolhe as perguntas: mistura de todos níveis pra online
-  mp.perguntasHost = sorteiaOnline(9);
+  // usa o banco inteiro embaralhado pra nunca repetir pergunta, mesmo em partidas longas
+  mp.perguntasHost = sorteiaOnline(PERGUNTAS.length);
   mpEnvia({t:'comeca', nomeHost:mp.meuNome});
   mpAbreTelaJogoOnline(mp.meuNome, mp.opNome);
   mostraMsg(`🧠 ${mp.meuNome} × ${mp.opNome}! Pela diversão!`, '#fff', 1800);
