@@ -1,5 +1,14 @@
 # Changelog - Cogumelo Games (site)
 
+## v410 (2026-09-06)
+- Ilha da Sobrevivência: reescrita em 3D real com three.js (terreno, árvores, monstro e
+  personagem em 3D, câmera em terceira pessoa, sol/lua e fogueira com luz e sombra de verdade,
+  névoa e chuva)
+- Ilha da Sobrevivência: novos sistemas de sobrevivência — sede (beba no mar ou num poço
+  craftável), frio na Montanha Gelada (precisa de fogueira/tocha ou um casaco craftável), arco
+  pra afastar o monstro à distância, clima com chuva, monstro mais perigoso a cada noites
+  (fica mais rápido e pode aparecer em dupla), decorações cosméticas pra base e novas missões
+
 ## v409 (2026-09-06)
 - Ilha da Sobrevivência: removida a trava de áreas bloqueadas — as 3 zonas (Praia, Floresta
   Sombria, Montanha Gelada) já começam liberadas, sem precisar juntar recursos pra abrir portão
