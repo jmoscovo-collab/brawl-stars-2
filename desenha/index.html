@@ -109,7 +109,7 @@ canvas#tela { width:100%; background:#fff; border-radius:14px; touch-action:none
         </div>
         <div id="lateral">
             <div class="card" style="padding:10px;">
-                <b>🏆 Placar</b>
+                <b>🏆 Placar</b> <span id="metaHud" style="font-size:12px;color:#ffd93d;float:right;"></span>
                 <div id="placarLista"></div>
             </div>
             <div id="chat"></div>
@@ -151,10 +151,11 @@ const MP_WS  = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=d
 const MAX = 4;
 
 let mp = { ws:null, sala:'', souHost:false, meuNome:'', jogadores:[], pollConvites:null,
-    ping:null, vigia:null, checaSala:null, lastMsg:0, emJogo:false, comecou:false };
+    ping:null, vigia:null, checaSala:null, lastMsg:0, emJogo:false, comecou:false,
+    cfgTempo:70, cfgMeta:10 };
 
 // estado do jogo (autoritativo no host)
-let G = { drawer:'', palavra:'', ordem:[], idx:0, total:0, num:0, placar:{},
+let G = { drawer:'', palavra:'', ordem:[], idx:0, tempoRodada:70, metaPontos:10, num:0, placar:{},
     tempo:70, tickTimer:null, roundTimer:null, acertaram:[], inicioRodada:0, souDrawer:false, revelou:false, denunciado:false };
 
 function mpLogado(){ return !!localStorage.getItem('cg_usuario'); }
@@ -212,9 +213,16 @@ async function criarSala(){
     area.innerHTML = `<h2 class="codigo">${mp.sala}</h2>
         <p style="color:#6be9ff;margin:6px 0;">⏳ esperando os amigos entrarem... (máx ${MAX})</p>
         <div id="salaJogadores"></div>
+        <div class="card" style="margin:10px 0;padding:10px;">
+            <p style="font-size:14px;color:#bbb;margin-bottom:6px;">⏱️ Tempo por rodada:</p>
+            <div id="cfgTempoBox"></div>
+            <p style="font-size:14px;color:#bbb;margin:10px 0 6px;">🎯 Pontos pra vencer:</p>
+            <div id="cfgMetaBox"></div>
+        </div>
         <div id="mpAmigos"><p>carregando amigos...</p></div>
         <div id="botaoComeca"></div>`;
     renderSalaJogadores();
+    renderConfigJogo();
     try{
         const d = await mpApi({acao:'entrar'});
         const amigos = d.amigos || [];
@@ -264,6 +272,16 @@ function entrarSala(sala){
     if(area) area.innerHTML = `<p style="color:#6be9ff;">⏳ Entrando na sala ${sala}...</p>`;
     conecta(sala, false);
 }
+function renderConfigJogo(){
+    const box1 = document.getElementById('cfgTempoBox'); if(!box1) return;
+    const box2 = document.getElementById('cfgMetaBox'); if(!box2) return;
+    const tempos = [30,45,60,70,90];
+    const metas = [5,10,15,20,30];
+    box1.innerHTML = tempos.map(t=>`<button class="btn pequeno${mp.cfgTempo===t?' amarelo':''}" onclick="setCfgTempo(${t})">${t}s</button>`).join('');
+    box2.innerHTML = metas.map(p=>`<button class="btn pequeno${mp.cfgMeta===p?' amarelo':''}" onclick="setCfgMeta(${p})">${p} pts</button>`).join('');
+}
+function setCfgTempo(v){ mp.cfgTempo=v; renderConfigJogo(); }
+function setCfgMeta(v){ mp.cfgMeta=v; renderConfigJogo(); }
 function renderSalaJogadores(){
     const el = document.getElementById('salaJogadores'); if(!el) return;
     el.innerHTML = `<p style="margin:8px 0;">Jogadores (${mp.jogadores.length}/${MAX}):</p>` +
@@ -322,7 +340,7 @@ function recebe(ev){
             if(!mp.souHost){ mp.jogadores = m.lista||[]; renderSalaJogadores(); }
             return;
         case 'comeca':
-            if(!mp.comecou){ mp.comecou=true; iniciaJogoUI(m.ordem, m.total); }
+            if(!mp.comecou){ mp.comecou=true; iniciaJogoUI(m.ordem, m.tempoRodada, m.metaPontos); }
             return;
         case 'rodada':
             aplicaRodada(m); return;
@@ -353,22 +371,24 @@ function recebe(ev){
 function hostComeca(){
     if(!mp.souHost || mp.jogadores.length<2) return;
     const ordem = mp.jogadores.slice();
-    const total = ordem.length * 2; // cada um desenha 2 vezes
-    G.ordem = ordem; G.total = total; G.idx = 0;
+    const tempoRodada = mp.cfgTempo || 70;
+    const metaPontos = mp.cfgMeta || 10;
+    G.ordem = ordem; G.tempoRodada = tempoRodada; G.metaPontos = metaPontos; G.idx = 0;
     G.placar = {}; ordem.forEach(n=>G.placar[n]=0);
-    mpEnvia({t:'comeca', ordem, total});
-    mp.comecou=true; iniciaJogoUI(ordem, total);
+    mpEnvia({t:'comeca', ordem, tempoRodada, metaPontos});
+    mp.comecou=true; iniciaJogoUI(ordem, tempoRodada, metaPontos);
     setTimeout(hostNovaRodada, 800);
 }
-function iniciaJogoUI(ordem, total){
+function iniciaJogoUI(ordem, tempoRodada, metaPontos){
     mp.emJogo=true;
     if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
-    G.ordem = ordem; G.total = total;
+    G.ordem = ordem; G.tempoRodada = tempoRodada || 70; G.metaPontos = metaPontos || 10;
     if(!mp.souHost){ G.placar={}; ordem.forEach(n=>G.placar[n]=0); }
     document.getElementById('lobby').style.display='none';
     document.getElementById('jogo').style.display='block';
     document.getElementById('rankingBox').style.display='none';
     document.getElementById('chat').innerHTML='';
+    document.getElementById('metaHud').textContent = `🎯 meta: ${G.metaPontos} pts`;
     montaFerramentas();
     limpaCanvas();
     renderPlacar();
@@ -377,28 +397,22 @@ function iniciaJogoUI(ordem, total){
 
 // ---------- RODADAS (host) ----------
 function hostNovaRodada(){
-    if(G.idx >= G.total){ // fim
-        const ranking = Object.entries(G.placar).sort((a,b)=>b[1]-a[1]).map(([nome,pts])=>({nome,pts}));
-        mpEnvia({t:'fim', ranking}); mostraRanking(ranking); return;
-    }
     const drawer = G.ordem[G.idx % G.ordem.length];
     const palavra = PALAVRAS[Math.floor(Math.random()*PALAVRAS.length)];
     G.drawer = drawer; G.palavra = palavra; G.acertaram=[]; G.num = G.idx+1;
-    mpEnvia({t:'rodada', drawer, palavra, num:G.num, total:G.total});
-    aplicaRodada({drawer, palavra, num:G.num, total:G.total});
+    mpEnvia({t:'rodada', drawer, palavra, num:G.num});
+    aplicaRodada({drawer, palavra, num:G.num});
     // timer autoritativo do host
     limparHostTimers();
-    G.roundTimer = setTimeout(()=>hostFimRodada(false), 70000);
+    G.roundTimer = setTimeout(()=>hostFimRodada(false), G.tempoRodada*1000);
 }
 function limparHostTimers(){ if(G.roundTimer){ clearTimeout(G.roundTimer); G.roundTimer=null; } }
 function hostProcessaChute(m){
     if(m.nome === G.drawer) return; // desenhista não chuta
     if(G.acertaram.includes(m.nome)) return;
     if(normaliza(m.texto) === normaliza(G.palavra)){
-        const seg = Math.floor((Date.now()-G.inicioRodada)/1000);
-        const pts = Math.max(20, 100 - seg);
-        G.placar[m.nome] = (G.placar[m.nome]||0) + pts;
-        G.placar[G.drawer] = (G.placar[G.drawer]||0) + 25; // desenhista ganha
+        G.placar[m.nome] = (G.placar[m.nome]||0) + 1;
+        G.placar[G.drawer] = (G.placar[G.drawer]||0) + 1; // desenhista também ganha
         G.acertaram.push(m.nome);
         mpEnvia({t:'acertou', nome:m.nome});
         addChat(`🎉 <span class="acerto">${m.nome} acertou!</span>`, 'acerto'); tocaAcerto();
@@ -415,13 +429,21 @@ function hostFimRodada(todosAcertaram){
     limparHostTimers();
     mpEnvia({t:'fimrodada', palavra:G.palavra, placar:G.placar});
     aplicaFimRodada({palavra:G.palavra, placar:G.placar});
+    const alguemChegouNaMeta = Object.values(G.placar).some(p=>p>=G.metaPontos);
+    if(alguemChegouNaMeta){
+        setTimeout(()=>{
+            const ranking = Object.entries(G.placar).sort((a,b)=>b[1]-a[1]).map(([nome,pts])=>({nome,pts}));
+            mpEnvia({t:'fim', ranking}); mostraRanking(ranking);
+        }, 3500);
+        return;
+    }
     G.idx++;
     setTimeout(hostNovaRodada, 3500);
 }
 
 // ---------- RODADAS (todos) ----------
 function aplicaRodada(m){
-    G.drawer = m.drawer; G.num=m.num; G.total=m.total;
+    G.drawer = m.drawer; G.num=m.num;
     if(mp.souHost) G.palavra = m.palavra;
     else G.palavra = m.palavra; // recebida; só o desenhista exibe
     G.souDrawer = (m.drawer === mp.meuNome);
@@ -441,7 +463,7 @@ function aplicaRodada(m){
     document.getElementById('chatInput').placeholder = G.souDrawer ? 'Você está desenhando...' : 'Seu chute...';
     montaFerramentas();
     renderBotaoDenuncia();
-    addChat(`🖍️ <span class="sistema">Rodada ${G.num}/${G.total} — ${G.souDrawer?'você está desenhando!':G.drawer+' desenhando'}</span>`);
+    addChat(`🖍️ <span class="sistema">Rodada ${G.num} — ${G.souDrawer?'você está desenhando!':G.drawer+' desenhando'}</span>`);
     iniciaCronometro();
 }
 function aplicaFimRodada(m){
@@ -455,7 +477,7 @@ function aplicaFimRodada(m){
 // ---------- CRONÔMETRO ----------
 function iniciaCronometro(){
     pararTimers();
-    G.tempo = 70;
+    G.tempo = G.tempoRodada || 70;
     document.getElementById('tempoHud').textContent = G.tempo;
     G.tickTimer = setInterval(()=>{
         G.tempo--;
