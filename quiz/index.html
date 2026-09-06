@@ -102,6 +102,19 @@
   <button class="btn azul" onclick="voltaMenu()">🏠 Menu</button>
 </div>
 
+<!-- ESCOLHA DE QUANTIDADE (solo) -->
+<div id="telaQtd" class="tela">
+  <h1>🔢 Quantas perguntas?</h1>
+  <p class="sub" id="qtdInfoTxt"></p>
+  <div class="card">
+    <button class="btn verde nivelBtn" onclick="iniciaSoloComQtd(5)">5 perguntas ⚡</button>
+    <button class="btn azul nivelBtn" onclick="iniciaSoloComQtd(10)">10 perguntas</button>
+    <button class="btn laranja nivelBtn" onclick="iniciaSoloComQtd(15)">15 perguntas</button>
+    <button class="btn nivelBtn" onclick="iniciaSoloComQtd(20)">20 perguntas 🏃</button>
+  </div>
+  <button class="btn azul" onclick="voltaMenu()">🏠 Menu</button>
+</div>
+
 <!-- JOGO -->
 <div id="telaJogo" class="tela">
   <div id="placar">
@@ -784,25 +797,38 @@ function escolheNivel(nivel){
     b.className='materiaBtn';
     b.style.background=info.cor;
     b.innerHTML=`<span class="em">${info.icon}</span>${info.label}`;
-    b.onclick=()=>iniciaSolo(nivel, m);
+    b.onclick=()=>escolheQtd(nivel, m);
     box.appendChild(b);
   });
   const bt=document.createElement('button');
   bt.className='materiaBtn';
   bt.style.background='linear-gradient(135deg,#7b2ff7,#f107a3)';
   bt.innerHTML=`<span class="em">🎲</span>Todas / Misturado`;
-  bt.onclick=()=>iniciaSolo(nivel, 'todas');
+  bt.onclick=()=>escolheQtd(nivel, 'todas');
   box.appendChild(bt);
   mostraTela('telaMateria');
 }
 
-function iniciaSolo(nivel, materia){
+// passo 2: escolheu a matéria → pergunta quantas perguntas
+function escolheQtd(nivel, materia){
+  qtdEscolha = { nivel, materia };
+  document.getElementById('qtdInfoTxt').textContent = niveLabel(nivel)+' • '+(matLabel(materia)||'🎲 Todas');
+  mostraTela('telaQtd');
+}
+function iniciaSoloComQtd(qtd){
+  iniciaSolo(qtdEscolha.nivel, qtdEscolha.materia, qtd);
+}
+let qtdEscolha = null;
+
+function iniciaSolo(nivel, materia, qtd){
   materia = materia || 'todas';
+  qtd = qtd || N_SOLO;
   localStorage.setItem('quiz_nivel', nivel);
   localStorage.setItem('quiz_materia', materia);
+  localStorage.setItem('quiz_qtd', qtd);
   solo = {
     nivel, materia, cfg:CFG[nivel],
-    perguntas: sorteiaPerguntas(nivel, materia, N_SOLO),
+    perguntas: sorteiaPerguntas(nivel, materia, qtd),
     idx:0, acertos:0,
     respondido:false, tRestante:0, crono:null,
     moedasGanhas:0, inicioRodada:0,
@@ -869,7 +895,8 @@ function fimSolo(){
 function deNovo(){
   const n = localStorage.getItem('quiz_nivel')||'facil';
   const m = localStorage.getItem('quiz_materia')||'todas';
-  iniciaSolo(n, m);
+  const q = parseInt(localStorage.getItem('quiz_qtd'),10)||N_SOLO;
+  iniciaSolo(n, m, q);
 }
 function voltaMenu(){
   paraCrono();
