@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v413 (2026-09-14)
+- Chuva de Cogumelos 1 e 2 MAIS DIFÍCEIS: cai mais rápido, mais cogumelos de uma vez, dificuldade sobe mais cedo, 4 vidas, mais venenosos/pretos (e no 2: mais RAIO ⚡ e GIGANTE)
+- Chuva de Cogumelos 2 voltou pro lugar certo da lista (logo depois do Chuva 1)
+
 ## v411 (2026-09-06)
 - Ilha da Sobrevivência: visual da interface (painéis, botões, barras, fonte) redesenhado com
   tema rústico de madeira/couro, deixando de usar o mesmo estilo visual dos outros jogos do site

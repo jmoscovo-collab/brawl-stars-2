@@ -239,7 +239,7 @@ var TYPES = [
   { id:'verde',   w:26 }, { id:'laranja', w:16 }, { id:'preto', w:3 },
   { id:'vida',    w:6  }, { id:'mist',    w:8  }, { id:'moeda', w:22 },
   { id:'dourado', w:2  }, { id:'arcoiris', w:1 },
-  { id:'raio',    w:7  }, { id:'gigante', w:5  }
+  { id:'raio',    w:11 }, { id:'gigante', w:8  }
 ];
 
 function startGame(){
@@ -251,7 +251,7 @@ function startGame(){
   $('padR').classList.toggle('hidden', !mob);
   var s = S();
   player = { x:W/2, y:GROUND, w:34*s, h:44*s, vx:0, vy:0, onGround:true, face:1 };
-  shrooms = []; particles = []; elapsed = 0; lives = 5; runCoins = 0;
+  shrooms = []; particles = []; elapsed = 0; lives = 4; runCoins = 0;
   coinTimer = 0; spawnTimer = 0; dashCd = 0; invulnT = 0; shieldT = 0; freezeT = 0;
   window._nivelChuva = 1; window._nivelMsgT = 0;
   tapTimes = []; skillUsed = false;
@@ -341,7 +341,7 @@ function pickType(diff){
   var pool = [];
   TYPES.forEach(function(t){
     var w = t.w;
-    if(t.id==='preto') w = Math.min(3 + diff*1.2, 8); // sobe pouco
+    if(t.id==='preto') w = Math.min(4 + diff*1.6, 12); // sobe mais
     pool.push({ id:t.id, w:w });
   });
   var tot = pool.reduce(function(a,b){ return a+b.w; }, 0);
@@ -353,8 +353,8 @@ function spawn(diff){
   var s = S();
   var t = pickType(diff);
   var r = (14 + Math.random()*8) * s;
-  var vy = (120 + Math.random()*80 + diff*45) * s;
-  if(t === 'raio'){ vy *= 1.8; }
+  var vy = (170 + Math.random()*110 + diff*65) * s;
+  if(t === 'raio'){ vy *= 2.1; }
   if(t === 'gigante'){ r *= 2.2; vy *= 0.55; }
   shrooms.push({
     type: t,
@@ -391,7 +391,7 @@ function loop(ts){
 function update(dt){
   var s = S();
   elapsed += dt;
-  var diff = elapsed/12; // dificuldade (sobe rápido!)
+  var diff = elapsed/8; // dificuldade (sobe MUITO rápido!)
 
   // moeda automática a cada 2s
   coinTimer += dt;
@@ -416,7 +416,7 @@ function update(dt){
   spawnTimer -= dt;
   if(spawnTimer <= 0){
     spawn(diff);
-    spawnTimer = Math.max(0.10, 0.85 - diff*0.13);
+    spawnTimer = Math.max(0.07, 0.62 - diff*0.15);
   }
 
   // player
@@ -502,7 +502,7 @@ function hitShroom(m){
     return;
   }
   if(m.type==='vida'){
-    if(lives < 5){ lives++; toast('❤️ +1 vida!'); } else toast('Vidas cheias!');
+    if(lives < 4){ lives++; toast('❤️ +1 vida!'); } else toast('Vidas cheias!');
     snd.heal(); burst(m.x, m.y, '#9dfc9d', 8); return;
   }
   if(m.type==='mist'){ snd.troll(); toast(['Nada! 😜','Trollado! 🤪','Era só um susto! 😝'][Math.floor(Math.random()*3)]); burst(m.x, m.y, '#ffffff', 6); return; }
