@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v416 (2026-09-14)
+- JOGO NOVO: Quiz de Emoji — adivinhe pelo emoji, 330 perguntas em 8 categorias, dicas com moedas, solo ou online com amigos; categoria Objetos e dificil (so pistas, 10s)
+
 ## v415 (2026-09-14)
 - Idiomas agora traduz tambem os textos DESENHADOS dentro dos jogos (canvas), nao so os do site
 

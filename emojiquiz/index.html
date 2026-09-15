@@ -1,0 +1,1266 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Quiz de Emoji 😂 — Cogumelo Games</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family:'Comic Sans MS','Baloo',system-ui,sans-serif;
+    background:linear-gradient(160deg,#0b1e3e 0%,#2d0b4e 45%,#3e0b2e 100%);
+    color:#fff; min-height:100vh; overflow-x:hidden;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  #topo {
+    width:100%; max-width:640px; display:flex; justify-content:space-between;
+    align-items:center; padding:12px 16px; gap:10px;
+  }
+  .btn {
+    border:none; border-radius:16px; padding:12px 18px; font-size:17px;
+    font-weight:bold; cursor:pointer; font-family:inherit; color:#fff;
+    background:linear-gradient(135deg,#7b2ff7,#f107a3); box-shadow:0 4px 0 #4a1a8a;
+    transition:transform .08s; user-select:none;
+  }
+  .btn:active { transform:translateY(3px); box-shadow:0 1px 0 #4a1a8a; }
+  .btn.verde { background:linear-gradient(135deg,#00c853,#64dd17); box-shadow:0 4px 0 #1b5e20; }
+  .btn.azul { background:linear-gradient(135deg,#2979ff,#00b0ff); box-shadow:0 4px 0 #0d47a1; }
+  .btn.laranja { background:linear-gradient(135deg,#ff9100,#ff3d00); box-shadow:0 4px 0 #bf360c; }
+  .btn.amarelo { background:linear-gradient(135deg,#ffd600,#ff9100); box-shadow:0 4px 0 #b26a00; color:#3a1a00; }
+  .btn.pequeno { padding:8px 14px; font-size:15px; box-shadow:0 3px 0 rgba(0,0,0,.4); }
+  .btn:disabled { opacity:.45; cursor:default; }
+  #saldoTopo { font-size:17px; font-weight:bold; color:#ffe700; }
+  .tela { width:100%; max-width:640px; padding:16px; text-align:center; display:none; flex-direction:column; align-items:center; gap:14px; }
+  .tela.on { display:flex; }
+  h1 { font-size:38px; text-shadow:0 3px 0 #4a1a8a; margin:8px 0; }
+  h2 { font-size:24px; margin:6px 0; }
+  .sub { font-size:17px; color:#c9b3ff; }
+  .card {
+    background:rgba(255,255,255,.08); border:2px solid rgba(255,255,255,.15);
+    border-radius:22px; padding:20px; width:100%; box-shadow:0 8px 24px rgba(0,0,0,.35);
+  }
+  .nivelBtn { font-size:22px; padding:18px; width:100%; margin:6px 0; }
+  .catGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .catBtn {
+    border:none; border-radius:18px; padding:16px 8px; font-size:17px; font-weight:bold;
+    color:#fff; cursor:pointer; font-family:inherit; box-shadow:0 4px 0 rgba(0,0,0,.4);
+    display:flex; flex-direction:column; align-items:center; gap:6px; transition:transform .08s;
+  }
+  .catBtn:active { transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.4); }
+  .catBtn .em { font-size:34px; }
+  .catBtn.sel { outline:4px solid #ffe700; }
+  .selo { display:inline-block; border-radius:20px; padding:5px 14px; font-size:15px; font-weight:bold; color:#fff; margin:4px 0; box-shadow:0 2px 0 rgba(0,0,0,.35); }
+
+  /* JOGO */
+  #hud { display:flex; justify-content:space-between; width:100%; gap:8px; font-size:16px; font-weight:bold; }
+  .hudBox { flex:1; background:rgba(255,255,255,.08); border-radius:16px; padding:8px; }
+  .hudBox .big { font-size:28px; color:#ffe700; }
+  #cronoBar { width:100%; height:16px; background:rgba(255,255,255,.15); border-radius:10px; overflow:hidden; margin:4px 0; }
+  #cronoFill { height:100%; width:100%; background:linear-gradient(90deg,#00e676,#ffea00,#ff1744); transition:width .1s linear; }
+  #emojiTxt {
+    font-size:72px; line-height:1.15; margin:10px 0; min-height:90px; letter-spacing:6px;
+    animation:pulaEmoji .5s ease;
+  }
+  @media (max-width:420px){ #emojiTxt { font-size:56px; letter-spacing:3px; } }
+  @keyframes pulaEmoji { 0%{transform:scale(.4) rotate(-10deg);opacity:0} 70%{transform:scale(1.1) rotate(3deg);opacity:1} 100%{transform:scale(1) rotate(0)} }
+  #dicaTxt { font-size:18px; color:#ffe700; min-height:24px; font-weight:bold; }
+  .opcao {
+    display:block; width:100%; margin:9px 0; padding:15px; font-size:18px;
+    text-align:left; border-radius:16px; border:2px solid rgba(255,255,255,.2);
+    background:rgba(255,255,255,.1); color:#fff; cursor:pointer; font-family:inherit;
+    font-weight:bold; transition:transform .06s, background .2s, opacity .3s;
+  }
+  .opcao:active { transform:scale(.98); }
+  .opcao.certa { background:linear-gradient(135deg,#00c853,#64dd17); border-color:#fff; animation:balanca .5s; }
+  .opcao.errada { background:linear-gradient(135deg,#d50000,#ff1744); border-color:#fff; animation:treme .4s; }
+  .opcao.sumiu { opacity:.15; pointer-events:none; text-decoration:line-through; }
+  .opcao:disabled { cursor:default; }
+  @keyframes balanca { 0%,100%{transform:scale(1)} 30%{transform:scale(1.06)} 60%{transform:scale(.97)} }
+  @keyframes treme { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+  .card.acertou { animation:flashVerde .6s; }
+  .card.errou { animation:flashVermelho .6s; }
+  @keyframes flashVerde { 0%{box-shadow:0 0 0 0 #00e676} 50%{box-shadow:0 0 40px 10px #00e676} 100%{box-shadow:0 8px 24px rgba(0,0,0,.35)} }
+  @keyframes flashVermelho { 0%{box-shadow:0 0 0 0 #ff1744} 50%{box-shadow:0 0 40px 10px #ff1744} 100%{box-shadow:0 8px 24px rgba(0,0,0,.35)} }
+  #statusRodada { font-size:17px; min-height:24px; color:#ffe700; font-weight:bold; }
+  #dicasBox { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .combo { position:fixed; top:35%; left:50%; transform:translate(-50%,-50%); font-size:44px; font-weight:bold; color:#ffe700; text-shadow:0 4px 0 #b26a00; pointer-events:none; z-index:150; animation:comboAnim 1.1s forwards; }
+  @keyframes comboAnim { 0%{transform:translate(-50%,-50%) scale(.3);opacity:0} 30%{transform:translate(-50%,-50%) scale(1.2);opacity:1} 100%{transform:translate(-50%,-120%) scale(1);opacity:0} }
+  .confete { position:fixed; top:-20px; font-size:26px; pointer-events:none; z-index:100; animation:cai linear forwards; }
+  @keyframes cai { to { transform:translateY(110vh) rotate(720deg); opacity:.7; } }
+
+  /* ONLINE */
+  .amigoLinha { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:8px 0; font-size:17px; }
+  .conviteLinha { background:rgba(255,255,255,.08); border-radius:14px; padding:12px; margin:8px 0; font-size:17px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+  input.codigo { font-size:26px; letter-spacing:6px; text-align:center; padding:10px; border-radius:12px; border:none; width:200px; text-transform:uppercase; font-family:inherit; }
+  .jogador { display:inline-block; background:rgba(255,255,255,.12); border-radius:20px; padding:6px 14px; margin:4px; font-size:16px; font-weight:bold; }
+  .codigoGrande { font-size:40px; letter-spacing:8px; color:#00ff88; text-shadow:0 3px 0 #0a4; }
+  #rankingVivo { width:100%; display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+  .rankItem { background:rgba(255,255,255,.1); border-radius:14px; padding:6px 12px; font-size:15px; font-weight:bold; }
+  .rankItem.eu { outline:2px solid #ffe700; }
+  .rankItem.ok { background:rgba(0,200,83,.35); }
+  .podio { display:flex; justify-content:center; align-items:flex-end; gap:8px; margin:10px 0; }
+  .podioCol { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; width:30%; }
+  .podioBase { width:100%; border-radius:12px 12px 0 0; display:flex; align-items:center; justify-content:center; font-size:30px; }
+  .podioNome { font-size:15px; font-weight:bold; margin-top:4px; word-break:break-all; }
+  .podioPts { font-size:14px; color:#ffe700; }
+  .medalha { font-size:18px; margin:6px 0; }
+  #msg { position:fixed; top:20%; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.85); padding:16px 26px; border-radius:18px; font-size:22px; font-weight:bold; z-index:200; display:none; text-align:center; max-width:90%; }
+</style>
+
+<div id="topo">
+  <a href="/" class="btn pequeno azul" style="text-decoration:none;">🏠 Início</a>
+  <span id="saldoTopo">🪙 0</span>
+</div>
+
+<!-- MENU -->
+<div id="telaMenu" class="tela on">
+  <h1>😂 Quiz de Emoji</h1>
+  <p class="sub">Adivinhe o que os emojis estão dizendo! Quanto mais rápido, mais pontos ⚡</p>
+  <div class="card">
+    <button class="btn verde nivelBtn" onclick="abreCategorias()">🎮 JOGAR SOZINHO</button>
+    <button class="btn nivelBtn" onclick="abreOnline()">🌍 ONLINE COM AMIGOS</button>
+  </div>
+  <p class="sub">🏆 Recorde de pontos: <b id="recordeTxt">0</b></p>
+</div>
+
+<!-- CATEGORIA (solo) -->
+<div id="telaCategoria" class="tela">
+  <h1>📂 Escolha a categoria</h1>
+  <div class="card"><div id="catBtns" class="catGrid"></div></div>
+  <button class="btn azul" onclick="voltaMenu()">🏠 Menu</button>
+</div>
+
+<!-- QUANTIDADE (solo) -->
+<div id="telaQtd" class="tela">
+  <h1>🔢 Quantas perguntas?</h1>
+  <p class="sub" id="qtdInfoTxt"></p>
+  <div class="card">
+    <button class="btn verde nivelBtn" onclick="iniciaSolo(10)">10 perguntas ⚡</button>
+    <button class="btn azul nivelBtn" onclick="iniciaSolo(15)">15 perguntas</button>
+    <button class="btn laranja nivelBtn" onclick="iniciaSolo(20)">20 perguntas 🏃</button>
+  </div>
+  <button class="btn azul" onclick="abreCategorias()">⬅️ Voltar</button>
+</div>
+
+<!-- JOGO -->
+<div id="telaJogo" class="tela">
+  <div id="hud">
+    <div class="hudBox"><div>PONTOS</div><div class="big" id="hudPts">0</div></div>
+    <div class="hudBox"><div>COMBO 🔥</div><div class="big" id="hudCombo">0</div></div>
+    <div class="hudBox"><div id="hudLabelB">RECORDE 🏆</div><div class="big" id="hudB">0</div></div>
+  </div>
+  <div id="rankingVivo"></div>
+  <div id="cronoBar"><div id="cronoFill"></div></div>
+  <div class="card" id="cardPergunta">
+    <div class="sub" id="numPergunta"></div>
+    <div id="emojiTxt"></div>
+    <div id="dicaTxt"></div>
+    <div id="opcoes"></div>
+    <div id="dicasBox">
+      <button class="btn pequeno amarelo" id="btnDicaLetra" onclick="dicaLetra()">🔤 1ª letra (10 🪙)</button>
+      <button class="btn pequeno amarelo" id="btnDicaTira" onclick="dicaTira()">✂️ Tirar 2 (15 🪙)</button>
+    </div>
+  </div>
+  <div id="statusRodada"></div>
+</div>
+
+<!-- FIM -->
+<div id="telaFim" class="tela">
+  <h1 id="fimTitulo"></h1>
+  <div class="card">
+    <div id="fimPodio"></div>
+    <div id="fimPlacar" style="font-size:24px;font-weight:bold;"></div>
+    <div id="fimMoedas" style="font-size:18px;margin-top:12px;color:#ffe700;"></div>
+  </div>
+  <div id="fimBotoes"></div>
+  <button class="btn azul" onclick="voltaMenu()">🏠 Menu</button>
+</div>
+
+<!-- ONLINE -->
+<div id="telaOnline" class="tela">
+  <h1>🌍 Online</h1>
+  <div id="onlineArea"></div>
+  <button class="btn azul" onclick="voltaMenu()">🏠 Menu</button>
+</div>
+
+<div id="msg"></div>
+
+<script>
+/* =========================================================
+   QUIZ DE EMOJI — banco de perguntas
+   Cada item: {e: emojis, r: resposta, c: categoria}
+   As 4 alternativas são geradas na hora misturando respostas da mesma categoria.
+   ========================================================= */
+const CATEGORIAS = {
+  filmes:     { label:'Filmes',          icon:'🎬', cor:'#e53935' },
+  desenhos:   { label:'Desenhos/Séries', icon:'📺', cor:'#8e24aa' },
+  jogos:      { label:'Jogos',           icon:'🎮', cor:'#1e88e5' },
+  animais:    { label:'Animais',         icon:'🐾', cor:'#43a047' },
+  comidas:    { label:'Comidas',         icon:'🍔', cor:'#fb8c00' },
+  lugares:    { label:'Lugares/Países',  icon:'🌍', cor:'#00acc1' },
+  profissoes: { label:'Profissões',      icon:'👷', cor:'#6d4c41' },
+  objetos:    { label:'Objetos',         icon:'🎒', cor:'#546e7a' },
+};
+const ORDEM_CATS = ['filmes','desenhos','jogos','animais','comidas','lugares','profissoes','objetos'];
+
+function catLabel(c){ const x=CATEGORIAS[c]; return x ? (x.icon+' '+x.label) : '🎲 Tudo'; }
+function seloCatHtml(c){
+  const x=CATEGORIAS[c]; if(!x) return '';
+  return `<span class="selo" style="background:${x.cor}">${x.icon} ${x.label}</span>`;
+}
+
+const PERGUNTAS = [
+  /* ===================== FILMES ===================== */
+  {e:"🦁👑🌅", r:"O Rei Leão", c:"filmes"},
+  {e:"❄️👸⛄", r:"Frozen", c:"filmes"},
+  {e:"🕷️🧑🏙️", r:"Homem-Aranha", c:"filmes"},
+  {e:"🦈🌊🏖️", r:"Tubarão", c:"filmes"},
+  {e:"🤠🧸🚀", r:"Toy Story", c:"filmes"},
+  {e:"🐠🔍🌊", r:"Procurando Nemo", c:"filmes"},
+  {e:"🦖🏝️🚙", r:"Jurassic Park", c:"filmes"},
+  {e:"🧙‍♂️⚡🦉", r:"Harry Potter", c:"filmes"},
+  {e:"🦇🃏🌃", r:"Batman", c:"filmes"},
+  {e:"🚗⚡🏁", r:"Carros", c:"filmes"},
+  {e:"👨‍👩‍👧‍👦🦸🎭", r:"Os Incríveis", c:"filmes"},
+  {e:"🐼🥋🍜", r:"Kung Fu Panda", c:"filmes"},
+  {e:"💍🧝‍♂️🌋", r:"O Senhor dos Anéis", c:"filmes"},
+  {e:"🤖❤️🌱", r:"Wall-E", c:"filmes"},
+  {e:"🏠🎈👴", r:"Up: Altas Aventuras", c:"filmes"},
+  {e:"👽📞🚲🌙", r:"E.T.", c:"filmes"},
+  {e:"🧜‍♀️🐚🦀", r:"A Pequena Sereia", c:"filmes"},
+  {e:"🦍🏙️🏢", r:"King Kong", c:"filmes"},
+  {e:"🌊⛵🐔🌺", r:"Moana", c:"filmes"},
+  {e:"👨‍🍳🐀🇫🇷", r:"Ratatouille", c:"filmes"},
+  {e:"👩⚔️🐉🇨🇳", r:"Mulan", c:"filmes"},
+  {e:"👻🚫🔫", r:"Os Caça-Fantasmas", c:"filmes"},
+  {e:"🐘🎪👂", r:"Dumbo", c:"filmes"},
+  {e:"🦁🦒🦓🐧🏝️", r:"Madagascar", c:"filmes"},
+  {e:"🧊🦣🦥🐿️", r:"A Era do Gelo", c:"filmes"},
+  {e:"👨‍🔬⏰🚗⚡", r:"De Volta para o Futuro", c:"filmes"},
+  {e:"🧞‍♂️🪔🐒", r:"Aladdin", c:"filmes"},
+  {e:"🔨⚡🦸‍♂️", r:"Thor", c:"filmes"},
+  {e:"🟢💪😡", r:"Hulk", c:"filmes"},
+  {e:"⭐⚔️🚀🤖", r:"Star Wars", c:"filmes"},
+  {e:"🍫🏭🎫", r:"A Fantástica Fábrica de Chocolate", c:"filmes"},
+  {e:"🐉👦🏝️🔥", r:"Como Treinar o Seu Dragão", c:"filmes"},
+  {e:"🐰🦊👮🏙️", r:"Zootopia", c:"filmes"},
+  {e:"🟢👹🐴🏰", r:"Shrek", c:"filmes"},
+  {e:"👨‍👦🐟🌊😮", r:"Procurando Dory", c:"filmes"},
+  {e:"🦸‍♂️🛡️🇺🇸", r:"Capitão América", c:"filmes"},
+  {e:"👶🦖🐣", r:"O Bom Dinossauro", c:"filmes"},
+  {e:"🎈🏠😭👵", r:"Divertida Mente", c:"filmes"},
+  {e:"👸🐸💋", r:"A Princesa e o Sapo", c:"filmes"},
+  {e:"🍎👸🪞👧", r:"Branca de Neve", c:"filmes"},
+
+  /* ===================== DESENHOS / SÉRIES ===================== */
+  {e:"🧽🍍🌊", r:"Bob Esponja", c:"desenhos"},
+  {e:"🐭🔴⚫", r:"Mickey Mouse", c:"desenhos"},
+  {e:"🍩👨‍👩‍👧‍👦💛", r:"Os Simpsons", c:"desenhos"},
+  {e:"🐱🐭🏠", r:"Tom e Jerry", c:"desenhos"},
+  {e:"⚡🐭🎴", r:"Pokémon", c:"desenhos"},
+  {e:"🐶🚒🚁🐾", r:"Patrulha Canina", c:"desenhos"},
+  {e:"🐷💗☂️", r:"Peppa Pig", c:"desenhos"},
+  {e:"🐢🍕🥷", r:"Tartarugas Ninja", c:"desenhos"},
+  {e:"🐉🟠👊💥", r:"Dragon Ball", c:"desenhos"},
+  {e:"🔵👶🍄🏠", r:"Os Smurfs", c:"desenhos"},
+  {e:"🏴‍☠️🍖👒", r:"One Piece", c:"desenhos"},
+  {e:"🍥🦊🥷", r:"Naruto", c:"desenhos"},
+  {e:"🐻🍯🌳", r:"Ursinho Pooh", c:"desenhos"},
+  {e:"🐕🔍👻🚐", r:"Scooby-Doo", c:"desenhos"},
+  {e:"🐰🥕😏", r:"Pernalonga", c:"desenhos"},
+  {e:"🐦💨🐺🏜️", r:"Papa-Léguas", c:"desenhos"},
+  {e:"🐱🍝😴", r:"Garfield", c:"desenhos"},
+  {e:"👧🐵🎒🗺️", r:"Dora, a Aventureira", c:"desenhos"},
+  {e:"🐔🔵🎶", r:"Galinha Pintadinha", c:"desenhos"},
+  {e:"👦⌚👽", r:"Ben 10", c:"desenhos"},
+  {e:"🐕🩵🐾🇦🇺", r:"Bluey", c:"desenhos"},
+  {e:"👦🐶⚔️🍬", r:"Hora de Aventura", c:"desenhos"},
+  {e:"🦸‍♂️🔵🔴🅂", r:"Super-Homem", c:"desenhos"},
+  {e:"🐞🐈‍⬛🗼", r:"Miraculous Ladybug", c:"desenhos"},
+  {e:"🐻🐻‍❄️🐼🧢", r:"Ursos sem Curso", c:"desenhos"},
+  {e:"🟩⭐💎", r:"Steven Universo", c:"desenhos"},
+  {e:"🐄🐔🏠", r:"A Vaca e o Frango", c:"desenhos"},
+  {e:"🐧🔧🕶️", r:"Os Pinguins de Madagascar", c:"desenhos"},
+  {e:"🍬👧🎀", r:"Meninas Superpoderosas", c:"desenhos"},
+  {e:"🐦‍⬛🟣🤖👦", r:"Jovens Titãs", c:"desenhos"},
+  {e:"🦆🤑💰💎", r:"DuckTales", c:"desenhos"},
+  {e:"🦊🐝👻🎃", r:"Gravity Falls", c:"desenhos"},
+  {e:"🐵🎩🌴", r:"Turma da Mônica", c:"desenhos"},
+  {e:"👧🐰🦷💙", r:"Mônica", c:"desenhos"},
+  {e:"🐔🍗🤪🐶", r:"Pica-Pau", c:"desenhos"},
+  {e:"🐧⛄❄️🧊", r:"Pingu", c:"desenhos"},
+  {e:"🐷🐺🏠", r:"Os Três Porquinhos", c:"desenhos"},
+  {e:"🤖🚗🔵🔴", r:"Transformers", c:"desenhos"},
+
+  /* ===================== JOGOS ===================== */
+  {e:"🍄👨🔴⭐", r:"Super Mario", c:"jogos"},
+  {e:"🔵🦔💨💍", r:"Sonic", c:"jogos"},
+  {e:"⛏️🟩🧱🧟", r:"Minecraft", c:"jogos"},
+  {e:"🔫🌪️🏗️🪂", r:"Fortnite", c:"jogos"},
+  {e:"🟡👻🍒", r:"Pac-Man", c:"jogos"},
+  {e:"🧱⬇️🟦🟥", r:"Tetris", c:"jogos"},
+  {e:"⚽🎮🏆", r:"FIFA", c:"jogos"},
+  {e:"🦍🍌🛢️", r:"Donkey Kong", c:"jogos"},
+  {e:"🗡️🧝‍♂️🛡️🔺", r:"Zelda", c:"jogos"},
+  {e:"🏎️🍄🐢🏁", r:"Mario Kart", c:"jogos"},
+  {e:"🐦😡🐷🎯", r:"Angry Birds", c:"jogos"},
+  {e:"🍬🍭💥", r:"Candy Crush", c:"jogos"},
+  {e:"🌻🧟‍♂️🏠", r:"Plants vs Zombies", c:"jogos"},
+  {e:"🟥🧱👤🎮", r:"Roblox", c:"jogos"},
+  {e:"👊⚡🥋🇯🇵", r:"Street Fighter", c:"jogos"},
+  {e:"🦝🏝️🏠🍃", r:"Animal Crossing", c:"jogos"},
+  {e:"🐉👊💀🩸", r:"Mortal Kombat", c:"jogos"},
+  {e:"🏰⚔️👑🃏", r:"Clash Royale", c:"jogos"},
+  {e:"🐦🟩🧱💨", r:"Flappy Bird", c:"jogos"},
+  {e:"🚀👾👾👾", r:"Space Invaders", c:"jogos"},
+  {e:"🐔🛣️🚗🚙", r:"Crossy Road", c:"jogos"},
+  {e:"👨‍🚀🔪🚀🤫", r:"Among Us", c:"jogos"},
+  {e:"🏎️🏁💨🚔", r:"Need for Speed", c:"jogos"},
+  {e:"👻🧹🏚️💚", r:"Luigi's Mansion", c:"jogos"},
+  {e:"🚗⚽🚀💥", r:"Rocket League", c:"jogos"},
+  {e:"🏃🚂🎧🛹", r:"Subway Surfers", c:"jogos"},
+  {e:"🏀🎮👟", r:"NBA 2K", c:"jogos"},
+  {e:"🎸🎵🎮🔥", r:"Guitar Hero", c:"jogos"},
+  {e:"🦔🐦🔫🎨💦", r:"Splatoon", c:"jogos"},
+  {e:"🦔🐹🐶🏋️", r:"Brawl Stars", c:"jogos"},
+  {e:"🍄⭐🎩🌍", r:"Super Mario Odyssey", c:"jogos"},
+  {e:"🟨🟩⬜🔤", r:"Wordle", c:"jogos"},
+  {e:"🎯🐍🍎", r:"Jogo da Cobrinha", c:"jogos"},
+  {e:"🚙🧭🌆🚁", r:"GTA", c:"jogos"},
+  {e:"🌾🐄🏡🐔", r:"Hay Day", c:"jogos"},
+  {e:"⚔️🐷🐻🏹", r:"Free Fire", c:"jogos"},
+  {e:"🎣🐟🌊🎮", r:"Fishing Clash", c:"jogos"},
+  {e:"🍄🎈🌎👑", r:"Cogumelo Games", c:"jogos"},
+
+  /* ===================== ANIMAIS ===================== */
+  {e:"🐘", r:"Elefante", c:"animais"},
+  {e:"🦒", r:"Girafa", c:"animais"},
+  {e:"🦁", r:"Leão", c:"animais"},
+  {e:"🐯", r:"Tigre", c:"animais"},
+  {e:"🐧", r:"Pinguim", c:"animais"},
+  {e:"🐬", r:"Golfinho", c:"animais"},
+  {e:"🐢", r:"Tartaruga", c:"animais"},
+  {e:"🦋", r:"Borboleta", c:"animais"},
+  {e:"🐝🍯", r:"Abelha", c:"animais"},
+  {e:"🐊", r:"Jacaré", c:"animais"},
+  {e:"🦅", r:"Águia", c:"animais"},
+  {e:"🐨", r:"Coala", c:"animais"},
+  {e:"🦘", r:"Canguru", c:"animais"},
+  {e:"🐼🎋", r:"Panda", c:"animais"},
+  {e:"🦩", r:"Flamingo", c:"animais"},
+  {e:"🐙", r:"Polvo", c:"animais"},
+  {e:"🦉🌙", r:"Coruja", c:"animais"},
+  {e:"🐿️🌰", r:"Esquilo", c:"animais"},
+  {e:"🦥💤", r:"Bicho-preguiça", c:"animais"},
+  {e:"🦦", r:"Lontra", c:"animais"},
+  {e:"🐆", r:"Onça", c:"animais"},
+  {e:"🦓", r:"Zebra", c:"animais"},
+  {e:"🐫🏜️", r:"Camelo", c:"animais"},
+  {e:"🦇🌃", r:"Morcego", c:"animais"},
+  {e:"🐸", r:"Sapo", c:"animais"},
+  {e:"🦜", r:"Papagaio", c:"animais"},
+  {e:"🐺🌕", r:"Lobo", c:"animais"},
+  {e:"🦔", r:"Ouriço", c:"animais"},
+  {e:"🐙🦀🦞", r:"Frutos do mar", c:"animais"},
+  {e:"🐍", r:"Cobra", c:"animais"},
+  {e:"🦈", r:"Tubarão", c:"animais"},
+  {e:"🐋", r:"Baleia", c:"animais"},
+  {e:"🐴", r:"Cavalo", c:"animais"},
+  {e:"🐄🥛", r:"Vaca", c:"animais"},
+  {e:"🐖", r:"Porco", c:"animais"},
+  {e:"🐔🥚", r:"Galinha", c:"animais"},
+  {e:"🦆", r:"Pato", c:"animais"},
+  {e:"🐒🍌", r:"Macaco", c:"animais"},
+  {e:"🐕", r:"Cachorro", c:"animais"},
+  {e:"🐈", r:"Gato", c:"animais"},
+  {e:"🐰🥕", r:"Coelho", c:"animais"},
+  {e:"🦫🪵", r:"Castor", c:"animais"},
+  {e:"🐌", r:"Caracol", c:"animais"},
+  {e:"🦂", r:"Escorpião", c:"animais"},
+  {e:"🐜", r:"Formiga", c:"animais"},
+  {e:"🦭", r:"Foca", c:"animais"},
+  {e:"🦫🌊🇧🇷", r:"Capivara", c:"animais"},
+
+  /* ===================== COMIDAS ===================== */
+  {e:"🍕", r:"Pizza", c:"comidas"},
+  {e:"🍔", r:"Hambúrguer", c:"comidas"},
+  {e:"🍟", r:"Batata frita", c:"comidas"},
+  {e:"🌭", r:"Cachorro-quente", c:"comidas"},
+  {e:"🍦", r:"Sorvete", c:"comidas"},
+  {e:"🍫", r:"Chocolate", c:"comidas"},
+  {e:"🍿🎬", r:"Pipoca", c:"comidas"},
+  {e:"🍩", r:"Donut", c:"comidas"},
+  {e:"🍪", r:"Biscoito", c:"comidas"},
+  {e:"🎂🎉", r:"Bolo de aniversário", c:"comidas"},
+  {e:"🍓", r:"Morango", c:"comidas"},
+  {e:"🍌", r:"Banana", c:"comidas"},
+  {e:"🍉", r:"Melancia", c:"comidas"},
+  {e:"🍇", r:"Uva", c:"comidas"},
+  {e:"🥑", r:"Abacate", c:"comidas"},
+  {e:"🌽", r:"Milho", c:"comidas"},
+  {e:"🥕", r:"Cenoura", c:"comidas"},
+  {e:"🍝", r:"Macarrão", c:"comidas"},
+  {e:"🍣🇯🇵", r:"Sushi", c:"comidas"},
+  {e:"🌮🇲🇽", r:"Taco", c:"comidas"},
+  {e:"🥞🍯", r:"Panqueca", c:"comidas"},
+  {e:"🧀", r:"Queijo", c:"comidas"},
+  {e:"🍯🐝", r:"Mel", c:"comidas"},
+  {e:"🍳", r:"Ovo frito", c:"comidas"},
+  {e:"🍞", r:"Pão", c:"comidas"},
+  {e:"🍍", r:"Abacaxi", c:"comidas"},
+  {e:"🥥", r:"Coco", c:"comidas"},
+  {e:"🍒", r:"Cereja", c:"comidas"},
+  {e:"🍗", r:"Coxa de frango", c:"comidas"},
+  {e:"🍚🫘", r:"Arroz e feijão", c:"comidas"},
+  {e:"🍞🧀🇧🇷", r:"Pão de queijo", c:"comidas"},
+  {e:"🟤🍫⚪🎉", r:"Brigadeiro", c:"comidas"},
+  {e:"🥤🧊", r:"Refrigerante", c:"comidas"},
+  {e:"☕", r:"Café", c:"comidas"},
+  {e:"🥛", r:"Leite", c:"comidas"},
+  {e:"🍎", r:"Maçã", c:"comidas"},
+  {e:"🍋", r:"Limão", c:"comidas"},
+  {e:"🥔", r:"Batata", c:"comidas"},
+  {e:"🍅", r:"Tomate", c:"comidas"},
+  {e:"🌭🥖🇧🇷", r:"Sanduíche", c:"comidas"},
+  {e:"🥗", r:"Salada", c:"comidas"},
+  {e:"🧁", r:"Cupcake", c:"comidas"},
+  {e:"🍬🍭", r:"Doces", c:"comidas"},
+  {e:"🍧🍓", r:"Raspadinha", c:"comidas"},
+  {e:"🥩🔥", r:"Churrasco", c:"comidas"},
+
+  /* ===================== LUGARES / PAÍSES ===================== */
+  {e:"🗼🥐🇫🇷", r:"França", c:"lugares"},
+  {e:"🍕🏛️🎭", r:"Itália", c:"lugares"},
+  {e:"🗽🍔🏈", r:"Estados Unidos", c:"lugares"},
+  {e:"⚽🏖️🌴🎭", r:"Brasil", c:"lugares"},
+  {e:"🗻🍣🌸", r:"Japão", c:"lugares"},
+  {e:"🐼🥢🐉", r:"China", c:"lugares"},
+  {e:"🦘🏄‍♂️🐨", r:"Austrália", c:"lugares"},
+  {e:"🐫🔺👑", r:"Egito", c:"lugares"},
+  {e:"💃🥘🐂", r:"Espanha", c:"lugares"},
+  {e:"🍺🥨🚗", r:"Alemanha", c:"lugares"},
+  {e:"🎩☕🕰️👑", r:"Inglaterra", c:"lugares"},
+  {e:"🌮🌵🎺", r:"México", c:"lugares"},
+  {e:"🍁🏒🐻", r:"Canadá", c:"lugares"},
+  {e:"⚽🥩🩵🤍", r:"Argentina", c:"lugares"},
+  {e:"🧀🍫⛰️⌚", r:"Suíça", c:"lugares"},
+  {e:"🌷🚲🧀", r:"Holanda", c:"lugares"},
+  {e:"🏛️🫒🌊", r:"Grécia", c:"lugares"},
+  {e:"🐘🍛🕉️", r:"Índia", c:"lugares"},
+  {e:"❄️🏰🐻🪆", r:"Rússia", c:"lugares"},
+  {e:"🐧❄️🧊", r:"Antártida", c:"lugares"},
+  {e:"🇵🇹🐟🚋", r:"Portugal", c:"lugares"},
+  {e:"🏖️🌊🐚☀️", r:"Praia", c:"lugares"},
+  {e:"🏫📚✏️", r:"Escola", c:"lugares"},
+  {e:"🏥👨‍⚕️💉", r:"Hospital", c:"lugares"},
+  {e:"🎢🎡🎠", r:"Parque de diversões", c:"lugares"},
+  {e:"🏰👸🐉", r:"Castelo", c:"lugares"},
+  {e:"🌋🔥💨", r:"Vulcão", c:"lugares"},
+  {e:"🏜️🌵☀️", r:"Deserto", c:"lugares"},
+  {e:"🏟️⚽📣", r:"Estádio", c:"lugares"},
+  {e:"🎬🍿🎟️", r:"Cinema", c:"lugares"},
+  {e:"✈️🛫🧳", r:"Aeroporto", c:"lugares"},
+  {e:"🛒🏬🥫", r:"Supermercado", c:"lugares"},
+  {e:"🌳🌲🦌", r:"Floresta", c:"lugares"},
+  {e:"🏔️❄️⛷️", r:"Montanha", c:"lugares"},
+  {e:"🌙🚀🧑‍🚀", r:"Lua", c:"lugares"},
+  {e:"🏝️🌴🥥", r:"Ilha", c:"lugares"},
+  {e:"🎪🤹🐘", r:"Circo", c:"lugares"},
+  {e:"📚🤫🪑", r:"Biblioteca", c:"lugares"},
+  {e:"🐟🐠🦈👀", r:"Aquário", c:"lugares"},
+  {e:"🦁🐒🐘🎟️", r:"Zoológico", c:"lugares"},
+
+  /* ===================== PROFISSÕES ===================== */
+  {e:"👨‍🍳🍳🔪", r:"Cozinheiro", c:"profissoes"},
+  {e:"👩‍⚕️💉🩺", r:"Médica", c:"profissoes"},
+  {e:"👨‍🚒🔥🚒", r:"Bombeiro", c:"profissoes"},
+  {e:"👮‍♂️🚓🚨", r:"Policial", c:"profissoes"},
+  {e:"👩‍🏫📚🍎", r:"Professora", c:"profissoes"},
+  {e:"👨‍🚀🚀🌙", r:"Astronauta", c:"profissoes"},
+  {e:"👩‍🌾🌾🚜", r:"Agricultora", c:"profissoes"},
+  {e:"👨‍🔧🔧🚗", r:"Mecânico", c:"profissoes"},
+  {e:"👩‍✈️✈️☁️", r:"Piloto", c:"profissoes"},
+  {e:"🧑‍🎨🎨🖌️", r:"Pintor", c:"profissoes"},
+  {e:"👨‍⚖️⚖️🔨", r:"Juiz", c:"profissoes"},
+  {e:"🧑‍🔬🔬🧪", r:"Cientista", c:"profissoes"},
+  {e:"👷‍♂️🏗️🧱", r:"Pedreiro", c:"profissoes"},
+  {e:"💇‍♀️✂️💈", r:"Cabeleireira", c:"profissoes"},
+  {e:"🦷👨‍⚕️🪥", r:"Dentista", c:"profissoes"},
+  {e:"🐶🩺🐱", r:"Veterinário", c:"profissoes"},
+  {e:"🧑‍💻💻⌨️", r:"Programador", c:"profissoes"},
+  {e:"🎤🎵🎶", r:"Cantor", c:"profissoes"},
+  {e:"⚽🏃‍♂️🥅", r:"Jogador de futebol", c:"profissoes"},
+  {e:"📸📷🖼️", r:"Fotógrafo", c:"profissoes"},
+  {e:"🕵️🔍👣", r:"Detetive", c:"profissoes"},
+  {e:"🚚📦🏠", r:"Entregador", c:"profissoes"},
+  {e:"🍞👨‍🍳🥐", r:"Padeiro", c:"profissoes"},
+  {e:"🌱✂️🌳", r:"Jardineiro", c:"profissoes"},
+  {e:"🚌🧑🛣️", r:"Motorista de ônibus", c:"profissoes"},
+  {e:"🩰💃🎶", r:"Dançarina", c:"profissoes"},
+  {e:"🎭🎬⭐", r:"Ator", c:"profissoes"},
+  {e:"📰✍️🎤", r:"Jornalista", c:"profissoes"},
+  {e:"🐟🎣⛵", r:"Pescador", c:"profissoes"},
+  {e:"🧑‍🚀👽🔭", r:"Astrônomo", c:"profissoes"},
+  {e:"🎮📹🎧", r:"Youtuber", c:"profissoes"},
+  {e:"🍕🛵📦", r:"Motoboy", c:"profissoes"},
+  {e:"🧙‍♂️🎩🐇", r:"Mágico", c:"profissoes"},
+  {e:"🤡🎪🎈", r:"Palhaço", c:"profissoes"},
+  {e:"🏊‍♂️🌊🆘", r:"Salva-vidas", c:"profissoes"},
+  {e:"🛡️🏰⚔️", r:"Soldado", c:"profissoes"},
+  {e:"🎸🥁🎹", r:"Músico", c:"profissoes"},
+  {e:"👑🏰💎", r:"Rei", c:"profissoes"},
+
+  /* ===================== OBJETOS (DIFÍCIL: sem mostrar o objeto, só pistas) ===================== */
+  {e:"📞🤳🔋", r:"Celular", c:"objetos"},
+  {e:"⌨️🧠📶", r:"Computador", c:"objetos"},
+  {e:"⏰✋💍", r:"Relógio de pulso", c:"objetos"},
+  {e:"🚪🔒🔓", r:"Chave", c:"objetos"},
+  {e:"✂️📄✂️", r:"Tesoura", c:"objetos"},
+  {e:"📖👀🤓", r:"Livro", c:"objetos"},
+  {e:"✍️🪵💛", r:"Lápis", c:"objetos"},
+  {e:"🏫🎒📚", r:"Mochila", c:"objetos"},
+  {e:"🌧️🙅‍♂️💦", r:"Guarda-chuva", c:"objetos"},
+  {e:"☀️😎🕶️", r:"Óculos escuros", c:"objetos"},
+  {e:"🎵🎶🪕", r:"Guitarra", c:"objetos"},
+  {e:"🥢🔊🔊", r:"Bateria", c:"objetos"},
+  {e:"💨🎉💥", r:"Balão", c:"objetos"},
+  {e:"🐻😴🤗", r:"Ursinho de pelúcia", c:"objetos"},
+  {e:"🍑⬇️4️⃣🦵", r:"Cadeira", c:"objetos"},
+  {e:"😴🌙🛌", r:"Cama", c:"objetos"},
+  {e:"🚴2️⃣⭕", r:"Bicicleta", c:"objetos"},
+  {e:"🧲🔩❤️", r:"Ímã", c:"objetos"},
+  {e:"🌑🔦👀", r:"Lanterna", c:"objetos"},
+  {e:"📸😁🖼️", r:"Câmera", c:"objetos"},
+  {e:"🧩🖼️🤔", r:"Quebra-cabeça", c:"objetos"},
+  {e:"🌬️🧵☁️", r:"Pipa", c:"objetos"},
+  {e:"🦶🥅⚫⚪", r:"Bola de futebol", c:"objetos"},
+  {e:"🎮👍🕹️", r:"Controle de videogame", c:"objetos"},
+  {e:"🌌👁️🔭", r:"Telescópio", c:"objetos"},
+  {e:"🧭⬆️🗺️", r:"Bússola", c:"objetos"},
+  {e:"👤↔️👤", r:"Espelho", c:"objetos"},
+  {e:"🚿🫧🧼", r:"Sabonete", c:"objetos"},
+  {e:"🦷🪥🧴", r:"Escova de dente", c:"objetos"},
+  {e:"🎀📦🎉", r:"Presente", c:"objetos"},
+  {e:"🔥💨🚫", r:"Extintor", c:"objetos"},
+  {e:"🦶🛴💨", r:"Patinete", c:"objetos"},
+  {e:"👂🎵🔇", r:"Fone de ouvido", c:"objetos"},
+  {e:"🖱️🖱️➡️", r:"Mouse", c:"objetos"},
+  {e:"💡🧠✨", r:"Lâmpada", c:"objetos"},
+  {e:"🔨🔩🪵", r:"Martelo", c:"objetos"},
+  {e:"🧹🧽✨", r:"Vassoura", c:"objetos"},
+  {e:"👑👸🤴", r:"Coroa", c:"objetos"},
+  {e:"🔥🕯️🎂", r:"Vela", c:"objetos"},
+  {e:"☀️🧴🏖️", r:"Protetor solar", c:"objetos"},
+  {e:"🛹🦶🔄", r:"Skate", c:"objetos"},
+  {e:"🪀⬇️⬆️", r:"Ioiô", c:"objetos"},
+  {e:"🎲6️⃣🎯", r:"Dado", c:"objetos"},
+  {e:"🃏♠️♥️", r:"Baralho", c:"objetos"},
+  {e:"🧊❄️🥶📦", r:"Geladeira", c:"objetos"},
+  {e:"🍞🔥⬆️", r:"Torradeira", c:"objetos"},
+  {e:"🌀👕💦", r:"Máquina de lavar", c:"objetos"},
+  {e:"👕🔥➡️", r:"Ferro de passar", c:"objetos"},
+  {e:"🌡️🤒👄", r:"Termômetro", c:"objetos"},
+  {e:"🧵🪡👖", r:"Agulha", c:"objetos"},
+  {e:"🔍📄🔠", r:"Lupa", c:"objetos"},
+  {e:"💨🥵🔄", r:"Ventilador", c:"objetos"},
+  {e:"🚗🔑🔐", r:"Chave do carro", c:"objetos"},
+  {e:"📏📐🔢", r:"Régua", c:"objetos"},
+  {e:"🧊💧🥤", r:"Canudo", c:"objetos"},
+  {e:"🚽🧻🤲", r:"Papel higiênico", c:"objetos"},
+  {e:"🎤🔊🎶", r:"Microfone", c:"objetos"},
+  {e:"🏠🔔🚪", r:"Campainha", c:"objetos"},
+  {e:"🛡️🏍️🧠", r:"Capacete", c:"objetos"},
+  {e:"💰🐷🪙", r:"Cofrinho", c:"objetos"},
+];
+
+/* =========================================================
+   UTIL
+   ========================================================= */
+function embaralha(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+// gera 4 alternativas: a certa + 3 respostas diferentes da mesma categoria
+function montaPergunta(p){
+  const outras = embaralha(PERGUNTAS.filter(x=>x.c===p.c && x.r!==p.r).map(x=>x.r));
+  const distintas=[]; outras.forEach(r=>{ if(distintas.length<3 && !distintas.includes(r)) distintas.push(r); });
+  const opcoes = embaralha([p.r].concat(distintas));
+  return {e:p.e, r:p.r, c:p.c, opcoes, correta:opcoes.indexOf(p.r)};
+}
+// sorteia n perguntas SEM repetir dentro da partida
+function sorteiaPerguntas(cat, n){
+  let pool = PERGUNTAS.filter(p=>cat==='tudo' || !cat || p.c===cat);
+  if(pool.length===0) pool = PERGUNTAS.slice();
+  return embaralha(pool).slice(0, Math.min(n, pool.length)).map(montaPergunta);
+}
+function mostraMsg(txt,cor,ms){
+  const el=document.getElementById('msg');
+  el.textContent=txt; el.style.color=cor||'#fff'; el.style.display='block';
+  clearTimeout(el._t); el._t=setTimeout(()=>el.style.display='none', ms||1800);
+}
+function soltaConfete(n){
+  n=n||30;
+  const em=['🎉','🎊','⭐','🍄','🏆','✨','😂','🎈'];
+  for(let i=0;i<n;i++){
+    const c=document.createElement('div');
+    c.className='confete'; c.textContent=em[Math.floor(Math.random()*em.length)];
+    c.style.left=Math.random()*100+'vw';
+    c.style.animationDuration=(1.5+Math.random()*2)+'s';
+    c.style.fontSize=(18+Math.random()*20)+'px';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),3800);
+  }
+}
+function mostraCombo(n){
+  const d=document.createElement('div'); d.className='combo';
+  d.textContent = n>=5 ? `🔥 COMBO x${n} INSANO!` : `🔥 COMBO x${n}!`;
+  document.body.appendChild(d); setTimeout(()=>d.remove(),1200);
+}
+let audioCtx=null;
+function som(freq,dur,tipo){
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type=tipo||'sine'; o.frequency.value=freq;
+    o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.15,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+(dur||0.2));
+    o.start(); o.stop(audioCtx.currentTime+(dur||0.2));
+  }catch(e){}
+}
+function somAcerto(){ som(600,0.1); setTimeout(()=>som(800,0.12),90); setTimeout(()=>som(1000,0.2),190); }
+function somErro(){ som(160,0.35,'sawtooth'); }
+function somTique(){ som(900,0.05,'triangle'); }
+function somCombo(){ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>som(f,0.12,'square'),i*70)); }
+function somMoeda(){ som(1200,0.08,'square'); setTimeout(()=>som(1600,0.15,'square'),80); }
+
+function mostraTela(id){
+  document.querySelectorAll('.tela').forEach(t=>t.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+
+/* =========================================================
+   MOEDAS / PERSISTÊNCIA (prefixo emojiquiz_)
+   ========================================================= */
+let moedas = parseInt(localStorage.getItem('emojiquiz_moedas')||'0',10);
+let recorde = parseInt(localStorage.getItem('emojiquiz_recorde')||'0',10);
+function salvaMoedas(){ localStorage.setItem('emojiquiz_moedas', moedas); atualizaSaldo(); }
+function atualizaSaldo(){
+  document.getElementById('saldoTopo').textContent='🪙 '+moedas;
+  document.getElementById('recordeTxt').textContent=recorde;
+}
+
+/* =========================================================
+   PONTUAÇÃO (compartilhada solo/online)
+   acerto = 100 base + até 100 por velocidade + 10 por nível de combo
+   ========================================================= */
+const TEMPO_PERGUNTA = 15000;
+const TEMPO_OBJETOS = 10000; // Objetos é DIFÍCIL: menos tempo
+function tempoDe(p){ return (p && p.c==='objetos') ? TEMPO_OBJETOS : TEMPO_PERGUNTA; }
+const CUSTO_LETRA = 10, CUSTO_TIRA = 15;
+function calculaPontos(ms, combo){
+  const rapidez = Math.max(0, 1 - ms/TEMPO_PERGUNTA);
+  return 100 + Math.round(rapidez*100) + Math.min(combo,10)*10;
+}
+
+/* =========================================================
+   MODO SOLO
+   ========================================================= */
+let solo = null;
+let catEscolhida = 'tudo';
+
+function abreCategorias(){
+  const box=document.getElementById('catBtns');
+  box.innerHTML='';
+  ORDEM_CATS.forEach(c=>{
+    const info=CATEGORIAS[c];
+    const b=document.createElement('button');
+    b.className='catBtn'; b.style.background=info.cor;
+    b.innerHTML=`<span class="em">${info.icon}</span>${info.label}`;
+    b.onclick=()=>escolheQtd(c);
+    box.appendChild(b);
+  });
+  const bt=document.createElement('button');
+  bt.className='catBtn'; bt.style.background='linear-gradient(135deg,#7b2ff7,#f107a3)';
+  bt.style.gridColumn='1 / -1';
+  bt.innerHTML=`<span class="em">🎲</span>Tudo misturado`;
+  bt.onclick=()=>escolheQtd('tudo');
+  box.appendChild(bt);
+  mostraTela('telaCategoria');
+}
+function escolheQtd(cat){
+  catEscolhida=cat;
+  document.getElementById('qtdInfoTxt').textContent = catLabel(cat);
+  mostraTela('telaQtd');
+}
+function iniciaSolo(qtd){
+  localStorage.setItem('emojiquiz_cat', catEscolhida);
+  localStorage.setItem('emojiquiz_qtd', qtd);
+  solo = {
+    cat:catEscolhida, perguntas:sorteiaPerguntas(catEscolhida, qtd),
+    idx:0, acertos:0, pontos:0, combo:0, melhorCombo:0,
+    respondido:false, moedasGanhas:0, inicioRodada:0, pergAtual:null,
+  };
+  document.getElementById('hudLabelB').textContent='RECORDE 🏆';
+  document.getElementById('rankingVivo').innerHTML='';
+  document.getElementById('dicasBox').style.display='flex';
+  atualizaHudSolo();
+  mostraTela('telaJogo');
+  proximaSolo();
+}
+function atualizaHudSolo(){
+  document.getElementById('hudPts').textContent=solo.pontos;
+  document.getElementById('hudCombo').textContent=solo.combo>0?('x'+solo.combo):'0';
+  document.getElementById('hudB').textContent=recorde;
+}
+function proximaSolo(){
+  if(solo.idx>=solo.perguntas.length){ return fimSolo(); }
+  const p=solo.perguntas[solo.idx];
+  solo.pergAtual=p; solo.respondido=false;
+  document.getElementById('numPergunta').innerHTML='Pergunta '+(solo.idx+1)+'/'+solo.perguntas.length+' '+seloCatHtml(p.c);
+  mostraPergunta(p, respondeSolo);
+  solo.inicioRodada=Date.now();
+  iniciaCrono(tempoDe(p), ()=>{ if(!solo.respondido) respondeSolo(-1); });
+}
+function respondeSolo(escolha){
+  if(solo.respondido) return;
+  solo.respondido=true; paraCrono();
+  const p=solo.pergAtual;
+  const acertou = escolha===p.correta;
+  const ms=Date.now()-solo.inicioRodada;
+  marcaOpcoes(p.correta, escolha);
+  travaDicas();
+  const st=document.getElementById('statusRodada');
+  if(acertou){
+    solo.combo++; solo.melhorCombo=Math.max(solo.melhorCombo, solo.combo);
+    const pts=calculaPontos(ms, solo.combo);
+    solo.pontos+=pts; solo.acertos++;
+    let ganho=5; if(solo.combo>=3) ganho+=2;
+    solo.moedasGanhas+=ganho; moedas+=ganho; salvaMoedas();
+    st.textContent=`✅ ${p.r}! +${pts} pontos (+${ganho} 🪙)`;
+    animaCard('acertou'); somAcerto(); soltaConfete(12);
+    if(solo.combo>=2){ mostraCombo(solo.combo); if(solo.combo>=3) setTimeout(somCombo,200); }
+  } else {
+    solo.combo=0;
+    st.textContent = (escolha===-1 ? '⏰ Tempo esgotado! ' : '❌ Errou! ') + 'Era: '+p.r;
+    animaCard('errou'); somErro();
+  }
+  atualizaHudSolo();
+  setTimeout(()=>{ solo.idx++; proximaSolo(); }, 2000);
+}
+function fimSolo(){
+  paraCrono();
+  const total=solo.perguntas.length;
+  const venceu = solo.acertos >= Math.ceil(total*0.7);
+  if(venceu){ const b=10+total; moedas+=b; solo.moedasGanhas+=b; salvaMoedas(); }
+  if(solo.pontos>recorde){ recorde=solo.pontos; localStorage.setItem('emojiquiz_recorde', recorde); mostraMsg('🏆 NOVO RECORDE!','#ffe700',2200); }
+  document.getElementById('fimTitulo').textContent = venceu ? '🏆 MANDOU BEM!' : '💪 QUASE LÁ!';
+  document.getElementById('fimPodio').innerHTML='';
+  document.getElementById('fimPlacar').innerHTML = `${solo.pontos} PONTOS<br><span style="font-size:18px;color:#c9b3ff;">Acertou ${solo.acertos}/${total} • melhor combo 🔥x${solo.melhorCombo}</span>`;
+  document.getElementById('fimMoedas').textContent = `Você ganhou 🪙 ${solo.moedasGanhas} moedas nessa partida!` + (venceu?' 🎉':' Tenta de novo! 💪');
+  document.getElementById('fimBotoes').innerHTML = `<button class="btn verde" style="font-size:24px;padding:18px 34px;" onclick="deNovo()">🔁 DE NOVO</button>`;
+  if(venceu){ soltaConfete(60); somAcerto(); } else somErro();
+  atualizaSaldo();
+  mostraTela('telaFim');
+}
+function deNovo(){
+  catEscolhida = localStorage.getItem('emojiquiz_cat')||'tudo';
+  iniciaSolo(parseInt(localStorage.getItem('emojiquiz_qtd'),10)||10);
+}
+function voltaMenu(){
+  paraCrono();
+  mpFechaWs();
+  mp.ativo=false; mp.comecou=false;
+  if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+  mostraTela('telaMenu');
+  atualizaSaldo();
+}
+
+/* ------- render de pergunta, dicas e cronômetro (compartilhado) ------- */
+let atual = { p:null, cb:null, usouLetra:false, usouTira:false };
+function mostraPergunta(p, cb){
+  atual={p, cb, usouLetra:false, usouTira:false};
+  document.getElementById('statusRodada').textContent='';
+  document.getElementById('dicaTxt').textContent='';
+  const em=document.getElementById('emojiTxt');
+  em.textContent=p.e;
+  em.style.animation='none'; void em.offsetWidth; em.style.animation='';
+  const box=document.getElementById('opcoes');
+  box.innerHTML='';
+  p.opcoes.forEach((op,i)=>{
+    const b=document.createElement('button');
+    b.className='opcao'; b.textContent=String.fromCharCode(65+i)+') '+op;
+    b.onclick=()=>cb(i);
+    box.appendChild(b);
+  });
+  liberaDicas();
+}
+function marcaOpcoes(correta, escolha){
+  document.querySelectorAll('#opcoes .opcao').forEach((b,i)=>{
+    b.disabled=true;
+    if(i===correta) b.classList.add('certa');
+    else if(i===escolha) b.classList.add('errada');
+  });
+}
+function animaCard(cls){
+  const c=document.getElementById('cardPergunta');
+  c.classList.remove('acertou','errou'); void c.offsetWidth; c.classList.add(cls);
+}
+function liberaDicas(){
+  const bl=document.getElementById('btnDicaLetra'), bt=document.getElementById('btnDicaTira');
+  bl.disabled = moedas<CUSTO_LETRA; bt.disabled = moedas<CUSTO_TIRA;
+}
+function travaDicas(){
+  document.getElementById('btnDicaLetra').disabled=true;
+  document.getElementById('btnDicaTira').disabled=true;
+}
+function dicaLetra(){
+  if(!atual.p || atual.usouLetra) return;
+  if(moedas<CUSTO_LETRA){ mostraMsg('Sem moedas suficientes 😅','#ffaa00'); return; }
+  moedas-=CUSTO_LETRA; salvaMoedas(); atual.usouLetra=true; somMoeda();
+  document.getElementById('dicaTxt').textContent='🔤 Começa com: '+atual.p.r[0].toUpperCase();
+  document.getElementById('btnDicaLetra').disabled=true;
+  liberaDicasParcial();
+}
+function dicaTira(){
+  if(!atual.p || atual.usouTira) return;
+  if(moedas<CUSTO_TIRA){ mostraMsg('Sem moedas suficientes 😅','#ffaa00'); return; }
+  moedas-=CUSTO_TIRA; salvaMoedas(); atual.usouTira=true; somMoeda();
+  const erradas = embaralha(atual.p.opcoes.map((_,i)=>i).filter(i=>i!==atual.p.correta)).slice(0,2);
+  document.querySelectorAll('#opcoes .opcao').forEach((b,i)=>{ if(erradas.includes(i)) b.classList.add('sumiu'); });
+  document.getElementById('btnDicaTira').disabled=true;
+  liberaDicasParcial();
+}
+function liberaDicasParcial(){
+  if(!atual.usouLetra) document.getElementById('btnDicaLetra').disabled = moedas<CUSTO_LETRA;
+  if(!atual.usouTira) document.getElementById('btnDicaTira').disabled = moedas<CUSTO_TIRA;
+}
+let cronoState={raf:null, fim:0, dur:0, cb:null, ultTique:0};
+function iniciaCrono(dur, cb){
+  paraCrono();
+  cronoState.dur=dur; cronoState.fim=Date.now()+dur; cronoState.cb=cb; cronoState.ultTique=0;
+  const fill=document.getElementById('cronoFill');
+  function tick(){
+    const resta=cronoState.fim-Date.now();
+    const pct=Math.max(0, resta/cronoState.dur*100);
+    fill.style.width=pct+'%';
+    // tique nos últimos 3 segundos
+    const seg=Math.ceil(resta/1000);
+    if(resta>0 && seg<=3 && seg!==cronoState.ultTique){ cronoState.ultTique=seg; somTique(); }
+    if(resta<=0){ cronoState.raf=null; const c=cronoState.cb; cronoState.cb=null; if(c)c(); return; }
+    cronoState.raf=requestAnimationFrame(tick);
+  }
+  tick();
+}
+function paraCrono(){
+  if(cronoState.raf){ cancelAnimationFrame(cronoState.raf); cronoState.raf=null; }
+  cronoState.cb=null;
+}
+
+/* =========================================================
+   MODO ONLINE COM AMIGOS — mesmo protocolo do quiz/ e desenha/
+   Host é autoritativo: escolhe perguntas, recebe respostas, calcula placar.
+   ========================================================= */
+const MP_API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+const MP_WS  = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=emojiquiz';
+const MP_MAX = 6;
+let mp = { ativo:false, comecou:false, ws:null, sala:'', souHost:false, meuNome:'',
+  jogadores:[], cfgCat:'tudo', cfgQtd:10,
+  perguntasHost:[], idx:0, respostas:{}, placar:{}, combos:{}, respondido:false, inicioRodada:0,
+  idxAtual:-1, corretaAtual:-1, roundTimer:null, _decidindo:false,
+  lastMsg:0, pollConvites:null, ping:null, vigia:null, checaSala:null };
+
+function mpLogado(){ return !!localStorage.getItem('cg_usuario'); }
+async function mpApi(payload){
+  const r = await fetch(MP_API, { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(Object.assign({
+      nome: localStorage.getItem('cg_usuario'),
+      senhaHash: localStorage.getItem('cg_senhaHash')
+    }, payload)) });
+  return r.json();
+}
+function abreOnline(){
+  mostraTela('telaOnline');
+  mpFechaWs();
+  const area=document.getElementById('onlineArea');
+  if(!mpLogado()){
+    area.innerHTML=`<div class="card"><p style="font-size:20px;">🔒 Faça login na sua conta pra jogar online com amigos!</p>
+      <p class="sub" style="margin-top:10px;">Volte pra página inicial e entre na sua conta 😉</p></div>`;
+    return;
+  }
+  area.innerHTML=`<div class="card">
+      <button class="btn verde" style="width:100%;margin:6px 0;font-size:19px;" onclick="mpCriarSala()">➕ CRIAR SALA</button>
+      <button class="btn azul" style="width:100%;margin:6px 0;font-size:19px;" onclick="mpVerConvites()">📬 MEUS CONVITES</button>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+        <input class="codigo" id="inputCodigo" maxlength="6" placeholder="CÓDIGO">
+        <button class="btn laranja" onclick="mpEntrarPorCodigo()">🚪 ENTRAR</button>
+      </div>
+    </div>
+    <div id="mpArea"></div>`;
+}
+function mpCodigoSala(){
+  const L='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s='';
+  for(let i=0;i<6;i++) s+=L[Math.floor(Math.random()*L.length)];
+  return s;
+}
+function mpEntrarPorCodigo(){
+  const v=(document.getElementById('inputCodigo').value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(v.length<4){ mostraMsg('Digite o código da sala 😉','#ffaa00'); return; }
+  mpEntrarSala(v);
+}
+async function mpCriarSala(){
+  if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+  const sala=mpCodigoSala();
+  mpConecta(sala, true);
+  const area=document.getElementById('mpArea');
+  area.innerHTML=`<div class="card">
+    <p class="sub">Código da sala (passe pros amigos):</p>
+    <div class="codigoGrande">${sala}</div>
+    <p style="color:#00ccff;margin:6px 0;">⏳ esperando amigos entrarem... (máx ${MP_MAX})</p>
+    <div id="salaJogadores"></div>
+    <div class="card" style="margin:10px 0;padding:10px;">
+      <p class="sub" style="margin-bottom:6px;">📂 Categoria:</p>
+      <div id="cfgCatBox" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;"></div>
+      <p class="sub" style="margin:10px 0 6px;">🔢 Perguntas:</p>
+      <div id="cfgQtdBox" style="display:flex;gap:6px;justify-content:center;"></div>
+    </div>
+    <div id="mpAmigos"><p>carregando seus amigos...</p></div>
+    <div id="botaoComeca"></div>
+  </div>`;
+  renderSalaJogadores();
+  renderConfigOnline();
+  try{
+    const d=await mpApi({acao:'entrar'});
+    const amigos=d.amigos||[];
+    const el=document.getElementById('mpAmigos'); if(!el) return;
+    el.innerHTML = amigos.length
+      ? `<h2 style="font-size:18px;margin:8px 0;">Convide um amigo:</h2>`+amigos.map(a=>
+          `<div class="amigoLinha">😂 <b>${a}</b>
+           <button class="btn pequeno" onclick="mpConvidar('${a}',this)">📨 Convidar</button></div>`).join('')
+      : `<p>Você ainda não tem amigos adicionados 😅 Passe o código da sala!</p>`;
+  }catch(e){
+    const el=document.getElementById('mpAmigos'); if(el) el.innerHTML='<p>Não deu pra carregar os amigos 😢 Passe o código da sala!</p>';
+  }
+}
+function renderConfigOnline(){
+  const b1=document.getElementById('cfgCatBox'), b2=document.getElementById('cfgQtdBox');
+  if(!b1||!b2) return;
+  const cats=['tudo'].concat(ORDEM_CATS);
+  b1.innerHTML=cats.map(c=>`<button class="btn pequeno${mp.cfgCat===c?' amarelo':''}" onclick="setCfgCat('${c}')">${c==='tudo'?'🎲 Tudo':CATEGORIAS[c].icon+' '+CATEGORIAS[c].label}</button>`).join('');
+  b2.innerHTML=[10,15,20].map(q=>`<button class="btn pequeno${mp.cfgQtd===q?' amarelo':''}" onclick="setCfgQtd(${q})">${q}</button>`).join('');
+}
+function setCfgCat(c){ mp.cfgCat=c; renderConfigOnline(); }
+function setCfgQtd(q){ mp.cfgQtd=q; renderConfigOnline(); }
+function renderSalaJogadores(){
+  const el=document.getElementById('salaJogadores'); if(!el) return;
+  el.innerHTML=`<p style="margin:8px 0;">Jogadores (${mp.jogadores.length}/${MP_MAX}):</p>`+
+    mp.jogadores.map((n,i)=>`<span class="jogador">${i===0?'👑':'😂'} ${n}</span>`).join('');
+  const bc=document.getElementById('botaoComeca');
+  if(bc){
+    if(mp.souHost && mp.jogadores.length>=2)
+      bc.innerHTML=`<button class="btn verde" style="margin-top:12px;font-size:20px;" onclick="mpHostComeca()">▶️ COMEÇAR</button>`;
+    else if(mp.souHost)
+      bc.innerHTML=`<p class="sub" style="margin-top:10px;">Precisa de pelo menos 2 jogadores 🙂</p>`;
+    else
+      bc.innerHTML=`<p class="sub" style="margin-top:10px;">Esperando o host começar... 🎮</p>`;
+  }
+}
+async function mpConvidar(alvo, btn){
+  btn.disabled=true; btn.textContent='...';
+  try{
+    const d=await mpApi({acao:'convidar', alvo, sala:mp.sala, jogo:'emojiquiz'});
+    if(d.ok){ btn.textContent='✅ Convidado!'; }
+    else { btn.textContent='😢 não deu'; btn.disabled=false; mostraMsg(d.erro||d.message||'Não deu pra convidar 😢','#ffaa00',2500); }
+  }catch(e){ btn.textContent='😢 erro'; btn.disabled=false; }
+}
+function mpVerConvites(){
+  mpFechaWs();
+  const area=document.getElementById('mpArea');
+  area.innerHTML=`<div class="card"><h2>📬 Meus convites</h2><div id="mpConvites"><p>procurando convites...</p></div></div>`;
+  const busca=async ()=>{
+    try{
+      const d=await mpApi({acao:'convites'});
+      const el=document.getElementById('mpConvites'); if(!el) return;
+      const agora=Date.now();
+      const cs=(d.convites||[]).filter(c=>agora-(c.ts||0)<30000 && (c.jogo==='emojiquiz'||!c.jogo));
+      el.innerHTML = cs.length ? cs.map(c=>{
+        const resta=Math.max(0,Math.ceil((30000-(agora-(c.ts||0)))/1000));
+        return `<div class="conviteLinha">😂 <b>${c.de}</b> te chamou!
+          <span><button class="btn pequeno verde" onclick="mpEntrarSala('${c.sala}')">ENTRAR</button>
+          <span style="color:#ffaa00;">⏱️ ${resta}s</span></span></div>`;
+      }).join('') : '<p>Nenhum convite ainda... peça pro seu amigo criar uma sala! 😄</p>';
+    }catch(e){}
+  };
+  busca();
+  if(mp.pollConvites) clearInterval(mp.pollConvites);
+  mp.pollConvites=setInterval(busca,1000);
+}
+function mpEntrarSala(sala){
+  if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+  const area=document.getElementById('mpArea');
+  if(area) area.innerHTML=`<div class="card"><p style="color:#00ccff;">⏳ Entrando na sala <b>${sala}</b>...</p>
+    <div id="salaJogadores"></div><div id="botaoComeca"></div></div>`;
+  mpConecta(sala, false);
+}
+
+/* ------- conexão ------- */
+function mpConecta(sala, souHost){
+  mpFechaWs();
+  mp.sala=sala; mp.souHost=souHost;
+  mp.meuNome=localStorage.getItem('cg_usuario')||'VOCÊ';
+  mp.jogadores = souHost ? [mp.meuNome] : [];
+  mp.comecou=false; mp.ativo=false;
+  mp.ws=new WebSocket(MP_WS);
+  mp.ws.onopen=()=>{
+    mp.lastMsg=Date.now();
+    mpEnvia({t:'oi', nome:mp.meuNome});
+    if(!souHost){
+      if(mp.checaSala) clearTimeout(mp.checaSala);
+      mp.checaSala=setTimeout(()=>{ if(!mp.comecou && mp.jogadores.length<=1) mpDesliga('🚪 SALA INDISPONÍVEL!'); }, 8000);
+    }
+    mp.ping=setInterval(()=>mpEnvia({t:'ping'}),4000);
+    mp.vigia=setInterval(()=>{ if(mp.ativo && Date.now()-mp.lastMsg>12000) mpDesliga('🚪 SALA INDISPONÍVEL! Alguém saiu.'); },2000);
+  };
+  mp.ws.onmessage=mpRecebe;
+  mp.ws.onclose=()=>{
+    if(mp.checaSala){ clearTimeout(mp.checaSala); mp.checaSala=null; }
+    if(mp.ativo) mpDesliga('🚪 SALA INDISPONÍVEL!');
+  };
+}
+function mpEnvia(o){
+  if(mp.ws && mp.ws.readyState===1)
+    mp.ws.send(JSON.stringify(Object.assign({acao:'mp', sala:mp.sala}, o)));
+}
+function mpRecebe(ev){
+  let m; try{ m=JSON.parse(ev.data); }catch(e){ return; }
+  if(!m || m.sala!==mp.sala) return; // ignora sala diferente
+  mp.lastMsg=Date.now();
+  switch(m.t){
+    case 'ping': return;
+    case 'oi':
+      if(mp.checaSala){ clearTimeout(mp.checaSala); mp.checaSala=null; }
+      if(mp.souHost && !mp.comecou){
+        if(!mp.jogadores.includes(m.nome) && mp.jogadores.length<MP_MAX) mp.jogadores.push(m.nome);
+        mpEnvia({t:'jogadores', lista:mp.jogadores});
+        renderSalaJogadores();
+      }
+      return;
+    case 'jogadores':
+      if(!mp.souHost){ mp.jogadores=m.lista||[]; renderSalaJogadores(); }
+      return;
+    case 'comeca':
+      if(!mp.souHost && !mp.comecou) mpComecaConvidado(m);
+      return;
+    case 'pergunta':
+      if(!mp.souHost) mpMostraPergunta(m);
+      return;
+    case 'resposta':
+      if(mp.souHost) mpHostRecebeResposta(m);
+      return;
+    case 'placar':
+      if(!mp.souHost) mpAplicaPlacar(m);
+      return;
+    case 'fim':
+      if(!mp.souHost) mpFim(m.ranking);
+      return;
+  }
+}
+
+/* ------- início ------- */
+function mpHostComeca(){
+  if(!mp.souHost || mp.jogadores.length<2) return;
+  mp.perguntasHost = sorteiaPerguntas(mp.cfgCat, mp.cfgQtd);
+  mp.idx=0; mp.placar={}; mp.combos={};
+  mp.jogadores.forEach(n=>{ mp.placar[n]=0; mp.combos[n]=0; });
+  mpEnvia({t:'comeca', jogadores:mp.jogadores, total:mp.perguntasHost.length, cat:mp.cfgCat});
+  mpIniciaJogoUI(mp.jogadores, mp.perguntasHost.length);
+  setTimeout(mpHostEnviaPergunta, 1900);
+}
+function mpComecaConvidado(m){
+  mp.jogadores=m.jogadores||mp.jogadores;
+  mp.placar={}; mp.jogadores.forEach(n=>mp.placar[n]=0);
+  mpIniciaJogoUI(mp.jogadores, m.total||10);
+}
+function mpIniciaJogoUI(jogadores, total){
+  mp.comecou=true; mp.ativo=true; mp.total=total; mp.meuCombo=0; mp.meusPts=0;
+  if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+  document.getElementById('hudLabelB').textContent='JOGADORES 👥';
+  document.getElementById('hudB').textContent=jogadores.length;
+  document.getElementById('hudPts').textContent='0';
+  document.getElementById('hudCombo').textContent='0';
+  document.getElementById('dicasBox').style.display='none'; // online: sem dicas, é justo pra todos
+  document.getElementById('telaFim').dataset.online='1';
+  renderRankingVivo([]);
+  mostraTela('telaJogo');
+  mostraMsg(`😂 ${jogadores.length} jogadores! Boa sorte!`, '#fff', 1800);
+}
+
+/* ------- rodadas (host autoritativo) ------- */
+function mpHostEnviaPergunta(){
+  if(!mp.ativo || !mp.souHost) return;
+  if(mp.idx>=mp.perguntasHost.length) return mpHostFim();
+  const p=mp.perguntasHost[mp.idx];
+  mp.respostas={}; mp._decidindo=false;
+  const msg={t:'pergunta', idx:mp.idx, total:mp.perguntasHost.length, e:p.e, r:p.r, c:p.c, opcoes:p.opcoes, correta:p.correta};
+  mpEnvia(msg);
+  mpMostraPergunta(msg);
+  // timer autoritativo: tempo da pergunta + folga pra rede
+  if(mp.roundTimer) clearTimeout(mp.roundTimer);
+  mp.roundTimer=setTimeout(mpHostDecideRodada, tempoDe(p)+2500);
+}
+function mpMostraPergunta(m){
+  mp.respondido=false; mp.idxAtual=m.idx; mp.corretaAtual=m.correta; mp.respAtual=m.r;
+  document.getElementById('numPergunta').innerHTML='Pergunta '+(m.idx+1)+'/'+m.total+' '+seloCatHtml(m.c);
+  renderRankingVivo([]);
+  mostraPergunta({e:m.e, r:m.r, c:m.c, opcoes:m.opcoes, correta:m.correta}, (i)=>mpResponde(i));
+  mp.inicioRodada=Date.now();
+  iniciaCrono(tempoDe(m), ()=>{ if(!mp.respondido) mpResponde(-1); });
+}
+function mpResponde(escolha){
+  if(mp.respondido) return;
+  mp.respondido=true; paraCrono();
+  const acertou = escolha===mp.corretaAtual;
+  const ms=Date.now()-mp.inicioRodada;
+  marcaOpcoes(mp.corretaAtual, escolha);
+  const st=document.getElementById('statusRodada');
+  st.textContent = acertou ? '✅ Acertou! Esperando os outros...' : (escolha===-1?'⏰ Tempo esgotado! ':'❌ Errou! ')+'Era: '+mp.respAtual;
+  if(acertou){ animaCard('acertou'); somAcerto(); } else { animaCard('errou'); somErro(); }
+  const r={t:'resposta', idx:mp.idxAtual, nome:mp.meuNome, correta:acertou, ms};
+  if(mp.souHost) mpHostRecebeResposta(r); else mpEnvia(r);
+}
+function mpHostRecebeResposta(m){
+  if(m.idx!==mp.idx || mp._decidindo) return;
+  if(mp.respostas[m.nome]) return; // já respondeu
+  mp.respostas[m.nome]={correta:!!m.correta, ms:m.ms||TEMPO_PERGUNTA};
+  // ranking ao vivo: quem já respondeu
+  const parcial={t:'placar', parcial:true, idx:mp.idx, placar:mp.placar, responderam:Object.keys(mp.respostas)};
+  mpEnvia(parcial); mpAplicaPlacar(parcial);
+  if(mp.jogadores.every(n=>mp.respostas[n])) mpHostDecideRodada();
+}
+function mpHostDecideRodada(){
+  if(mp._decidindo || !mp.ativo) return;
+  mp._decidindo=true;
+  if(mp.roundTimer){ clearTimeout(mp.roundTimer); mp.roundTimer=null; }
+  const ganhos={};
+  mp.jogadores.forEach(n=>{
+    const r=mp.respostas[n];
+    if(r && r.correta){
+      mp.combos[n]=(mp.combos[n]||0)+1;
+      const pts=calculaPontos(r.ms, mp.combos[n]);
+      mp.placar[n]=(mp.placar[n]||0)+pts; ganhos[n]=pts;
+    } else { mp.combos[n]=0; ganhos[n]=0; }
+  });
+  const msg={t:'placar', parcial:false, idx:mp.idx, placar:mp.placar, ganhos, combos:mp.combos, correta:mp.corretaAtual};
+  mpEnvia(msg); mpAplicaPlacar(msg);
+  mp.idx++;
+  if(mp.idx>=mp.perguntasHost.length) setTimeout(mpHostFim, 2600);
+  else setTimeout(mpHostEnviaPergunta, 2600);
+}
+function mpHostFim(){
+  const ranking=Object.entries(mp.placar).sort((a,b)=>b[1]-a[1]).map(([nome,pts])=>({nome,pts}));
+  mpEnvia({t:'fim', ranking});
+  mpFim(ranking);
+}
+
+/* ------- placar / ranking (todos) ------- */
+function mpAplicaPlacar(m){
+  mp.placar=m.placar||mp.placar;
+  if(m.parcial){
+    renderRankingVivo(m.responderam||[]);
+    return;
+  }
+  const ganho=(m.ganhos||{})[mp.meuNome]||0;
+  mp.meusPts=mp.placar[mp.meuNome]||0;
+  mp.meuCombo=(m.combos||{})[mp.meuNome]||0;
+  document.getElementById('hudPts').textContent=mp.meusPts;
+  document.getElementById('hudCombo').textContent=mp.meuCombo>0?('x'+mp.meuCombo):'0';
+  if(ganho>0){
+    document.getElementById('statusRodada').textContent=`✅ +${ganho} pontos!`;
+    soltaConfete(10);
+    if(mp.meuCombo>=2){ mostraCombo(mp.meuCombo); if(mp.meuCombo>=3) somCombo(); }
+  }
+  renderRankingVivo(mp.jogadores);
+}
+function renderRankingVivo(responderam){
+  const box=document.getElementById('rankingVivo');
+  if(!mp.ativo){ box.innerHTML=''; return; }
+  const ordem=Object.entries(mp.placar).sort((a,b)=>b[1]-a[1]);
+  const medalhas=['🥇','🥈','🥉'];
+  box.innerHTML=ordem.map(([n,p],i)=>
+    `<span class="rankItem${n===mp.meuNome?' eu':''}${responderam.includes(n)?' ok':''}">${medalhas[i]||'•'} ${n}: <b>${p}</b>${responderam.includes(n)?' ✔':''}</span>`).join('');
+}
+function mpFim(ranking){
+  paraCrono();
+  mp.ativo=false; mp.comecou=false;
+  if(mp.roundTimer){ clearTimeout(mp.roundTimer); mp.roundTimer=null; }
+  const minhaPos=ranking.findIndex(r=>r.nome===mp.meuNome);
+  const venci = minhaPos===0 && ranking.length>1 && (ranking.length<2 || ranking[0].pts>ranking[1].pts);
+  const empate = ranking.length>1 && ranking[0].pts===ranking[1].pts && ranking[0].pts>0 && (ranking[minhaPos]||{}).pts===ranking[0].pts;
+  // moedas por participar: 1º ganha 30, 2º 20, 3º 10, resto 5
+  const premio=[30,20,10][minhaPos]!==undefined?[30,20,10][minhaPos]:5;
+  moedas+=premio; salvaMoedas();
+  document.getElementById('fimTitulo').textContent = venci ? '🏆 VOCÊ VENCEU!' : empate ? '🤝 EMPATE!' : `${['🥇','🥈','🥉'][minhaPos]||'🎖️'} Você ficou em ${minhaPos+1}º!`;
+  document.getElementById('fimPodio').innerHTML=podioHtml(ranking);
+  document.getElementById('fimPlacar').innerHTML=ranking.slice(3).map((r,i)=>`<div class="medalha">${i+4}º <b>${r.nome}</b> — ${r.pts} pts</div>`).join('');
+  document.getElementById('fimMoedas').textContent=`Você ganhou 🪙 ${premio} moedas!`;
+  document.getElementById('fimBotoes').innerHTML = mp.souHost
+    ? `<button class="btn verde" style="font-size:22px;padding:16px 30px;" onclick="mpHostJogarDeNovo()">🔁 JOGAR DE NOVO</button>`
+    : `<p class="sub">Espere o host começar de novo ou volte ao menu 😉</p>`;
+  if(venci){ soltaConfete(70); somAcerto(); } else somErro();
+  if(!mp.souHost){ /* convidado continua conectado esperando 'comeca' */ mp.ativo=false; }
+  mostraTela('telaFim');
+}
+function podioHtml(ranking){
+  const top=[ranking[1],ranking[0],ranking[2]]; // 2º, 1º, 3º
+  const alt=[90,130,70], cor=['#b0bec5','#ffd600','#cd7f32'], med=['🥈','🥇','🥉'];
+  return `<div class="podio">`+top.map((r,i)=> r ? `<div class="podioCol">
+      <div class="podioNome">${r.nome}</div><div class="podioPts">${r.pts} pts</div>
+      <div class="podioBase" style="height:${alt[i]}px;background:${cor[i]}">${med[i]}</div>
+    </div>` : `<div class="podioCol"></div>`).join('')+`</div>`;
+}
+function mpHostJogarDeNovo(){
+  if(!mp.souHost) return;
+  if(!mp.ws || mp.ws.readyState!==1){ mostraMsg('Conexão caiu, crie uma sala nova 😅','#ffaa00'); abreOnline(); return; }
+  mpHostComeca();
+}
+function mpFechaWs(){
+  if(mp.ping){ clearInterval(mp.ping); mp.ping=null; }
+  if(mp.vigia){ clearInterval(mp.vigia); mp.vigia=null; }
+  if(mp.checaSala){ clearTimeout(mp.checaSala); mp.checaSala=null; }
+  if(mp.roundTimer){ clearTimeout(mp.roundTimer); mp.roundTimer=null; }
+  if(mp.ws){ try{ mp.ws.onclose=null; mp.ws.close(); }catch(e){} mp.ws=null; }
+}
+function mpDesliga(aviso){
+  const estava=mp.ativo || mp.comecou || document.getElementById('telaOnline').classList.contains('on');
+  mp.ativo=false; mp.comecou=false;
+  if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+  paraCrono();
+  mpFechaWs();
+  if(aviso) mostraMsg(aviso,'#ffaa00',2600);
+  if(estava){ mostraTela('telaMenu'); atualizaSaldo(); }
+}
+
+/* =========================================================
+   ENTRADA POR ?sala=XXXX (convite aceito)
+   ========================================================= */
+(function(){
+  const q=new URLSearchParams(location.search);
+  const salaConvite=q.get('sala');
+  if(salaConvite && mpLogado()){
+    setTimeout(()=>{
+      try{
+        abreOnline();
+        mpEntrarSala(salaConvite.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,10));
+        const de=q.get('de'); if(de) mostraMsg(`😂 Entrando na sala de ${de}!`, '#00ff88', 2000);
+      }catch(e){}
+    }, 300);
+  }
+})();
+
+atualizaSaldo();
+</script>
+<script src="/stats.js?v=358"></script>
+<script src="/avisos.js?v=6"></script>
+<script>
+if (window.initStats) initStats('emojiquiz');
+</script>
+<script src="/mascote.js"></script>
+<script src="/idiomas.js"></script>
