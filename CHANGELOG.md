@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v417 (2026-09-15)
+- JOGO NOVO: Cogumelo Golf Maluco - minigolfe com 12 pistas em 3 temas (Jardim, Vulcao, Espaco), portais, canhao, lava, ventilador, moedas e poderes, 8 skins de bola
+
 ## v416 (2026-09-14)
 - JOGO NOVO: Quiz de Emoji — adivinhe pelo emoji, 330 perguntas em 8 categorias, dicas com moedas, solo ou online com amigos; categoria Objetos e dificil (so pistas, 10s)
 
