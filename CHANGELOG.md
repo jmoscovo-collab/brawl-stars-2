@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v415 (2026-09-14)
+- Idiomas agora traduz tambem os textos DESENHADOS dentro dos jogos (canvas), nao so os do site
+
 ## v414 (2026-09-14)
 - 🌍 IDIOMAS: no perfil (⚙️) tem a opção Idiomas com 50 línguas — escolhe uma e TODAS as letras do site e de todos os jogos mudam
 

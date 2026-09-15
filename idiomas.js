@@ -51,6 +51,49 @@
         document.documentElement.setAttribute('data-idioma', atual);
     }
 
+
+    // ---- tradução de texto DESENHADO nos jogos (canvas) ----
+    if (atual !== 'pt' && window.CanvasRenderingContext2D) {
+        var CK = 'cg_tr_' + atual, cache = {}, fila = [], pend = {}, ativos = 0, salvarT = 0;
+        try { cache = JSON.parse(localStorage.getItem(CK) || '{}') || {}; } catch(e){ cache = {}; }
+        function salvar(){ clearTimeout(salvarT); salvarT = setTimeout(function(){ try { localStorage.setItem(CK, JSON.stringify(cache)); } catch(e){} }, 800); }
+        function temLetra(t){ return /[A-Za-zÀ-ÿ]{2,}/.test(t); }
+        var NUM = /\d[\d.,:]*/g;
+        function chave(t){ return t.replace(NUM, '{N}'); }
+        function aplica(tpl, orig){
+            var nums = orig.match(NUM) || [], i = 0;
+            var out = tpl.replace(/\{\s*N\s*\}/g, function(m){ return i < nums.length ? nums[i++] : m; });
+            return (i < nums.length) ? null : out;
+        }
+        function pede(k){ if (pend[k] || (k in cache)) return; pend[k] = 1; fila.push(k); bomba(); }
+        function bomba(){
+            while (ativos < 3 && fila.length) {
+                var k = fila.shift(); ativos++;
+                (function(k){
+                    var url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=' + encodeURIComponent(atual) + '&dt=t&q=' + encodeURIComponent(k);
+                    fetch(url).then(function(r){ return r.json(); }).then(function(j){
+                        var t = ''; try { j[0].forEach(function(p){ if (p && p[0]) t += p[0]; }); } catch(e){}
+                        cache[k] = t ? t : k; salvar();
+                    }).catch(function(){ cache[k] = k; }).then(function(){ ativos--; delete pend[k]; bomba(); });
+                })(k);
+            }
+        }
+        function tr(t){
+            if (typeof t !== 'string' || t.length < 2 || t.length > 300 || !temLetra(t)) return t;
+            var k = chave(t);
+            if (k in cache) { var r = aplica(cache[k], t); return r === null ? t : r; }
+            pede(k); return t;
+        }
+        var P = CanvasRenderingContext2D.prototype;
+        ['fillText','strokeText'].forEach(function(fn){
+            var o = P[fn];
+            P[fn] = function(t){ var a = Array.prototype.slice.call(arguments); a[0] = tr(String(t)); return o.apply(this, a); };
+        });
+        var oM = P.measureText;
+        P.measureText = function(t){ return oM.call(this, tr(String(t))); };
+        window.traduzTexto = tr;
+    }
+
     // ---- tela de escolha (50 idiomas) ----
     window.abreIdiomas = function () {
         var old = document.getElementById('modalIdiomas'); if (old) old.remove();
