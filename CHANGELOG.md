@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v414 (2026-09-14)
+- 🌍 IDIOMAS: no perfil (⚙️) tem a opção Idiomas com 50 línguas — escolhe uma e TODAS as letras do site e de todos os jogos mudam
+
 ## v413 (2026-09-14)
 - Chuva de Cogumelos 1 e 2 MAIS DIFÍCEIS: cai mais rápido, mais cogumelos de uma vez, dificuldade sobe mais cedo, 4 vidas, mais venenosos/pretos (e no 2: mais RAIO ⚡ e GIGANTE)
 - Chuva de Cogumelos 2 voltou pro lugar certo da lista (logo depois do Chuva 1)
