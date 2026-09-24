@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v419 (2026-09-24)
+- Catalogo 3D: secao "Quer mais modelos?" com links de inspiracao (Kenney, Poly Pizza, Sketchfab CC0)
+
 ## v418 (2026-09-24)
 - Modulo Gamer Pro: catalogo 3D em /assets/ com 1.366 modelos Kenney CC0 (13 kits, Draco+WebP, 6,5 MB) + modulo compartilhado /cg3d.js (three 0.160, sombras, env map, bloom, GLTF/Draco loader) para jogos novos
 
