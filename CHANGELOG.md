@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v418 (2026-09-24)
+- Modulo Gamer Pro: catalogo 3D em /assets/ com 1.366 modelos Kenney CC0 (13 kits, Draco+WebP, 6,5 MB) + modulo compartilhado /cg3d.js (three 0.160, sombras, env map, bloom, GLTF/Draco loader) para jogos novos
+
 ## v417 (2026-09-15)
 - JOGO NOVO: Cogumelo Golf Maluco - minigolfe com 12 pistas em 3 temas (Jardim, Vulcao, Espaco), portais, canhao, lava, ventilador, moedas e poderes, 8 skins de bola
 
