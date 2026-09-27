@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v420 (2026-09-27)
+- JOGO NOVO: Boliche do Cogumelo - arraste a bola pra tras e solte pra derrubar os 10 pinos-cogumelo, 10 frames de boliche de verdade (strike, spare, placar completo), moedas por pino e loja com 8 bolas
+
 ## v419 (2026-09-24)
 - Catalogo 3D: secao "Quer mais modelos?" com links de inspiracao (Kenney, Poly Pizza, Sketchfab CC0)
 

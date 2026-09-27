@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="description" content="Boliche do Cogumelo — arraste e solte pra jogar a bola e derrubar os pinos-cogumelo! 10 frames de boliche de verdade, moedas e loja de bolas. Cogumelo Games.">
+<title>🎳 Boliche do Cogumelo — Cogumelo Games</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { width:100%; height:100%; overflow:hidden; background:#241033; font-family:'Comic Sans MS','Chalkboard SE',cursive,sans-serif; touch-action:none; }
+#wrap { position:relative; width:100%; height:100%; }
+#cv { display:block; width:100%; height:100%; }
+.screen { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; background:linear-gradient(#3a1a5c,#160a26); z-index:10; text-align:center; padding:20px; overflow-y:auto; }
+.hidden { display:none !important; }
+h1 { font-size:clamp(26px,7vw,52px); color:#fff; text-shadow:0 0 14px #c07bff,3px 3px 0 #2a0f4a; }
+h2 { font-size:clamp(22px,5vw,34px); color:#f2e6ff; text-shadow:2px 2px 0 #0006; }
+p  { color:#e9defc; font-size:clamp(15px,3.6vw,19px); max-width:460px; line-height:1.5; }
+.btn { font-family:inherit; font-size:clamp(18px,4vw,26px); padding:12px 34px; border:none; border-radius:18px; cursor:pointer; color:#fff; background:#7c4dff; box-shadow:0 5px 0 #4d24b3; transition:transform .08s; }
+.btn:active { transform:translateY(4px); box-shadow:0 1px 0 #0006; }
+.btn.azul { background:#4a7bd6; box-shadow:0 5px 0 #2b4f9e; }
+.btn.verde { background:#3fbb63; box-shadow:0 5px 0 #237a3c; }
+.btn.rosa { background:#ff5fa2; box-shadow:0 5px 0 #b3306a; }
+.tag { font-size:clamp(16px,4vw,22px); color:#fff6d8; background:#2a123fbb; border:2px solid #c07bff; border-radius:14px; padding:6px 18px; }
+.row { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+
+#hud { position:absolute; top:0; left:0; right:0; padding:6px 8px; display:flex; flex-direction:column; gap:5px; z-index:5; color:#fff; }
+#hud .hudRow { display:flex; justify-content:center; align-items:center; gap:6px; flex-wrap:wrap; }
+#hud .pill { font-size:clamp(14px,3.8vw,19px); font-weight:bold; background:rgba(0,0,0,0.45); border-radius:14px; padding:5px 11px; text-shadow:0 2px 0 #000; border:2px solid rgba(255,255,255,0.25); white-space:nowrap; }
+#hud .mini { font-family:inherit; font-size:clamp(15px,4vw,20px); padding:5px 11px; border:none; border-radius:12px; color:#fff; background:#4a7bd6; box-shadow:0 3px 0 #2b4f9e; cursor:pointer; }
+#hud .mini:active { transform:translateY(2px); box-shadow:none; }
+#score { display:flex; gap:3px; overflow-x:auto; max-width:100vw; padding:2px 4px; }
+#score .fbox { flex:0 0 auto; min-width:30px; background:rgba(0,0,0,0.4); border:2px solid rgba(255,255,255,0.25); border-radius:8px; padding:3px 4px; text-align:center; color:#fff; font-size:11px; }
+#score .fbox.cur { border-color:#ffe14a; background:rgba(124,77,255,0.55); }
+#score .fbox .rolls { color:#ffe14a; font-weight:bold; min-height:12px; }
+#score .fbox .tot { font-weight:bold; }
+
+#banner { position:absolute; top:96px; left:50%; transform:translateX(-50%); z-index:6; background:rgba(30,10,45,0.9); border:3px solid #ffe14a; border-radius:18px; padding:10px 18px; color:#fff; font-size:clamp(18px,5vw,28px); font-weight:bold; white-space:nowrap; box-shadow:0 6px 20px #0008; animation:drop .35s ease-out; }
+@keyframes drop { from{transform:translate(-50%,-40px);opacity:0} to{transform:translate(-50%,0);opacity:1} }
+
+#lojaList { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; max-width:min(96vw,520px); max-height:56vh; overflow-y:auto; padding:4px; }
+.skinCard { background:rgba(0,0,0,0.3); border:3px solid #4443; border-radius:16px; padding:10px; width:130px; color:#fff; }
+.skinCard.dono { border-color:#3fbb63; }
+.skinCard.sel { border-color:#ffe14a; box-shadow:0 0 14px #ffe14a99; }
+.skinCard canvas { display:block; margin:0 auto 4px; }
+.skinCard .nm { font-size:14px; font-weight:bold; }
+.skinCard button { margin-top:6px; font-family:inherit; font-size:13px; padding:6px 10px; border:none; border-radius:10px; color:#fff; background:#7c4dff; cursor:pointer; width:100%; }
+.skinCard button:disabled { background:#5554; cursor:default; }
+a.voltar { position:fixed; bottom:6px; left:10px; color:#c9b8e8; text-decoration:none; z-index:40; font-size:13px; }
+</style>
+</head>
+<body>
+<a class="voltar" href="/">← Cogumelo Games</a>
+
+<div id="wrap">
+  <canvas id="cv"></canvas>
+
+  <div id="hud" class="hidden">
+    <div class="hudRow">
+      <div class="pill" id="hudFrame">🎳 1/10</div>
+      <div class="pill" id="hudBola">🎯 Bola 1</div>
+      <div class="pill" id="hudCoins">🪙 0</div>
+      <button class="mini" id="hudRetry" title="Reiniciar jogo">🔄</button>
+      <button class="mini" id="hudMenu">🏠</button>
+    </div>
+    <div id="score"></div>
+  </div>
+  <div id="banner" class="hidden"></div>
+
+  <!-- MENU -->
+  <div id="scrMenu" class="screen">
+    <h1>🎳 Boliche do Cogumelo</h1>
+    <div class="row"><div class="tag" id="menuBest">🏆 Recorde: —</div><div class="tag" id="menuCoins">🪙 0</div></div>
+    <p>Arraste a bola pra trás e solte pra jogar! Derrube os 10 pinos-cogumelo 🍄 nas 10 rodadas do boliche de verdade. Ganhe moedas e compre bolas novas na loja!</p>
+    <button class="btn" id="btnPlay">▶️ JOGAR</button>
+    <button class="btn rosa" id="btnShop">🛒 LOJA DE BOLAS</button>
+    <a href="/" class="btn azul" style="text-decoration:none;display:inline-block">🏠 Voltar</a>
+  </div>
+
+  <!-- FIM DE JOGO -->
+  <div id="scrEnd" class="screen hidden">
+    <h2 id="endTitle">🏆 FIM DE JOGO!</h2>
+    <div id="endScore" style="font-size:clamp(40px,11vw,64px);color:#ffe14a;text-shadow:2px 2px 0 #0006"></div>
+    <div id="endStats" style="color:#e9defc;font-size:18px;line-height:1.6"></div>
+    <button class="btn verde" id="btnAgain">🔄 Jogar de novo</button>
+    <button class="btn rosa" id="btnEndShop">🛒 Loja</button>
+    <button class="btn azul" id="btnEndMenu">🏠 Menu</button>
+  </div>
+
+  <!-- LOJA -->
+  <div id="scrShop" class="screen hidden">
+    <h2>🛒 Loja de Bolas</h2>
+    <div class="tag" id="shopCoins">🪙 0</div>
+    <div id="shopMsg" style="color:#ffe14a;font-size:16px;height:20px;opacity:0;transition:opacity .3s"></div>
+    <div id="lojaList"></div>
+    <button class="btn azul" id="shopBack">⬅️ Voltar</button>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var LS={ get:function(k,d){try{var v=localStorage.getItem('boliche_'+k);return v===null?d:JSON.parse(v);}catch(e){return d;}}, set:function(k,v){try{localStorage.setItem('boliche_'+k,JSON.stringify(v));}catch(e){}} };
+
+var coins=LS.get('coins',0);
+var best=LS.get('best',0);
+var selSkin=LS.get('skin','classica');
+var unlocked=LS.get('unlocked',['classica']);
+
+var SKINS=[
+  { id:'classica', nome:'Clássica',  preco:0,   c1:'#f2f2f2', c2:'#8a8a8a' },
+  { id:'fogo',     nome:'Fogo',      preco:25,  c1:'#ffe259', c2:'#ff3d00' },
+  { id:'oceano',   nome:'Oceano',    preco:50,  c1:'#8fe3ff', c2:'#1b5fd6' },
+  { id:'cogumelo', nome:'Cogumelo',  preco:70,  c1:'#ff6b5a', c2:'#c0271c' },
+  { id:'ouro',     nome:'Ouro',      preco:110, c1:'#fff2b0', c2:'#d4a017' },
+  { id:'neon',     nome:'Neon',      preco:140, c1:'#c6ff5a', c2:'#22a94f' },
+  { id:'galaxia',  nome:'Galáxia',   preco:180, c1:'#b57bff', c2:'#2a0f5e' },
+  { id:'arcoiris', nome:'Arco-íris', preco:260, c1:'#fff', c2:'#000', rainbow:true }
+];
+function curSkin(){ for(var i=0;i<SKINS.length;i++) if(SKINS[i].id===selSkin) return SKINS[i]; return SKINS[0]; }
+
+function $(id){ return document.getElementById(id); }
+function show(id){ ['scrMenu','scrEnd','scrShop'].forEach(function(s){ $(s).classList.add('hidden'); }); if(id) $(id).classList.remove('hidden'); }
+
+// ---- SOM ----
+var AC=null;
+function ac(){ if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}} if(AC&&AC.state==='suspended')AC.resume(); return AC; }
+function beep(f,d,t,v,slide,delay){ var c=ac(); if(!c)return; var st=c.currentTime+(delay||0); var o=c.createOscillator(),g=c.createGain(); o.type=t||'square'; o.frequency.setValueAtTime(f,st); if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,slide),st+d); g.gain.setValueAtTime(v||0.1,st); g.gain.exponentialRampToValueAtTime(0.0001,st+d); o.connect(g); g.connect(c.destination); o.start(st); o.stop(st+d); }
+var snd={
+  throw:function(p){ beep(160+p*260,0.14,'triangle',0.14,70); },
+  pin:function(){ beep(700+Math.random()*300,0.08,'square',0.09,300); },
+  gutter:function(){ beep(140,0.3,'sawtooth',0.12,50); },
+  strike:function(){ [523,659,784,1046,1318].forEach(function(f,i){ beep(f,0.16,'square',0.09,0,i*0.08); }); },
+  spare:function(){ [523,784,1046].forEach(function(f,i){ beep(f,0.14,'triangle',0.1,0,i*0.09); }); },
+  coin:function(){ beep(1200,0.07,'square',0.07); beep(1600,0.12,'square',0.07,0,0.07); },
+  buy:function(){ beep(660,0.07,'square',0.08); beep(990,0.1,'square',0.06,0,0.07); },
+  no:function(){ beep(220,0.3,'sawtooth',0.12,60); }
+};
+
+// ---- CANVAS ----
+var cv=$('cv'), ctx=cv.getContext('2d'), W=0,H=0,DPR=1, S=1, offX=0, offY=0;
+var FW=360, FH=1050;
+function resize(){ DPR=window.devicePixelRatio||1; W=window.innerWidth; H=window.innerHeight; cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0);
+  var top=84; S=Math.min((W-10)/FW,(H-top-8)/FH); offX=(W-FW*S)/2; offY=top+((H-top)-FH*S)/2; }
+window.addEventListener('resize', resize); resize();
+
+// ---- CAMPO ----
+var LANE_L=60, LANE_R=300, BALL_R=16, PIN_R=13;
+var CX=(LANE_L+LANE_R)/2;
+var START_X=CX, START_Y=860;
+var PIN_ROWS=[
+  { y:250, xs:[0] },
+  { y:220, xs:[-15,15] },
+  { y:190, xs:[-30,0,30] },
+  { y:160, xs:[-45,-15,15,45] }
+];
+var MAX_SP=1000, FRICTION_BALL=0.4, DRAG_MAX=170;
+
+function makeRack(){
+  var arr=[]; PIN_ROWS.forEach(function(row){ row.xs.forEach(function(dx){ arr.push({ x:CX+dx, y:row.y, standing:true, moving:false, vx:0, vy:0, fallT:0, rot:0 }); }); });
+  return arr;
+}
+
+var pins=makeRack();
+var ball={ x:START_X, y:START_Y, vx:0, vy:0, state:'idle' }; // idle | thrown
+var aiming=false, aimX=0, aimY=0, anchorX=0, anchorY=0;
+var floaters=[];
+var knockedThisRoll=0, standingBeforeRoll=[];
+
+// ---- FRAMES / SCORE ----
+var frames, curFrame, curRoll, playing=false, awaitingNext=false;
+function newGame(){ frames=[]; for(var i=0;i<10;i++) frames.push({rolls:[]}); curFrame=0; curRoll=0; floaters=[]; }
+
+function flatRolls(){ var f=[]; frames.forEach(function(fr){ fr.rolls.forEach(function(r){ f.push(r); }); }); return f; }
+
+function computeScores(){
+  var flat=flatRolls(); var scores=new Array(10).fill(null); var idx=0, cum=0;
+  for(var fr=0; fr<10; fr++){
+    var fr_ = frames[fr].rolls;
+    if(fr_.length===0) break;
+    if(fr<9){
+      if(fr_[0]===10){
+        if(idx+2<flat.length){ cum+=10+flat[idx+1]+flat[idx+2]; scores[fr]=cum; idx+=1; } else { break; }
+      } else if(fr_.length>=2){
+        if(fr_[0]+fr_[1]===10){
+          if(idx+2<flat.length){ cum+=10+flat[idx+2]; scores[fr]=cum; idx+=2; } else { break; }
+        } else { cum+=fr_[0]+fr_[1]; scores[fr]=cum; idx+=2; }
+      } else { break; }
+    } else {
+      var need=2;
+      if(fr_[0]===10) need=3; else if(fr_.length>=2 && fr_[0]+fr_[1]===10) need=3;
+      if(fr_.length>=need){ var s=0; for(var m=0;m<fr_.length;m++) s+=fr_[m]; cum+=s; scores[fr]=cum; }
+    }
+  }
+  return scores;
+}
+
+function totalScoreSoFar(){ var sc=computeScores(); var last=null; for(var i=0;i<10;i++) if(sc[i]!==null) last=sc[i]; return last||0; }
+
+function renderScoreboard(){
+  var scores=computeScores(); var html='';
+  for(var i=0;i<10;i++){
+    var fr=frames[i]; var rollsTxt=fr.rolls.map(function(r,ri){
+      if(r===10) return '🎳';
+      if(ri>0 && fr.rolls[ri-1]!==10 && fr.rolls[ri-1]+r===10 && i<9) return '/';
+      if(i===9 && ri>0){ var prevSum=0; for(var k=0;k<ri;k++) prevSum+=fr.rolls[k]; if(fr.rolls[ri-1]!==10 && (prevSum)%10+r===10 && prevSum<10) return '/'; }
+      return r===0?'-':String(r);
+    }).join(' ');
+    html+='<div class="fbox'+(i===curFrame&&playing?' cur':'')+'"><div>'+(i+1)+'</div><div class="rolls">'+rollsTxt+'&nbsp;</div><div class="tot">'+(scores[i]===null?'':scores[i])+'</div></div>';
+  }
+  $('score').innerHTML=html;
+}
+
+function updateHud(){
+  $('hudFrame').textContent='🎳 '+(curFrame+1)+'/10';
+  $('hudBola').textContent='🎯 Bola '+(curRoll+1);
+  $('hudCoins').textContent='🪙 '+coins;
+  renderScoreboard();
+}
+
+function banner(txt,ms){ var b=$('banner'); b.textContent=txt; b.classList.remove('hidden'); clearTimeout(banner._t); banner._t=setTimeout(function(){ b.classList.add('hidden'); }, ms||1400); }
+
+// ---- RODADA ----
+function placeBall(){ ball.x=START_X; ball.y=START_Y; ball.vx=0; ball.vy=0; ball.state='idle'; ball.thrownT=0; }
+
+function startFrame(freshRack){
+  if(freshRack) pins=makeRack();
+  standingBeforeRoll=pins.map(function(p){ return p.standing; });
+  knockedThisRoll=0;
+  placeBall();
+}
+
+function startGame(){ newGame(); playing=true; awaitingNext=false; startFrame(true); updateHud(); show(null); $('hud').classList.remove('hidden'); }
+
+function coinsForRoll(pinsDown,isStrike,isSpare){ var c=pinsDown; if(isStrike) c+=12; else if(isSpare) c+=6; return c; }
+
+function finishRoll(){
+  ball.state='idle'; ball.vx=0; ball.vy=0;
+  var standingNow=pins.map(function(p){ return p.standing; });
+  var down=0; for(var i=0;i<standingNow.length;i++) if(standingBeforeRoll[i] && !standingNow[i]) down++;
+
+  frames[curFrame].rolls.push(down);
+  var isStrike = (curRoll===0 && down===10 && curFrame<9);
+  var sumFr = frames[curFrame].rolls.reduce(function(a,b){return a+b;},0);
+  var isSpare = (!isStrike && curRoll===1 && curFrame<9 && sumFr===10);
+  var gain=coinsForRoll(down,isStrike,isSpare);
+  coins+=gain; LS.set('coins',coins);
+  floaters.push({ x:CX, y:400, text:'🪙 +'+gain, life:1.2 });
+  if(down>0 && !isStrike) { /* som já tocado por pino */ }
+  if(isStrike){ banner('🎳 STRIKE!!! +'+gain+' 🪙'); snd.strike(); }
+  else if(isSpare){ banner('✨ SPARE! +'+gain+' 🪙'); snd.spare(); }
+  else if(down===0){ banner('😅 Bola vazia'); }
+
+  var frameOver=false, resetNext=true, endGame=false;
+
+  if(curFrame<9){
+    if(curRoll===0 && down===10){ frameOver=true; }
+    else if(curRoll===1){ frameOver=true; }
+    else { frameOver=false; resetNext=false; } // 2ª bola continua com os pinos que sobraram
+  } else {
+    var r=frames[9].rolls;
+    if(curRoll===0){
+      frameOver=false; resetNext = (down===10); // strike no 10º: pinos novos na próxima
+    } else if(curRoll===1){
+      if(r[0]===10){ frameOver=false; resetNext=(r[1]===10); } // após strike: 3ª bola só tem rack novo se a 2ª TAMBÉM foi strike
+      else if(r[0]+r[1]===10){ frameOver=false; resetNext=true; } // spare -> bola bônus com rack novo
+      else { frameOver=true; endGame=true; }
+    } else { frameOver=true; endGame=true; }
+  }
+
+  updateHud();
+  awaitingNext=true;
+
+  setTimeout(function(){
+    if(frameOver){
+      if(curFrame>=9 || endGame){ endGameNow(); awaitingNext=false; return; }
+      curFrame++; curRoll=0; startFrame(true); updateHud();
+    } else {
+      curRoll++; startFrame(resetNext); updateHud();
+    }
+    awaitingNext=false;
+  }, 1500);
+}
+
+function endGameNow(){
+  playing=false;
+  var total=totalScoreSoFar();
+  var isBest = total>best;
+  if(isBest){ best=total; LS.set('best',best); }
+  $('hud').classList.add('hidden'); $('banner').classList.add('hidden');
+  $('endTitle').textContent = total>=200 ? '🏆 UAU, JOGO INCRÍVEL!' : (total>=100 ? '🎉 MANDOU BEM!' : '🎳 FIM DE JOGO!');
+  $('endScore').textContent = total+' pontos';
+  $('endStats').innerHTML = (isBest?'🏆 NOVO RECORDE!<br>':'🏆 Recorde: '+best+'<br>')+'🪙 Moedas: '+coins;
+  show('scrEnd');
+}
+
+// ---- FÍSICA ----
+function pinsSettled(){ return pins.every(function(p){ return p.standing || !p.moving; }); }
+
+function knockPin(p, vx, vy){
+  if(!p.standing) return;
+  p.standing=false; p.moving=true; p.fallT=0;
+  var spd=Math.hypot(vx,vy); var d=Math.hypot(vx,vy)||1;
+  var nx=vx/d, ny=vy/d;
+  p.vx = nx*(spd*0.5+70) + (Math.random()-0.5)*60;
+  p.vy = ny*(spd*0.5+70);
+  p.rot = Math.atan2(vy,vx) + (Math.random()-0.5)*1.2;
+  snd.pin();
+}
+
+function stepPhysics(dt){
+  if(ball.state==='thrown'){
+    ball.thrownT=(ball.thrownT||0)+dt;
+    var k=Math.pow(FRICTION_BALL, dt);
+    ball.vx*=k; ball.vy*=k;
+    ball.x+=ball.vx*dt; ball.y+=ball.vy*dt;
+    if(ball.x<LANE_L+BALL_R){ ball.x=LANE_L+BALL_R; if(ball.vx<0){ if(!ball.gutter) snd.gutter(); ball.gutter=true; } ball.vx=0; }
+    if(ball.x>LANE_R-BALL_R){ ball.x=LANE_R-BALL_R; if(ball.vx>0){ if(!ball.gutter) snd.gutter(); ball.gutter=true; } ball.vx=0; }
+    for(var i=0;i<pins.length;i++){
+      var p=pins[i];
+      if(p.standing){
+        var dx=p.x-ball.x, dy=p.y-ball.y, d=Math.hypot(dx,dy);
+        if(d<BALL_R+PIN_R){ knockPin(p, ball.vx, ball.vy); ball.vx*=0.86; ball.vy*=0.86; }
+      }
+    }
+    var spd=Math.hypot(ball.vx,ball.vy);
+    if(ball.y<80 || ball.thrownT>4.5 || (spd<40 && pinsSettled())){ finishRoll(); }
+  }
+  for(var i=0;i<pins.length;i++){
+    var p=pins[i];
+    if(!p.standing && p.moving){
+      var k2=Math.pow(0.05, dt);
+      p.vx*=k2; p.vy*=k2;
+      p.x+=p.vx*dt; p.y+=p.vy*dt;
+      p.fallT=Math.min(1, p.fallT+dt*3.2);
+      if(Math.hypot(p.vx,p.vy)<8) p.moving=false;
+      for(var j=0;j<pins.length;j++){
+        if(j===i) continue; var q=pins[j];
+        if(q.standing){
+          var qx=q.x-p.x, qy=q.y-p.y, qd=Math.hypot(qx,qy);
+          if(qd<PIN_R*2*0.95){ knockPin(q, p.vx, p.vy); }
+        }
+      }
+    }
+  }
+  for(var f=floaters.length-1; f>=0; f--){ floaters[f].life-=dt; floaters[f].y-=dt*30; if(floaters[f].life<=0) floaters.splice(f,1); }
+}
+
+// ---- INPUT (arrastar da bola pra trás e soltar) ----
+function toField(cx,cy){ return { x:(cx-offX)/S, y:(cy-offY)/S }; }
+function dist(ax,ay,bx,by){ return Math.hypot(ax-bx,ay-by); }
+
+cv.addEventListener('pointerdown', function(e){ e.preventDefault(); ac();
+  if(!playing || awaitingNext || ball.state!=='idle') return;
+  var p=toField(e.clientX,e.clientY); if(dist(p.x,p.y,ball.x,ball.y)>90) return;
+  aiming=true; anchorX=p.x; anchorY=p.y; aimX=p.x; aimY=p.y;
+});
+cv.addEventListener('pointermove', function(e){ if(!aiming) return; e.preventDefault(); var p=toField(e.clientX,e.clientY); aimX=p.x; aimY=p.y; });
+
+function aimVector(){
+  var dx=anchorX-aimX, dy=anchorY-aimY, d=Math.hypot(dx,dy);
+  var pw=Math.min(d/DRAG_MAX,1);
+  var nx=d?dx/d:0, ny=d?dy/d:-1;
+  var ang=Math.atan2(nx,-ny); var maxAng=Math.PI/3;
+  if(ang>maxAng) ang=maxAng; if(ang<-maxAng) ang=-maxAng;
+  nx=Math.sin(ang); ny=-Math.cos(ang);
+  return { nx:nx, ny:ny, pw:pw };
+}
+
+function release(){
+  if(!aiming) return; aiming=false;
+  if(!playing || ball.state!=='idle') return;
+  var a=aimVector(); if(a.pw<0.12) return;
+  ball.vx=a.nx*a.pw*MAX_SP; ball.vy=a.ny*a.pw*MAX_SP; ball.state='thrown'; ball.gutter=false;
+  snd.throw(a.pw);
+}
+cv.addEventListener('pointerup', function(e){ e.preventDefault(); release(); });
+cv.addEventListener('pointercancel', function(){ aiming=false; });
+cv.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+// ---- DESENHO ----
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+function drawLane(){
+  ctx.fillStyle='#160a26'; ctx.fillRect(0,0,FW,FH);
+  // gutters
+  ctx.fillStyle='#2a2a38'; ctx.fillRect(LANE_L-40,80,40,FH-80); ctx.fillRect(LANE_R,80,40,FH-80);
+  // pista de madeira
+  var g=ctx.createLinearGradient(LANE_L,0,LANE_R,0);
+  g.addColorStop(0,'#c9994d'); g.addColorStop(0.5,'#e0b569'); g.addColorStop(1,'#c9994d');
+  ctx.fillStyle=g; ctx.fillRect(LANE_L,80,LANE_R-LANE_L,FH-80);
+  ctx.strokeStyle='rgba(0,0,0,0.08)'; ctx.lineWidth=1;
+  for(var lx=LANE_L+10; lx<LANE_R; lx+=14){ ctx.beginPath(); ctx.moveTo(lx,80); ctx.lineTo(lx,FH); ctx.stroke(); }
+  // fosso do fundo
+  ctx.fillStyle='#0c0616'; ctx.fillRect(LANE_L-40,60,LANE_R-LANE_L+80,26);
+  // linha de falta
+  ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.setLineDash([6,6]); ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(LANE_L,760); ctx.lineTo(LANE_R,760); ctx.stroke(); ctx.setLineDash([]);
+  // setas guia
+  ctx.fillStyle='rgba(0,0,0,0.25)';
+  [-1,0,1].forEach(function(k){ var ax=CX+k*45; ctx.beginPath(); ctx.moveTo(ax,560); ctx.lineTo(ax-8,590); ctx.lineTo(ax+8,590); ctx.closePath(); ctx.fill(); });
+}
+
+function drawPin(p){
+  if(p.standing){
+    ctx.save();
+    ctx.globalAlpha=0.25; ctx.beginPath(); ctx.ellipse(p.x,p.y+6,12,5,0,0,Math.PI*2); ctx.fillStyle='#000'; ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.font='30px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('🍄', p.x, p.y);
+    ctx.restore();
+  } else if(p.fallT<1) {
+    ctx.save();
+    ctx.globalAlpha=Math.max(0,1-p.fallT);
+    ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.min(1,p.fallT*2)+p.fallT*p.fallT*2);
+    ctx.font='28px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('🍄',0,0);
+    ctx.restore();
+  }
+}
+
+function drawBall(){
+  var sk=curSkin();
+  var g=ctx.createRadialGradient(ball.x-5,ball.y-6,2,ball.x,ball.y,BALL_R);
+  if(sk.rainbow){
+    var t=Date.now()/500;
+    g.addColorStop(0,'#fff');
+    g.addColorStop(0.5,'hsl('+((t*60)%360)+',90%,60%)');
+    g.addColorStop(1,'hsl('+((t*60+180)%360)+',90%,40%)');
+  } else { g.addColorStop(0,sk.c1); g.addColorStop(1,sk.c2); }
+  ctx.save();
+  ctx.globalAlpha=0.25; ctx.beginPath(); ctx.ellipse(ball.x,ball.y+8,BALL_R*0.9,BALL_R*0.35,0,0,Math.PI*2); ctx.fillStyle='#000'; ctx.fill();
+  ctx.globalAlpha=1;
+  ctx.beginPath(); ctx.arc(ball.x,ball.y,BALL_R,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.arc(ball.x-4,ball.y-6,2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(ball.x+3,ball.y-6,2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(ball.x,ball.y-2,2,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawAim(){
+  if(!aiming) return;
+  var a=aimVector();
+  var len=60+a.pw*160;
+  var bx=ball.x+a.nx*len, by=ball.y+a.ny*len;
+  ctx.save();
+  ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=3; ctx.setLineDash([8,7]);
+  ctx.beginPath(); ctx.moveTo(ball.x,ball.y); ctx.lineTo(bx,by); ctx.stroke(); ctx.setLineDash([]);
+  ctx.translate(bx,by); ctx.rotate(Math.atan2(a.ny,a.nx)+Math.PI/2);
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.moveTo(0,-10); ctx.lineTo(-8,8); ctx.lineTo(8,8); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle='#fff'; ctx.font='bold 20px sans-serif'; ctx.textAlign='center'; ctx.lineWidth=4; ctx.strokeStyle='rgba(0,0,0,0.6)';
+  var txt=Math.round(a.pw*100)+'%';
+  ctx.strokeText(txt,ball.x,ball.y-30); ctx.fillText(txt,ball.x,ball.y-30);
+}
+
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0); ctx.fillStyle='#160a26'; ctx.fillRect(0,0,W,H);
+  ctx.setTransform(DPR*S,0,0,DPR*S,DPR*offX,DPR*offY);
+  ctx.save(); ctx.beginPath(); ctx.rect(0,0,FW,FH); ctx.clip();
+  drawLane();
+  pins.forEach(drawPin);
+  if(ball.state!=='idle' || playing) drawBall();
+  drawAim();
+  floaters.forEach(function(fl){ ctx.save(); ctx.globalAlpha=Math.max(0,fl.life); ctx.font='bold 20px sans-serif'; ctx.textAlign='center'; ctx.fillStyle='#ffe14a'; ctx.strokeStyle='rgba(0,0,0,0.6)'; ctx.lineWidth=3; ctx.strokeText(fl.text,fl.x,fl.y); ctx.fillText(fl.text,fl.x,fl.y); ctx.restore(); });
+  ctx.restore();
+}
+
+// ---- LOOP ----
+var last=0;
+function loop(ts){
+  if(!last) last=ts;
+  var dt=Math.min(0.033,(ts-last)/1000); last=ts;
+  if(playing) stepPhysics(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ---- MENU / LOJA ----
+function refreshMenu(){ $('menuBest').textContent='🏆 Recorde: '+(best||'—'); $('menuCoins').textContent='🪙 '+coins; }
+
+function renderShop(){
+  $('shopCoins').textContent='🪙 '+coins;
+  var html='';
+  SKINS.forEach(function(sk){
+    var dono=unlocked.indexOf(sk.id)>=0;
+    var sel=selSkin===sk.id;
+    html+='<div class="skinCard'+(dono?' dono':'')+(sel?' sel':'')+'" data-id="'+sk.id+'">'
+        +'<canvas width="70" height="70" data-prev="'+sk.id+'"></canvas>'
+        +'<div class="nm">'+sk.nome+'</div>'
+        +'<button data-act="'+(sel?'sel':(dono?'usar':'comprar'))+'" data-id="'+sk.id+'" '+(sel?'disabled':'')+'>'
+        +(sel?'✅ Em uso':(dono?'Usar':'🪙 '+sk.preco))+'</button></div>';
+  });
+  $('lojaList').innerHTML=html;
+  document.querySelectorAll('canvas[data-prev]').forEach(function(c){
+    var sk=SKINS.filter(function(s){return s.id===c.getAttribute('data-prev');})[0];
+    var pc=c.getContext('2d'); var g=pc.createRadialGradient(28,26,2,35,35,26);
+    if(sk.rainbow){ g.addColorStop(0,'#fff'); g.addColorStop(0.5,'#ff5fa2'); g.addColorStop(1,'#7c4dff'); } else { g.addColorStop(0,sk.c1); g.addColorStop(1,sk.c2); }
+    pc.fillStyle=g; pc.beginPath(); pc.arc(35,35,26,0,Math.PI*2); pc.fill();
+  });
+  document.querySelectorAll('#lojaList button').forEach(function(b){
+    b.onclick=function(){
+      var id=b.getAttribute('data-id'), act=b.getAttribute('data-act'), sk=SKINS.filter(function(s){return s.id===id;})[0];
+      if(act==='comprar'){
+        if(coins<sk.preco){ shopMsg('Moedas insuficientes! 🪙'); snd.no(); return; }
+        coins-=sk.preco; unlocked.push(id); selSkin=id; LS.set('coins',coins); LS.set('unlocked',unlocked); LS.set('skin',selSkin); snd.buy(); shopMsg('Comprado! 🎉'); renderShop(); refreshMenu();
+      } else if(act==='usar'){ selSkin=id; LS.set('skin',selSkin); snd.buy(); renderShop(); }
+    };
+  });
+}
+function shopMsg(t){ var m=$('shopMsg'); m.textContent=t; m.style.opacity=1; clearTimeout(shopMsg._t); shopMsg._t=setTimeout(function(){ m.style.opacity=0; },1600); }
+
+$('btnPlay').onclick=function(){ startGame(); };
+$('btnShop').onclick=function(){ renderShop(); show('scrShop'); };
+$('shopBack').onclick=function(){ refreshMenu(); show('scrMenu'); };
+$('btnEndShop').onclick=function(){ renderShop(); show('scrShop'); };
+$('btnAgain').onclick=function(){ startGame(); };
+$('btnEndMenu').onclick=function(){ refreshMenu(); show('scrMenu'); };
+$('hudRetry').onclick=function(){ if(confirm('Reiniciar o jogo?')) startGame(); };
+$('hudMenu').onclick=function(){ playing=false; $('hud').classList.add('hidden'); refreshMenu(); show('scrMenu'); };
+
+refreshMenu(); show('scrMenu');
+})();
+</script>
+<script src="/stats.js?v=419"></script>
+<script src="/avisos.js?v=6"></script>
+<script>if (window.initStats) initStats('boliche');</script>
+<script src="/gamepad.js"></script>
+<script src="/mascote.js"></script>
+<script src="/idiomas.js"></script>
+</body>
+</html>
