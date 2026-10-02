@@ -159,6 +159,69 @@ let G = { drawer:'', palavra:'', ordem:[], idx:0, tempoRodada:70, metaPontos:10,
     tempo:70, tickTimer:null, roundTimer:null, acertaram:[], inicioRodada:0, souDrawer:false, revelou:false, denunciado:false };
 
 function mpLogado(){ return !!localStorage.getItem('cg_usuario'); }
+
+/* ===== cgOn: status ONLINE/OFFLINE dos amigos (bolinha + convite offline) ===== */
+var cgOnStatus = {}, cgOnTimer = null, cgOnCtx = null;
+function cgOnPara(){ if(cgOnTimer){ clearInterval(cgOnTimer); cgOnTimer = null; } cgOnCtx = null; }
+function cgOnPonto(n){
+    var s = cgOnStatus[n];
+    var cor = s === true ? '#00e05a' : (s === false ? '#ff3344' : '#777');
+    var brilho = s === true ? 'box-shadow:0 0 7px #00e05a;' : '';
+    return '<span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:' + cor + ';' + brilho + 'vertical-align:middle;margin-right:5px;"></span>';
+}
+function cgOnTag(n){
+    var s = cgOnStatus[n];
+    if(s === undefined) return '';
+    return '<span style="font-size:12px;color:' + (s ? '#00e05a' : '#ff3344') + ';margin-left:5px;">' + (s ? 'online' : 'offline') + '</span>';
+}
+function cgOnOrdena(lista){
+    return lista.slice().sort(function(a,b){ return (cgOnStatus[b] === true ? 1 : 0) - (cgOnStatus[a] === true ? 1 : 0); });
+}
+function cgOnPinta(){
+    if(!cgOnCtx) return;
+    var el = document.getElementById(cgOnCtx.id); if(!el){ cgOnPara(); return; }
+    var alvo = el.querySelector('.cgOnLista'); if(!alvo){ cgOnPara(); return; }
+    alvo.innerHTML = cgOnOrdena(cgOnCtx.amigos).map(cgOnCtx.linha).join('');
+}
+async function cgOnBusca(){
+    if(!cgOnCtx) return;
+    try{
+        var d = await mpApi({acao:'online', nomes: cgOnCtx.amigos});
+        if(d && d.online){
+            for(var k in d.online) cgOnStatus[k] = !!d.online[k];
+            cgOnPinta();
+        }
+    }catch(e){}
+}
+// liga o polling de 20s; para sozinho quando o container sai da tela (não vaza timer)
+function cgOnLiga(id, amigos, linha){
+    cgOnPara();
+    if(!mpLogado() || !amigos || !amigos.length) return;
+    cgOnCtx = { id: id, amigos: amigos, linha: linha };
+    cgOnBusca();
+    cgOnTimer = setInterval(function(){
+        if(!cgOnCtx || !document.getElementById(cgOnCtx.id)){ cgOnPara(); return; }
+        cgOnBusca();
+    }, 20000);
+}
+function cgOnAvisoOffline(d){
+    if(!d || !d.offline) return false;
+    var nome = d.alvo || 'seu amigo';
+    cgOnStatus[nome] = false; cgOnPinta();
+    var html = '<div class="cg-tit">📨 Convite guardado</div>' +
+        '<div style="font-size:14px;margin:6px 0;">O(a) <b>' + nome + '</b> está offline agora 😴 — ele(a) vai ver o convite quando entrar no site!</div>' +
+        '<button class="no">OK</button>';
+    if(window.cgNotifCard){
+        var c = window.cgNotifCard(html);
+        var b = (c && c.querySelector) ? c.querySelector('.no') : null;
+        if(b) b.onclick = function(){ c.remove(); };
+        setTimeout(function(){ if(c && c.parentNode) c.remove(); }, 9000);
+    } else if(typeof mostraMsg === 'function'){
+        mostraMsg('📨 Convite enviado! Mas ' + nome + ' está offline 😴 — vai ver quando entrar no site.', '#ffd34d', 4000);
+    }
+    return true;
+}
+
 async function mpApi(payload){
     const r = await fetch(MP_API, { method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify(Object.assign({
@@ -227,11 +290,13 @@ async function criarSala(){
         const d = await mpApi({acao:'entrar'});
         const amigos = d.amigos || [];
         const el = document.getElementById('mpAmigos'); if(!el) return;
+        const cgOnLinha = a =>
+            `<span class="jogador">${cgOnPonto(a)}🎨 ${a}${cgOnTag(a)}
+                 <button class="btn pequeno" onclick="convidar('${a}',this)">📨 Convidar</button></span>`;
         el.innerHTML = amigos.length
-            ? `<h3 style="margin:10px 0 4px;font-size:16px;">Convide seus amigos:</h3>` + amigos.map(a=>
-                `<span class="jogador">🎨 ${a}
-                 <button class="btn pequeno" onclick="convidar('${a}',this)">📨 Convidar</button></span>`).join('')
+            ? `<h3 style="margin:10px 0 4px;font-size:16px;">Convide seus amigos:</h3><div class="cgOnLista">` + amigos.map(cgOnLinha).join('') + `</div>`
             : `<p>Você ainda não tem amigos adicionados 😅</p>`;
+        cgOnLiga('mpAmigos', amigos, cgOnLinha);
     }catch(e){
         const el=document.getElementById('mpAmigos'); if(el) el.innerHTML='<p>Não deu pra carregar os amigos 😢</p>';
     }
@@ -240,12 +305,14 @@ async function convidar(alvo, btn){
     btn.disabled=true; btn.textContent='...';
     try{
         const d = await mpApi({acao:'convidar', alvo, sala:mp.sala, jogo:'desenha'});
-        btn.textContent = d.ok ? '✅ Convidado!' : '😢 não deu';
+        if(d.ok && d.offline){ btn.textContent='📨 Convite guardado'; cgOnAvisoOffline(Object.assign({alvo}, d)); }
+        else btn.textContent = d.ok ? '✅ Convidado!' : '😢 não deu';
         if(!d.ok) btn.disabled=false;
     }catch(e){ btn.textContent='😢 erro'; btn.disabled=false; }
 }
 function verConvites(){
     mpFechaWs();
+    cgOnPara();
     const area = document.getElementById('mpArea');
     area.innerHTML = `<h3>📬 Seus convites</h3><div id="mpConvites"><p>procurando...</p></div>`;
     const busca = async ()=>{

@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v423 (2026-10-01)
+- ONLINE/OFFLINE: bolinha verde (online) ou vermelha (offline) no canto da foto de perfil, na lista de amigos, na busca e no perfil grande (com "visto ha X")
+- Jogos online (Penaltis, Zumbi, Quiz, Desenha, Quiz de Emoji): amigos online aparecem primeiro com bolinha; convidar alguem offline mostra aviso de que o convite ficou guardado
+- Servidor de contas: presenca por ping automatico a cada 15s, novas acoes ping e online
+
 ## v422 (2026-10-01)
 - Catalogo 3D: de 13 para 31 kits Kenney CC0 e de 1.366 para 2.855 modelos (cemiterio/halloween, trens, barcos, pets, dungeon, cidade de fantasia, plataforma, tower defense, carrinhos, skate, minigolfe, arcade, sobrevivencia, natal, blocos e mais)
 
