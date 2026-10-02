@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v422 (2026-10-01)
+- Catalogo 3D: de 13 para 31 kits Kenney CC0 e de 1.366 para 2.855 modelos (cemiterio/halloween, trens, barcos, pets, dungeon, cidade de fantasia, plataforma, tower defense, carrinhos, skate, minigolfe, arcade, sobrevivencia, natal, blocos e mais)
+
 ## v421 (2026-10-01)
 - Pescaria Maluca: nova raridade HALLOWEEN (pagina 9 do indice, 9 peixes) e valores grandes formatados (MI/BI/TRILHAO)
 - Perfil: codigo secreto "halloween peixe9" da o PEIXE 9 de raridade Halloween (vale 1 trilhao) na mochila da Pescaria
