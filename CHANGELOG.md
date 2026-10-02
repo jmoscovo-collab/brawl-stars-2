@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v424 (2026-10-01)
+- Corrige bolinha de online/offline cortada ao meio na lista de amigos (a foto cortava o que passava da borda; agora a bolinha fica num quadro por fora) e deixa a bolinha um pouco maior
+
 ## v423 (2026-10-01)
 - ONLINE/OFFLINE: bolinha verde (online) ou vermelha (offline) no canto da foto de perfil, na lista de amigos, na busca e no perfil grande (com "visto ha X")
 - Jogos online (Penaltis, Zumbi, Quiz, Desenha, Quiz de Emoji): amigos online aparecem primeiro com bolinha; convidar alguem offline mostra aviso de que o convite ficou guardado

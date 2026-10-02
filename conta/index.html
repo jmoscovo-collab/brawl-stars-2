@@ -36,9 +36,9 @@ button:hover { transform:scale(1.02); }
 a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-block; }
 .dica { font-size:12px; color:#667; margin-top:10px; }
 .perfilBox { display:flex; align-items:center; gap:14px; justify-content:center; margin:10px 0; }
-.comStatus { position:relative; display:inline-block; }
-.bolinha { position:absolute; right:-1px; bottom:-1px; width:30%; height:30%; min-width:11px; min-height:11px;
-           border-radius:50%; border:2px solid #0a0a20; box-sizing:border-box; z-index:3; }
+.comStatus { position:relative; display:inline-block; flex:none; line-height:0; overflow:visible; }
+.bolinha { position:absolute; right:-2px; bottom:-2px; width:32%; height:32%; min-width:12px; min-height:12px;
+           border-radius:50%; border:2px solid #10102e; box-sizing:border-box; z-index:3; pointer-events:none; }
 .bolinha.on  { background:#00e05a; box-shadow:0 0 8px rgba(0,224,90,0.9); }
 .bolinha.off { background:#ff3344; box-shadow:0 0 6px rgba(255,51,68,0.6); }
 .fotoAvatar { width:72px; height:72px; aspect-ratio:1/1; flex:none; border-radius:50%; object-fit:cover; border:3px solid #00ff88; background:#111130; }
@@ -338,11 +338,24 @@ function fmtData(ts){
 }
 var onlineCache = {};
 // cola a bolinha verde/vermelha no cantinho de uma foto
+function envolveStatus(elFoto){
+    // a foto tem overflow:hidden (corta a bolinha), entao a bolinha vai num wrapper por fora
+    var pai = elFoto.parentNode;
+    if(pai && pai.classList && pai.classList.contains('comStatus')) return pai;
+    var wrap = document.createElement('span');
+    wrap.className = 'comStatus';
+    if(pai) pai.insertBefore(wrap, elFoto);
+    wrap.appendChild(elFoto);
+    return wrap;
+}
 function poeBolinha(elFoto, online){
     if(!elFoto) return;
-    elFoto.classList.add('comStatus');
-    var b = elFoto.querySelector(':scope > .bolinha');
-    if(!b){ b = document.createElement('span'); elFoto.appendChild(b); }
+    var wrap = envolveStatus(elFoto);
+    var b = null, i;
+    for(i = 0; i < wrap.children.length; i++){
+        if(wrap.children[i].className && wrap.children[i].className.indexOf('bolinha') === 0){ b = wrap.children[i]; break; }
+    }
+    if(!b){ b = document.createElement('span'); wrap.appendChild(b); }
     b.className = 'bolinha ' + (online ? 'on' : 'off');
     b.title = online ? 'Online agora' : 'Offline';
 }
@@ -357,7 +370,7 @@ function fotoHTML(foto, classeEmoji, classeImg){
 function mostraMeuPerfil(){
     const mf = document.getElementById('minhaFoto');
     mf.innerHTML = fotoHTML(localStorage.getItem('cg_foto')||'', 'fotoEmoji', 'fotoAvatar');
-    if(usuario()){ mf.style.position='relative'; mf.style.display='inline-block'; poeBolinha(mf, true); }
+    if(usuario() && mf.firstChild) poeBolinha(mf.firstChild, true);
     if(mf.firstChild) mf.firstChild.style.borderColor = ehOperador(usuario()) ? '#ff2222' : '';
     const d = fmtData(localStorage.getItem('cg_criado'));
     document.getElementById('jogandoDesde').textContent = d ? '🗓️ Conta criada em '+d : '';
@@ -426,6 +439,9 @@ function linhaJogador(nome, foto, botoes, criado){
     if(mini.firstChild.tagName === 'IMG'){ mini.firstChild.style.borderRadius = '50%'; mini.firstChild.style.objectFit = 'cover'; }
     else { mini.firstChild.style.display='flex'; mini.firstChild.style.alignItems='center'; mini.firstChild.style.justifyContent='center'; }
     if(ehOperador(nome)){ mini.style.boxShadow = '0 0 0 3px #ff2222, 0 0 10px rgba(255,34,34,0.6)'; }
+    const miniBox = document.createElement('span');
+    miniBox.className = 'comStatus';
+    miniBox.appendChild(mini);
     if(nome in onlineCache) poeBolinha(mini, onlineCache[nome]);
     const sp = document.createElement('span');
     sp.className = 'nomeItem';
@@ -440,9 +456,9 @@ function linhaJogador(nome, foto, botoes, criado){
         dt.style.cssText = 'font-size:11px; color:#778';
         dt.textContent = '🗓️ Conta criada em ' + dataCriada;
         wrap.appendChild(sp); wrap.appendChild(dt);
-        div.appendChild(mini); div.appendChild(wrap);
+        div.appendChild(miniBox); div.appendChild(wrap);
     } else {
-        div.appendChild(mini); div.appendChild(sp);
+        div.appendChild(miniBox); div.appendChild(sp);
     }
     botoes.forEach(([rotulo, titulo, fn])=>{
         const b = document.createElement('button');
@@ -546,8 +562,7 @@ async function verPerfil(alvo){
         pn.style.color=''; pn.style.textShadow='';
         estiloNome(pn, r.nome || alvo);
         onlineCache[r.nome || alvo] = !!r.online;
-        pf.style.position = 'relative'; pf.style.display = 'inline-block';
-        poeBolinha(pf, !!r.online);
+        if(pf.firstChild) poeBolinha(pf.firstChild, !!r.online);
         const d = fmtData(r.criado);
         const st = r.online ? '🟢 Online agora!' : ('🔴 Offline' + (r.ultimoVisto ? ' — visto ' + hAtras(r.ultimoVisto) : ''));
         document.getElementById('perfilDesde').innerHTML =
