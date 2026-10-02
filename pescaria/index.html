@@ -62,6 +62,8 @@ canvas { background:#000; border-radius:10px; max-width:100vw; max-height:calc(1
 .r-secreto { color:#00ffee; text-shadow:0 0 10px #00ffee; } .b-secreto { border-color:#00ffee; box-shadow:0 0 26px rgba(0,255,238,0.9), 0 0 50px rgba(0,255,238,0.4); }
 .r-item { color:#ffaa44; } .b-item { border-color:#ffaa44; }
 .r-exclusivo { color:#ff0044; text-shadow:0 0 14px #ff0044, 0 0 30px #ff88aa; }
+.r-halloween { color:#ff7518; text-shadow:0 0 14px #ff7518, 0 0 30px #8a2be2; }
+.b-halloween { border-color:#ff7518; box-shadow:0 0 30px rgba(255,117,24,0.95), 0 0 70px rgba(138,43,226,0.6); }
 .b-exclusivo { border-color:#ff0044; box-shadow:0 0 30px rgba(255,0,68,0.9), 0 0 70px rgba(255,0,68,0.5); }
 #botoes {
     position:fixed; bottom:12px; left:50%; transform:translateX(-50%); z-index:15;
@@ -176,6 +178,13 @@ a.voltar { position:fixed; top:8px; left:10px; color:#888; text-decoration:none;
 <script>
 if (window.initStats) initStats('pescaria');
 
+function fmtD(v){
+    v = Math.round(v);
+    if(v >= 1e12) return (v/1e12).toLocaleString('pt-BR',{maximumFractionDigits:2}) + ' TRILHÃO';
+    if(v >= 1e9)  return (v/1e9).toLocaleString('pt-BR',{maximumFractionDigits:2}) + ' BI';
+    if(v >= 1e6)  return (v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:2}) + ' MI';
+    return v.toLocaleString('pt-BR');
+}
 // ============ PEIXES (7 raridades) ============
 // comum ~41.2% | raro 30% | epico 15% | mistico 8% | lendario 4.99% | secreto 0.8% | ultra 0.01%
 const RARIDADES = {
@@ -187,6 +196,7 @@ const RARIDADES = {
     secreto:  { nome:'SECRETO',  chance:0.8,   valor:[8000,20000], cor:'#00ffee' },
     ultra:    { nome:'ULTRA',    chance:0.01,  valor:[75000,150000], cor:'#ff55cc' },
     exclusivo:{ nome:'EXCLUSIVO', chance:0,    valor:[300000,600000], cor:'#ff0044' },
+    halloween:{ nome:'HALLOWEEN', chance:0,   valor:[1000000000000,1000000000000], cor:'#ff7518' },
     item:     { nome:'TESOURO',  chance:0,     valor:[0,0],         cor:'#ffaa44' }
 };
 const PEIXES = {
@@ -235,6 +245,7 @@ const PEIXES = {
                ['Mandrágora Aquática','🌱'],['Peixe Cristal Verde','💎'],['Coruja do Lago','🦉'],['Peixe Ritual','🕯️'],['Gnomo Pescador','🍄']],
     ultra:    [['Tubarão','🦈'],['Golfinho','🐬'],['Peixe Lanterna','🔦'],['Baleia Azul','🐋'],['Orca Sombria','🖤'],['Narval Encantado','🦄'],['Lula Colossal','🦑'],['Peixe-Boi Real','🦭']],
     exclusivo:[['O COGUMELO DOURADO','🍄'],['CAPIVARA SEREIA','🦫'],['PEIXE INFINITO','♾️']],
+    halloween:[['PEIXE 9','🎃'],['Peixe Abóbora','🎃'],['Peixe Fantasma','👻'],['Peixe Caveira','💀'],['Peixe Vampiro','🧛'],['Peixe Bruxa','🧙'],['Peixe Zumbi','🧟'],['Peixe Morcego','🦇'],['Peixe Aranha','🕷️']],
     secreto:  [['Peixe Dourado Real','👑'],['Serpente do Lago','🐲'],['PEIXE COGUMELO','🍄'],
                ['Peixe Arco-Íris Secreto','🌈'],['Guardião de Atlântida','🏛️'],['Peixe Pirâmide','🔺'],['Olho do Oceano','👁️'],['Peixe Tesouro Vivo','💰'],
                ['Rei dos Abismos','🫅'],['Peixe Constelação','✨'],['Sombra de Netuno','🔱'],['Peixe Enigma','❓'],['Cometa dos Mares','☄️']]
@@ -397,7 +408,7 @@ const W = cv.width, H = cv.height;
 let estado = 'parado';
 let fisgadaTimeout = null, mordidaTimeout = null, lutaTimeout = null;
 // briga: cliques pra encher a barra — quanto mais raro, mais cliques!
-const CLIQUES_POR_RARIDADE = { exclusivo:70,  comum:8, raro:14, epico:22, mistico:27, lendario:32, secreto:38, ultra:45, item:10 };
+const CLIQUES_POR_RARIDADE = { halloween:90, exclusivo:70,  comum:8, raro:14, epico:22, mistico:27, lendario:32, secreto:38, ultra:45, item:10 };
 const TEMPO_LUTA = 10000; // 10 segundos pro peixe escapar (1.5x no celular)
 // no celular, mais tempo pra fisgar e pra brigar (toque é mais difícil que mouse)
 function bonusCelular(){ return disp==='celular' ? 1.5 : 1; }
@@ -420,7 +431,7 @@ function mostraMsg(txt, cor='#fff', tempo=1400){
     setTimeout(()=>m.style.opacity=0, tempo);
 }
 function atualizaHud(){
-    document.getElementById('dinheiroHud').textContent = `💰 ${dinheiro}`;
+    document.getElementById('dinheiroHud').textContent = `💰 ${fmtD(dinheiro)}`;
     document.getElementById('varaHud').textContent = `${varaAtual().icone} ${varaAtual().nome}`;
     document.getElementById('peixesHud').textContent = `🐟 ${inventario.length} peixes`;
 }
@@ -519,10 +530,15 @@ function pegouPeixe(p){
         <div class="pemoji">${p.emoji}</div>
         <div class="pnome">${p.nome}</div>
         <div class="prar" style="color:${r.cor}">★ ${r.nome} ★</div>
-        <div class="pval">vale 💰 ${p.valor}</div>`;
+        <div class="pval">vale 💰 ${fmtD(p.valor)}</div>`;
     carta.classList.add('mostra');
     setTimeout(()=>carta.classList.remove('mostra'), p.rar==='secreto'?6500:(p.rar==='ultra'?5000:2200));
-    if(p.rar==='exclusivo'){
+    if(p.rar==='halloween'){
+        mostraMsg('🎃🎃 PEIXE DE HALLOWEEN!!! VALE 1 TRILHÃO 🎃🎃','#ff7518',6000);
+        for(let i=0;i<14;i++) setTimeout(()=>som(260+i*90,0.2),i*120);
+        soltaConfete(300); setTimeout(()=>soltaConfete(300),900); setTimeout(()=>soltaConfete(300),1800);
+    }
+    else if(p.rar==='exclusivo'){
         mostraMsg('❗❗ EXCLUSIVO!!! NEM O LIVRO CONHECE ESSE PEIXE ❗❗','#ff0044',6000);
         for(let i=0;i<12;i++) setTimeout(()=>som(400+i*130,0.18),i*130);
         soltaConfete(250); setTimeout(()=>soltaConfete(250),800); setTimeout(()=>soltaConfete(250),1600);
@@ -571,7 +587,8 @@ const PAGINAS = [
     { chave:'lendario', titulo:'🟡 Página 5 — LENDÁRIOS' },
     { chave:'secreto',  titulo:'💠 Página 6 — SECRETOS' },
     { chave:'ultra',    titulo:'🌸 Página 7 — ULTRA' },
-    { chave:'tesouros', titulo:'🧰 Página 8 — TESOUROS' }
+    { chave:'tesouros', titulo:'🧰 Página 8 — TESOUROS' },
+    { chave:'halloween', titulo:'🎃 Página 9 — HALLOWEEN' }
 ];
 let paginaAtual = 0;
 function mudaPagina(d){
@@ -642,7 +659,7 @@ function vendeTudo(){
     const total = inventario.reduce((s,p)=>s+p.valor,0);
     dinheiro += total; inventario = [];
     salva(); atualizaHud(); montaComprador();
-    mostraMsg(`+💰 ${total}!`,'#ffd700');
+    mostraMsg(`+💰 ${fmtD(total)}!`,'#ffd700');
     som(600,0.1); setTimeout(()=>som(800,0.1),100); setTimeout(()=>som(1000,0.2),200);
 }
 function montaLoja(){
