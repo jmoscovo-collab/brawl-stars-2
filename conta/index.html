@@ -101,6 +101,8 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
     <p style="color:#889; font-size:13px; margin-top:8px" id="infoSave"></p>
     <button onclick="salvarProgresso(true)">💾 Salvar progresso agora</button>
     <button class="cinza" id="btnSair">🚪 Sair da conta</button>
+    <button id="btnExcluir" style="background:#8a1020; margin-top:16px">🗑️ Excluir minha conta</button>
+    <div class="dica">Apaga sua conta, seus amigos e sua foto do servidor para sempre. Os jogos continuam funcionando sem conta, mas o progresso salvo na nuvem some.</div>
 </div>
 
 <div class="card" id="cardAmigos" style="display:none">
@@ -295,6 +297,30 @@ function sair(){
     mostraEstado();
 }
 document.getElementById('btnSair').addEventListener('click', sair);
+document.getElementById('btnExcluir').addEventListener('click', excluirConta);
+
+async function excluirConta(){
+    const u = usuario();
+    if(!u){ aviso('Você não está em nenhuma conta.', false); return; }
+    if(!confirm('⚠️ Isso apaga a conta "' + u + '" PARA SEMPRE:\n\n'
+        + '• seu nome de usuário\n• sua foto de perfil\n• sua lista de amigos\n• o progresso salvo na nuvem\n\n'
+        + 'Não tem como desfazer. Quer mesmo?')) return;
+    const txt = prompt('Para confirmar, digite o seu nome de usuário:\n\n' + u);
+    if(!txt || txt.trim().toLowerCase() !== u.trim().toLowerCase()){
+        aviso('Nome diferente — não apaguei nada. 😌', false);
+        return;
+    }
+    try {
+        await chamaAPI({ acao:'excluir', nome:u, senhaHash:localStorage.getItem('cg_senhaHash') });
+        ['cg_usuario','cg_senhaHash','cg_foto','cg_criado','cg_amigos','cg_pedidosEnviados',
+         'cg_pedidosRecebidos','cg_bloqueados','cg_fotosCache','cg_criadosCache']
+            .forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+        aviso('🗑️ Conta excluída. Até qualquer dia! 🍄', true);
+        setTimeout(()=>{ location.href = '/'; }, 2200);
+    } catch(e){
+        aviso('😕 Não consegui excluir agora: ' + e.message, false);
+    }
+}
 
 function mostraEstado(){
     const u=usuario();

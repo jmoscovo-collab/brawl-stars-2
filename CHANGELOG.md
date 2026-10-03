@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v427 (2026-10-03)
+- Exclusao de conta (exigencia da Google Play): botao "Excluir minha conta" no Perfil + pagina publica /excluir-conta/ + acao no servidor que apaga a conta e tira o nome das listas de amigos de todo mundo
+- Politica de privacidade agora linka a pagina de exclusao
+
 ## v426 (2026-10-03)
 - Corrige /.well-known/assetlinks.json que o GitHub Pages escondia (faltava .nojekyll) - sem ele o app Android TWA abriria com barra de navegador em vez de tela cheia
 
