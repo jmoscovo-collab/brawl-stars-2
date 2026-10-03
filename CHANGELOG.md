@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v431 (2026-10-03)
+- Conserta o cache: o service worker agora troca de nome a cada versao e apaga o cache antigo, e sempre busca da rede sem usar cache do navegador. Sem isso, quem ja tinha aberto o site continuava vendo a versao velha dos jogos.
+
 ## v430 (2026-10-03)
 - MEGA SP: 30 BAUS DE TESOURO espalhados pela cidade e pela praia (modelo 3D com tampa que abre de verdade) - chegue perto e ganhe R$ 5.000; 5s depois o bau some pra sempre pra quem pegou; tem 1 bau do lado de onde voce comeca; minimapa marca os baus e o HUD mostra quantos faltam
 - MEGA SP: multa por dirigir na calcada REMOVIDA

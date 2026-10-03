@@ -1,5 +1,5 @@
 // Cogumelo Games SW — network-first (site remoto é a fonte da verdade = OTA automático)
-const CACHE = 'cogumelo-v1';
+const CACHE = 'cogumelo-v431';   // mude a cada deploy: o activate apaga os caches antigos
 const FALLBACK = ['/', '/icons/icon-192.png', '/icons/icon-512.png', '/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -11,7 +11,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || !e.request.url.startsWith(self.location.origin)) return;
   e.respondWith(
-    fetch(e.request).then(r => {
+    fetch(e.request, {cache: 'no-store'}).then(r => {
       const copy = r.clone();
       caches.open(CACHE).then(c => c.put(e.request, copy));
       return r;
