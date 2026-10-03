@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v432 (2026-10-03)
+- MEGA SP: os baus estavam praticamente invisiveis (o modelo tem 0,8 de tamanho e o quarteirao tem 100) - agora sao 8x maiores, com brilho maior e raio de abrir aumentado de 4 para 7
+- MEGA SP: o bau de boas-vindas agora nasce NA FRENTE de onde o jogador esta de verdade, inclusive pra quem ja tem jogo salvo
+
 ## v431 (2026-10-03)
 - Conserta o cache: o service worker agora troca de nome a cada versao e apaga o cache antigo, e sempre busca da rede sem usar cache do navegador. Sem isso, quem ja tinha aberto o site continuava vendo a versao velha dos jogos.
 

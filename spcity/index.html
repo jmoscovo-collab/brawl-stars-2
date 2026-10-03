@@ -2324,7 +2324,8 @@ function drawMinimap(){
 
 // ============ BAÚS DE TESOURO (pedido do Davi) ============
 const BAU_PREMIO = 5000;
-const BAU_RAIO = 4;            // distância pra abrir sozinho
+const BAU_RAIO = 7;            // distância pra abrir sozinho
+const BAU_ESCALA = 8;          // o modelo tem ~0.8 unidade e o quarteirão tem 100: sem isso some
 const BAU_SOME = 5000;         // 5s depois de abrir, o bau desaparece de vez
 // bauns ja pegos por ESTE jogador: nao aparecem mais nem podem ser pegos de novo
 let bausPegos = (function(){ try { return JSON.parse(localStorage.getItem('spcity_baus_pegos')||'[]'); } catch(e){ return []; } })();
@@ -2354,11 +2355,19 @@ function bauPosValida(x, z){
 // espalha pelo mapa todo: varre os quarteirões em ordem embaralhada + alguns na praia
 function gerarPosicoesBaus(n){
   const out = [], cels = [];
-  // 1 bau logo ao lado de onde o jogador comeca, pra achar facil
+  // 1 bau NA FRENTE de onde o jogador esta agora (vale tambem pra quem tem jogo salvo)
   (function(){
-    const sx = -CITY/2+CELL*8, sz = -CITY/2+CELL*8;   // mesma posicao inicial do carro
-    for (const [dx,dz] of [[9,9],[-9,9],[9,-9],[-9,-9],[13,0],[0,13],[-13,0],[0,-13]]){
-      if (bauPosValida(sx+dx, sz+dz)){ out.push({x:sx+dx, z:sz+dz}); return; }
+    const alvo = (typeof car !== 'undefined' && car) ? car.position : (typeof player !== 'undefined' && player ? player.position : null);
+    const sx = alvo ? alvo.x : -CITY/2+CELL*8;
+    const sz = alvo ? alvo.z : -CITY/2+CELL*8;
+    const hd = (typeof heading === 'number') ? heading : 0;
+    // tenta logo a frente; se nao der, vai girando ao redor ate achar lugar bom
+    for (let i = 0; i < 16; i++){
+      const ang = hd + (i ? (i%2 ? 1 : -1) * Math.ceil(i/2) * (Math.PI/8) : 0);
+      for (const dist of [14, 20, 26]){
+        const x = sx + Math.cos(ang)*dist, z = sz - Math.sin(ang)*dist;
+        if (bauPosValida(x, z)){ out.push({x, z}); return; }
+      }
     }
   })();
   for (let gx=0; gx<GRID; gx++) for (let gz=0; gz<GRID; gz++) cels.push([gx,gz]);
@@ -2402,13 +2411,15 @@ function bauFallback(){
 function criarBaus(modelo){
   for (const p of gerarPosicoesBaus(BAU_TOTAL)){
     const g = modelo ? modelo.clone(true) : bauFallback();
+    if (modelo) g.scale.setScalar(BAU_ESCALA);
     g.position.set(p.x, 0, p.z);
     g.rotation.y = Math.random()*Math.PI*2;
     const lid = g.getObjectByName('lid') || null;
     // brilho pulsante pra ajudar a achar
-    const glow = new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.6,22,12),
-      new THREE.MeshBasicMaterial({color:0xffcc33, transparent:true, opacity:0.25, depthWrite:false}));
-    glow.position.y = 11; g.add(glow);
+    const gs = modelo ? BAU_ESCALA : 1;   // o glow e filho do grupo, entao compensa a escala
+    const glow = new THREE.Mesh(new THREE.CylinderGeometry(3.4/gs, 3.4/gs, 26/gs, 12),
+      new THREE.MeshBasicMaterial({color:0xffcc33, transparent:true, opacity:0.28, depthWrite:false}));
+    glow.position.y = 13/gs; g.add(glow);
     scene.add(g);
     const id = bauId(p.x, p.z);
     if (bausPegos.indexOf(id) >= 0){ scene.remove(g); continue; }   // ja peguei esse: nem aparece
