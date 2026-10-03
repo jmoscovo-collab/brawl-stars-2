@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v430 (2026-10-03)
+- MEGA SP: 30 BAUS DE TESOURO espalhados pela cidade e pela praia (modelo 3D com tampa que abre de verdade) - chegue perto e ganhe R$ 5.000; 5s depois o bau some pra sempre pra quem pegou; tem 1 bau do lado de onde voce comeca; minimapa marca os baus e o HUD mostra quantos faltam
+- MEGA SP: multa por dirigir na calcada REMOVIDA
+
 ## v429 (2026-10-03)
 - Cogumelo Golf Maluco agora e GOLF MALUCO e tem 512 FASES: as 12 feitas a mao + 500 criadas por um gerador com dificuldade progressiva; 32 mundos de 16 fases em 9 temas (Jardim, Vulcao, Espaco, Gelo, Deserto, Oceano, Doces, Neon, Forja); tela de fases agora navega mundo a mundo
 

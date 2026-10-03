@@ -193,6 +193,8 @@
   <button id="exitBtn">🚶 SAIR DO CARRO (E)</button>
   <button id="actBtn"></button>
   <div id="hint">C = celular 📱</div>
+  <div id="bauHud" style="position:absolute;top:60px;left:20px;background:rgba(0,0,0,.65);color:#fc3;padding:6px 14px;border-radius:14px;font-size:15px;font-weight:bold;border:2px solid rgba(255,204,51,.35)">📦 0/0 abertos</div>
+  <div id="bauFloat" style="position:absolute;inset:0;pointer-events:none;overflow:hidden"></div>
 
   <div id="joyBase"><div id="joyStick"></div></div>
   <div id="touchBtns">
@@ -219,6 +221,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
 // ============ ESTADO ============
 const G = {
@@ -2289,6 +2292,12 @@ function drawMinimap(){
     mm.fillStyle = p.type==='posto'?'#f80': p.type==='shopEnter'?'#48f': p.type==='kiosk'?'#fb0': p.type==='lot'?'#b73':'#4f8';
     mm.beginPath(); mm.arc(px,py,3.5,0,7); mm.fill();
   }
+  // baús fechados = pontinho dourado
+  for (const b of baus){
+    if (b.aberto) continue;
+    const [bx,by]=toM(b.x,b.z);
+    mm.fillStyle='#fc3'; mm.beginPath(); mm.arc(bx,by,3,0,7); mm.fill();
+  }
   if (G.job){
     const [px,py]=toM(G.job.x,G.job.z);
     mm.fillStyle='#f35'; mm.beginPath(); mm.arc(px,py,6,0,7); mm.fill();
@@ -2312,6 +2321,244 @@ function drawMinimap(){
   mm.beginPath(); mm.moveTo(0,-7); mm.lineTo(5,5); mm.lineTo(-5,5); mm.closePath(); mm.fill();
   mm.restore();
 }
+
+// ============ BAÚS DE TESOURO (pedido do Davi) ============
+const BAU_PREMIO = 5000;
+const BAU_RAIO = 4;            // distância pra abrir sozinho
+const BAU_SOME = 5000;         // 5s depois de abrir, o bau desaparece de vez
+// bauns ja pegos por ESTE jogador: nao aparecem mais nem podem ser pegos de novo
+let bausPegos = (function(){ try { return JSON.parse(localStorage.getItem('spcity_baus_pegos')||'[]'); } catch(e){ return []; } })();
+function salvaBausPegos(){ try { localStorage.setItem('spcity_baus_pegos', JSON.stringify(bausPegos)); } catch(e){} }
+function bauId(x, z){ return Math.round(x) + '_' + Math.round(z); }
+const BAU_TOTAL = 30;
+const baus = [];
+let bausAbertos = 0;
+
+// Um baú só vale se estiver na calçada/praça/praia — nunca dentro de prédio,
+// no meio da pista ou no mar. Mesma função usada pelo teste em node.
+function bauPosValida(x, z){
+  if (Math.abs(x) > CITY/2 + SAND_W - 30 || Math.abs(z) > CITY/2 + SAND_W - 30) return false; // mar
+  if (collideBuilding(x, z, 5)) return false;
+  const naCidade = Math.abs(x) <= CITY/2 && Math.abs(z) <= CITY/2;
+  if (naCidade){
+    // distância até o centro do quarteirão: dentro da calçada (BLOCK/2), fora da pista
+    const gx = Math.floor((x + CITY/2) / CELL), gz = Math.floor((z + CITY/2) / CELL);
+    const cx = -CITY/2 + gx*CELL + CELL/2, cz = -CITY/2 + gz*CELL + CELL/2;
+    if (Math.abs(x-cx) > BLOCK/2 - 4 || Math.abs(z-cz) > BLOCK/2 - 4) return false;
+    return true;
+  }
+  // fora da cidade = faixa de areia da praia
+  return Math.abs(x) > CITY/2 + 15 || Math.abs(z) > CITY/2 + 15;
+}
+
+// espalha pelo mapa todo: varre os quarteirões em ordem embaralhada + alguns na praia
+function gerarPosicoesBaus(n){
+  const out = [], cels = [];
+  // 1 bau logo ao lado de onde o jogador comeca, pra achar facil
+  (function(){
+    const sx = -CITY/2+CELL*8, sz = -CITY/2+CELL*8;   // mesma posicao inicial do carro
+    for (const [dx,dz] of [[9,9],[-9,9],[9,-9],[-9,-9],[13,0],[0,13],[-13,0],[0,-13]]){
+      if (bauPosValida(sx+dx, sz+dz)){ out.push({x:sx+dx, z:sz+dz}); return; }
+    }
+  })();
+  for (let gx=0; gx<GRID; gx++) for (let gz=0; gz<GRID; gz++) cels.push([gx,gz]);
+  for (let i=cels.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [cels[i],cels[j]]=[cels[j],cels[i]]; }
+  const nPraia = Math.max(4, Math.round(n*0.15));
+  for (let i=0; i<nPraia; i++){
+    for (let tent=0; tent<60; tent++){
+      const borda = Math.floor(Math.random()*4);
+      const fora = (CITY/2 + 30 + Math.random()*(SAND_W-70)) * (borda%2 ? 1 : -1);
+      const livre = -CITY/2 + 40 + Math.random()*(CITY-80);
+      const x = borda<2 ? livre : fora, z = borda<2 ? fora : livre;
+      if (bauPosValida(x,z)){ out.push({x,z}); break; }
+    }
+  }
+  for (const [gx,gz] of cels){
+    if (out.length >= n) break;
+    const cx = -CITY/2 + gx*CELL + CELL/2, cz = -CITY/2 + gz*CELL + CELL/2;
+    for (let tent=0; tent<40; tent++){
+      const x = cx + (Math.random()*2-1)*(BLOCK/2-5);
+      const z = cz + (Math.random()*2-1)*(BLOCK/2-5);
+      if (bauPosValida(x,z)){ out.push({x,z}); break; }
+    }
+  }
+  return out.slice(0, n);
+}
+
+// baú de reserva (BoxGeometry) caso o .glb não carregue
+function bauFallback(){
+  const g = new THREE.Group();
+  const caixa = new THREE.Mesh(new THREE.BoxGeometry(3,1.8,2.2), new THREE.MeshLambertMaterial({color:0x8a5a2b}));
+  caixa.position.y = 0.9; caixa.castShadow = true; g.add(caixa);
+  const tampa = new THREE.Group();
+  const t = new THREE.Mesh(new THREE.BoxGeometry(3.1,0.6,2.3), new THREE.MeshLambertMaterial({color:0xa06a33}));
+  t.position.set(0, 0.3, 1.1); tampa.add(t);
+  tampa.position.set(0, 1.8, -1.1);
+  tampa.name = 'lid';
+  g.add(tampa);
+  return g;
+}
+
+function criarBaus(modelo){
+  for (const p of gerarPosicoesBaus(BAU_TOTAL)){
+    const g = modelo ? modelo.clone(true) : bauFallback();
+    g.position.set(p.x, 0, p.z);
+    g.rotation.y = Math.random()*Math.PI*2;
+    const lid = g.getObjectByName('lid') || null;
+    // brilho pulsante pra ajudar a achar
+    const glow = new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.6,22,12),
+      new THREE.MeshBasicMaterial({color:0xffcc33, transparent:true, opacity:0.25, depthWrite:false}));
+    glow.position.y = 11; g.add(glow);
+    scene.add(g);
+    const id = bauId(p.x, p.z);
+    if (bausPegos.indexOf(id) >= 0){ scene.remove(g); continue; }   // ja peguei esse: nem aparece
+    baus.push({id, x:p.x, z:p.z, g, lid, glow, aberto:false, sumirEm:0, anim:0, part:null});
+  }
+  window.__bausCriados = baus.length;
+  window.__bausInvalidos = baus.filter(b=>!bauPosValida(b.x,b.z)).length;
+  window.__bausGlb = !!modelo;
+  const dbg = document.createElement('span');
+  dbg.id = 'bauDebug'; dbg.style.display='none';
+  window.__bausComTampa = baus.filter(b=>b.lid).length;
+  dbg.textContent = `criados=${baus.length} invalidos=${window.__bausInvalidos} glb=${window.__bausGlb} tampas=${window.__bausComTampa}`;
+  // autoteste: abre um baú sem jogador por perto (só quando ?testebau=1)
+  if (location.search.indexOf('testebau=1') >= 0){
+    const m0 = G.money; abrirBau(baus[0]);
+    dbg.textContent += ` ganho=${G.money-m0} abertos=${bausAbertos}`;
+  }
+  document.body.appendChild(dbg);
+  const el = document.getElementById('bauHud');
+  if (el) el.textContent = baus.length ? `📦 faltam ${baus.length} baús` : '📦 peguei todos!';
+}
+
+(function carregarBaus(){
+  try {
+    if (!THREE.GLTFLoader) { criarBaus(null); return; }
+    new THREE.GLTFLoader().load('/assets/compat/crate-small.glb', (gltf)=>{
+      try {
+        const m = gltf.scene;
+        // normaliza pro baú ficar com ~3.5 unidades de largura
+        const box = new THREE.Box3().setFromObject(m);
+        const tam = Math.max(box.max.x-box.min.x, box.max.z-box.min.z) || 1;
+        m.scale.setScalar(3.5/tam);
+        m.traverse(o=>{ if(o.isMesh){ o.castShadow=true; } });
+        criarBaus(m);
+      } catch(e){ console.warn('baú glb falhou, usando caixa simples', e); criarBaus(null); }
+    }, undefined, ()=>{ criarBaus(null); });
+  } catch(e){ criarBaus(null); }
+})();
+
+// som alegre (WebAudio) — arpejo curtinho
+let bauAC = null;
+function bauSom(){
+  try {
+    bauAC = bauAC || new (window.AudioContext||window.webkitAudioContext)();
+    if (bauAC.state === 'suspended') bauAC.resume();
+    [523,659,784,1047].forEach((f,i)=>{
+      const o = bauAC.createOscillator(), gn = bauAC.createGain();
+      o.type='triangle'; o.frequency.value=f;
+      const t0 = bauAC.currentTime + i*0.09;
+      gn.gain.setValueAtTime(0.0001,t0);
+      gn.gain.exponentialRampToValueAtTime(0.22, t0+0.02);
+      gn.gain.exponentialRampToValueAtTime(0.0001, t0+0.28);
+      o.connect(gn); gn.connect(bauAC.destination);
+      o.start(t0); o.stop(t0+0.3);
+    });
+  } catch(e){}
+}
+
+function bauTextoFlutuante(){
+  const wrap = document.getElementById('bauFloat');
+  if (!wrap) return;
+  const d = document.createElement('div');
+  d.textContent = '+R$ 5.000';
+  d.style.cssText = 'position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);color:#fc3;font-size:34px;font-weight:bold;text-shadow:0 0 12px #000,0 0 24px #fa0;transition:all 1.2s ease-out;opacity:1';
+  wrap.appendChild(d);
+  requestAnimationFrame(()=>{ d.style.top='22%'; d.style.opacity='0'; });
+  setTimeout(()=>d.remove(), 1400);
+}
+
+function bauParticulas(b){
+  const n = 26;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(n*3), vel = [];
+  for (let i=0;i<n;i++){
+    pos[i*3]=0; pos[i*3+1]=1.6; pos[i*3+2]=0;
+    const a = Math.random()*Math.PI*2, s = 1.5+Math.random()*3;
+    vel.push({x:Math.cos(a)*s, y:5+Math.random()*5, z:Math.sin(a)*s});
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({color:0xffdd44, size:0.9, transparent:true, opacity:1}));
+  b.g.add(pts);
+  b.part = {pts, vel, t:0};
+}
+
+function abrirBau(b){
+  b.aberto = true;
+  b.anim = 0;
+  b.sumirEm = performance.now() + BAU_SOME;
+  b.glow.visible = false;
+  if (bausPegos.indexOf(b.id) < 0){ bausPegos.push(b.id); salvaBausPegos(); }
+  bausAbertos++;
+  G.money += BAU_PREMIO;
+  updateMoney(); save();
+  bauSom(); bauTextoFlutuante(); bauParticulas(b);
+  toast('🎁 Baú de tesouro! +R$ 5.000 💰');
+  atualizaBauHud();
+}
+
+function sumirBau(b){
+  // tira da cena e da lista: esse jogador nao ve nem pega esse bau nunca mais
+  if (b.part && b.part.pts){ b.g.remove(b.part.pts); b.part.pts.geometry.dispose(); b.part = null; }
+  scene.remove(b.g);
+  const i = baus.indexOf(b);
+  if (i >= 0) baus.splice(i, 1);
+  atualizaBauHud();
+}
+function atualizaBauHud(){
+  const el = document.getElementById('bauHud');
+  const faltam = baus.filter(x => !x.aberto).length;
+  if (el) el.textContent = faltam ? `📦 faltam ${faltam} baús` : '📦 peguei todos!';
+}
+
+function updateBaus(dt, t){
+  const px = mode==='car'?car.position.x:player.position.x;
+  const pz = mode==='car'?car.position.z:player.position.z;
+  const pulso = 0.18 + Math.sin(t/300)*0.12;
+  for (const b of baus){
+    if (!b.aberto){
+      b.glow.material.opacity = pulso;
+      if (Math.hypot(px-b.x, pz-b.z) < BAU_RAIO) abrirBau(b);
+    } else {
+      // tampa abrindo ~100 graus em 0.4s
+      if (b.anim < 0.4){
+        b.anim = Math.min(0.4, b.anim + dt);
+        if (b.lid) b.lid.rotation.x = -(b.anim/0.4) * 1.75;
+      }
+      if (b.sumirEm){
+        const resta = b.sumirEm - t_now();
+        if (resta <= 0) { sumirBau(b); continue; }
+        if (resta < 1200){   // ultimo segundo: vai sumindo devagar
+          const f = Math.max(0, resta/1200);
+          b.g.scale.setScalar(f);
+          b.g.position.y = (1-f) * 2.2;
+        }
+      }
+    }
+    if (b.part){
+      const p = b.part; p.t += dt;
+      const arr = p.pts.geometry.attributes.position.array;
+      for (let i=0;i<p.vel.length;i++){
+        p.vel[i].y -= 14*dt;
+        arr[i*3] += p.vel[i].x*dt; arr[i*3+1] += p.vel[i].y*dt; arr[i*3+2] += p.vel[i].z*dt;
+      }
+      p.pts.geometry.attributes.position.needsUpdate = true;
+      p.pts.material.opacity = Math.max(0, 1 - p.t/1.2);
+      if (p.t > 1.2){ b.g.remove(p.pts); p.pts.geometry.dispose(); b.part = null; }
+    }
+  }
+}
+function t_now(){ return performance.now(); }
 
 // ============ LOOP ============
 let last=0, running=false;
@@ -2582,29 +2829,6 @@ function tick(t){
     }
   }
 
-  // ===== MULTA por dirigir na calçada =====
-  if (mode==='car' && Math.abs(speed) > 3 && inside===null){
-    const cxm = car.position.x, czm = car.position.z;
-    const dentroCidade = Math.abs(cxm) < CITY/2 && Math.abs(czm) < CITY/2;
-    if (dentroCidade){
-      const um = ((cxm+CITY/2) % CELL + CELL) % CELL;
-      const vm = ((czm+CITY/2) % CELL + CELL) % CELL;
-      const margem = (CELL-BLOCK)/2 + 6;
-      const naCalcada = um > margem && um < CELL-margem && vm > margem && vm < CELL-margem;
-      const isento = cxm < -CITY/2 + CELL ||
-        Math.hypot(cxm-160, czm-120) < 75 ||
-        pois.some(p => Math.hypot(cxm-p.x, czm-p.z) < 42);
-      if (naCalcada && !isento){
-        if (!tick.multou){
-          tick.multou = true;
-          G.money = Math.max(0, G.money - 30);
-          updateMoney(); save();
-          toast('🚨 MULTA R$ 30! Não pode dirigir na calçada!');
-        }
-      } else tick.multou = false;
-    } else tick.multou = false;
-  }
-
   // avião voando em círculo sobre a cidade
   if (flyPlane){
     const fa = t/9000;
@@ -2639,6 +2863,7 @@ function tick(t){
     }
   }
 
+  updateBaus(dt, t);
   updatePeers();
   checkPoi();
   drawMinimap();
