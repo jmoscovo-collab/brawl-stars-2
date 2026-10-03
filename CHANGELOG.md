@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v426 (2026-10-03)
+- Corrige /.well-known/assetlinks.json que o GitHub Pages escondia (faltava .nojekyll) - sem ele o app Android TWA abriria com barra de navegador em vez de tela cheia
+
 ## v425 (2026-10-02)
 - JOGO NOVO: Adivinha o Pais - aparece a bandeira e voce escolhe entre 4 paises; 156 bandeiras, 4 dificuldades (Facil 20s / Medio 15s / Dificil 10s mesmo continente / Impossivel 7s com bandeiras parecidas), album de 156 bandeirinhas, moedas e modo online com amigos
 
