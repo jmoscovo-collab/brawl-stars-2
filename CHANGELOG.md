@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v428 (2026-10-03)
+- assetlinks.json agora tem tambem a impressao digital da chave de assinatura do Google Play, pro app Android abrir em tela cheia (sem barra do navegador)
+
 ## v427 (2026-10-03)
 - Exclusao de conta (exigencia da Google Play): botao "Excluir minha conta" no Perfil + pagina publica /excluir-conta/ + acao no servidor que apaga a conta e tira o nome das listas de amigos de todo mundo
 - Politica de privacidade agora linka a pagina de exclusao
