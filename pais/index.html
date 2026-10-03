@@ -1,0 +1,1324 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Adivinha o País 🌍 — Cogumelo Games</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family:'Comic Sans MS','Baloo',system-ui,sans-serif;
+    background:linear-gradient(160deg,#07223f 0%,#0b3d5c 45%,#0a2e4d 100%);
+    color:#fff; min-height:100vh; overflow-x:hidden;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  #topo {
+    width:100%; max-width:640px; display:flex; justify-content:space-between;
+    align-items:center; padding:12px 16px; gap:10px;
+  }
+  .btn {
+    border:none; border-radius:16px; padding:12px 18px; font-size:17px;
+    font-weight:bold; cursor:pointer; font-family:inherit; color:#fff;
+    background:linear-gradient(135deg,#0091ea,#00c6a7); box-shadow:0 4px 0 #084e7a;
+    transition:transform .08s; user-select:none;
+  }
+  .btn:active { transform:translateY(3px); box-shadow:0 1px 0 #084e7a; }
+  .btn.verde { background:linear-gradient(135deg,#00c853,#64dd17); box-shadow:0 4px 0 #1b5e20; }
+  .btn.azul { background:linear-gradient(135deg,#2979ff,#00b0ff); box-shadow:0 4px 0 #0d47a1; }
+  .btn.laranja { background:linear-gradient(135deg,#ff9100,#ff3d00); box-shadow:0 4px 0 #bf360c; }
+  .btn.amarelo { background:linear-gradient(135deg,#ffd600,#ff9100); box-shadow:0 4px 0 #b26a00; color:#3a1a00; }
+  .btn.roxo { background:linear-gradient(135deg,#7b2ff7,#f107a3); box-shadow:0 4px 0 #4a1a8a; }
+  .btn.pequeno { padding:8px 14px; font-size:15px; box-shadow:0 3px 0 rgba(0,0,0,.4); }
+  .btn:disabled { opacity:.45; cursor:default; }
+  #saldoTopo { font-size:17px; font-weight:bold; color:#ffe700; }
+  .tela { width:100%; max-width:640px; padding:16px; text-align:center; display:none; flex-direction:column; align-items:center; gap:14px; }
+  .tela.on { display:flex; }
+  h1 { font-size:36px; text-shadow:0 3px 0 #084e7a; margin:8px 0; }
+  h2 { font-size:22px; margin:6px 0; }
+  .sub { font-size:17px; color:#9fdcff; }
+  .card {
+    background:rgba(255,255,255,.08); border:2px solid rgba(255,255,255,.15);
+    border-radius:22px; padding:20px; width:100%; box-shadow:0 8px 24px rgba(0,0,0,.35);
+  }
+  .nivelBtn { font-size:21px; padding:17px; width:100%; margin:6px 0; }
+  .catGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .catBtn {
+    border:none; border-radius:18px; padding:16px 8px; font-size:17px; font-weight:bold;
+    color:#fff; cursor:pointer; font-family:inherit; box-shadow:0 4px 0 rgba(0,0,0,.4);
+    display:flex; flex-direction:column; align-items:center; gap:6px; transition:transform .08s;
+  }
+  .catBtn:active { transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.4); }
+  .catBtn .em { font-size:34px; }
+  .selo { display:inline-block; border-radius:20px; padding:5px 14px; font-size:15px; font-weight:bold; color:#fff; margin:4px 0; box-shadow:0 2px 0 rgba(0,0,0,.35); }
+
+  /* JOGO */
+  #hud { display:flex; justify-content:space-between; width:100%; gap:8px; font-size:16px; font-weight:bold; }
+  .hudBox { flex:1; background:rgba(255,255,255,.08); border-radius:16px; padding:8px; }
+  .hudBox .big { font-size:28px; color:#ffe700; }
+  #cronoBar { width:100%; height:16px; background:rgba(255,255,255,.15); border-radius:10px; overflow:hidden; margin:4px 0; }
+  #cronoFill { height:100%; width:100%; background:linear-gradient(90deg,#00e676,#ffea00,#ff1744); transition:width .1s linear; }
+  #perguntaTxt {
+    font-size:40px; line-height:1.2; margin:10px 0; min-height:92px;
+    display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px;
+    animation:pulaEmoji .5s ease;
+  }
+  #perguntaTxt.bandeirona { font-size:96px; letter-spacing:4px; }
+  @media (max-width:420px){ #perguntaTxt { font-size:30px; } #perguntaTxt.bandeirona { font-size:70px; } }
+  @keyframes pulaEmoji { 0%{transform:scale(.4) rotate(-8deg);opacity:0} 70%{transform:scale(1.08) rotate(2deg);opacity:1} 100%{transform:scale(1) rotate(0)} }
+  #dicaTxt { font-size:17px; color:#ffe700; min-height:24px; font-weight:bold; }
+  #listaDicas { font-size:17px; color:#fff; text-align:left; width:100%; }
+  #listaDicas .linhaDica { background:rgba(255,255,255,.1); border-radius:14px; padding:10px 14px; margin:6px 0; animation:pulaEmoji .35s ease; }
+  .opcao {
+    display:block; width:100%; margin:9px 0; padding:15px; font-size:18px;
+    text-align:left; border-radius:16px; border:2px solid rgba(255,255,255,.2);
+    background:rgba(255,255,255,.1); color:#fff; cursor:pointer; font-family:inherit;
+    font-weight:bold; transition:transform .06s, background .2s, opacity .3s;
+  }
+  .opcao:active { transform:scale(.98); }
+  .opcao.certa { background:linear-gradient(135deg,#00c853,#64dd17); border-color:#fff; animation:balanca .5s; }
+  .opcao.errada { background:linear-gradient(135deg,#d50000,#ff1744); border-color:#fff; animation:treme .4s; }
+  .opcao.sumiu { opacity:.15; pointer-events:none; text-decoration:line-through; }
+  .opcao:disabled { cursor:default; }
+  @keyframes balanca { 0%,100%{transform:scale(1)} 30%{transform:scale(1.06)} 60%{transform:scale(.97)} }
+  @keyframes treme { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+  .card.acertou { animation:flashVerde .6s; }
+  .card.errou { animation:flashVermelho .6s; }
+  @keyframes flashVerde { 0%{box-shadow:0 0 0 0 #00e676} 50%{box-shadow:0 0 40px 10px #00e676} 100%{box-shadow:0 8px 24px rgba(0,0,0,.35)} }
+  @keyframes flashVermelho { 0%{box-shadow:0 0 0 0 #ff1744} 50%{box-shadow:0 0 40px 10px #ff1744} 100%{box-shadow:0 8px 24px rgba(0,0,0,.35)} }
+  #statusRodada { font-size:17px; min-height:24px; color:#ffe700; font-weight:bold; }
+  #ensina { font-size:16px; color:#fff; background:rgba(0,0,0,.3); border-radius:16px; padding:12px; display:none; }
+  #ensina .bandeirinha { font-size:46px; display:block; }
+  #dicasBox { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .combo { position:fixed; top:35%; left:50%; transform:translate(-50%,-50%); font-size:42px; font-weight:bold; color:#ffe700; text-shadow:0 4px 0 #b26a00; pointer-events:none; z-index:150; animation:comboAnim 1.1s forwards; }
+  @keyframes comboAnim { 0%{transform:translate(-50%,-50%) scale(.3);opacity:0} 30%{transform:translate(-50%,-50%) scale(1.2);opacity:1} 100%{transform:translate(-50%,-120%) scale(1);opacity:0} }
+  .confete { position:fixed; top:-20px; font-size:26px; pointer-events:none; z-index:100; animation:cai linear forwards; }
+  @keyframes cai { to { transform:translateY(110vh) rotate(720deg); opacity:.7; } }
+
+  /* ÁLBUM */
+  #albumGrid { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+  .albumItem { width:54px; padding:5px 2px; border-radius:12px; background:rgba(255,255,255,.07); font-size:11px; line-height:1.1; }
+  .albumItem .bf { font-size:26px; display:block; filter:grayscale(1) opacity(.35); }
+  .albumItem.tem { background:rgba(0,200,83,.3); }
+  .albumItem.tem .bf { filter:none; }
+
+  /* ONLINE */
+  .amigoLinha { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:8px 0; font-size:17px; }
+  .conviteLinha { background:rgba(255,255,255,.08); border-radius:14px; padding:12px; margin:8px 0; font-size:17px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+  input.codigo { font-size:26px; letter-spacing:6px; text-align:center; padding:10px; border-radius:12px; border:none; width:200px; text-transform:uppercase; font-family:inherit; }
+  .jogador { display:inline-block; background:rgba(255,255,255,.12); border-radius:20px; padding:6px 14px; margin:4px; font-size:16px; font-weight:bold; }
+  .codigoGrande { font-size:40px; letter-spacing:8px; color:#00ff88; text-shadow:0 3px 0 #0a4; }
+  #rankingVivo { width:100%; display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+  .rankItem { background:rgba(255,255,255,.1); border-radius:14px; padding:6px 12px; font-size:15px; font-weight:bold; }
+  .rankItem.eu { outline:2px solid #ffe700; }
+  .rankItem.ok { background:rgba(0,200,83,.35); }
+  .podio { display:flex; justify-content:center; align-items:flex-end; gap:8px; margin:10px 0; }
+  .podioCol { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; width:30%; }
+  .podioBase { width:100%; border-radius:12px 12px 0 0; display:flex; align-items:center; justify-content:center; font-size:30px; }
+  .podioNome { font-size:15px; font-weight:bold; margin-top:4px; word-break:break-all; }
+  .podioPts { font-size:14px; color:#ffe700; }
+  .medalha { font-size:18px; margin:6px 0; }
+  #msg { position:fixed; top:20%; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.85); padding:16px 26px; border-radius:18px; font-size:22px; font-weight:bold; z-index:200; display:none; text-align:center; max-width:90%; }
+</style>
+
+<div id="topo">
+  <a href="/" class="btn pequeno azul" style="text-decoration:none;">🏠 Voltar</a>
+  <span id="saldoTopo">🪙 0</span>
+</div>
+
+<!-- MENU -->
+<div id="telaMenu" class="tela on">
+  <h1>🌍 Adivinha o País</h1>
+  <p class="sub">Bandeiras, capitais e dicas do mundo inteiro! Quanto mais rápido, mais pontos ⚡</p>
+  <div class="card">
+    <button class="btn verde nivelBtn" onclick="abreQtd()">🎮 JOGAR SOZINHO</button>
+    <button class="btn roxo nivelBtn" onclick="abreOnline()">🌍 ONLINE COM AMIGOS</button>
+    <button class="btn amarelo nivelBtn" onclick="abreAlbum()">📔 ÁLBUM DE PAÍSES</button>
+  </div>
+  <p class="sub">🏆 Recorde de pontos: <b id="recordeTxt">0</b></p>
+  <p class="sub">📔 Álbum: <b id="albumTopo">0</b></p>
+</div>
+
+<!-- QUANTIDADE (solo) -->
+<!-- DIFICULDADE -->
+<div id="telaDif" class="tela">
+  <h1>🎯 Escolha a dificuldade</h1>
+  <p class="sub">Em todas elas aparece a bandeira e você escolhe o país 🏳️</p>
+  <div class="card"><div id="difBtns"></div></div>
+  <button class="btn azul" onclick="voltaMenu()">🏠 Menu</button>
+</div>
+
+<div id="telaQtd" class="tela">
+  <h1>🔢 Quantas perguntas?</h1>
+  <p class="sub" id="qtdInfoTxt"></p>
+  <div class="card">
+    <button class="btn verde nivelBtn" onclick="iniciaSolo(10)">10 perguntas ⚡</button>
+    <button class="btn azul nivelBtn" onclick="iniciaSolo(15)">15 perguntas</button>
+    <button class="btn laranja nivelBtn" onclick="iniciaSolo(20)">20 perguntas 🏃</button>
+  </div>
+  <button class="btn azul" onclick="abreDificuldade()">⬅️ Voltar</button>
+</div>
+
+<!-- JOGO -->
+<div id="telaJogo" class="tela">
+  <div id="hud">
+    <div class="hudBox"><div>PONTOS</div><div class="big" id="hudPts">0</div></div>
+    <div class="hudBox"><div>COMBO 🔥</div><div class="big" id="hudCombo">0</div></div>
+    <div class="hudBox"><div id="hudLabelB">RECORDE 🏆</div><div class="big" id="hudB">0</div></div>
+  </div>
+  <div id="rankingVivo"></div>
+  <div id="cronoBar"><div id="cronoFill"></div></div>
+  <div class="card" id="cardPergunta">
+    <div class="sub" id="numPergunta"></div>
+    <div id="perguntaTxt"></div>
+    <div id="listaDicas"></div>
+    <div id="dicaTxt"></div>
+    <div id="opcoes"></div>
+    <div id="dicasBox">
+      <button class="btn pequeno amarelo" id="btnDicaLetra" onclick="dicaLetra()">🔤 1ª letra (10 🪙)</button>
+      <button class="btn pequeno amarelo" id="btnDicaTira" onclick="dicaTira()">✂️ Tirar 2 (15 🪙)</button>
+    </div>
+  </div>
+  <div id="statusRodada"></div>
+  <div id="ensina"></div>
+</div>
+
+<!-- FIM -->
+<div id="telaFim" class="tela">
+  <h1 id="fimTitulo"></h1>
+  <div class="card">
+    <div id="fimPodio"></div>
+    <div id="fimPlacar" style="font-size:24px;font-weight:bold;"></div>
+    <div id="fimMoedas" style="font-size:18px;margin-top:12px;color:#ffe700;"></div>
+  </div>
+  <div id="fimBotoes"></div>
+  <button class="btn azul" onclick="voltaMenu()">🏠 Menu</button>
+</div>
+
+<!-- ÁLBUM -->
+<div id="telaAlbum" class="tela">
+  <h1>📔 Álbum de Países</h1>
+  <p class="sub" id="albumContador"></p>
+  <div class="card"><div id="albumGrid"></div></div>
+  <button class="btn azul" onclick="voltaMenu()">🏠 Menu</button>
+</div>
+
+<!-- ONLINE -->
+<div id="telaOnline" class="tela">
+  <h1>🌍 Online</h1>
+  <div id="onlineArea"></div>
+  <button class="btn azul" onclick="voltaMenu()">🏠 Menu</button>
+</div>
+
+<div id="msg"></div>
+
+<script>
+/* =========================================================
+   ADIVINHA O PAÍS — banco de países
+   Cada linha: [iso, nome, capital, continente, [dicas]]
+   A bandeira NÃO é digitada à mão: é montada a partir do código ISO
+   (regional indicators), então nunca sai trocada.
+   ========================================================= */
+function bandeira(iso){
+  return iso.toUpperCase().split('').map(c=>String.fromCodePoint(127397+c.charCodeAt(0))).join('');
+}
+
+const CONTINENTES = {
+  'América do Sul':   { icon:'🌎', cor:'#43a047' },
+  'América do Norte': { icon:'🗽', cor:'#1e88e5' },
+  'Europa':           { icon:'🏰', cor:'#8e24aa' },
+  'Ásia':             { icon:'🐉', cor:'#e53935' },
+  'África':           { icon:'🦁', cor:'#fb8c00' },
+  'Oceania':          { icon:'🏄', cor:'#00acc1' },
+};
+const ORDEM_CONT = Object.keys(CONTINENTES);
+
+const DADOS = [
+  /* ============ AMÉRICA DO SUL ============ */
+  ['br','Brasil','Brasília','América do Sul',['Aqui se fala português e tem o maior pedaço da Floresta Amazônica','O time de futebol é penta campeão do mundo','Tem o Cristo Redentor no Rio de Janeiro']],
+  ['ar','Argentina','Buenos Aires','América do Sul',['A comida mais famosa é o churrasco (asado) e o doce de leite','Messi nasceu aqui','Tem a dança chamada tango']],
+  ['cl','Chile','Santiago','América do Sul',['É um país bem compridinho e fininho no mapa','Tem o deserto mais seco do mundo, o Atacama','Fica espremido entre os Andes e o Oceano Pacífico']],
+  ['uy','Uruguai','Montevidéu','América do Sul',['É o menor vizinho do Brasil no sul','Ganhou a primeira Copa do Mundo da história','Adoram tomar chimarrão (mate)']],
+  ['py','Paraguai','Assunção','América do Sul',['Faz a usina de Itaipu junto com o Brasil','Fala espanhol e guarani','Tem uma bebida gelada chamada tereré']],
+  ['bo','Bolívia','Sucre','América do Sul',['Tem o maior deserto de sal do mundo, o Salar de Uyuni','Fica bem alto, lá nos Andes','A lhama é um animal típico daqui']],
+  ['pe','Peru','Lima','América do Sul',['Tem a cidade perdida dos incas: Machu Picchu','A alpaca é um bichinho peludo daqui','Comem um prato de peixe cru chamado ceviche']],
+  ['ec','Equador','Quito','América do Sul',['O nome já diz: a linha do Equador passa por aqui','Tem as Ilhas Galápagos com tartarugas gigantes','Exporta muita banana']],
+  ['co','Colômbia','Bogotá','América do Sul',['Famosa pelo café','Tem praia no Caribe E no Pacífico','O escritor Gabriel García Márquez nasceu aqui']],
+  ['ve','Venezuela','Caracas','América do Sul',['Tem a cachoeira mais alta do mundo, o Salto Angel','É cheia de petróleo','Faz fronteira com o norte do Brasil']],
+  ['gy','Guiana','Georgetown','América do Sul',['É o único país da América do Sul que fala inglês','Faz fronteira com Roraima, no Brasil','Tem a cachoeira Kaieteur, enorme']],
+  ['sr','Suriname','Paramaribo','América do Sul',['É o menor país da América do Sul','Fala holandês','Quase todo coberto de floresta']],
+
+  /* ============ AMÉRICA DO NORTE / CENTRAL / CARIBE ============ */
+  ['us','Estados Unidos','Washington, D.C.','América do Norte',['Tem a Estátua da Liberdade em Nova York','A Disney e Hollywood ficam aqui','Comem muito hambúrguer e jogam futebol americano']],
+  ['ca','Canadá','Otava','América do Norte',['A folha de bordo (maple) é o símbolo do país','Adoram hóquei no gelo','Tem alces e ursos, e faz MUITO frio']],
+  ['mx','México','Cidade do México','América do Norte',['Terra do taco e do burrito','Tem pirâmides astecas e maias','Usam chapéu sombrero e tocam mariachi']],
+  ['cu','Cuba','Havana','América do Norte',['É uma ilha grande do Caribe','Tem muitos carros antigos coloridos nas ruas','A música salsa é daqui']],
+  ['jm','Jamaica','Kingston','América do Norte',['Terra do reggae e do Bob Marley','Usain Bolt, o homem mais rápido do mundo, nasceu aqui','Ilha do Caribe de clima quentinho']],
+  ['ht','Haiti','Porto Príncipe','América do Norte',['Divide uma ilha com a República Dominicana','Fala francês e crioulo','Foi o primeiro país da América Latina a ficar independente']],
+  ['do','República Dominicana','Santo Domingo','América do Norte',['Divide a ilha com o Haiti','Praias lindas e muito beisebol','A dança merengue nasceu aqui']],
+  ['gt','Guatemala','Cidade da Guatemala','América do Norte',['Tem ruínas maias no meio da selva','Cheia de vulcões','Produz café muito famoso']],
+  ['hn','Honduras','Tegucigalpa','América do Norte',['Fica na América Central','Tem recifes de coral no Caribe','Exporta muita banana']],
+  ['sv','El Salvador','San Salvador','América do Norte',['É o menor país da América Central','Chamam de "país dos vulcões"','Comem um pãozinho recheado chamado pupusa']],
+  ['ni','Nicarágua','Manágua','América do Norte',['É o maior país da América Central','Tem um lago enorme com tubarões de água doce','Cheia de vulcões e lagoas']],
+  ['cr','Costa Rica','San José','América do Norte',['Não tem exército desde 1948','Cheia de preguiças, tucanos e florestas','O lema do povo é "pura vida"']],
+  ['pa','Panamá','Cidade do Panamá','América do Norte',['Tem um canal que liga dois oceanos','É a pontinha que liga as duas Américas','Navios do mundo todo passam por aqui']],
+  ['bs','Bahamas','Nassau','América do Norte',['É um monte de ilhas no Caribe','Tem porquinhos que nadam no mar','Água azul-turquesa e areia rosa']],
+  ['bz','Belize','Belmopan','América do Norte',['Fala inglês na América Central','Tem o Grande Buraco Azul, um mergulho famoso','Segunda maior barreira de corais do mundo']],
+
+  /* ============ EUROPA ============ */
+  ['pt','Portugal','Lisboa','Europa',['Foi daqui que vieram os navegadores que chegaram ao Brasil','Fala português, como o Brasil','Comem muito bacalhau e pastel de nata']],
+  ['es','Espanha','Madri','Europa',['Tem a Sagrada Família em Barcelona','Comem paella e tapas','A sesta (cochilo da tarde) é tradição']],
+  ['fr','França','Paris','Europa',['Tem a Torre Eiffel','Famosa por croissant e queijos','O quadro da Mona Lisa fica no museu do Louvre']],
+  ['it','Itália','Roma','Europa',['Terra da pizza e do macarrão','Tem o Coliseu e a Torre de Pisa','Tem formato de bota no mapa']],
+  ['de','Alemanha','Berlim','Europa',['Fazem carros muito famosos','Tem castelos que parecem da Disney','Comem salsicha e pretzel']],
+  ['gb','Reino Unido','Londres','Europa',['Tem o relógio Big Ben e o ônibus vermelho de dois andares','Tem rei e palácio de verdade','Harry Potter foi escrito aqui']],
+  ['ie','Irlanda','Dublin','Europa',['A cor do país é verde e o trevo é símbolo','Conta histórias de duendes (leprechauns)','Ilha ao lado do Reino Unido']],
+  ['nl','Países Baixos','Amsterdã','Europa',['Cheio de moinhos de vento e tulipas','Quase todo mundo anda de bicicleta','Boa parte do país fica abaixo do nível do mar']],
+  ['be','Bélgica','Bruxelas','Europa',['Famosa pelo chocolate e pelo waffle','As Smurfs e o Tintim nasceram aqui','Tem três idiomas oficiais']],
+  ['lu','Luxemburgo','Luxemburgo','Europa',['É um país minúsculo entre França e Alemanha','Tem castelos e florestas','É um dos países mais ricos do mundo']],
+  ['ch','Suíça','Berna','Europa',['Terra do chocolate e dos relógios','Cheia de montanhas dos Alpes','Os bancos daqui são famosos no mundo todo']],
+  ['at','Áustria','Viena','Europa',['O músico Mozart nasceu aqui','Cheia de montanhas e esqui','A valsa é a dança típica']],
+  ['dk','Dinamarca','Copenhague','Europa',['O LEGO foi inventado aqui','Tem a estátua da Pequena Sereia','Hans Christian Andersen escreveu contos de fada aqui']],
+  ['se','Suécia','Estocolmo','Europa',['Tem almôndegas famosas e lojas de móveis gigantes','No inverno dá pra ver a aurora boreal','Os vikings viveram por aqui']],
+  ['no','Noruega','Oslo','Europa',['Cheia de fiordes, que são vales cheios de água','No verão o sol quase não se põe','Terra dos vikings e do salmão']],
+  ['fi','Finlândia','Helsinque','Europa',['Dizem que o Papai Noel mora aqui','Tem milhares de lagos','Inventaram a sauna']],
+  ['is','Islândia','Reykjavík','Europa',['Tem vulcões e geleiras no mesmo lugar','Tem gêiseres que jogam água quente pro alto','Quase não tem árvores']],
+  ['pl','Polônia','Varsóvia','Europa',['Fica no leste da Europa','Tem minas de sal gigantes pra visitar','Comem um pastelzinho chamado pierogi']],
+  ['cz','Tchéquia','Praga','Europa',['A capital é cheia de castelos e pontes antigas','Tem um relógio astronômico famoso','Antes era parte da Tchecoslováquia']],
+  ['sk','Eslováquia','Bratislava','Europa',['Era um só país com a Tchéquia','Cheia de castelos e montanhas','A capital fica na beira do rio Danúbio']],
+  ['hu','Hungria','Budapeste','Europa',['A capital é cortada pelo rio Danúbio','Tem banhos termais de água quentinha','O prato típico é o goulash']],
+  ['ro','Romênia','Bucareste','Europa',['A lenda do Drácula vem daqui, da Transilvânia','Tem as montanhas Cárpatos','Fica no leste da Europa']],
+  ['bg','Bulgária','Sófia','Europa',['Produz óleo de rosas famoso no mundo','Fica perto do Mar Negro','Aqui balançar a cabeça pode significar "não"']],
+  ['gr','Grécia','Atenas','Europa',['Berço das Olimpíadas e dos mitos de Zeus','Tem o Partenon na capital','Ilhas com casinhas brancas e azuis']],
+  ['hr','Croácia','Zagreb','Europa',['Tem praias lindas no mar Adriático','Partes de Game of Thrones foram gravadas aqui','Tem o Parque dos Lagos de Plitvice']],
+  ['rs','Sérvia','Belgrado','Europa',['Fica nos Balcãs','Nikola Tesla tem raízes aqui','Era parte da antiga Iugoslávia']],
+  ['si','Eslovênia','Liubliana','Europa',['Tem um lago com uma ilhinha e uma igreja no meio','Mais da metade do país é floresta','Fica entre a Itália e a Croácia']],
+  ['ba','Bósnia e Herzegovina','Sarajevo','Europa',['Tem uma ponte antiga famosa em Mostar','Fica nos Balcãs','A capital sediou as Olimpíadas de inverno de 1984']],
+  ['al','Albânia','Tirana','Europa',['Fica em frente à Itália, do outro lado do mar','Tem milhares de bunkers antigos','A capital tem prédios bem coloridos']],
+  ['ua','Ucrânia','Kiev','Europa',['A bandeira é o céu azul em cima do trigo amarelo','É chamada de "celeiro da Europa"','É o maior país inteiramente dentro da Europa']],
+  ['by','Belarus','Minsk','Europa',['O nome significa "Rússia Branca"','Tem uma floresta antiga com bisões','Fica entre a Polônia e a Rússia']],
+  ['lt','Lituânia','Vilnius','Europa',['Um dos três países bálticos','Famosa pelo âmbar, uma pedra dourada','Tem uma colina cheia de cruzes']],
+  ['lv','Letônia','Riga','Europa',['Um dos três países bálticos','A capital tem prédios muito enfeitados','Mais da metade é floresta']],
+  ['ee','Estônia','Tallinn','Europa',['O país báltico mais ao norte','Super moderno: quase tudo se resolve pela internet','O Skype foi criado aqui']],
+  ['mt','Malta','Valeta','Europa',['É uma ilhinha no meio do Mediterrâneo','Um dos menores países do mundo','Tem templos mais antigos que as pirâmides']],
+  ['mc','Mônaco','Mônaco','Europa',['É o segundo menor país do mundo','Tem uma corrida de Fórmula 1 nas ruas','Fica grudado na França, na beira do mar']],
+  ['va','Vaticano','Cidade do Vaticano','Europa',['É o menor país do mundo','O Papa mora aqui','Fica dentro da cidade de Roma']],
+  ['ru','Rússia','Moscou','Europa',['É o maior país do mundo em tamanho','Tem as bonecas matrioskas que cabem uma dentro da outra','A Praça Vermelha fica na capital']],
+
+  /* ============ ÁSIA ============ */
+  ['jp','Japão','Tóquio','Ásia',['Terra do sushi e dos mangás','Tem o monte Fuji e as flores de cerejeira','Os trens-bala são super rápidos']],
+  ['cn','China','Pequim','Ásia',['Tem a Grande Muralha, enorme','É a casa do panda gigante','Um dos países com mais gente no mundo']],
+  ['kr','Coreia do Sul','Seul','Ásia',['Terra do K-pop e do kimchi','Fazem celulares e TVs famosos','Taekwondo nasceu aqui']],
+  ['kp','Coreia do Norte','Pyongyang','Ásia',['Fica na metade de cima da península coreana','É um país muito fechado pra visitantes','Divide fronteira com a Coreia do Sul']],
+  ['in','Índia','Nova Délhi','Ásia',['Tem o Taj Mahal','A vaca é considerada sagrada','Comem comidas bem temperadas com curry']],
+  ['pk','Paquistão','Islamabad','Ásia',['Tem a segunda montanha mais alta do mundo, o K2','Fica ao lado da Índia','O críquete é o esporte favorito']],
+  ['bd','Bangladesh','Daca','Ásia',['Tem o maior manguezal do mundo, com tigres','É cortada por rios enormes','Fica quase toda cercada pela Índia']],
+  ['np','Nepal','Catmandu','Ásia',['Tem o Monte Everest, a montanha mais alta do mundo','A bandeira não é retangular, tem dois triângulos','Fica entre a Índia e a China']],
+  ['lk','Sri Lanka','Colombo','Ásia',['É uma ilha em forma de gota perto da Índia','Produz muito chá','Tem elefantes e praias']],
+  ['th','Tailândia','Bangkok','Ásia',['Chamam de "terra dos sorrisos"','Tem templos dourados e elefantes','A comida é apimentada, como o pad thai']],
+  ['vn','Vietnã','Hanói','Ásia',['A sopa pho é o prato típico','Tem a baía de Ha Long, cheia de ilhotas','Muita gente usa chapéu de palha pontudo']],
+  ['kh','Camboja','Phnom Penh','Ásia',['Tem o templo gigante de Angkor Wat','O templo aparece até na bandeira','Fica ao lado da Tailândia e do Vietnã']],
+  ['la','Laos','Vienciana','Ásia',['É o único país do sudeste asiático sem mar','Cheio de montanhas e templos budistas','O rio Mekong corta o país']],
+  ['mm','Mianmar','Naypyidaw','Ásia',['Tem um pagode todo dourado','Antes se chamava Birmânia','Fica entre a Índia e a Tailândia']],
+  ['my','Malásia','Kuala Lumpur','Ásia',['Tem as Torres Petronas, duas torres gêmeas','Cheia de florestas com orangotangos','Tem a flor gigante Rafflesia, que fede']],
+  ['sg','Singapura','Singapura','Ásia',['É uma cidade-país bem pequenininha','Tem o Merlion, metade leão metade peixe','É super limpa: até chiclete é proibido']],
+  ['id','Indonésia','Jacarta','Ásia',['É feita de milhares de ilhas','Bali fica aqui','Tem dragões-de-komodo de verdade']],
+  ['ph','Filipinas','Manila','Ásia',['Mais de 7 mil ilhas','Tem o menor macaquinho do mundo, o társio','Os ônibus coloridos se chamam jeepney']],
+  ['mn','Mongólia','Ulan Bator','Ásia',['Muita gente mora em tendas chamadas ger','Gengis Khan nasceu aqui','Tem o deserto de Gobi']],
+  ['kz','Cazaquistão','Astana','Ásia',['É o maior país do mundo sem saída para o mar','Foguetes partem do cosmódromo de Baikonur','Fica entre a Rússia e a China']],
+  ['uz','Uzbequistão','Tashkent','Ásia',['Ficava na antiga Rota da Seda','Tem cidades com cúpulas azuis, como Samarcanda','Nenhum vizinho tem mar também']],
+  ['af','Afeganistão','Cabul','Ásia',['Cheio de montanhas bem altas','Fica entre o Irã e o Paquistão','Tem a pedra azul lápis-lazúli']],
+  ['ir','Irã','Teerã','Ásia',['Antes se chamava Pérsia','Os tapetes persas vêm daqui','Famoso pelo pistache e pelo açafrão']],
+  ['iq','Iraque','Bagdá','Ásia',['Aqui ficava a antiga Mesopotâmia','Os rios Tigre e Eufrates cortam o país','A escrita foi inventada por aqui']],
+  ['sa','Arábia Saudita','Riade','Ásia',['Quase tudo é deserto','Tem muito petróleo','As cidades de Meca e Medina ficam aqui']],
+  ['ae','Emirados Árabes Unidos','Abu Dhabi','Ásia',['Tem o prédio mais alto do mundo, o Burj Khalifa, em Dubai','Construíram ilhas em forma de palmeira','Dá pra esquiar no gelo dentro de um shopping']],
+  ['qa','Catar','Doha','Ásia',['Sediou a Copa do Mundo de 2022','É uma pequena península no Golfo Pérsico','Muito rico por causa do gás natural']],
+  ['kw','Kuwait','Cidade do Kuwait','Ásia',['País pequeno e rico em petróleo','Tem torres de água famosas na capital','Faz um calor absurdo no verão']],
+  ['il','Israel','Jerusalém','Ásia',['Tem o Mar Morto, onde a gente boia sem esforço','Jerusalém é sagrada para três religiões','Fala hebraico']],
+  ['jo','Jordânia','Amã','Ásia',['Tem a cidade de Petra esculpida na pedra rosa','Também tem beirada do Mar Morto','Quase tudo é deserto']],
+  ['lb','Líbano','Beirute','Ásia',['O cedro da bandeira é uma árvore gigante','Fica na beira do Mediterrâneo','O homus e o quibe vêm daqui']],
+  ['sy','Síria','Damasco','Ásia',['A capital é uma das cidades mais antigas do mundo','Fica ao lado da Turquia e do Líbano','Tem castelos de cruzados']],
+  ['tr','Turquia','Ancara','Ásia',['Fica em dois continentes ao mesmo tempo','Tem balões voando sobre a Capadócia','A cidade de Istambul tem a Mesquita Azul']],
+  ['az','Azerbaijão','Baku','Ásia',['Chamam de "terra do fogo"','Fica na beira do Mar Cáspio','Tem três torres em forma de chama na capital']],
+  ['ge','Geórgia','Tbilisi','Ásia',['Fica nas montanhas do Cáucaso','Dizem que o vinho foi inventado aqui','O alfabeto é bem diferente e arredondado']],
+  ['am','Armênia','Erevan','Ásia',['Tem o monte Ararat no horizonte','Foi o primeiro país cristão do mundo','Fica no Cáucaso, perto da Turquia']],
+  ['om','Omã','Mascate','Ásia',['Tem desertos e também montanhas','Produz incenso perfumado','Fica na pontinha da península Arábica']],
+  ['ye','Iêmen','Sanaa','Ásia',['Tem casas de barro que parecem arranha-céus antigos','A ilha de Socotra tem árvores que parecem guarda-chuvas','Fica no sul da península Arábica']],
+  ['bt','Butão','Timbu','Ásia',['Mede a "Felicidade Interna Bruta" em vez de só dinheiro','Tem um dragão na bandeira','Fica no meio do Himalaia']],
+  ['mv','Maldivas','Malé','Ásia',['São centenas de ilhinhas no oceano Índico','Tem bangalôs em cima da água','É o país mais plano do mundo']],
+
+  /* ============ ÁFRICA ============ */
+  ['eg','Egito','Cairo','África',['Tem as pirâmides e a Esfinge','O rio Nilo corta o país','Os faraós eram reis daqui']],
+  ['ma','Marrocos','Rabat','África',['Tem mercados coloridos chamados souk','Parte do deserto do Saara fica aqui','Fica bem pertinho da Espanha']],
+  ['dz','Argélia','Argel','África',['É o maior país da África','A maior parte é deserto do Saara','Fala árabe e também francês']],
+  ['tn','Tunísia','Túnis','África',['Partes de Star Wars foram filmadas no deserto daqui','Tem as ruínas da antiga Cartago','Fica na beira do Mediterrâneo']],
+  ['ly','Líbia','Trípoli','África',['Quase todo coberto pelo deserto do Saara','Fica na costa norte da África','Tem muito petróleo']],
+  ['sd','Sudão','Cartum','África',['Tem mais pirâmides que o Egito!','Os dois rios Nilo se encontram na capital','Fica no nordeste da África']],
+  ['et','Etiópia','Adis Abeba','África',['Dizem que o café foi descoberto aqui','Tem igrejas escavadas na rocha','Nunca foi colonizada por europeus']],
+  ['ke','Quênia','Nairóbi','África',['Famoso pelos safáris com leões e girafas','Tem corredores de maratona campeões','A grande migração dos gnus passa por aqui']],
+  ['tz','Tanzânia','Dodoma','África',['Tem o Kilimanjaro, a montanha mais alta da África','A ilha de Zanzibar fica aqui','O parque Serengeti é cheio de bichos']],
+  ['ug','Uganda','Campala','África',['Tem gorilas das montanhas','Fica na beira do lago Vitória','Chamam de "a pérola da África"']],
+  ['rw','Ruanda','Kigali','África',['Chamam de "terra das mil colinas"','Também tem gorilas das montanhas','Sacolas plásticas são proibidas']],
+  ['so','Somália','Mogadíscio','África',['Tem a costa mais longa da África continental','Fica no "chifre" da África','Muita gente cuida de camelos']],
+  ['ng','Nigéria','Abuja','África',['É o país com mais gente da África','Tem o cinema Nollywood, enorme','Mais de 500 idiomas são falados aqui']],
+  ['gh','Gana','Acra','África',['Produz muito cacau, de onde vem o chocolate','Foi o primeiro país da África negra a ficar independente','Tem castelos antigos na costa']],
+  ['ci','Costa do Marfim','Yamoussoukro','África',['É o maior produtor de cacau do mundo','Tem uma basílica gigante na capital','Fala francês']],
+  ['sn','Senegal','Dacar','África',['Tem a ilha de Gorée, cheia de história','O lago Rosa tem água cor-de-rosa','A luta senegalesa é o esporte nacional']],
+  ['ml','Mali','Bamako','África',['Tem a cidade lendária de Timbuktu','Grandes mesquitas feitas de barro','O rio Níger corta o país']],
+  ['bf','Burkina Faso','Uagadugu','África',['O nome significa "terra dos homens honrados"','Tem um grande festival de cinema','Não tem saída para o mar']],
+  ['ne','Níger','Niamey','África',['Grande parte é deserto do Saara','Já foram achados esqueletos de dinossauros aqui','Tem o mesmo nome do rio que o atravessa']],
+  ['td','Chade','Jamena','África',['Tem um lago que dá nome ao país','Metade é deserto','Tem pinturas rupestres antiquíssimas']],
+  ['cm','Camarões','Yaundé','África',['Chamam de "África em miniatura" por ter de tudo','O time de futebol são os Leões Indomáveis','Tem um vulcão gigante perto do mar']],
+  ['ga','Gabão','Libreville','África',['Quase todo coberto de floresta','Tem elefantes que andam na praia','Fica bem em cima da linha do Equador']],
+  ['cg','República do Congo','Brazzaville','África',['A capital fica em frente à capital do país vizinho','Tem floresta tropical e gorilas','O rio Congo é enorme']],
+  ['cd','República Democrática do Congo','Kinshasa','África',['Tem a segunda maior floresta tropical do mundo','O okapi, parente da girafa, vive aqui','É um dos maiores países da África']],
+  ['ao','Angola','Luanda','África',['Fala português, como o Brasil','Tem a palanca negra, um antílope raro','Fica na costa oeste da África']],
+  ['zm','Zâmbia','Lusaca','África',['Divide as Cataratas Vitória com o Zimbábue','O rio Zambeze dá nome ao país','Cheia de parques com elefantes']],
+  ['zw','Zimbábue','Harare','África',['Tem as Cataratas Vitória','O nome vem de uma antiga cidade de pedra','Tem um pássaro de pedra na bandeira']],
+  ['mz','Moçambique','Maputo','África',['Fala português','Tem praias lindas no oceano Índico','É o único país com um fuzil na bandeira']],
+  ['mw','Malaui','Lilongue','África',['Tem um lago enorme cheio de peixes coloridos','Chamam de "o coração quente da África"','Não tem saída para o mar']],
+  ['bw','Botsuana','Gaborone',"África",['Tem o delta do Okavango, cheio de bichos','Muitos elefantes vivem aqui','Boa parte é o deserto do Kalahari']],
+  ['na','Namíbia','Windhoek','África',['Tem dunas alaranjadas gigantes em Sossusvlei','É um dos países com menos gente por km²','A costa se chama Costa dos Esqueletos']],
+  ['za','África do Sul','Pretória','África',['Tem três capitais diferentes','Nelson Mandela foi presidente aqui','Sediou a Copa do Mundo de 2010']],
+  ['mg','Madagascar','Antananarivo','África',['É uma ilha gigante com lêmures','Tem baobás, árvores que parecem de cabeça pra baixo','Quase todos os bichos daqui só existem aqui']],
+  ['cv','Cabo Verde','Praia','África',['Fala português','É um grupo de ilhas no Atlântico','A música morna é daqui, da Cesária Évora']],
+  ['gq','Guiné Equatorial','Malabo','África',['É o único país da África que fala espanhol','A capital fica numa ilha','Fica bem na linha do Equador']],
+  ['gw','Guiné-Bissau','Bissau','África',['Fala português','Tem o arquipélago dos Bijagós','Produz muita castanha de caju']],
+  ['st','São Tomé e Príncipe','São Tomé','África',['Fala português','São duas ilhas pequenininhas','Produz cacau muito bom']],
+
+  /* ============ OCEANIA ============ */
+  ['au','Austrália','Camberra','Oceania',['Terra do canguru e do coala','Tem a Grande Barreira de Corais','É um país e um continente ao mesmo tempo']],
+  ['nz','Nova Zelândia','Wellington','Oceania',['O Senhor dos Anéis foi filmado aqui','Tem o pássaro kiwi, que não voa','Os maoris fazem a dança haka']],
+  ['pg','Papua-Nova Guiné','Port Moresby','Oceania',['Mais de 800 idiomas são falados aqui','Tem aves-do-paraíso coloridas','Fica ao norte da Austrália']],
+  ['fj','Fiji','Suva','Oceania',['São centenas de ilhas no Pacífico','Água cristalina e corais','Adoram rugby']],
+  ['sb','Ilhas Salomão','Honiara','Oceania',['Arquipélago no Pacífico','Tem a maior lagoa de corais do mundo','Fica perto de Papua-Nova Guiné']],
+  ['vu','Vanuatu','Port Vila','Oceania',['Tem um vulcão que dá pra chegar bem perto','São dezenas de ilhas vulcânicas','O salto com cipó (bungee) começou aqui']],
+  ['ws','Samoa','Apia','Oceania',['Ilhas da Polinésia','As tatuagens tradicionais são famosas','Muita gente joga rugby']],
+  ['to','Tonga','Nucualofa','Oceania',['É o único reino do Pacífico, tem rei','Baleias jubarte passam por aqui','São mais de 170 ilhas']],
+  ['ki','Kiribati','Tarawa','Oceania',['É um dos primeiros lugares a ver o Ano Novo','As ilhas são bem baixinhas','Fica espalhado por um pedação do Pacífico']],
+  ['pw','Palau','Ngerulmud','Oceania',['Tem um lago cheio de águas-vivas que não ferroam','Protege quase todo o seu mar','Fica no oeste do Pacífico']],
+  ['nr','Nauru','Yaren','Oceania',['É o menor país da Oceania','Dá pra dar a volta no país de carro em meia hora','Já foi rico por causa de fosfato']],
+  ['tv','Tuvalu','Funafuti','Oceania',['Um dos menores países do mundo','O domínio .tv da internet é daqui','Está ameaçado pela subida do mar']],
+  ['mh','Ilhas Marshall','Majuro','Oceania',['São atóis de coral no Pacífico','Inventaram mapas de navegação feitos de gravetos','Quase tudo é mar']],
+  ['fm','Micronésia','Palikir','Oceania',['São centenas de ilhinhas no Pacífico','Tem a cidade de pedra de Nan Madol','O nome quer dizer "ilhas pequenas"']],
+];
+
+const PAISES = DADOS.map(d=>({ iso:d[0], nome:d[1], cap:d[2], cont:d[3], dicas:d[4], f:bandeira(d[0]) }));
+const PAIS_POR_ISO = {}; PAISES.forEach(p=>PAIS_POR_ISO[p.iso]=p);
+
+
+/* =========================================================
+   DIFICULDADE — cada pais tem um nivel (1 facil ... 4 impossivel)
+   ========================================================= */
+const NIVEL_PAIS = {
+  // 1 = FACIL: bandeiras que todo mundo conhece
+  1: ['br','ar','us','ca','mx','pt','es','fr','it','de','gb','jp','cn','au','ru','in','kr','ch','gr','nl','se','no','dk','eg','za','cu','jm','il','tr','ie','nz'],
+  // 2 = MEDIO: bastante conhecidas
+  2: ['cl','uy','py','bo','pe','co','ve','ec','be','at','fi','is','pl','cz','hu','ro','ua','hr','rs','ma','ng','ke','gh','et','sa','ae','th','vn','ph','id','my','sg','pk','bd','np','ir','iq','ar2','tn','dz','cr','pa','do','gt','hn','sv','ni','bs','bz','ht','mn','kz','lk','kh','mt','mc','va'],
+  // 3 = DIFICIL: menos conhecidas
+  3: ['gy','sr','lu','sk','bg','si','ba','al','by','lt','lv','ee','kp','la','mm','uz','af','qa','kw','jo','lb','sy','az','ge','am','om','ye','bt','mv','ly','sd','tz','ug','rw','so','ci','sn','ml','bf','cm','ga','cg','cd','ao','zm','zw','mz','bw','na','mg','cv','pg','fj'],
+  // 4 = IMPOSSIVEL: raras ou faceis de confundir
+  4: ['td','ne','gq','gw','st','mw','sb','vu','ws','to','ki','pw','nr','tv','mh','fm'],
+};
+const NIVEL_DE = {};
+Object.keys(NIVEL_PAIS).forEach(k=>NIVEL_PAIS[k].forEach(iso=>{ NIVEL_DE[iso]=parseInt(k,10); }));
+
+// bandeiras que se parecem MUITO (usadas como pegadinha no nivel impossivel)
+const PARECIDAS = [
+  ['ro','td','md'], ['id','mc','pl'], ['nl','lu','hr'], ['ie','it','ci'],
+  ['no','is','dk','fi','se'], ['sk','si','ru','rs'], ['au','nz'], ['cl','tx'],
+  ['sn','ml','gn','cm'], ['ve','co','ec'], ['ye','sy','iq','eg'], ['at','lv','pl'],
+  ['gt','sv','ni','hn'], ['bo','gh','et'], ['mc','pl','id'], ['ar','uy','gr'],
+  ['fi','is','no'], ['cz','ph'], ['ae','kw','jo','sd','ps'], ['tn','tr','dz','ma'],
+];
+const DIFICULDADES = {
+  facil:      { label:'F\u00e1cil',      icon:'\ud83d\ude0a', cor:'#43a047', tempo:20000, niveis:[1],         desc:'Bandeiras famosinhas, 20 segundos' },
+  medio:      { label:'M\u00e9dio',      icon:'\ud83d\ude42', cor:'#0091ea', tempo:15000, niveis:[1,2],       desc:'Mais pa\u00edses, 15 segundos' },
+  dificil:    { label:'Dif\u00edcil',    icon:'\ud83d\ude24', cor:'#fb8c00', tempo:10000, niveis:[2,3],       desc:'Do mesmo continente, 10 segundos' },
+  impossivel: { label:'Imposs\u00edvel', icon:'\ud83d\udc80', cor:'#e53935', tempo:7000,  niveis:[3,4],       desc:'Bandeiras parecidas, 7 segundos \u2014 boa sorte!' },
+};
+const ORDEM_DIF = ['facil','medio','dificil','impossivel'];
+let dificuldade = localStorage.getItem('pais_dif') || 'facil';
+if(!DIFICULDADES[dificuldade]) dificuldade = 'facil';
+function tempoAtual(){ return DIFICULDADES[dificuldade].tempo; }
+function paisesDaDificuldade(){
+  const ok = DIFICULDADES[dificuldade].niveis;
+  const lista = PAISES.filter(p => ok.indexOf(NIVEL_DE[p.iso] || 2) >= 0);
+  return lista.length >= 8 ? lista : PAISES;
+}
+function irmasParecidas(iso){
+  const fora = [];
+  PARECIDAS.forEach(g => { if(g.indexOf(iso) >= 0) g.forEach(x => { if(x !== iso && fora.indexOf(x) < 0) fora.push(x); }); });
+  return fora;
+}
+
+const MODOS = {
+  bandeira:   { label:'Bandeira',   icon:'🏳️', cor:'#e53935', desc:'Veja a bandeira e diga qual país é' },
+  capital:    { label:'Capital',    icon:'🏛️', cor:'#8e24aa', desc:'De que país é essa capital?' },
+  dicas:      { label:'Dicas',      icon:'🔍', cor:'#fb8c00', desc:'Quanto menos dicas usar, mais pontos' },
+  tudo:       { label:'Tudo misturado', icon:'🎲', cor:'#0091ea', desc:'Um pouco de cada modo' },
+};
+const ORDEM_MODOS = ['bandeira','capital','dicas','tudo'];
+const MODOS_SORTEIO = ['bandeira','capital','dicas'];
+
+function modoLabel(m){ const x=MODOS[m]; return x ? (x.icon+' '+x.label) : '🎲 Tudo'; }
+function seloDifHtml(){
+  const i = DIFICULDADES[dificuldade];
+  return '<span style="font-size:13px;padding:2px 8px;border-radius:9px;background:'+i.cor+';color:#fff">'+i.icon+' '+i.label+'</span>';
+}
+function seloModoHtml(m){
+  const x=MODOS[m]; if(!x) return '';
+  return `<span class="selo" style="background:${x.cor}">${x.icon} ${x.label}</span>`;
+}
+
+/* =========================================================
+   UTIL
+   ========================================================= */
+function embaralha(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+// escolhe 3 erradas de uma lista, sem repetir e sem ser a certa
+function tresErradas(lista, certa){
+  const fora=[];
+  embaralha(lista).forEach(v=>{ if(fora.length<3 && v!==certa && !fora.includes(v)) fora.push(v); });
+  return fora;
+}
+/* Monta uma pergunta do jeito que a tela sabe desenhar.
+   tipo: 'bandeira' | 'capital' | 'paisDaCapital' | 'dicas' | 'continente' */
+function montaPergunta(p){
+  // SEMPRE bandeira: mostra a bandeira e 4 nomes de pais
+  let candidatos;
+  const conhecidos = paisesDaDificuldade();   // so paises do nivel escolhido
+  if(dificuldade === 'facil'){
+    // alternativas tambem famosas, de continentes DIFERENTES (facil de eliminar)
+    candidatos = conhecidos.filter(x => x.iso !== p.iso && x.cont !== p.cont);
+    if(candidatos.length < 3) candidatos = conhecidos.filter(x => x.iso !== p.iso);
+  } else if(dificuldade === 'medio'){
+    candidatos = conhecidos.filter(x => x.iso !== p.iso);
+  } else if(dificuldade === 'dificil'){
+    candidatos = PAISES.filter(x => x.iso !== p.iso && x.cont === p.cont);
+  } else {
+    // impossivel: primeiro as bandeiras PARECIDAS, depois o mesmo continente
+    const irmas = irmasParecidas(p.iso);
+    const porIso = {}; PAISES.forEach(x => porIso[x.iso] = x);
+    candidatos = irmas.map(i => porIso[i]).filter(Boolean)
+      .concat(PAISES.filter(x => x.iso !== p.iso && x.cont === p.cont));
+  }
+  if(candidatos.length < 3) candidatos = PAISES.filter(x => x.iso !== p.iso);
+  const erradas = tresErradas(candidatos.map(x => x.nome), p.nome);
+  const resposta = p.nome;
+  const opcoes = embaralha([resposta].concat(erradas));
+  return {
+    iso:p.iso, modo:'bandeira', tipo:'bandeira', enunciado:p.f, grande:true,
+    dicas:null, opcoes, correta:opcoes.indexOf(resposta), r:resposta,
+    curio:p.dicas[0], nome:p.nome, f:p.f, cap:p.cap, cont:p.cont,
+  };
+}
+// sorteia n perguntas SEM repetir país dentro da partida
+function sorteiaPerguntas(modo, n){
+  const pool = paisesDaDificuldade();
+  return embaralha(pool).slice(0, Math.min(n, pool.length)).map(p=>montaPergunta(p));
+}
+function mostraMsg(txt,cor,ms){
+  const el=document.getElementById('msg');
+  el.textContent=txt; el.style.color=cor||'#fff'; el.style.display='block';
+  clearTimeout(el._t); el._t=setTimeout(()=>el.style.display='none', ms||1800);
+}
+function soltaConfete(n){
+  n=n||30;
+  const em=['🎉','🎊','⭐','🍄','🏆','✨','🌍','🧭'];
+  for(let i=0;i<n;i++){
+    const c=document.createElement('div');
+    c.className='confete'; c.textContent=em[Math.floor(Math.random()*em.length)];
+    c.style.left=Math.random()*100+'vw';
+    c.style.animationDuration=(1.5+Math.random()*2)+'s';
+    c.style.fontSize=(18+Math.random()*20)+'px';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),3800);
+  }
+}
+function mostraCombo(n){
+  const d=document.createElement('div'); d.className='combo';
+  d.textContent = n>=5 ? `🔥 COMBO x${n} INSANO!` : `🔥 COMBO x${n}!`;
+  document.body.appendChild(d); setTimeout(()=>d.remove(),1200);
+}
+let audioCtx=null;
+function som(freq,dur,tipo){
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type=tipo||'sine'; o.frequency.value=freq;
+    o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.15,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+(dur||0.2));
+    o.start(); o.stop(audioCtx.currentTime+(dur||0.2));
+  }catch(e){}
+}
+function somAcerto(){ som(600,0.1); setTimeout(()=>som(800,0.12),90); setTimeout(()=>som(1000,0.2),190); }
+function somErro(){ som(160,0.35,'sawtooth'); }
+function somTique(){ som(900,0.05,'triangle'); }
+function somCombo(){ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>som(f,0.12,'square'),i*70)); }
+function somMoeda(){ som(1200,0.08,'square'); setTimeout(()=>som(1600,0.15,'square'),80); }
+
+function mostraTela(id){
+  document.querySelectorAll('.tela').forEach(t=>t.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+
+/* =========================================================
+   MOEDAS / ÁLBUM / PERSISTÊNCIA (prefixo pais_)
+   ========================================================= */
+let moedas = parseInt(localStorage.getItem('pais_moedas')||'0',10);
+let recorde = parseInt(localStorage.getItem('pais_recorde')||'0',10);
+let album = {};
+try{ album = JSON.parse(localStorage.getItem('pais_album')||'{}') || {}; }catch(e){ album={}; }
+
+function salvaMoedas(){ localStorage.setItem('pais_moedas', moedas); atualizaSaldo(); }
+function salvaAlbum(){ localStorage.setItem('pais_album', JSON.stringify(album)); }
+function marcaAlbum(iso){
+  if(!iso || album[iso]) return false;
+  album[iso]=1; salvaAlbum(); return true; // true = figurinha nova
+}
+function totalAlbum(){ return PAISES.filter(p=>album[p.iso]).length; }
+function atualizaSaldo(){
+  document.getElementById('saldoTopo').textContent='🪙 '+moedas;
+  document.getElementById('recordeTxt').textContent=recorde;
+  document.getElementById('albumTopo').textContent=totalAlbum()+'/'+PAISES.length;
+}
+function abreAlbum(){
+  const grid=document.getElementById('albumGrid');
+  grid.innerHTML = PAISES.map(p=>
+    `<div class="albumItem${album[p.iso]?' tem':''}" title="${p.nome}">
+       <span class="bf">${p.f}</span>${album[p.iso]?p.nome:'???'}
+     </div>`).join('');
+  document.getElementById('albumContador').innerHTML =
+    `Você já acertou <b>${totalAlbum()}</b> de <b>${PAISES.length}</b> países! 🌍`;
+  mostraTela('telaAlbum');
+}
+
+/* =========================================================
+   PONTUAÇÃO (compartilhada solo/online)
+   acerto = 100 base + até 100 por velocidade + 10 por nível de combo
+   no modo Dicas cada dica revelada tira 25 pontos
+   ========================================================= */
+const CUSTO_LETRA = 10, CUSTO_TIRA = 15;
+const BONUS_DIF = { facil:1, medio:1.5, dificil:2.5, impossivel:4 };
+function calculaPontos(ms, combo, dicasUsadas){
+  const rapidez = Math.max(0, 1 - ms/tempoAtual());
+  const base = 100 + Math.round(rapidez*100) + Math.min(combo,10)*10;
+  const bruto = Math.max(30, base - (dicasUsadas||0)*25);
+  return Math.round(bruto * (BONUS_DIF[dificuldade] || 1));
+}
+
+/* =========================================================
+   MODO SOLO
+   ========================================================= */
+let solo = null;
+let modoEscolhido = 'tudo';
+
+function abreDificuldade(){
+  const box = document.getElementById('difBtns');
+  box.innerHTML = '';
+  ORDEM_DIF.forEach(d=>{
+    const info = DIFICULDADES[d];
+    const b = document.createElement('button');
+    b.className = 'btn nivelBtn';
+    b.style.background = info.cor;
+    const quantos = PAISES.filter(x=>info.niveis.indexOf(NIVEL_DE[x.iso]||2)>=0).length;
+    b.innerHTML = info.icon + ' ' + info.label.toUpperCase() +
+      '<br><span style="font-size:13px;opacity:.9">' + info.desc + ' · ' + quantos + ' países</span>';
+    b.onclick = ()=>escolheDificuldade(d);
+    box.appendChild(b);
+  });
+  mostraTela('telaDif');
+}
+function escolheDificuldade(d){
+  dificuldade = d;
+  localStorage.setItem('pais_dif', d);
+  const info = DIFICULDADES[d];
+  document.getElementById('qtdInfoTxt').textContent = info.icon + ' ' + info.label + ' — ' + info.desc;
+  mostraTela('telaQtd');
+}
+function abreQtd(){ abreDificuldade(); }
+function escolheQtd(){ abreDificuldade(); }
+function iniciaSolo(qtd){
+  localStorage.setItem('pais_modo', modoEscolhido);
+  localStorage.setItem('pais_qtd', qtd);
+  solo = {
+    modo:modoEscolhido, perguntas:sorteiaPerguntas(modoEscolhido, qtd),
+    idx:0, acertos:0, pontos:0, combo:0, melhorCombo:0, novosNoAlbum:0,
+    respondido:false, moedasGanhas:0, inicioRodada:0, pergAtual:null,
+  };
+  document.getElementById('hudLabelB').textContent='RECORDE 🏆';
+  document.getElementById('rankingVivo').innerHTML='';
+  document.getElementById('dicasBox').style.display='flex';
+  atualizaHudSolo();
+  mostraTela('telaJogo');
+  proximaSolo();
+}
+function atualizaHudSolo(){
+  document.getElementById('hudPts').textContent=solo.pontos;
+  document.getElementById('hudCombo').textContent=solo.combo>0?('x'+solo.combo):'0';
+  document.getElementById('hudB').textContent=recorde;
+}
+function proximaSolo(){
+  if(solo.idx>=solo.perguntas.length){ return fimSolo(); }
+  const p=solo.perguntas[solo.idx];
+  solo.pergAtual=p; solo.respondido=false;
+  document.getElementById('numPergunta').innerHTML='Pergunta '+(solo.idx+1)+'/'+solo.perguntas.length+' '+seloDifHtml();
+  mostraPergunta(p, respondeSolo);
+  solo.inicioRodada=Date.now();
+  iniciaCrono(tempoAtual(), ()=>{ if(!solo.respondido) respondeSolo(-1); });
+}
+function respondeSolo(escolha){
+  if(solo.respondido) return;
+  solo.respondido=true; paraCrono();
+  const p=solo.pergAtual;
+  const acertou = escolha===p.correta;
+  const ms=Date.now()-solo.inicioRodada;
+  marcaOpcoes(p.correta, escolha);
+  travaDicas();
+  const st=document.getElementById('statusRodada');
+  if(acertou){
+    solo.combo++; solo.melhorCombo=Math.max(solo.melhorCombo, solo.combo);
+    const pts=calculaPontos(ms, solo.combo, atual.dicasAbertas);
+    solo.pontos+=pts; solo.acertos++;
+    let ganho=5; if(solo.combo>=3) ganho+=2;
+    const novo=marcaAlbum(p.iso);
+    if(novo){ ganho+=3; solo.novosNoAlbum++; }
+    solo.moedasGanhas+=ganho; moedas+=ganho; salvaMoedas();
+    st.textContent=`✅ ${p.r}! +${pts} pontos (+${ganho} 🪙)` + (novo?' 📔 figurinha nova!':'');
+    animaCard('acertou'); somAcerto(); soltaConfete(12);
+    if(solo.combo>=2){ mostraCombo(solo.combo); if(solo.combo>=3) setTimeout(somCombo,200); }
+  } else {
+    solo.combo=0;
+    st.textContent = (escolha===-1 ? '⏰ Tempo esgotado! ' : '❌ Errou! ') + 'Era: '+p.r;
+    animaCard('errou'); somErro();
+  }
+  mostraEnsina(p);
+  atualizaHudSolo();
+  setTimeout(()=>{ solo.idx++; proximaSolo(); }, acertou?2000:3200);
+}
+// ao errar (ou acertar), sempre mostra a bandeira certa + uma curiosidade
+function mostraEnsina(p){
+  const el=document.getElementById('ensina');
+  el.style.display='block';
+  el.innerHTML=`<span class="bandeirinha">${p.f}</span>
+    <b>${p.nome}</b> — capital ${p.cap} (${p.cont})<br>
+    <span style="color:#9fdcff;">💡 ${p.curio}</span>`;
+}
+function fimSolo(){
+  paraCrono();
+  document.getElementById('ensina').style.display='none';
+  const total=solo.perguntas.length;
+  const venceu = solo.acertos >= Math.ceil(total*0.7);
+  if(venceu){ const b=10+total; moedas+=b; solo.moedasGanhas+=b; salvaMoedas(); }
+  if(solo.pontos>recorde){ recorde=solo.pontos; localStorage.setItem('pais_recorde', recorde); mostraMsg('🏆 NOVO RECORDE!','#ffe700',2200); }
+  document.getElementById('fimTitulo').textContent = venceu ? '🏆 VIAJOU O MUNDO!' : '💪 QUASE LÁ!';
+  document.getElementById('fimPodio').innerHTML='';
+  document.getElementById('fimPlacar').innerHTML = `${solo.pontos} PONTOS<br><span style="font-size:18px;color:#9fdcff;">Acertou ${solo.acertos}/${total} • melhor combo 🔥x${solo.melhorCombo}</span>`;
+  document.getElementById('fimMoedas').innerHTML =
+    `Você ganhou 🪙 ${solo.moedasGanhas} moedas nessa partida!` + (venceu?' 🎉':' Tenta de novo! 💪') +
+    `<br>📔 Álbum: <b>${totalAlbum()}/${PAISES.length}</b>` + (solo.novosNoAlbum?` (+${solo.novosNoAlbum} novas!)`:'');
+  document.getElementById('fimBotoes').innerHTML =
+    `<button class="btn verde" style="font-size:24px;padding:18px 34px;" onclick="deNovo()">🔁 DE NOVO</button>
+     <button class="btn amarelo" style="font-size:18px;margin-left:8px;" onclick="abreAlbum()">📔 Álbum</button>`;
+  if(venceu){ soltaConfete(60); somAcerto(); } else somErro();
+  atualizaSaldo();
+  mostraTela('telaFim');
+}
+function deNovo(){
+  modoEscolhido = localStorage.getItem('pais_modo')||'tudo';
+  if(!MODOS[modoEscolhido]) modoEscolhido='tudo';
+  iniciaSolo(parseInt(localStorage.getItem('pais_qtd'),10)||10);
+}
+function voltaMenu(){
+  paraCrono();
+  mpFechaWs();
+  mp.ativo=false; mp.comecou=false;
+  if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+  cgOnPara();
+  mostraTela('telaMenu');
+  atualizaSaldo();
+}
+
+/* ------- render de pergunta, dicas e cronômetro (compartilhado) ------- */
+let atual = { p:null, cb:null, usouLetra:false, usouTira:false, dicasAbertas:0, timerDica:null };
+function mostraPergunta(p, cb){
+  if(atual.timerDica){ clearInterval(atual.timerDica); atual.timerDica=null; }
+  atual={p, cb, usouLetra:false, usouTira:false, dicasAbertas:0, timerDica:null};
+  document.getElementById('statusRodada').textContent='';
+  document.getElementById('dicaTxt').textContent='';
+  document.getElementById('ensina').style.display='none';
+  const em=document.getElementById('perguntaTxt');
+  em.innerHTML=p.enunciado;
+  em.classList.toggle('bandeirona', !!p.grande);
+  em.style.animation='none'; void em.offsetWidth; em.style.animation='';
+  // modo Dicas: abre uma dica a cada 4s (quanto menos dicas, mais pontos)
+  const ld=document.getElementById('listaDicas');
+  ld.innerHTML='';
+  if(p.dicas && p.dicas.length){
+    abreProximaDica();
+    atual.timerDica=setInterval(abreProximaDica, 4000);
+  }
+  const box=document.getElementById('opcoes');
+  box.innerHTML='';
+  p.opcoes.forEach((op,i)=>{
+    const b=document.createElement('button');
+    b.className='opcao'; b.textContent=String.fromCharCode(65+i)+') '+op;
+    b.onclick=()=>cb(i);
+    box.appendChild(b);
+  });
+  liberaDicas();
+}
+function abreProximaDica(){
+  const p=atual.p; if(!p || !p.dicas) return;
+  if(atual.dicasAbertas>=p.dicas.length){
+    if(atual.timerDica){ clearInterval(atual.timerDica); atual.timerDica=null; }
+    return;
+  }
+  const d=document.createElement('div');
+  d.className='linhaDica';
+  d.textContent='💡 '+p.dicas[atual.dicasAbertas];
+  document.getElementById('listaDicas').appendChild(d);
+  atual.dicasAbertas++;
+}
+function marcaOpcoes(correta, escolha){
+  if(atual.timerDica){ clearInterval(atual.timerDica); atual.timerDica=null; }
+  document.querySelectorAll('#opcoes .opcao').forEach((b,i)=>{
+    b.disabled=true;
+    if(i===correta) b.classList.add('certa');
+    else if(i===escolha) b.classList.add('errada');
+  });
+}
+function animaCard(cls){
+  const c=document.getElementById('cardPergunta');
+  c.classList.remove('acertou','errou'); void c.offsetWidth; c.classList.add(cls);
+}
+function liberaDicas(){
+  const bl=document.getElementById('btnDicaLetra'), bt=document.getElementById('btnDicaTira');
+  bl.disabled = moedas<CUSTO_LETRA; bt.disabled = moedas<CUSTO_TIRA;
+}
+function travaDicas(){
+  document.getElementById('btnDicaLetra').disabled=true;
+  document.getElementById('btnDicaTira').disabled=true;
+}
+function dicaLetra(){
+  if(!atual.p || atual.usouLetra) return;
+  if(moedas<CUSTO_LETRA){ mostraMsg('Sem moedas suficientes 😅','#ffaa00'); return; }
+  moedas-=CUSTO_LETRA; salvaMoedas(); atual.usouLetra=true; somMoeda();
+  document.getElementById('dicaTxt').textContent='🔤 Começa com: '+atual.p.r[0].toUpperCase();
+  document.getElementById('btnDicaLetra').disabled=true;
+  liberaDicasParcial();
+}
+function dicaTira(){
+  if(!atual.p || atual.usouTira) return;
+  if(moedas<CUSTO_TIRA){ mostraMsg('Sem moedas suficientes 😅','#ffaa00'); return; }
+  moedas-=CUSTO_TIRA; salvaMoedas(); atual.usouTira=true; somMoeda();
+  const erradas = embaralha(atual.p.opcoes.map((_,i)=>i).filter(i=>i!==atual.p.correta)).slice(0,2);
+  document.querySelectorAll('#opcoes .opcao').forEach((b,i)=>{ if(erradas.includes(i)) b.classList.add('sumiu'); });
+  document.getElementById('btnDicaTira').disabled=true;
+  liberaDicasParcial();
+}
+function liberaDicasParcial(){
+  if(!atual.usouLetra) document.getElementById('btnDicaLetra').disabled = moedas<CUSTO_LETRA;
+  if(!atual.usouTira) document.getElementById('btnDicaTira').disabled = moedas<CUSTO_TIRA;
+}
+let cronoState={raf:null, fim:0, dur:0, cb:null, ultTique:0};
+function iniciaCrono(dur, cb){
+  paraCrono();
+  cronoState.dur=dur; cronoState.fim=Date.now()+dur; cronoState.cb=cb; cronoState.ultTique=0;
+  const fill=document.getElementById('cronoFill');
+  function tick(){
+    const resta=cronoState.fim-Date.now();
+    const pct=Math.max(0, resta/cronoState.dur*100);
+    fill.style.width=pct+'%';
+    const seg=Math.ceil(resta/1000);
+    if(resta>0 && seg<=3 && seg!==cronoState.ultTique){ cronoState.ultTique=seg; somTique(); }
+    if(resta<=0){ cronoState.raf=null; const c=cronoState.cb; cronoState.cb=null; if(c)c(); return; }
+    cronoState.raf=requestAnimationFrame(tick);
+  }
+  tick();
+}
+function paraCrono(){
+  if(cronoState.raf){ cancelAnimationFrame(cronoState.raf); cronoState.raf=null; }
+  cronoState.cb=null;
+}
+
+/* =========================================================
+   MODO ONLINE COM AMIGOS — mesmo protocolo do emojiquiz/ e quiz/
+   Host é autoritativo: escolhe perguntas, recebe respostas, calcula placar.
+   ========================================================= */
+const MP_API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+const MP_WS  = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=pais';
+const MP_MAX = 6;
+let mp = { ativo:false, comecou:false, ws:null, sala:'', souHost:false, meuNome:'',
+  jogadores:[], cfgModo:'tudo', cfgQtd:10,
+  perguntasHost:[], idx:0, respostas:{}, placar:{}, combos:{}, respondido:false, inicioRodada:0,
+  idxAtual:-1, corretaAtual:-1, roundTimer:null, _decidindo:false,
+  lastMsg:0, pollConvites:null, ping:null, vigia:null, checaSala:null };
+
+function mpLogado(){ return !!localStorage.getItem('cg_usuario'); }
+
+/* ===== cgOn: status ONLINE/OFFLINE dos amigos (bolinha + convite offline) ===== */
+var cgOnStatus = {}, cgOnTimer = null, cgOnCtx = null;
+function cgOnPara(){ if(cgOnTimer){ clearInterval(cgOnTimer); cgOnTimer = null; } cgOnCtx = null; }
+function cgOnPonto(n){
+    var s = cgOnStatus[n];
+    var cor = s === true ? '#00e05a' : (s === false ? '#ff3344' : '#777');
+    var brilho = s === true ? 'box-shadow:0 0 7px #00e05a;' : '';
+    return '<span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:' + cor + ';' + brilho + 'vertical-align:middle;margin-right:5px;"></span>';
+}
+function cgOnTag(n){
+    var s = cgOnStatus[n];
+    if(s === undefined) return '';
+    return '<span style="font-size:12px;color:' + (s ? '#00e05a' : '#ff3344') + ';margin-left:5px;">' + (s ? 'online' : 'offline') + '</span>';
+}
+function cgOnOrdena(lista){
+    return lista.slice().sort(function(a,b){ return (cgOnStatus[b] === true ? 1 : 0) - (cgOnStatus[a] === true ? 1 : 0); });
+}
+function cgOnPinta(){
+    if(!cgOnCtx) return;
+    var el = document.getElementById(cgOnCtx.id); if(!el){ cgOnPara(); return; }
+    var alvo = el.querySelector('.cgOnLista'); if(!alvo){ cgOnPara(); return; }
+    alvo.innerHTML = cgOnOrdena(cgOnCtx.amigos).map(cgOnCtx.linha).join('');
+}
+async function cgOnBusca(){
+    if(!cgOnCtx) return;
+    try{
+        var d = await mpApi({acao:'online', nomes: cgOnCtx.amigos});
+        if(d && d.online){
+            for(var k in d.online) cgOnStatus[k] = !!d.online[k];
+            cgOnPinta();
+        }
+    }catch(e){}
+}
+// liga o polling de 20s; para sozinho quando o container sai da tela (não vaza timer)
+function cgOnLiga(id, amigos, linha){
+    cgOnPara();
+    if(!mpLogado() || !amigos || !amigos.length) return;
+    cgOnCtx = { id: id, amigos: amigos, linha: linha };
+    cgOnBusca();
+    cgOnTimer = setInterval(function(){
+        if(!cgOnCtx || !document.getElementById(cgOnCtx.id)){ cgOnPara(); return; }
+        cgOnBusca();
+    }, 20000);
+}
+function cgOnAvisoOffline(d){
+    if(!d || !d.offline) return false;
+    var nome = d.alvo || 'seu amigo';
+    cgOnStatus[nome] = false; cgOnPinta();
+    var html = '<div class="cg-tit">📨 Convite guardado</div>' +
+        '<div style="font-size:14px;margin:6px 0;">O(a) <b>' + nome + '</b> está offline agora 😴 — ele(a) vai ver o convite quando entrar no site!</div>' +
+        '<button class="no">OK</button>';
+    if(window.cgNotifCard){
+        var c = window.cgNotifCard(html);
+        var b = (c && c.querySelector) ? c.querySelector('.no') : null;
+        if(b) b.onclick = function(){ c.remove(); };
+        setTimeout(function(){ if(c && c.parentNode) c.remove(); }, 9000);
+    } else if(typeof mostraMsg === 'function'){
+        mostraMsg('📨 Convite enviado! Mas ' + nome + ' está offline 😴 — vai ver quando entrar no site.', '#ffd34d', 4000);
+    }
+    return true;
+}
+
+async function mpApi(payload){
+  const r = await fetch(MP_API, { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(Object.assign({
+      nome: localStorage.getItem('cg_usuario'),
+      senhaHash: localStorage.getItem('cg_senhaHash')
+    }, payload)) });
+  return r.json();
+}
+function abreOnline(){
+  mostraTela('telaOnline');
+  mpFechaWs();
+  const area=document.getElementById('onlineArea');
+  if(!mpLogado()){
+    area.innerHTML=`<div class="card"><p style="font-size:20px;">🔒 Faça login na sua conta pra jogar online com amigos!</p>
+      <p class="sub" style="margin-top:10px;">Volte pra página inicial e entre na sua conta 😉</p></div>`;
+    return;
+  }
+  area.innerHTML=`<div class="card">
+      <button class="btn verde" style="width:100%;margin:6px 0;font-size:19px;" onclick="mpCriarSala()">➕ CRIAR SALA</button>
+      <button class="btn azul" style="width:100%;margin:6px 0;font-size:19px;" onclick="mpVerConvites()">📬 MEUS CONVITES</button>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+        <input class="codigo" id="inputCodigo" maxlength="6" placeholder="CÓDIGO">
+        <button class="btn laranja" onclick="mpEntrarPorCodigo()">🚪 ENTRAR</button>
+      </div>
+    </div>
+    <div id="mpArea"></div>`;
+}
+function mpCodigoSala(){
+  const L='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s='';
+  for(let i=0;i<6;i++) s+=L[Math.floor(Math.random()*L.length)];
+  return s;
+}
+function mpEntrarPorCodigo(){
+  const v=(document.getElementById('inputCodigo').value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(v.length<4){ mostraMsg('Digite o código da sala 😉','#ffaa00'); return; }
+  mpEntrarSala(v);
+}
+async function mpCriarSala(){
+  if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+  const sala=mpCodigoSala();
+  mpConecta(sala, true);
+  const area=document.getElementById('mpArea');
+  area.innerHTML=`<div class="card">
+    <p class="sub">Código da sala (passe pros amigos):</p>
+    <div class="codigoGrande">${sala}</div>
+    <p style="color:#00ccff;margin:6px 0;">⏳ esperando amigos entrarem... (máx ${MP_MAX})</p>
+    <div id="salaJogadores"></div>
+    <div class="card" style="margin:10px 0;padding:10px;">
+      <p class="sub" style="margin-bottom:6px;">🎯 Modo:</p>
+      <p class="sub" style="margin:10px 0 6px;">🔢 Perguntas:</p>
+      <div id="cfgQtdBox" style="display:flex;gap:6px;justify-content:center;"></div>
+    </div>
+    <div id="mpAmigos"><p>carregando seus amigos...</p></div>
+    <div id="botaoComeca"></div>
+  </div>`;
+  renderSalaJogadores();
+  renderConfigOnline();
+  try{
+    const d=await mpApi({acao:'entrar'});
+    const amigos=d.amigos||[];
+    const el=document.getElementById('mpAmigos'); if(!el) return;
+    const cgOnLinha = a =>
+      `<div class="amigoLinha">${cgOnPonto(a)}🌍 <b>${a}</b>${cgOnTag(a)}
+           <button class="btn pequeno" onclick="mpConvidar('${a}',this)">📨 Convidar</button></div>`;
+    el.innerHTML = amigos.length
+      ? `<h2 style="font-size:18px;margin:8px 0;">Convide um amigo:</h2><div class="cgOnLista">`+amigos.map(cgOnLinha).join('')+`</div>`
+      : `<p>Você ainda não tem amigos adicionados 😅 Passe o código da sala!</p>`;
+    cgOnLiga('mpAmigos', amigos, cgOnLinha);
+  }catch(e){
+    const el=document.getElementById('mpAmigos'); if(el) el.innerHTML='<p>Não deu pra carregar os amigos 😢 Passe o código da sala!</p>';
+  }
+}
+function renderConfigOnline(){
+  const b2=document.getElementById('cfgQtdBox');
+  if(!b1||!b2) return;
+  b2.innerHTML=[10,15,20].map(q=>`<button class="btn pequeno${mp.cfgQtd===q?' amarelo':''}" onclick="setCfgQtd(${q})">${q}</button>`).join('');
+}
+function setCfgQtd(q){ mp.cfgQtd=q; renderConfigOnline(); }
+function renderSalaJogadores(){
+  const el=document.getElementById('salaJogadores'); if(!el) return;
+  el.innerHTML=`<p style="margin:8px 0;">Jogadores (${mp.jogadores.length}/${MP_MAX}):</p>`+
+    mp.jogadores.map((n,i)=>`<span class="jogador">${i===0?'👑':'🌍'} ${n}</span>`).join('');
+  const bc=document.getElementById('botaoComeca');
+  if(bc){
+    if(mp.souHost && mp.jogadores.length>=2)
+      bc.innerHTML=`<button class="btn verde" style="margin-top:12px;font-size:20px;" onclick="mpHostComeca()">▶️ COMEÇAR</button>`;
+    else if(mp.souHost)
+      bc.innerHTML=`<p class="sub" style="margin-top:10px;">Precisa de pelo menos 2 jogadores 🙂</p>`;
+    else
+      bc.innerHTML=`<p class="sub" style="margin-top:10px;">Esperando o host começar... 🎮</p>`;
+  }
+}
+async function mpConvidar(alvo, btn){
+  btn.disabled=true; btn.textContent='...';
+  try{
+    const d=await mpApi({acao:'convidar', alvo, sala:mp.sala, jogo:'pais'});
+    if(d.ok){
+      if(d.offline){ btn.textContent='📨 Convite guardado'; cgOnAvisoOffline(Object.assign({alvo}, d)); }
+      else btn.textContent='✅ Convidado!';
+    }
+    else { btn.textContent='😢 não deu'; btn.disabled=false; mostraMsg(d.erro||d.message||'Não deu pra convidar 😢','#ffaa00',2500); }
+  }catch(e){ btn.textContent='😢 erro'; btn.disabled=false; }
+}
+function mpVerConvites(){
+  mpFechaWs();
+  cgOnPara();
+  const area=document.getElementById('mpArea');
+  area.innerHTML=`<div class="card"><h2>📬 Meus convites</h2><div id="mpConvites"><p>procurando convites...</p></div></div>`;
+  const busca=async ()=>{
+    try{
+      const d=await mpApi({acao:'convites'});
+      const el=document.getElementById('mpConvites'); if(!el) return;
+      const agora=Date.now();
+      const cs=(d.convites||[]).filter(c=>agora-(c.ts||0)<30000 && (c.jogo==='pais'||!c.jogo));
+      el.innerHTML = cs.length ? cs.map(c=>{
+        const resta=Math.max(0,Math.ceil((30000-(agora-(c.ts||0)))/1000));
+        return `<div class="conviteLinha">🌍 <b>${c.de}</b> te chamou!
+          <span><button class="btn pequeno verde" onclick="mpEntrarSala('${c.sala}')">ENTRAR</button>
+          <span style="color:#ffaa00;">⏱️ ${resta}s</span></span></div>`;
+      }).join('') : '<p>Nenhum convite ainda... peça pro seu amigo criar uma sala! 😄</p>';
+    }catch(e){}
+  };
+  busca();
+  if(mp.pollConvites) clearInterval(mp.pollConvites);
+  mp.pollConvites=setInterval(busca,1000);
+}
+function mpEntrarSala(sala){
+  if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+  const area=document.getElementById('mpArea');
+  if(area) area.innerHTML=`<div class="card"><p style="color:#00ccff;">⏳ Entrando na sala <b>${sala}</b>...</p>
+    <div id="salaJogadores"></div><div id="botaoComeca"></div></div>`;
+  mpConecta(sala, false);
+}
+
+/* ------- conexão ------- */
+function mpConecta(sala, souHost){
+  mpFechaWs();
+  mp.sala=sala; mp.souHost=souHost;
+  mp.meuNome=localStorage.getItem('cg_usuario')||'VOCÊ';
+  mp.jogadores = souHost ? [mp.meuNome] : [];
+  mp.comecou=false; mp.ativo=false;
+  mp.ws=new WebSocket(MP_WS);
+  mp.ws.onopen=()=>{
+    mp.lastMsg=Date.now();
+    mpEnvia({t:'oi', nome:mp.meuNome});
+    if(!souHost){
+      if(mp.checaSala) clearTimeout(mp.checaSala);
+      mp.checaSala=setTimeout(()=>{ if(!mp.comecou && mp.jogadores.length<=1) mpDesliga('🚪 SALA INDISPONÍVEL!'); }, 8000);
+    }
+    mp.ping=setInterval(()=>mpEnvia({t:'ping'}),4000);
+    mp.vigia=setInterval(()=>{ if(mp.ativo && Date.now()-mp.lastMsg>12000) mpDesliga('🚪 SALA INDISPONÍVEL! Alguém saiu.'); },2000);
+  };
+  mp.ws.onmessage=mpRecebe;
+  mp.ws.onclose=()=>{
+    if(mp.checaSala){ clearTimeout(mp.checaSala); mp.checaSala=null; }
+    if(mp.ativo) mpDesliga('🚪 SALA INDISPONÍVEL!');
+  };
+}
+function mpEnvia(o){
+  if(mp.ws && mp.ws.readyState===1)
+    mp.ws.send(JSON.stringify(Object.assign({acao:'mp', sala:mp.sala}, o)));
+}
+function mpRecebe(ev){
+  let m; try{ m=JSON.parse(ev.data); }catch(e){ return; }
+  if(!m || m.sala!==mp.sala) return; // ignora sala diferente
+  mp.lastMsg=Date.now();
+  switch(m.t){
+    case 'ping': return;
+    case 'oi':
+      if(mp.checaSala){ clearTimeout(mp.checaSala); mp.checaSala=null; }
+      if(mp.souHost && !mp.comecou){
+        if(!mp.jogadores.includes(m.nome) && mp.jogadores.length<MP_MAX) mp.jogadores.push(m.nome);
+        mpEnvia({t:'jogadores', lista:mp.jogadores});
+        renderSalaJogadores();
+      }
+      return;
+    case 'jogadores':
+      if(!mp.souHost){ mp.jogadores=m.lista||[]; renderSalaJogadores(); }
+      return;
+    case 'comeca':
+      if(!mp.souHost && !mp.comecou) mpComecaConvidado(m);
+      return;
+    case 'pergunta':
+      if(!mp.souHost) mpMostraPergunta(m);
+      return;
+    case 'resposta':
+      if(mp.souHost) mpHostRecebeResposta(m);
+      return;
+    case 'placar':
+      if(!mp.souHost) mpAplicaPlacar(m);
+      return;
+    case 'fim':
+      if(!mp.souHost) mpFim(m.ranking);
+      return;
+  }
+}
+
+/* ------- início ------- */
+function mpHostComeca(){
+  if(!mp.souHost || mp.jogadores.length<2) return;
+  mp.perguntasHost = sorteiaPerguntas(mp.cfgModo, mp.cfgQtd);
+  mp.idx=0; mp.placar={}; mp.combos={};
+  mp.jogadores.forEach(n=>{ mp.placar[n]=0; mp.combos[n]=0; });
+  mpEnvia({t:'comeca', jogadores:mp.jogadores, total:mp.perguntasHost.length, modo:mp.cfgModo});
+  mpIniciaJogoUI(mp.jogadores, mp.perguntasHost.length);
+  setTimeout(mpHostEnviaPergunta, 1900);
+}
+function mpComecaConvidado(m){
+  mp.jogadores=m.jogadores||mp.jogadores;
+  mp.placar={}; mp.jogadores.forEach(n=>mp.placar[n]=0);
+  mpIniciaJogoUI(mp.jogadores, m.total||10);
+}
+function mpIniciaJogoUI(jogadores, total){
+  mp.comecou=true; mp.ativo=true; mp.total=total; mp.meuCombo=0; mp.meusPts=0;
+  if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+  document.getElementById('hudLabelB').textContent='JOGADORES 👥';
+  document.getElementById('hudB').textContent=jogadores.length;
+  document.getElementById('hudPts').textContent='0';
+  document.getElementById('hudCombo').textContent='0';
+  document.getElementById('dicasBox').style.display='none'; // online: sem dicas pagas, é justo pra todos
+  document.getElementById('telaFim').dataset.online='1';
+  renderRankingVivo([]);
+  mostraTela('telaJogo');
+  mostraMsg(`🌍 ${jogadores.length} jogadores! Boa sorte!`, '#fff', 1800);
+}
+
+/* ------- rodadas (host autoritativo) ------- */
+function mpHostEnviaPergunta(){
+  if(!mp.ativo || !mp.souHost) return;
+  if(mp.idx>=mp.perguntasHost.length) return mpHostFim();
+  const p=mp.perguntasHost[mp.idx];
+  mp.respostas={}; mp._decidindo=false;
+  const msg={t:'pergunta', idx:mp.idx, total:mp.perguntasHost.length, p:p};
+  mpEnvia(msg);
+  mpMostraPergunta(msg);
+  // timer autoritativo: tempo da pergunta + folga pra rede
+  if(mp.roundTimer) clearTimeout(mp.roundTimer);
+  mp.roundTimer=setTimeout(mpHostDecideRodada, tempoAtual()+2500);
+}
+function mpMostraPergunta(m){
+  const p=m.p;
+  mp.respondido=false; mp.idxAtual=m.idx; mp.corretaAtual=p.correta; mp.pergAtual=p;
+  document.getElementById('numPergunta').innerHTML='Pergunta '+(m.idx+1)+'/'+m.total+' '+seloDifHtml();
+  renderRankingVivo([]);
+  mostraPergunta(p, (i)=>mpResponde(i));
+  mp.inicioRodada=Date.now();
+  iniciaCrono(tempoAtual(), ()=>{ if(!mp.respondido) mpResponde(-1); });
+}
+function mpResponde(escolha){
+  if(mp.respondido) return;
+  mp.respondido=true; paraCrono();
+  const p=mp.pergAtual;
+  const acertou = escolha===mp.corretaAtual;
+  const ms=Date.now()-mp.inicioRodada;
+  marcaOpcoes(mp.corretaAtual, escolha);
+  const st=document.getElementById('statusRodada');
+  st.textContent = acertou ? '✅ Acertou! Esperando os outros...' : (escolha===-1?'⏰ Tempo esgotado! ':'❌ Errou! ')+'Era: '+p.r;
+  if(acertou){ animaCard('acertou'); somAcerto(); if(marcaAlbum(p.iso)) mostraMsg('📔 Figurinha nova no álbum!','#00ff88',1600); }
+  else { animaCard('errou'); somErro(); }
+  mostraEnsina(p);
+  const r={t:'resposta', idx:mp.idxAtual, nome:mp.meuNome, correta:acertou, ms};
+  if(mp.souHost) mpHostRecebeResposta(r); else mpEnvia(r);
+}
+function mpHostRecebeResposta(m){
+  if(m.idx!==mp.idx || mp._decidindo) return;
+  if(mp.respostas[m.nome]) return; // já respondeu
+  mp.respostas[m.nome]={correta:!!m.correta, ms:m.ms||tempoAtual()};
+  // ranking ao vivo: quem já respondeu
+  const parcial={t:'placar', parcial:true, idx:mp.idx, placar:mp.placar, responderam:Object.keys(mp.respostas)};
+  mpEnvia(parcial); mpAplicaPlacar(parcial);
+  if(mp.jogadores.every(n=>mp.respostas[n])) mpHostDecideRodada();
+}
+function mpHostDecideRodada(){
+  if(mp._decidindo || !mp.ativo) return;
+  mp._decidindo=true;
+  if(mp.roundTimer){ clearTimeout(mp.roundTimer); mp.roundTimer=null; }
+  const ganhos={};
+  mp.jogadores.forEach(n=>{
+    const r=mp.respostas[n];
+    if(r && r.correta){
+      mp.combos[n]=(mp.combos[n]||0)+1;
+      const pts=calculaPontos(r.ms, mp.combos[n], 0);
+      mp.placar[n]=(mp.placar[n]||0)+pts; ganhos[n]=pts;
+    } else { mp.combos[n]=0; ganhos[n]=0; }
+  });
+  const msg={t:'placar', parcial:false, idx:mp.idx, placar:mp.placar, ganhos, combos:mp.combos, correta:mp.corretaAtual};
+  mpEnvia(msg); mpAplicaPlacar(msg);
+  mp.idx++;
+  if(mp.idx>=mp.perguntasHost.length) setTimeout(mpHostFim, 2600);
+  else setTimeout(mpHostEnviaPergunta, 2600);
+}
+function mpHostFim(){
+  const ranking=Object.entries(mp.placar).sort((a,b)=>b[1]-a[1]).map(([nome,pts])=>({nome,pts}));
+  mpEnvia({t:'fim', ranking});
+  mpFim(ranking);
+}
+
+/* ------- placar / ranking (todos) ------- */
+function mpAplicaPlacar(m){
+  mp.placar=m.placar||mp.placar;
+  if(m.parcial){
+    renderRankingVivo(m.responderam||[]);
+    return;
+  }
+  const ganho=(m.ganhos||{})[mp.meuNome]||0;
+  mp.meusPts=mp.placar[mp.meuNome]||0;
+  mp.meuCombo=(m.combos||{})[mp.meuNome]||0;
+  document.getElementById('hudPts').textContent=mp.meusPts;
+  document.getElementById('hudCombo').textContent=mp.meuCombo>0?('x'+mp.meuCombo):'0';
+  if(ganho>0){
+    document.getElementById('statusRodada').textContent=`✅ +${ganho} pontos!`;
+    soltaConfete(10);
+    if(mp.meuCombo>=2){ mostraCombo(mp.meuCombo); if(mp.meuCombo>=3) somCombo(); }
+  }
+  renderRankingVivo(mp.jogadores);
+}
+function renderRankingVivo(responderam){
+  const box=document.getElementById('rankingVivo');
+  if(!mp.ativo){ box.innerHTML=''; return; }
+  const ordem=Object.entries(mp.placar).sort((a,b)=>b[1]-a[1]);
+  const medalhas=['🥇','🥈','🥉'];
+  box.innerHTML=ordem.map(([n,p],i)=>
+    `<span class="rankItem${n===mp.meuNome?' eu':''}${responderam.includes(n)?' ok':''}">${medalhas[i]||'•'} ${n}: <b>${p}</b>${responderam.includes(n)?' ✔':''}</span>`).join('');
+}
+function mpFim(ranking){
+  paraCrono();
+  document.getElementById('ensina').style.display='none';
+  mp.ativo=false; mp.comecou=false;
+  if(mp.roundTimer){ clearTimeout(mp.roundTimer); mp.roundTimer=null; }
+  const minhaPos=ranking.findIndex(r=>r.nome===mp.meuNome);
+  const venci = minhaPos===0 && ranking.length>1 && (ranking.length<2 || ranking[0].pts>ranking[1].pts);
+  const empate = ranking.length>1 && ranking[0].pts===ranking[1].pts && ranking[0].pts>0 && (ranking[minhaPos]||{}).pts===ranking[0].pts;
+  // moedas por participar: 1º ganha 30, 2º 20, 3º 10, resto 5
+  const premio=[30,20,10][minhaPos]!==undefined?[30,20,10][minhaPos]:5;
+  moedas+=premio; salvaMoedas();
+  document.getElementById('fimTitulo').textContent = venci ? '🏆 VOCÊ VENCEU!' : empate ? '🤝 EMPATE!' : `${['🥇','🥈','🥉'][minhaPos]||'🎖️'} Você ficou em ${minhaPos+1}º!`;
+  document.getElementById('fimPodio').innerHTML=podioHtml(ranking);
+  document.getElementById('fimPlacar').innerHTML=ranking.slice(3).map((r,i)=>`<div class="medalha">${i+4}º <b>${r.nome}</b> — ${r.pts} pts</div>`).join('');
+  document.getElementById('fimMoedas').innerHTML=`Você ganhou 🪙 ${premio} moedas!<br>📔 Álbum: <b>${totalAlbum()}/${PAISES.length}</b>`;
+  document.getElementById('fimBotoes').innerHTML = mp.souHost
+    ? `<button class="btn verde" style="font-size:22px;padding:16px 30px;" onclick="mpHostJogarDeNovo()">🔁 JOGAR DE NOVO</button>`
+    : `<p class="sub">Espere o host começar de novo ou volte ao menu 😉</p>`;
+  if(venci){ soltaConfete(70); somAcerto(); } else somErro();
+  if(!mp.souHost){ /* convidado continua conectado esperando 'comeca' */ mp.ativo=false; }
+  mostraTela('telaFim');
+}
+function podioHtml(ranking){
+  const top=[ranking[1],ranking[0],ranking[2]]; // 2º, 1º, 3º
+  const alt=[90,130,70], cor=['#b0bec5','#ffd600','#cd7f32'], med=['🥈','🥇','🥉'];
+  return `<div class="podio">`+top.map((r,i)=> r ? `<div class="podioCol">
+      <div class="podioNome">${r.nome}</div><div class="podioPts">${r.pts} pts</div>
+      <div class="podioBase" style="height:${alt[i]}px;background:${cor[i]}">${med[i]}</div>
+    </div>` : `<div class="podioCol"></div>`).join('')+`</div>`;
+}
+function mpHostJogarDeNovo(){
+  if(!mp.souHost) return;
+  if(!mp.ws || mp.ws.readyState!==1){ mostraMsg('Conexão caiu, crie uma sala nova 😅','#ffaa00'); abreOnline(); return; }
+  mpHostComeca();
+}
+function mpFechaWs(){
+  if(mp.ping){ clearInterval(mp.ping); mp.ping=null; }
+  if(mp.vigia){ clearInterval(mp.vigia); mp.vigia=null; }
+  if(mp.checaSala){ clearTimeout(mp.checaSala); mp.checaSala=null; }
+  if(mp.roundTimer){ clearTimeout(mp.roundTimer); mp.roundTimer=null; }
+  if(mp.ws){ try{ mp.ws.onclose=null; mp.ws.close(); }catch(e){} mp.ws=null; }
+}
+function mpDesliga(aviso){
+  const estava=mp.ativo || mp.comecou || document.getElementById('telaOnline').classList.contains('on');
+  mp.ativo=false; mp.comecou=false;
+  if(mp.pollConvites){ clearInterval(mp.pollConvites); mp.pollConvites=null; }
+  paraCrono();
+  mpFechaWs();
+  if(aviso) mostraMsg(aviso,'#ffaa00',2600);
+  if(estava){ mostraTela('telaMenu'); atualizaSaldo(); }
+}
+
+/* =========================================================
+   ENTRADA POR ?sala=XXXX (convite aceito)
+   ========================================================= */
+(function(){
+  const q=new URLSearchParams(location.search);
+  const salaConvite=q.get('sala');
+  if(salaConvite && mpLogado()){
+    setTimeout(()=>{
+      try{
+        abreOnline();
+        mpEntrarSala(salaConvite.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,10));
+        const de=q.get('de'); if(de) mostraMsg(`🌍 Entrando na sala de ${de}!`, '#00ff88', 2000);
+      }catch(e){}
+    }, 300);
+  }
+})();
+
+atualizaSaldo();
+</script>
+<script src="/stats.js?v=358"></script>
+<script src="/avisos.js?v=6"></script>
+<script>
+if (window.initStats) initStats('pais');
+</script>
+<script src="/mascote.js"></script>
+<script src="/idiomas.js"></script>

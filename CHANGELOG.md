@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v425 (2026-10-02)
+- JOGO NOVO: Adivinha o Pais - aparece a bandeira e voce escolhe entre 4 paises; 156 bandeiras, 4 dificuldades (Facil 20s / Medio 15s / Dificil 10s mesmo continente / Impossivel 7s com bandeiras parecidas), album de 156 bandeirinhas, moedas e modo online com amigos
+
 ## v424 (2026-10-01)
 - Corrige bolinha de online/offline cortada ao meio na lista de amigos (a foto cortava o que passava da borda; agora a bolinha fica num quadro por fora) e deixa a bolinha um pouco maior
 
