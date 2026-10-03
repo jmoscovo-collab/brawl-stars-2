@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v433 (2026-10-03)
+- MEGA SP: a tampa do bau abria de lado (a dobradica fica no eixo Z do modelo, nao no X) - agora levanta certinho
+- MEGA SP: removido o brilho amarelo em cima das caixas
+
 ## v432 (2026-10-03)
 - MEGA SP: os baus estavam praticamente invisiveis (o modelo tem 0,8 de tamanho e o quarteirao tem 100) - agora sao 8x maiores, com brilho maior e raio de abrir aumentado de 4 para 7
 - MEGA SP: o bau de boas-vindas agora nasce NA FRENTE de onde o jogador esta de verdade, inclusive pra quem ja tem jogo salvo
