@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v429 (2026-10-03)
+- Cogumelo Golf Maluco agora e GOLF MALUCO e tem 512 FASES: as 12 feitas a mao + 500 criadas por um gerador com dificuldade progressiva; 32 mundos de 16 fases em 9 temas (Jardim, Vulcao, Espaco, Gelo, Deserto, Oceano, Doces, Neon, Forja); tela de fases agora navega mundo a mundo
+
 ## v428 (2026-10-03)
 - assetlinks.json agora tem tambem a impressao digital da chave de assinatura do Google Play, pro app Android abrir em tela cheia (sem barra do navegador)
 
