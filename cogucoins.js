@@ -119,7 +119,22 @@
     itens: itens,
     atualiza: pinta,
     infinito: ehInfinito,
-    texto: texto
+    texto: texto,
+
+    // histórico dos presentes: quem te deu e pra quem você deu
+    historico: function () {
+      try { return JSON.parse(localStorage.getItem('cg_cogu_hist') || '[]') || []; }
+      catch (e) { return []; }
+    },
+    guardaNoHistorico: function (novos) {
+      if (!novos || !novos.length) return;
+      try {
+        var h = JSON.parse(localStorage.getItem('cg_cogu_hist') || '[]') || [];
+        h = novos.concat(h).slice(0, 40);
+        localStorage.setItem('cg_cogu_hist', JSON.stringify(h));
+        window.dispatchEvent(new CustomEvent('coguhist', { detail: h }));
+      } catch (e) {}
+    }
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', criaHud);
@@ -165,7 +180,7 @@
 
     var txt = document.createElement('div');
     txt.textContent = o.texto || '';
-    txt.style.cssText = 'font-size:14px; opacity:.85; line-height:1.4; margin-bottom:14px';
+    txt.style.cssText = 'font-size:14px; opacity:.85; line-height:1.5; margin-bottom:14px; white-space:pre-line';
 
     var temGrana = CC.saldo() >= preco;
 
@@ -258,20 +273,23 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
         if (!j || !j.doacoes || !j.doacoes.length) return;
-        var total = 0, de = [];
+        var total = 0, linhas = [], novas = [];
         j.doacoes.forEach(function (d) {
           var v = Math.max(0, Math.round(Number(d.valor) || 0));
           if (!v) return;
           total += v;
-          if (d.de && de.indexOf(d.de) < 0) de.push(d.de);
+          var quem = String(d.de || 'Alguém').slice(0, 20);
+          linhas.push('🍄 ' + quem + ' te deu ' + v.toLocaleString('pt-BR'));
+          novas.push({ de: quem, valor: v, ts: Number(d.ts) || Date.now(), tipo: 'recebi' });
         });
         if (!total) return;
         CC.ganhaSilencioso(total);
+        CC.guardaNoHistorico(novas);
         CC.oferece({
           emoji: '🎁',
           titulo: 'Você ganhou um presente!',
-          texto: de.join(', ') + ' te ' + (de.length > 1 ? 'doaram' : 'doou') + ' ' +
-                 total.toLocaleString('pt-BR') + ' Cogu Coins!',
+          texto: linhas.join('\n') +
+                 (linhas.length > 1 ? '\n\nTotal: 🍄 ' + total.toLocaleString('pt-BR') : ' Cogu Coins!'),
           preco: 0,
           textoBotao: 'OBRIGADO!',
           textoRecusar: 'Fechar',

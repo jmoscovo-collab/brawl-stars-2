@@ -70,6 +70,11 @@
       <div class="msg" id="msg"></div>
       <div class="dica">🔒 O que você doar sai da sua conta na hora e chega na conta da pessoa assim que ela abrir o site. Dá pra doar 20 vezes por dia.</div>
     </div>
+
+    <div class="caixa" id="cxHist" style="display:none">
+      <h2>🎁 Últimos presentes</h2>
+      <div id="hist" style="display:flex;flex-direction:column;gap:7px"></div>
+    </div>
   </div>
 </div>
 
@@ -163,6 +168,36 @@
     eMsg.className = 'msg ' + (bom ? 'ok' : 'erro');
   }
 
+  // ---- quem te deu e pra quem você deu ----
+  function pintaHistorico(){
+    var cx = document.getElementById('cxHist'), box = document.getElementById('hist');
+    if(!cx || !box || !CC.historico) return;
+    var h = CC.historico();
+    box.textContent = '';
+    if(!h.length){ cx.style.display = 'none'; return; }
+    cx.style.display = '';
+    h.slice(0, 20).forEach(function(d){
+      var recebi = d.tipo === 'recebi';
+      var li = document.createElement('div');
+      li.style.cssText = 'display:flex; align-items:center; gap:9px; background:rgba(255,255,255,.06);'+
+        'border:2px solid ' + (recebi ? 'rgba(108,255,159,.4)' : 'rgba(255,204,51,.4)') +
+        '; border-radius:13px; padding:9px 12px; font-size:14px';
+      var e = document.createElement('span');
+      e.textContent = recebi ? '🎁' : '📤';
+      e.style.fontSize = '20px';
+      var t = document.createElement('span');
+      t.style.flex = '1';
+      t.textContent = recebi ? (d.de + ' te deu') : ('Você deu pro ' + d.de);
+      var v = document.createElement('b');
+      v.style.color = recebi ? '#6cff9f' : '#ffcc33';
+      v.textContent = '🍄 ' + Number(d.valor || 0).toLocaleString('pt-BR');
+      li.append(e, t, v);
+      box.appendChild(li);
+    });
+  }
+  pintaHistorico();
+  window.addEventListener('coguhist', pintaHistorico);
+
   eDoar.onclick = async function(){
     var nome = eNome.value.trim();
     var valor = escolhido;
@@ -184,6 +219,8 @@
       if (!r.ok) throw new Error(j.erro || 'deu erro no servidor');
       diz('🎉 Mandou 🍄 ' + valor.toLocaleString('pt-BR') + ' pro ' + j.para +
           (j.online ? '! Ele está online agora.' : '! Vai chegar quando ele abrir o site.'), true);
+      CC.guardaNoHistorico([{ de: j.para, valor: valor, ts: Date.now(), tipo: 'dei' }]);
+      pintaHistorico();
       escolhido = 0;
       botoesValor.forEach(function(x){ x.classList.remove('sel'); });
     } catch (e) {
