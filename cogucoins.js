@@ -8,10 +8,25 @@
   var CHAVE = 'cg_cogucoins';
   var CHAVE_ITENS = 'cg_cogu_itens';
 
+  // essas duas contas têm Cogu Coins INFINITAS: nunca acaba e nunca desconta
+  var INFINITOS = ['samuel9', 'davi0'];
+  var INFINITO_N = 9007199254740991;   // o maior número que o navegador conta certo
+
+  function ehInfinito() {
+    try {
+      var u = (localStorage.getItem('cg_usuario') || '').trim().toLowerCase();
+      return INFINITOS.indexOf(u) >= 0;
+    } catch (e) { return false; }
+  }
+  // o texto que aparece na tela: ∞ pra quem é infinito, o número pra todo mundo
+  function texto() {
+    return ehInfinito() ? '∞' : saldo().toLocaleString('pt-BR');
+  }
+
   function leInt(k) {
     try { return parseInt(localStorage.getItem(k) || '0', 10) || 0; } catch (e) { return 0; }
   }
-  function saldo() { return leInt(CHAVE); }
+  function saldo() { return ehInfinito() ? INFINITO_N : leInt(CHAVE); }
 
   function grava(v) {
     try { localStorage.setItem(CHAVE, String(Math.max(0, Math.round(v)))); } catch (e) {}
@@ -21,15 +36,15 @@
 
   function ganha(n) {
     n = Math.round(n) || 0;
-    if (n <= 0) return saldo();
-    grava(saldo() + n);
+    if (n <= 0 || ehInfinito()) return saldo();
+    grava(leInt(CHAVE) + n);
     return saldo();
   }
 
   // só gasta se tiver; devolve true se conseguiu
   function gasta(n) {
     n = Math.round(n) || 0;
-    if (n <= 0) return true;
+    if (n <= 0 || ehInfinito()) return true;   // infinito: usa à vontade, não desconta
     if (saldo() < n) return false;
     grava(saldo() - n);
     return true;
@@ -58,7 +73,7 @@
   var hud = null;
   function pinta() {
     if (!hud) return;
-    hud.textContent = '🍄 ' + saldo().toLocaleString('pt-BR');
+    hud.textContent = '🍄 ' + texto();
   }
   function criaHud() {
     if (hud || !document.body) return;
@@ -102,7 +117,9 @@
     compra: compra,
     tem: tem,
     itens: itens,
-    atualiza: pinta
+    atualiza: pinta,
+    infinito: ehInfinito,
+    texto: texto
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', criaHud);
@@ -164,7 +181,7 @@
     var saldoTxt = document.createElement('div');
     saldoTxt.style.cssText = 'font-size:12px; opacity:.7; margin-bottom:12px';
     saldoTxt.textContent = temGrana
-      ? 'Você tem 🍄 ' + CC.saldo().toLocaleString('pt-BR')
+      ? 'Você tem 🍄 ' + CC.texto()
       : 'Faltam 🍄 ' + (preco - CC.saldo()) + ' — pegue o presente de amanhã!';
 
     var bNao = document.createElement('button');
@@ -215,39 +232,6 @@
   CC.fechaOferta = fecha;
 })();
 
-/* === PRESENTÃO DE CRIADOR ===
-   1.000.000 🍄 só pra duas contas, uma única vez cada.
-   Só vale se a pessoa estiver logada com esse nome na conta da nuvem. */
-(function () {
-  var SORTUDOS = ['samuel9', 'davi0'];
-  var VALOR = 9000000000000;   // 9 trilhões — o maior que o navegador conta sem errar
-  try {
-    var u = (localStorage.getItem('cg_usuario') || '').trim().toLowerCase();
-    if (SORTUDOS.indexOf(u) < 0) return;
-    var marca = 'cg_presentao2_' + u;
-    if (localStorage.getItem(marca)) return;       // já recebeu, não dá de novo
-    localStorage.setItem(marca, '1');
-    window.CoguCoins.ganhaSilencioso(VALOR);
-    if (document.readyState === 'loading')
-      document.addEventListener('DOMContentLoaded', avisa);
-    else avisa();
-  } catch (e) {}
-
-  function avisa() {
-    try {
-      window.CoguCoins.oferece({
-        emoji: '🍄',
-        titulo: 'PRESENTÃO!',
-        texto: 'Você ganhou 9.000.000.000.000 de Cogu Coins (nove TRILHÕES)! Só você e mais uma pessoa ganharam isso.',
-        preco: 0,
-        textoBotao: 'UHUUUL!',
-        textoRecusar: 'Fechar',
-        aoComprar: function () {},
-        aoRecusar: function () {}
-      });
-    } catch (e) {}
-  }
-})();
 
 /* === RECEBER DOAÇÃO ===
    Alguém te doou? O presente fica guardado no servidor até você abrir o site.
