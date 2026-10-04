@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>👤 Capivara Run 2 — Sombras</title>
+<meta name="description" content="Capivara Run 2: fuja das suas próprias sombras! Cada 5 cogumelos nasce um ❓ que cria mais uma sombra. Jogo grátis do Cogumelo Games.">
+<link rel="canonical" href="https://cogumelogames.com.br/capivara2/">
+<link rel="icon" href="/icons/icon-192.png">
+<script src="/cogucoins.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#0a0618;font-family:Arial,Helvetica,sans-serif;color:#fff;
+  user-select:none;-webkit-user-select:none;touch-action:none}
+#cv{display:block;width:100%;height:100%}
+.tela{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:13px;padding:20px 16px;overflow-y:auto;
+  background:linear-gradient(170deg,#1b1038,#090414)}
+.tela.off{display:none}
+h1{font-size:30px;text-align:center;line-height:1.14;text-shadow:0 4px 16px #000}
+h2{font-size:21px;color:#c08bff;text-align:center}
+.sub{font-size:14px;opacity:.85;text-align:center;max-width:430px;line-height:1.5}
+.bt{border:none;border-radius:16px;padding:14px 26px;font-size:17px;font-weight:bold;cursor:pointer;
+  font-family:inherit;background:linear-gradient(135deg,#b06bff,#6a21c7);color:#fff;min-width:210px}
+.bt.cinza{background:rgba(255,255,255,.12);color:#fff;border:2px solid rgba(255,255,255,.25)}
+.bt:disabled{background:rgba(255,255,255,.1);color:#998;cursor:default}
+#hud{position:fixed;top:0;left:0;right:0;z-index:8;display:flex;gap:7px;padding:9px 10px;
+  flex-wrap:wrap;font-size:13px;font-weight:bold;pointer-events:none;
+  background:linear-gradient(rgba(8,4,20,.8),rgba(8,4,20,0))}
+#hud .chip{background:rgba(10,5,24,.82);border:2px solid rgba(180,120,255,.45);border-radius:14px;padding:5px 11px}
+#pads{position:fixed;bottom:0;left:0;right:0;z-index:7;display:none;justify-content:space-between;
+  padding:0 14px 18px;pointer-events:none}
+#pads.on{display:flex}
+.pad{width:78px;height:78px;border-radius:50%;background:rgba(176,107,255,.22);
+  border:3px solid rgba(255,255,255,.3);color:#fff;font-size:31px;display:flex;align-items:center;
+  justify-content:center;pointer-events:auto;font-family:inherit}
+.pad:active{background:rgba(176,107,255,.5)}
+.dir{display:flex;gap:11px}
+.aviso{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%) scale(.85);z-index:9;
+  font-size:24px;font-weight:bold;text-align:center;text-shadow:0 3px 14px #000;opacity:0;
+  transition:all .25s;pointer-events:none;line-height:1.3;max-width:88vw}
+.aviso.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="hud">
+  <div class="chip" id="hPontos">🍄 0</div>
+  <div class="chip" id="hVidas">❤️❤️❤️</div>
+  <div class="chip" id="hSombras">👤 1 sombra</div>
+  <div class="chip" id="hRecorde">🏆 0</div>
+</div>
+
+<div id="pads">
+  <div class="dir">
+    <button class="pad" id="padL">◀</button>
+    <button class="pad" id="padR">▶</button>
+  </div>
+  <button class="pad" id="padJ">⤴</button>
+</div>
+
+<div class="aviso" id="aviso"></div>
+
+<div class="tela" id="tMenu">
+  <div style="font-size:72px">👤🦫</div>
+  <h1>Capivara Run 2<br><span style="font-size:18px;color:#c08bff">SOMBRAS</span></h1>
+  <div class="sub">A <b>sombra</b> repete tudo o que você fez <b>2 segundos atrás</b> — e se ela te pegar, você perde uma vida!<br><br>
+  Colete 🍄 cogumelos. A cada <b>5</b>, nasce um <b>❓</b>... e cada ❓ que você pegar <b>cria mais uma sombra</b>.
+  Quantas você aguenta?</div>
+  <button class="bt" id="btJogar">▶ CORRER</button>
+  <button class="bt cinza" id="btComo">❓ Como joga</button>
+  <a class="bt cinza" href="/capivara/" style="text-decoration:none;text-align:center;line-height:1.3">🦫 Capivara Run 1</a>
+  <a class="bt cinza" href="/" style="text-decoration:none;text-align:center;line-height:1.3">🏠 Voltar pro site</a>
+</div>
+
+<div class="tela off" id="tComo">
+  <h2>Como joga</h2>
+  <div class="sub" style="text-align:left">
+    <b>Mexer</b> — setas ⬅️ ➡️ e ⬆️ (ou espaço) pra pular. No celular use os botões.<br><br>
+    <b>A sombra</b> 👤 — ela faz exatamente o que você fez há 2 segundos. Então <b>não volte pelo seu próprio caminho!</b>
+    Se encostar nela, perde uma vida ❤️.<br><br>
+    <b>🍄 Cogumelos</b> — pegue pra fazer pontos. A cada 5 aparece um <b>❓</b>.<br><br>
+    <b>❓ Interrogação</b> — vale 5 pontos, mas <b>nasce mais uma sombra</b>. Cada sombra nova vem com um atraso
+    maior, então elas se espalham pelo mapa inteiro. Aí a coisa fica séria. 😈
+  </div>
+  <button class="bt" id="btComoOk">Entendi!</button>
+</div>
+
+<div class="tela off" id="tFim">
+  <div style="font-size:70px" id="fimEmo">💀</div>
+  <h2 id="fimTit">As sombras te pegaram!</h2>
+  <div class="sub" id="fimTxt"></div>
+  <button class="bt" id="btDeNovo">🔄 De novo!</button>
+  <button class="bt cinza" id="btMenu">🏠 Menu</button>
+</div>
+
+<script>
+(function(){
+'use strict';
+// ====================== ARENA ======================
+// o mapa é sempre 900x520 por dentro; a tela só estica ele pra caber
+var AW = 900, AH = 520, CHAO = 452;
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+var W=0, H=0, esc=1, offX=0, offY=0;
+
+function resize(){
+  var d = Math.min(window.devicePixelRatio || 1, 2);
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = Math.round(W*d); cv.height = Math.round(H*d);
+  ctx.setTransform(d,0,0,d,0,0);
+  esc = Math.min(W/AW, H/AH);
+  offX = (W - AW*esc)/2;
+  offY = (H - AH*esc)/2;
+}
+window.addEventListener('resize', resize);
+function el(id){ return document.getElementById(id); }
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+
+// ====================== SOM ======================
+var AC=null;
+function ac(){ try{ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)();
+  if(AC.state==='suspended') AC.resume(); }catch(e){} return AC; }
+function bip(f,dur,tipo,vol){
+  var a=ac(); if(!a) return;
+  try{ var o=a.createOscillator(), g=a.createGain();
+    o.type=tipo||'sine'; o.frequency.value=f;
+    g.gain.setValueAtTime(vol||0.07,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+(dur||0.14));
+    o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+(dur||0.14));
+  }catch(e){}
+}
+var snd = {
+  pulo:   function(){ bip(620,0.08,'square',0.05); },
+  pega:   function(){ bip(900,0.06,'square',0.05); setTimeout(function(){bip(1250,0.09,'square',0.04);},55); },
+  inter:  function(){ [700,900,1150,1400].forEach(function(f,i){ setTimeout(function(){bip(f,0.1,'triangle',0.06);},i*70); }); },
+  nasce:  function(){ bip(170,0.3,'sawtooth',0.07); setTimeout(function(){bip(120,0.4,'sawtooth',0.06);},150); },
+  dano:   function(){ bip(260,0.22,'sawtooth',0.08); setTimeout(function(){bip(160,0.3,'sawtooth',0.06);},120); },
+  morreu: function(){ [330,260,200,150].forEach(function(f,i){ setTimeout(function(){bip(f,0.22,'sawtooth',0.07);},i*140); }); }
+};
+
+// ====================== ESTADO ======================
+var RECORDE = 0;
+try { RECORDE = parseInt(localStorage.getItem('capivara2_recorde')||'0',10) || 0; } catch(e){}
+
+var jogando = false, t = 0;
+var pontos = 0, vidas = 3, invul = 0;
+var player = null;
+var plats = [];
+var cogus = [];          // 🍄 e o ❓
+var sombras = [];        // cada uma é { atraso, cor }
+var trilha = [];         // o caminho que você fez: { t, x, y, dir, pulando }
+var parts = [];
+var desde5 = 0;          // quantos 🍄 desde o último ❓
+var teclas = {};
+var shake = 0;
+
+var VEL = 260, PULO = 580, GRAV = 1500;
+var LARG = 38, ALT = 34;
+var ATRASO_1 = 2.0;      // a primeira sombra vem com 2 segundos de atraso
+var ATRASO_EXTRA = 1.6;  // e cada sombra nova vem 1.6s mais atrás
+var CORES = ['#b06bff','#ff6b9d','#6bd5ff','#ffd93d','#6cff9f','#ff8a3d','#ff5c5c','#8affd1'];
+
+function tAviso(){ }
+var avisoTimer;
+function aviso(txt){
+  var a = el('aviso');
+  a.innerHTML = txt;
+  a.classList.add('on');
+  clearTimeout(avisoTimer);
+  avisoTimer = setTimeout(function(){ a.classList.remove('on'); }, 1500);
+}
+
+// ====================== MAPA ======================
+function montaMapa(){
+  plats = [{ x:0, y:CHAO, w:AW, h:60, chao:true }];
+  // plataformas em grade, igual ao Capivara Run 1 — todas alcançáveis
+  var cols = 5, rows = 3, cw = 170, ch = 92, x0 = 36, y0 = 150;
+  var usadas = [];
+  var quantas = 9;
+  for(var i=0;i<quantas;i++){
+    var cel;
+    var tent = 0;
+    do { cel = Math.floor(Math.random()*cols*rows); tent++; }
+    while(usadas.indexOf(cel) >= 0 && tent < 60);
+    if(usadas.indexOf(cel) >= 0) continue;
+    usadas.push(cel);
+    var col = cel % cols, row = Math.floor(cel/cols);
+    plats.push({
+      x: x0 + col*cw + Math.random()*26,
+      y: y0 + row*ch + Math.random()*16,
+      w: 92 + Math.random()*54,
+      h: 16, chao:false
+    });
+  }
+}
+function lugarLivre(){
+  // metade das vezes em cima de uma plataforma, metade no chão
+  var fl = plats.filter(function(p){ return !p.chao; });
+  if(fl.length && Math.random() < 0.55){
+    var p = fl[Math.floor(Math.random()*fl.length)];
+    return { x: p.x + 14 + Math.random()*Math.max(8, p.w - 30), y: p.y - 26 };
+  }
+  return { x: 40 + Math.random()*(AW-80), y: CHAO - 24 - Math.random()*70 };
+}
+function novoCogu(inter){
+  var l = lugarLivre();
+  cogus.push({ x:l.x, y:l.y, r:15, inter:!!inter, bal:Math.random()*6 });
+}
+
+// ====================== PARTIDA ======================
+function comeca(){
+  ac();
+  fechaTelas();
+  montaMapa();
+  pontos = 0; vidas = 3; invul = 2; desde5 = 0; t = 0; shake = 0;
+  parts = []; cogus = []; trilha = [];
+  player = { x: AW/2, y: CHAO - ALT, vx:0, vy:0, chao:true, dir:1, anda:0 };
+  sombras = [{ atraso: ATRASO_1, cor: CORES[0] }];
+  for(var i=0;i<5;i++) novoCogu(false);
+  jogando = true;
+  try { if(window.CoguCoins) window.CoguCoins.novaPartida(); } catch(e){}
+  pintaHud();
+  aviso('Corra! A sombra vem atrás 👤');
+}
+function pintaHud(){
+  el('hPontos').textContent = '🍄 ' + pontos;
+  el('hVidas').textContent = vidas > 0 ? '❤️'.repeat(vidas) : '💀';
+  el('hSombras').textContent = '👤 ' + sombras.length + (sombras.length===1?' sombra':' sombras');
+  el('hRecorde').textContent = '🏆 ' + RECORDE;
+}
+
+// ---- onde a sombra estava naquele instante ----
+function posNaTrilha(quando){
+  if(!trilha.length) return null;
+  if(quando <= trilha[0].t) return null;          // ainda não existia
+  var fim = trilha[trilha.length-1];
+  if(quando >= fim.t) return { x:fim.x, y:fim.y, dir:fim.dir };   // nunca passa do presente
+  // busca binária no histórico
+  var lo = 0, hi = trilha.length - 1;
+  while(lo < hi){
+    var m = (lo + hi) >> 1;
+    if(trilha[m].t < quando) lo = m + 1; else hi = m;
+  }
+  var b = trilha[lo], a = trilha[Math.max(0, lo-1)];
+  if(b === a) return { x:b.x, y:b.y, dir:b.dir };
+  var f = (quando - a.t) / Math.max(0.0001, b.t - a.t);
+  return { x: a.x + (b.x-a.x)*f, y: a.y + (b.y-a.y)*f, dir: b.dir };
+}
+
+function perdeVida(){
+  if(invul > 0) return;
+  vidas--;
+  invul = 2.4;
+  shake = 1;
+  snd.dano();
+  if(navigator.vibrate){ try{ navigator.vibrate(90); }catch(e){} }
+  poeira(player.x, player.y, '#ff5c5c', 14);
+  pintaHud();
+  if(vidas <= 0) acabou();
+  else {
+    // te joga pro lugar mais longe das sombras, pra dar uma chance
+    var melhor = { x:AW/2, y:CHAO-ALT }, dist = -1;
+    for(var i=0;i<12;i++){
+      var c = { x: 60 + Math.random()*(AW-120), y: CHAO - ALT };
+      var d = 1e9;
+      sombras.forEach(function(s){
+        var p = posNaTrilha(t - s.atraso);
+        if(p) d = Math.min(d, Math.hypot(p.x-c.x, p.y-c.y));
+      });
+      if(d > dist){ dist = d; melhor = c; }
+    }
+    player.x = melhor.x; player.y = melhor.y; player.vx = 0; player.vy = 0;
+    aviso('❤️ Perdeu uma vida!');
+  }
+}
+
+function acabou(){
+  jogando = false;
+  snd.morreu();
+  try {
+    if(window.CoguCoins && window.CoguCoins.reviver(revive, fimDeVerdade, 25)) return;
+  } catch(e){}
+  fimDeVerdade();
+}
+function revive(){
+  vidas = 1; invul = 3.5;
+  // as sombras recuam: apaga o rastro recente pra elas sumirem um pouco
+  trilha = trilha.filter(function(p){ return p.t < t - 1.0; });
+  player.x = AW/2; player.y = CHAO - ALT; player.vx = 0; player.vy = 0;
+  jogando = true;
+  pintaHud();
+  aviso('❤️ Voltou! Corre!');
+}
+function fimDeVerdade(){
+  jogando = false;
+  var novo = pontos > RECORDE;
+  if(novo){ RECORDE = pontos; try{ localStorage.setItem('capivara2_recorde', String(RECORDE)); }catch(e){} }
+  el('fimEmo').textContent = novo ? '🏆' : '👤';
+  el('fimTit').textContent = novo ? 'NOVO RECORDE!' : 'As sombras te pegaram!';
+  el('fimTxt').innerHTML =
+    'Você pegou <b>' + pontos + '</b> cogumelo' + (pontos===1?'':'s') + '!<br>' +
+    'Tinha <b>' + sombras.length + '</b> sombra' + (sombras.length===1?'':'s') + ' atrás de você 👤<br>' +
+    '🏆 Recorde: <b>' + RECORDE + '</b>';
+  pintaHud();
+  abre('tFim');
+}
+
+function poeira(x,y,cor,n){
+  for(var i=0;i<n;i++) parts.push({ x:x, y:y, vx:(Math.random()-0.5)*260, vy:-Math.random()*220,
+    vida:1, cor:cor, r:2+Math.random()*4 });
+}
+
+// ====================== PASSO ======================
+function passo(dt){
+  t += dt;
+  shake = Math.max(0, shake - dt*2.5);
+  for(var i=parts.length-1;i>=0;i--){
+    var p = parts[i];
+    p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 900*dt; p.vida -= dt*1.3;
+    if(p.vida <= 0) parts.splice(i,1);
+  }
+  for(var c=0;c<cogus.length;c++) cogus[c].bal += dt*3;
+  if(!jogando) return;
+  if(invul > 0) invul -= dt;
+
+  // ---- mexer ----
+  var esq = teclas.esq, dir = teclas.dir;
+  player.vx = (esq ? -VEL : 0) + (dir ? VEL : 0);
+  if(player.vx !== 0){ player.dir = player.vx > 0 ? 1 : -1; player.anda += dt*12; }
+  if(teclas.pulo && player.chao){
+    player.vy = -PULO; player.chao = false; snd.pulo();
+    poeira(player.x, player.y + ALT/2, '#aa88ff', 5);
+  }
+  player.vy += GRAV*dt;
+  player.x += player.vx*dt;
+  player.y += player.vy*dt;
+  player.x = clamp(player.x, LARG/2, AW - LARG/2);
+
+  // ---- chão e plataformas ----
+  player.chao = false;
+  for(var k=0;k<plats.length;k++){
+    var pl = plats[k];
+    var pe = player.y + ALT/2;
+    if(player.vy >= 0 &&
+       player.x + LARG/2 > pl.x && player.x - LARG/2 < pl.x + pl.w &&
+       pe >= pl.y && pe <= pl.y + Math.max(20, pl.h) + player.vy*dt){
+      player.y = pl.y - ALT/2;
+      player.vy = 0; player.chao = true;
+    }
+  }
+  if(player.y > AH + 120){      // caiu fora do mapa
+    player.x = AW/2; player.y = 80; player.vy = 0;
+  }
+
+  // ---- grava o caminho (é isso que as sombras repetem) ----
+  trilha.push({ t:t, x:player.x, y:player.y, dir:player.dir });
+  var maisVelho = t - (ATRASO_1 + ATRASO_EXTRA*sombras.length + 4);
+  while(trilha.length > 2 && trilha[0].t < maisVelho) trilha.shift();
+
+  // ---- as sombras ----
+  for(var s=0;s<sombras.length;s++){
+    var pos = posNaTrilha(t - sombras[s].atraso);
+    sombras[s].pos = pos;
+    if(!pos || invul > 0) continue;
+    if(Math.abs(pos.x - player.x) < LARG*0.78 && Math.abs(pos.y - player.y) < ALT*0.82){
+      perdeVida();
+      break;
+    }
+  }
+
+  // ---- cogumelos ----
+  for(var g=cogus.length-1;g>=0;g--){
+    var co = cogus[g];
+    if(Math.hypot(co.x - player.x, co.y - player.y) < co.r + 20){
+      cogus.splice(g,1);
+      if(co.inter) pegouInterrogacao(co);
+      else pegouCogu(co);
+    }
+  }
+}
+
+function pegouCogu(co){
+  pontos++;
+  desde5++;
+  snd.pega();
+  poeira(co.x, co.y, '#ff9f43', 7);
+  novoCogu(false);
+  if(desde5 >= 5){
+    desde5 = 0;
+    novoCogu(true);
+    aviso('❓ Nasceu um interrogação!<br><small style="font-size:14px;opacity:.8">cuidado: ele cria uma sombra</small>');
+  }
+  pintaHud();
+}
+function pegouInterrogacao(co){
+  pontos += 5;
+  snd.inter();
+  poeira(co.x, co.y, '#ffd93d', 16);
+  // nasce mais uma sombra, com um atraso maior que a anterior
+  var n = sombras.length;
+  sombras.push({ atraso: ATRASO_1 + ATRASO_EXTRA*n, cor: CORES[n % CORES.length] });
+  setTimeout(function(){ snd.nasce(); }, 260);
+  shake = 0.8;
+  aviso('👤 Nasceu a sombra <b>' + sombras.length + '</b>!<br><small style="font-size:14px;opacity:.8">+5 cogumelos</small>');
+  pintaHud();
+}
+
+// ====================== DESENHO ======================
+function capivara(x, y, cor, alpha, dirr, anda, fantasma){
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(dirr, 1);
+  ctx.globalAlpha = alpha;
+  var bal = fantasma ? 0 : Math.sin(anda)*2.5;
+
+  if(fantasma){
+    ctx.shadowColor = cor; ctx.shadowBlur = 18;
+  }
+  // patas
+  ctx.fillStyle = fantasma ? cor : '#8a5f30';
+  ctx.beginPath(); ctx.roundRect(-13, 10 + bal, 9, 10, 4); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(5, 10 - bal, 9, 10, 4); ctx.fill();
+  // corpo
+  ctx.fillStyle = fantasma ? cor : '#a9763f';
+  ctx.beginPath(); ctx.ellipse(0, 0, 19, 13, 0, 0, 7); ctx.fill();
+  // cabeça
+  ctx.beginPath(); ctx.ellipse(12, -9, 12, 10, 0, 0, 7); ctx.fill();
+  // orelha
+  ctx.beginPath(); ctx.ellipse(8, -18, 4, 3.5, 0, 0, 7); ctx.fill();
+  // focinho
+  ctx.fillStyle = fantasma ? cor : '#c28e52';
+  ctx.beginPath(); ctx.ellipse(20, -6, 7, 5.5, 0, 0, 7); ctx.fill();
+  ctx.shadowBlur = 0;
+  // olho
+  if(!fantasma){
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(15, -12, 3.6, 0, 7); ctx.fill();
+    ctx.fillStyle = '#231405';
+    ctx.beginPath(); ctx.arc(16, -12, 2, 0, 7); ctx.fill();
+  } else {
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.beginPath(); ctx.arc(15, -12, 2.6, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function desenha(){
+  ctx.setTransform(Math.min(window.devicePixelRatio||1,2),0,0,Math.min(window.devicePixelRatio||1,2),0,0);
+  // fundo
+  var g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#1b1038'); g.addColorStop(1,'#090414');
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+  ctx.save();
+  var sx = shake > 0 ? (Math.random()-0.5)*12*shake : 0;
+  var sy = shake > 0 ? (Math.random()-0.5)*12*shake : 0;
+  ctx.translate(offX + sx, offY + sy);
+  ctx.scale(esc, esc);
+
+  // estrelinhas de fundo
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  for(var i=0;i<26;i++){
+    var ex = (i*137) % AW, ey = (i*79) % (CHAO-40);
+    ctx.beginPath(); ctx.arc(ex, ey, 1.4 + (i%3)*0.6, 0, 7); ctx.fill();
+  }
+
+  // plataformas
+  plats.forEach(function(p){
+    ctx.fillStyle = p.chao ? '#3a2a1a' : '#4a3426';
+    ctx.beginPath(); ctx.roundRect(p.x, p.y, p.w, p.h, p.chao ? 0 : 7); ctx.fill();
+    ctx.fillStyle = p.chao ? '#5d9a3d' : '#6b8f4a';
+    ctx.beginPath(); ctx.roundRect(p.x, p.y, p.w, p.chao ? 10 : 5, p.chao ? 0 : 3); ctx.fill();
+  });
+
+  // cogumelos
+  cogus.forEach(function(c){
+    var fy = c.y + Math.sin(c.bal)*4;
+    ctx.save(); ctx.translate(c.x, fy);
+    if(c.inter){
+      ctx.shadowColor = '#ffd93d'; ctx.shadowBlur = 22;
+      ctx.font = 'bold 30px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle = '#ffd93d';
+      ctx.fillText('❓', 0, 0);
+    } else {
+      ctx.font = '26px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('🍄', 0, 0);
+    }
+    ctx.restore();
+  });
+
+  // sombras: a mais antiga primeiro, pra mais nova ficar por cima
+  for(var s = sombras.length-1; s >= 0; s--){
+    var so = sombras[s];
+    var p = so.pos || posNaTrilha(t - so.atraso);
+    if(!p) continue;
+    capivara(p.x, p.y, so.cor, 0.72, p.dir || 1, 0, true);
+  }
+
+  // você
+  if(player){
+    var pisca = (invul > 0 && Math.floor(t*12) % 2 === 0);
+    capivara(player.x, player.y, '#a9763f', pisca ? 0.35 : 1, player.dir, player.anda, false);
+  }
+
+  // partículas
+  parts.forEach(function(p){
+    ctx.globalAlpha = clamp(p.vida,0,1);
+    ctx.fillStyle = p.cor;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  // moldura da arena
+  ctx.strokeStyle = 'rgba(176,107,255,0.3)'; ctx.lineWidth = 4;
+  ctx.strokeRect(0, 0, AW, AH);
+  ctx.restore();
+}
+
+// ====================== LOOP ======================
+var ultimo = 0;
+function loop(ts){
+  var dt = Math.min((ts - ultimo)/1000, 0.045);
+  ultimo = ts;
+  if(dt > 0) passo(dt);
+  desenha();
+  requestAnimationFrame(loop);
+}
+
+// ====================== CONTROLES ======================
+var MAPA_TECLAS = {
+  ArrowLeft:'esq', KeyA:'esq', ArrowRight:'dir', KeyD:'dir',
+  ArrowUp:'pulo', KeyW:'pulo', Space:'pulo'
+};
+window.addEventListener('keydown', function(e){
+  var k = MAPA_TECLAS[e.code];
+  if(!k) return;
+  e.preventDefault(); ac();
+  teclas[k] = true;
+});
+window.addEventListener('keyup', function(e){
+  var k = MAPA_TECLAS[e.code];
+  if(k) teclas[k] = false;
+});
+
+function pad(id, k){
+  var b = el(id);
+  function liga(e){ e.preventDefault(); ac(); teclas[k] = true; }
+  function desliga(e){ if(e && e.cancelable) e.preventDefault(); teclas[k] = false; }
+  b.addEventListener('touchstart', liga, {passive:false});
+  b.addEventListener('touchend', desliga, {passive:false});
+  b.addEventListener('touchcancel', desliga, {passive:false});
+  b.addEventListener('mousedown', liga);
+  window.addEventListener('mouseup', desliga);
+}
+pad('padL','esq'); pad('padR','dir'); pad('padJ','pulo');
+
+var ehToque = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+if(ehToque) el('pads').classList.add('on');
+
+// ====================== TELAS ======================
+var TELAS = ['tMenu','tComo','tFim'];
+function fechaTelas(){ TELAS.forEach(function(x){ el(x).classList.add('off'); }); }
+function abre(id){ fechaTelas(); el(id).classList.remove('off'); }
+
+el('btJogar').onclick = comeca;
+el('btDeNovo').onclick = comeca;
+el('btComo').onclick = function(){ abre('tComo'); };
+el('btComoOk').onclick = function(){ abre('tMenu'); };
+el('btMenu').onclick = function(){ abre('tMenu'); };
+
+// ====================== LIGA ======================
+resize();
+pintaHud();
+abre('tMenu');
+requestAnimationFrame(function(ts){ ultimo = ts; requestAnimationFrame(loop); });
+})();
+</script>
+<script src="/stats.js?v=358"></script>
+<script>if (window.initStats) initStats('capivara2');</script>
+<script src="/avisos.js?v=6"></script>
+<script src="/mascote.js"></script>
+<script src="/idiomas.js"></script>
+<script src="/musica.js"></script>
+<script src="/telacheia.js"></script>
+</body>
+</html>
