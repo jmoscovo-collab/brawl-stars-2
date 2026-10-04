@@ -46,7 +46,8 @@ h2{font-size:21px;color:#c08bff;text-align:center}
 <canvas id="cv"></canvas>
 
 <div id="hud">
-  <div class="chip" id="hPontos">🍄 0</div>
+  <div class="chip" id="hPontos" style="border-color:#ffd93d;color:#ffd93d">🏅 0 pontos</div>
+  <div class="chip" id="hCogus">🍄 0</div>
   <div class="chip" id="hVidas">❤️❤️❤️</div>
   <div class="chip" id="hSombras">👤 1 sombra</div>
   <div class="chip" id="hRecorde">🏆 0</div>
@@ -152,6 +153,8 @@ var sombras = [];        // cada uma é { atraso, cor }
 var trilha = [];         // o caminho que você fez: { t, x, y, dir, pulando }
 var parts = [];
 var desde5 = 0;          // quantos 🍄 desde o último ❓
+var cogusPegos = 0;      // total de cogumelos da partida
+var flutua = [];         // os '+1' que sobem na tela quando você pega algo
 var teclas = {};
 var shake = 0;
 
@@ -213,7 +216,8 @@ function comeca(){
   ac();
   fechaTelas();
   montaMapa();
-  pontos = 0; vidas = 3; invul = 2; desde5 = 0; t = 0; shake = 0;
+  pontos = 0; cogusPegos = 0; vidas = 3; invul = 2; desde5 = 0; t = 0; shake = 0;
+  flutua = [];
   parts = []; cogus = []; trilha = [];
   player = { x: AW/2, y: CHAO - ALT, vx:0, vy:0, chao:true, dir:1, anda:0 };
   sombras = [{ atraso: ATRASO_1, cor: CORES[0] }];
@@ -224,7 +228,8 @@ function comeca(){
   aviso('Corra! A sombra vem atrás 👤');
 }
 function pintaHud(){
-  el('hPontos').textContent = '🍄 ' + pontos + '  (❓ em ' + (5 - desde5) + ')';
+  el('hPontos').textContent = '🏅 ' + pontos + ' ponto' + (pontos===1?'':'s');
+  el('hCogus').textContent = '🍄 ' + cogusPegos + '  (❓ em ' + (5 - desde5) + ')';
   el('hVidas').textContent = vidas > 0 ? '❤️'.repeat(vidas) : '💀';
   el('hSombras').textContent = '👤 ' + sombras.length + (sombras.length===1?' sombra':' sombras');
   el('hRecorde').textContent = '🏆 ' + RECORDE;
@@ -299,13 +304,17 @@ function fimDeVerdade(){
   el('fimEmo').textContent = novo ? '🏆' : '👤';
   el('fimTit').textContent = novo ? 'NOVO RECORDE!' : 'As sombras te pegaram!';
   el('fimTxt').innerHTML =
-    'Você pegou <b>' + pontos + '</b> cogumelo' + (pontos===1?'':'s') + '!<br>' +
+    '🏅 <b>' + pontos + '</b> pontos<br>' +
+    '🍄 <b>' + cogusPegos + '</b> cogumelo' + (cogusPegos===1?'':'s') + '<br>' +
     'Tinha <b>' + sombras.length + '</b> sombra' + (sombras.length===1?'':'s') + ' atrás de você 👤<br>' +
     '🏆 Recorde: <b>' + RECORDE + '</b>';
   pintaHud();
   abre('tFim');
 }
 
+function sobe(txt, x, y, cor){
+  flutua.push({ txt:txt, x:x, y:y, cor:cor, vida:1 });
+}
 function poeira(x,y,cor,n){
   for(var i=0;i<n;i++) parts.push({ x:x, y:y, vx:(Math.random()-0.5)*260, vy:-Math.random()*220,
     vida:1, cor:cor, r:2+Math.random()*4 });
@@ -321,6 +330,11 @@ function passo(dt){
     if(p.vida <= 0) parts.splice(i,1);
   }
   for(var c=0;c<cogus.length;c++) cogus[c].bal += dt*3;
+  for(var fi=flutua.length-1;fi>=0;fi--){
+    flutua[fi].y -= dt*52;
+    flutua[fi].vida -= dt*0.95;
+    if(flutua[fi].vida <= 0) flutua.splice(fi,1);
+  }
   if(!jogando) return;
   if(invul > 0) invul -= dt;
 
@@ -381,9 +395,11 @@ function passo(dt){
 }
 
 function pegouCogu(co){
-  pontos++;
+  pontos++;              // cada cogumelo vale 1 ponto
+  cogusPegos++;
   desde5++;
   snd.pega();
+  sobe('+1', co.x, co.y, '#ffd93d');
   poeira(co.x, co.y, '#ff9f43', 7);
   // pegou 5? o próximo a nascer é o ❓. Senão, nasce outro 🍄. Sempre um só.
   if(desde5 >= 5){
@@ -398,6 +414,7 @@ function pegouCogu(co){
 function pegouInterrogacao(co){
   pontos += 5;
   snd.inter();
+  sobe('+5', co.x, co.y, '#ffd93d');
   poeira(co.x, co.y, '#ffd93d', 16);
   // nasce mais uma sombra, com um atraso maior que a anterior
   var n = sombras.length;
@@ -506,6 +523,16 @@ function desenha(){
     var pisca = (invul > 0 && Math.floor(t*12) % 2 === 0);
     capivara(player.x, player.y, '#a9763f', pisca ? 0.35 : 1, player.dir, player.anda, false);
   }
+
+  // os "+1" subindo
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  flutua.forEach(function(f){
+    ctx.globalAlpha = clamp(f.vida,0,1);
+    ctx.fillStyle = f.cor;
+    ctx.font = 'bold 26px Arial';
+    ctx.fillText(f.txt, f.x, f.y);
+  });
+  ctx.globalAlpha = 1;
 
   // partículas
   parts.forEach(function(p){
