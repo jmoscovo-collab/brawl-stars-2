@@ -257,10 +257,30 @@ function startGame(){
   clouds = [];
   for(var i=0;i<5;i++) clouds.push({ x:Math.random()*W, y:Math.random()*H*0.35, s:(0.6+Math.random())*s, v:(6+Math.random()*12)*s });
   playing = true; lastTs = performance.now();
+  try { if(window.CoguCoins) window.CoguCoins.novaPartida(); } catch(e){}
   requestAnimationFrame(loop);
 }
 
+// 💀 morreu: o jogo oferece reviver AQUI MESMO, sem sair pra loja nenhuma
 function endGame(){
+  playing = false;
+  try {
+    if (window.CoguCoins && window.CoguCoins.reviver(reviveAgora, fimDeVerdade, 25)) return;
+  } catch(e) {}
+  fimDeVerdade();
+}
+
+function reviveAgora(){
+  lives = 3;
+  shrooms = [];          // limpa o que estava em cima de você
+  invulnT = 3;           // 3 segundos piscando, pra não morrer de novo na hora
+  shieldT = Math.max(shieldT, 2);
+  playing = true;
+  lastTs = performance.now();
+  requestAnimationFrame(loop);
+}
+
+function fimDeVerdade(){
   playing = false;
   $('hud').classList.add('hidden');
   $('padL').classList.add('hidden');

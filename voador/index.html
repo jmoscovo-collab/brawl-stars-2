@@ -139,6 +139,7 @@ function comecar(){
     canos = []; moedinhas = [];
     for(let i=0;i<3;i++) novoCano(W + 150 + i*260);
     jogando = true;
+    try { if(window.CoguCoins) window.CoguCoins.novaPartida(); } catch(e){}
     document.getElementById('menu').style.display='none';
     document.getElementById('fim').style.display='none';
     atualizaHud();
@@ -160,8 +161,24 @@ document.addEventListener('keydown', e=>{
     if(e.code==='Space'){ e.preventDefault(); if(!e.repeat){ if(jogando) bater(); else if(document.getElementById('menu').style.display!=='none'||document.getElementById('fim').style.display==='flex') comecar(); } }
 });
 
+// 💀 morreu: oferece reviver na hora, dentro do jogo
 function fimDeJogo(){
     if(!jogando) return;
+    jogando=false;
+    try { if(window.CoguCoins && window.CoguCoins.reviver(reviveAgora, fimDeVerdade, 25)) return; } catch(e){}
+    fimDeVerdade();
+}
+
+function reviveAgora(){
+    y = H/2; vy = 0;
+    canos = []; moedinhas = [];                 // tira os canos de perto
+    for(let i=0;i<3;i++) novoCano(W + 150 + i*260);
+    document.getElementById('fim').style.display='none';
+    jogando = true;
+    atualizaHud();
+}
+
+function fimDeVerdade(){
     jogando=false;
     som(150,0.5,'sawtooth');
     const ganho = coinsRun + Math.floor(pts/2);

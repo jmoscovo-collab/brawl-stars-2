@@ -803,7 +803,12 @@ function endGame() {
     document.getElementById('ghost-hud').classList.add('hidden');
     // Oferta de vida extra: 1x por partida, 100 moedas, continua de onde parou
     const reviveBtn = document.getElementById('btn-revive');
-    reviveBtn.style.display = (!reviveUsed && progress.coins >= 100) ? 'inline-block' : 'none';
+    const coguOk = (function(){ try { return window.CoguCoins && window.CoguCoins.saldo() >= 25; } catch(e){ return false; } })();
+    const podeRevive = !reviveUsed && (progress.coins >= 100 || coguOk);
+    reviveBtn.style.display = podeRevive ? 'inline-block' : 'none';
+    // se não tem as 100 moedas do jogo, paga com 25 Cogu Coins
+    reviveBtn.textContent = (progress.coins >= 100) ? '💛 VIDA EXTRA — 100 🪙'
+                                                    : '❤️ VIDA EXTRA — 25 🍄 Cogu Coins';
 }
 
 function updateHUD() {
@@ -1948,8 +1953,11 @@ function renderSkinsScreen() {
 document.getElementById('btn-1p').onclick = () => startGame(1, 'normal', false);
 document.getElementById('btn-retry').onclick = () => startGame(numPlayers, gameMode, botMode);
 document.getElementById('btn-revive').onclick = () => {
-    if (reviveUsed || progress.coins < 100) return;
-    progress.coins -= 100;
+    if (reviveUsed) return;
+    if (progress.coins >= 100) progress.coins -= 100;
+    else {
+        try { if (!(window.CoguCoins && window.CoguCoins.gasta(25))) return; } catch(e){ return; }
+    }
     reviveUsed = true;
     saveProgress();
     updateGemDisplay();

@@ -637,6 +637,7 @@ function limpaMundo() {
 
 function novaPartida() {
   limpaMundo();
+  try { if (window.CoguCoins) window.CoguCoins.novaPartida(); } catch (e) {}
   G.rodando = true; G.fim = false;
   G.vel = 13; G.dist = 0; G.moedasRun = 0; G.proxVel = 1000;
   G.lane = 1; G.laneX = 0; G.y = 0; G.vy = 0;
@@ -789,7 +790,28 @@ function checaColisoes(dt) {
 }
 
 // ============ GAME OVER ============
+// 💀 morreu: oferece reviver na hora, dentro do jogo
 function gameOver() {
+  G.fim = true; G.rodando = false;
+  try { if (window.CoguCoins && window.CoguCoins.reviver(reviveAgora, fimDeVerdade, 25)) return; } catch (e) {}
+  fimDeVerdade();
+}
+
+function reviveAgora() {
+  limpaMundo();                 // tira todos os obstáculos de perto
+  G.fim = false; G.rodando = true;
+  G.invencivel = 3;             // 3s invencível pra respirar
+  G.lane = 1; G.laneX = 0; G.y = 0; G.vy = 0;
+  G.pulando = false; G.deslizando = false; G.slideT = 0;
+  G.proxSpawn = player.position.z - 60;
+  var boca = document.getElementById('boca-dino');
+  boca.classList.remove('fechando');
+  boca.style.display = 'none';
+  document.getElementById('tela-gameover').classList.add('hidden');
+  hud.style.display = '';
+}
+
+function fimDeVerdade() {
   G.fim = true; G.rodando = false;
   somRugido();
   var boca = document.getElementById('boca-dino');

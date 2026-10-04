@@ -98,12 +98,27 @@ function iniciar(){
   document.getElementById('menu').classList.add('hidden');
   document.getElementById('fim').classList.add('hidden');
   hud.style.display='flex';
+  try { if(window.CoguCoins) window.CoguCoins.novaPartida(); } catch(e){}
   jogando=true;
 }
 document.getElementById('btn-jogar').onclick=iniciar;
 document.getElementById('btn-denovo').onclick=iniciar;
 
+// 💀 morreu: oferece reviver na hora, dentro do jogo
 function fim(){
+  jogando=false;
+  try { if(window.CoguCoins && window.CoguCoins.reviver(reviveAgora, fimDeVerdade, 25)) return; } catch(e){}
+  fimDeVerdade();
+}
+
+function reviveAgora(){
+  vidas=VIDAS_INICIAIS; itens=[]; tSpawn=0;   // limpa a tela e devolve as vidas
+  hud.style.display='flex';
+  document.getElementById('fim').classList.add('hidden');
+  jogando=true;
+}
+
+function fimDeVerdade(){
   jogando=false; hud.style.display='none';
   const novo = pontos>recorde;
   if(novo){ recorde=pontos; localStorage.setItem(KEY, recorde); }
