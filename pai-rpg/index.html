@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>A Torre do Relógio Perdido — Livro-Jogo 3D — Cogumelo Games</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; }
+  body { background:#0a0a18; overflow:hidden; font-family:Georgia,'Times New Roman',serif; color:#ffe9b0; }
+  button { font-family:inherit; }
+  #game { position:fixed; inset:0; }
+  #game canvas { display:block; width:100%; height:100%; }
+  #fade { position:fixed; inset:0; background:#000; opacity:0; pointer-events:none; transition:opacity .35s; z-index:3; }
+  #fade.on { opacity:1; }
+
+  /* ---- ficha no topo ---- */
+  #ficha { position:fixed; top:0; left:0; right:0; z-index:5; display:flex; gap:6px; flex-wrap:wrap; justify-content:center;
+           padding:8px 10px; font-family:Arial,sans-serif; pointer-events:none; }
+  #ficha .st { pointer-events:auto; background:rgba(10,8,30,.78); border:1px solid rgba(255,184,77,.35); border-radius:12px;
+               padding:6px 10px; font-size:clamp(12px,3vw,15px); font-weight:bold; text-shadow:0 1px 2px #000; white-space:nowrap; }
+  #ficha .st small { font-weight:normal; opacity:.75; }
+  #ficha .st.eng { color:#ff8a8a } #ficha .st.hab { color:#8fd3ff } #ficha .st.sor { color:#a6ff9a } #ficha .st.our { color:#ffd54d } #ficha .st.pro { color:#ffb387 }
+  #btFicha { pointer-events:auto; background:#ffb84d; color:#2a1a00; border:none; border-radius:12px; padding:6px 12px; font-weight:bold; cursor:pointer;
+             font-size:clamp(12px,3vw,15px); }
+
+  /* ---- painel do texto (embaixo) ---- */
+  #painel { position:fixed; left:0; right:0; bottom:0; z-index:6; max-height:58vh; display:flex; flex-direction:column;
+            background:linear-gradient(180deg, rgba(14,10,36,.0) 0%, rgba(14,10,36,.92) 14%, rgba(14,10,36,.96) 100%);
+            padding:28px 14px 12px; }
+  #painel .caixa { margin:0 auto; width:min(96vw, 760px); display:flex; flex-direction:column; min-height:0; }
+  #numero { font-family:Arial,sans-serif; font-size:12px; letter-spacing:3px; color:#8fa3ff; text-transform:uppercase; margin-bottom:6px; }
+  #texto { overflow-y:auto; font-size:clamp(16px,4.2vw,20px); line-height:1.5; white-space:pre-line; padding-right:4px;
+           text-shadow:0 1px 3px #000; scrollbar-width:thin; }
+  #texto b { color:#ffd54d; }
+  #dadosMsg { font-family:Arial,sans-serif; font-size:clamp(14px,3.6vw,17px); color:#fff; margin-top:8px; min-height:1.2em; text-align:center; }
+  #dadosMsg .voce { color:#8fd3ff } #dadosMsg .ele { color:#ff8a8a } #dadosMsg .ok { color:#a6ff9a } #dadosMsg .ruim { color:#ff6b6b }
+  #escolhas { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  #escolhas button, .btn { font-size:clamp(15px,4vw,18px); padding:12px 16px; border-radius:14px; border:2px solid rgba(255,184,77,.55);
+                 background:rgba(255,184,77,.16); color:#ffe9b0; text-align:left; cursor:pointer; line-height:1.3; }
+  #escolhas button:active, .btn:active { background:rgba(255,184,77,.45); }
+  #escolhas button.acao { border-color:rgba(143,211,255,.6); background:rgba(80,120,255,.2); text-align:center; font-family:Arial,sans-serif; font-weight:bold; }
+  #escolhas button.perigo { border-color:rgba(255,110,110,.7); background:rgba(255,60,60,.2); text-align:center; font-family:Arial,sans-serif; font-weight:bold; }
+  #escolhas button.sec { opacity:.85; font-size:clamp(13px,3.4vw,15px); padding:8px 12px; text-align:center; font-family:Arial,sans-serif; }
+  #escolhas .linha { display:flex; gap:8px; flex-wrap:wrap; } #escolhas .linha button { flex:1 1 140px; }
+
+  /* ---- resultado grandão dos dados ---- */
+  #dadoGrande { position:fixed; left:50%; top:34%; transform:translate(-50%,-50%) scale(.6); z-index:7; pointer-events:none; opacity:0;
+                font-family:Arial,sans-serif; font-weight:900; font-size:clamp(54px,16vw,120px); color:#fff; text-shadow:0 0 18px #ffb84d, 0 4px 8px #000;
+                transition:opacity .2s, transform .25s cubic-bezier(.2,1.6,.4,1); }
+  #dadoGrande.on { opacity:1; transform:translate(-50%,-50%) scale(1); }
+  #dadoGrande small { display:block; font-size:.28em; font-weight:bold; color:#ffe9b0; letter-spacing:2px; }
+
+  /* ---- overlays: menu, ficha completa, fim ---- */
+  .over { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center;
+          gap:12px; background:rgba(6,8,30,.92); text-align:center; padding:20px; overflow-y:auto; }
+  .over[hidden] { display:none; }
+  .over h1 { font-size:clamp(26px,7.5vw,54px); letter-spacing:2px; color:#ffb84d; text-shadow:0 0 24px rgba(255,184,77,.6); line-height:1.1; }
+  .over h1 small { display:block; font-size:.36em; letter-spacing:2px; color:#8fa3ff; font-family:Arial,sans-serif; margin-top:6px; }
+  .over h2 { color:#ffd54d; font-size:clamp(20px,5vw,30px); }
+  .over p { max-width:560px; font-size:clamp(14px,3.6vw,17px); line-height:1.5; color:#dfe6ff; }
+  .over .grande { font-size:clamp(17px,4.6vw,24px); padding:14px 34px; border-radius:40px; border:none; cursor:pointer;
+                  background:#ffb84d; color:#2a1a00; font-weight:bold; font-family:Arial,sans-serif; box-shadow:0 6px 20px rgba(255,184,77,.4); min-width:240px; }
+  .over .grande.sec { background:rgba(255,184,77,.18); color:#ffe9b0; border:2px solid rgba(255,184,77,.5); box-shadow:none; }
+  .over .grande:disabled { opacity:.4; cursor:default; }
+  .over a { color:#8fa3ff; font-size:14px; font-family:Arial,sans-serif; }
+  #regras { text-align:left; max-width:600px; font-size:clamp(13px,3.4vw,16px); line-height:1.55; color:#dfe6ff; }
+  #regras li { margin:4px 0 4px 18px; }
+  #versao { position:fixed; right:8px; bottom:6px; z-index:30; font-size:11px; color:rgba(255,233,176,.55); pointer-events:none; font-family:Arial,sans-serif; }
+
+  /* criação de personagem */
+  #cria .dados { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+  #cria .atrib { background:rgba(255,255,255,.06); border:1px solid rgba(255,184,77,.35); border-radius:14px; padding:12px 18px; min-width:130px; }
+  #cria .atrib b { display:block; font-size:clamp(28px,8vw,44px); color:#fff; font-family:Arial,sans-serif; }
+  #cria .atrib span { font-size:13px; color:#8fa3ff; font-family:Arial,sans-serif; }
+  #cria .pocoes { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  #cria .pocoes button { padding:10px 14px; border-radius:12px; border:2px solid rgba(143,211,255,.5); background:rgba(80,120,255,.15); color:#fff; cursor:pointer; font-size:15px; font-family:Arial,sans-serif; }
+  #cria .pocoes button.sel { background:#8fd3ff; color:#03203a; }
+
+  /* ficha completa */
+  #fichaFull .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; width:min(92vw,560px); font-family:Arial,sans-serif; }
+  #fichaFull .grid div { background:rgba(255,255,255,.06); border-radius:10px; padding:8px; font-size:14px; }
+  #fichaFull .grid b { display:block; font-size:22px; color:#fff; }
+  #itens { width:min(92vw,560px); text-align:left; font-family:Arial,sans-serif; font-size:15px; line-height:1.7; }
+  #mapa { display:flex; flex-wrap:wrap; gap:4px; width:min(92vw,560px); justify-content:center; }
+  #mapa span { width:32px; height:26px; display:flex; align-items:center; justify-content:center; font-size:11px; border-radius:6px;
+               background:rgba(255,255,255,.08); color:#8fa3ff; font-family:Arial,sans-serif; }
+  #mapa span.v { background:rgba(255,184,77,.35); color:#fff; } #mapa span.atual { background:#ffb84d; color:#2a1a00; font-weight:bold; }
+
+  body.rolando #texto { display:none; }
+  body.rolando #painel { max-height:30vh; }
+  @media (max-height:520px){ #painel { max-height:70vh; } #ficha { padding:4px 6px; } }
+</style>
+<!-- OBRIGATÓRIO: addons do three importam "three" internamente (ver /assets/README.md) -->
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="game"></div>
+<div id="fade"></div>
+
+<div id="ficha" hidden>
+  <span class="st hab">⚔️ HAB <span id="fHab">–</span></span>
+  <span class="st eng">❤️ ENERGIA <span id="fEng">–</span></span>
+  <span class="st sor">🍀 SORTE <span id="fSor">–</span></span>
+  <span class="st our">🪙 <span id="fOuro">0</span></span>
+  <span class="st pro">🍞 <span id="fProv">0</span></span>
+  <button id="btFicha">📜 Ficha</button>
+</div>
+
+<div id="dadoGrande"></div>
+
+<div id="painel" hidden>
+  <div class="caixa">
+    <div id="numero"></div>
+    <div id="texto"></div>
+    <div id="dadosMsg"></div>
+    <div id="escolhas"></div>
+  </div>
+</div>
+
+<!-- menu -->
+<div id="menu" class="over">
+  <h1>A TORRE DO<br>RELÓGIO PERDIDO<small>LIVRO-JOGO 3D · feito pelo Papai</small></h1>
+  <p>Um livro-jogo de verdade: você lê, escolhe pra onde ir, rola os dados e enfrenta monstros originais numa torre onde cada andar é uma época diferente.
+     Crie sua ficha, cuide da <b>Energia</b> e não abuse da <b>Sorte</b>!</p>
+  <button class="grande" id="btNova">🎲 Nova aventura</button>
+  <button class="grande sec" id="btContinuar" disabled>▶ Continuar</button>
+  <button class="grande sec" id="btComo">📖 Como jogar</button>
+  <a href="/">🏠 Voltar</a>
+</div>
+
+<!-- como jogar -->
+<div id="como" class="over" hidden>
+  <h2>📖 Como jogar</h2>
+  <ul id="regras">
+    <li><b>Ficha:</b> HABILIDADE = 1 dado + 6 · ENERGIA = 2 dados + 12 · SORTE = 1 dado + 6. Os valores iniciais são os máximos.</li>
+    <li><b>Leia e escolha:</b> cada parágrafo tem escolhas que levam a outro parágrafo. Alguns caminhos são becos; outros têm tesouros.</li>
+    <li><b>Combate:</b> a cada rodada, você e o monstro rolam 2 dados + HABILIDADE (Força de Ataque). Quem tirar mais fere o outro em 2 de ENERGIA. Empate = ninguém se machuca.</li>
+    <li><b>Sorte no combate:</b> depois de um golpe, você pode <i>Testar a Sorte</i>: 2 dados ≤ SORTE atual = sorte. Se você feriu: sorte = dano 4, azar = dano 1. Se foi ferido: sorte = perde só 1, azar = perde 3. Cada teste gasta 1 de SORTE.</li>
+    <li><b>Fugir:</b> só quando o texto permitir; custa 2 de ENERGIA.</li>
+    <li><b>Provisões:</b> você começa com 10. Comer (+4 ENERGIA) só em lugares seguros, uma refeição por vez.</li>
+    <li><b>Poção:</b> escolha uma no começo (Habilidade, Energia ou Sorte). Usa 1 vez, restaura o valor inicial.</li>
+    <li><b>ENERGIA 0 = fim.</b> Mas o papai é bonzinho: dá pra voltar ao último ponto de retorno.</li>
+    <li>O jogo salva sozinho neste aparelho.</li>
+  </ul>
+  <button class="grande" id="btComoFecha">Entendi!</button>
+</div>
+
+<!-- criação -->
+<div id="cria" class="over" hidden>
+  <h2>🎲 Sua Ficha de Aventura</h2>
+  <p>Os dados decidem quem você é. Pode rolar de novo <b>uma</b> vez — depois é com você.</p>
+  <div class="dados">
+    <div class="atrib">⚔️ Habilidade<b id="cHab">?</b><span>1 dado + 6</span></div>
+    <div class="atrib">❤️ Energia<b id="cEng">?</b><span>2 dados + 12</span></div>
+    <div class="atrib">🍀 Sorte<b id="cSor">?</b><span>1 dado + 6</span></div>
+  </div>
+  <p>Escolha sua poção (usa uma vez, restaura ao valor inicial):</p>
+  <div class="pocoes">
+    <button data-p="hab">⚗️ Poção de Habilidade</button>
+    <button data-p="eng" class="sel">🧪 Poção de Energia</button>
+    <button data-p="sorte">🍀 Poção da Fortuna</button>
+  </div>
+  <button class="grande sec" id="btRerolar">🔁 Rolar de novo (1x)</button>
+  <button class="grande" id="btComecar">🚪 Começar a aventura</button>
+</div>
+
+<!-- ficha completa -->
+<div id="fichaFull" class="over" hidden>
+  <h2>📜 Ficha de Aventura</h2>
+  <div class="grid" id="fichaGrid"></div>
+  <div id="itens"></div>
+  <p style="font-family:Arial,sans-serif;font-size:13px;color:#8fa3ff">Mapa de parágrafos visitados</p>
+  <div id="mapa"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+    <button class="grande sec" id="btPocao">🧪 Beber poção</button>
+    <button class="grande" id="btFichaFecha">Voltar ao jogo</button>
+  </div>
+  <a href="/">🏠 Voltar pra home</a>
+</div>
+
+<!-- fim -->
+<div id="fim" class="over" hidden>
+  <h1 id="fimTitulo"></h1>
+  <p id="fimTexto"></p>
+  <button class="grande" id="btCheckpoint">⏪ Voltar ao último ponto de retorno</button>
+  <button class="grande sec" id="btRecomecar">🔁 Recomeçar do zero</button>
+  <a href="/">🏠 Voltar</a>
+</div>
+
+<span id="versao">v1</span>
+
+<script type="module">
+import { THREE, criaCena, carregaModelo, chao, mostraLoading, escondeLoading } from '/cg3d.js';
+import { SECOES, AMBIENTES, HEROI, ITENS_NOME, TITULO } from '/pai-rpg/aventura.js';
+
+const M = '/assets/models/';
+const LS = 'pai_rpg_';
+const $ = id => document.getElementById(id);
+const d6 = () => 1 + Math.floor(Math.random() * 6);
+const espera = ms => new Promise(r => setTimeout(r, ms));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+// ============================================================================
+// estado do jogador (a "Folha de Aventuras")
+// ============================================================================
+let S = null;            // estado atual
+let CP = null;           // snapshot do último checkpoint
+let travado = false;     // bloqueia cliques durante animações
+
+function novoEstado(hab, eng, sorte, pocao) {
+  return { hab, habIni: hab, eng, engIni: eng, sorte, sorteIni: sorte, pocao, pocaoUsada: false,
+           ouro: 0, prov: 10, itens: [], secao: 1, visitados: [], efeitos: [], resolvidos: [] };
+}
+function salva() {
+  try { localStorage.setItem(LS + 'save', JSON.stringify({ S, CP })); } catch {}
+}
+function carrega() {
+  try { const d = JSON.parse(localStorage.getItem(LS + 'save') || 'null'); if (d?.S?.secao) { S = d.S; CP = d.CP; return true; } } catch {}
+  return false;
+}
+const tem = it => S.itens.includes(it);
+
+function condOk(c) {
+  if (!c) return true;
+  if (c.item && !tem(c.item)) return false;
+  if (c.semItem && tem(c.semItem)) return false;
+  if (c.ouro != null && S.ouro < c.ouro) return false;
+  if (c.itens && !c.itens.every(tem)) return false;
+  if (c.algumItem && !c.algumItem.some(tem)) return false;
+  if (c.naoTodos && c.naoTodos.every(tem)) return false;
+  if (c.nenhumItem && c.nenhumItem.some(tem)) return false;
+  return true;
+}
+
+// aplica um efeito respeitando os máximos iniciais (regra do livro)
+function aplicaEfeito(e) {
+  if (!e) return;
+  if (e.energia) S.eng = clamp(S.eng + e.energia, 0, S.engIni);
+  if (e.sorte) S.sorte = clamp(S.sorte + e.sorte, 0, S.sorteIni);
+  if (e.habilidade) { S.hab += e.habilidade; if (e.habilidade > 0) S.habIni = Math.max(S.habIni, S.hab); }
+  if (e.ouro) S.ouro = Math.max(0, S.ouro + e.ouro);
+  if (e.provisoes) S.prov = Math.max(0, S.prov + e.provisoes);
+  if (e.item && !tem(e.item)) S.itens.push(e.item);
+  if (e.removeItem) S.itens = S.itens.filter(i => i !== e.removeItem);
+  atualizaFicha();
+}
+
+function atualizaFicha() {
+  if (!S) return;
+  $('fHab').textContent = `${S.hab}/${S.habIni}`;
+  $('fEng').textContent = `${S.eng}/${S.engIni}`;
+  $('fSor').textContent = `${S.sorte}/${S.sorteIni}`;
+  $('fOuro').textContent = S.ouro;
+  $('fProv').textContent = S.prov;
+}
+
+// ============================================================================
+// som (bipes simples via WebAudio — sem arquivos)
+// ============================================================================
+let actx = null;
+function bip(freq = 440, dur = 0.08, tipo = 'square', vol = 0.05) {
+  try {
+    actx ||= new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = tipo; o.frequency.value = freq; g.gain.value = vol;
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+    o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + dur);
+  } catch {}
+}
+const somDado = () => { bip(900, .05, 'triangle'); setTimeout(() => bip(700, .05, 'triangle'), 60); };
+const somGolpe = () => bip(160, .15, 'sawtooth', .08);
+const somBom = () => { bip(660, .1); setTimeout(() => bip(880, .15), 100); };
+const somRuim = () => { bip(300, .15, 'sawtooth'); setTimeout(() => bip(200, .25, 'sawtooth'), 120); };
+
+// ============================================================================
+// cena 3D — palco/diorama atrás do texto
+// ============================================================================
+mostraLoading();
+const cena = criaCena({ container: $('game'), ceu: 'dia', sombras: true, bloom: true, bloomForca: 0.3, pixelRatioMax: 2 });
+const { scene, camera, luzSol, luzAmbiente } = cena;
+const ceuMesh = scene.getObjectByName('ceu');
+camera.position.set(0, 3.4, 9.5);
+
+const CEUS = { // [topo, horizonte, névoa, cor sol, força sol, ambiente]
+  dia:   ['#4a90e2', '#cfe8ff', '#cfe8ff', '#fff4d6', 2.4, 0.8],
+  tarde: ['#2b1b5a', '#ff9a5c', '#ffb98a', '#ffb070', 1.8, 0.6],
+  noite: ['#050818', '#1a1f4a', '#0d1230', '#9fb4ff', 0.7, 0.45],
+};
+const corAlvo = { topo: new THREE.Color(), hor: new THREE.Color(), nevoa: new THREE.Color(), sol: new THREE.Color(), forca: 2, amb: 0.8 };
+function defineCeu(hora, ambiente) {
+  let c = CEUS[hora] || CEUS.dia;
+  if (ambiente === 'caverna') c = ['#151020', '#2a2438', '#1a1524', '#c8b8ff', 0.5, 0.5];
+  corAlvo.topo.set(c[0]); corAlvo.hor.set(c[1]); corAlvo.nevoa.set(c[2]); corAlvo.sol.set(c[3]); corAlvo.forca = c[4]; corAlvo.amb = c[5];
+}
+function lerpCeu(dt) {
+  const k = Math.min(1, dt * 2.5);
+  if (ceuMesh) { ceuMesh.material.uniforms.topo.value.lerp(corAlvo.topo, k); ceuMesh.material.uniforms.horizonte.value.lerp(corAlvo.hor, k); }
+  if (scene.fog) { scene.fog.color.lerp(corAlvo.nevoa, k); scene.fog.near = 18; scene.fog.far = 60; }
+  luzSol.color.lerp(corAlvo.sol, k); luzSol.intensity += (corAlvo.forca - luzSol.intensity) * k;
+  luzAmbiente.intensity += (corAlvo.amb - luzAmbiente.intensity) * k;
+}
+luzSol.position.set(8, 14, 10); luzSol.target.position.set(0, 0, -2); luzSol.target.updateMatrixWorld();
+luzSol.shadow.camera.left = luzSol.shadow.camera.bottom = -14; luzSol.shadow.camera.right = luzSol.shadow.camera.top = 14;
+luzSol.shadow.camera.updateProjectionMatrix();
+
+const piso = chao({ tamanho: 80, cor: '#6da34d' });
+scene.add(piso);
+const palco = new THREE.Group(); scene.add(palco);          // props do parágrafo
+const palcoAtores = new THREE.Group(); scene.add(palcoAtores); // heroi + monstro
+const palcoDados = new THREE.Group(); scene.add(palcoDados);
+
+// medidas/encaixe (mesma ideia do Retroceder 3D)
+const _med = new Map();
+function mede(obj, chave) {
+  if (_med.has(chave)) return _med.get(chave);
+  obj.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(obj);
+  const r = { tam: box.getSize(new THREE.Vector3()), min: box.min.clone() };
+  _med.set(chave, r); return r;
+}
+// apoia o modelo no chão, centralizado em (x,z), com altura alvo `h` (proporção mantida)
+function apoia(obj, chave, x, z, h, ry = 0) {
+  const m = mede(obj, chave);
+  const s = h / (m.tam.y || 1);
+  const g = new THREE.Group();
+  obj.scale.setScalar(s);
+  obj.position.set(-(m.min.x + m.tam.x / 2) * s, -m.min.y * s, -(m.min.z + m.tam.z / 2) * s);
+  g.add(obj); g.position.set(x, 0, z); g.rotation.y = ry;
+  return g;
+}
+function materiaisProprios(obj) {
+  obj.traverse(n => { if (n.isMesh && n.material) n.material = Array.isArray(n.material) ? n.material.map(m => m.clone()) : n.material.clone(); });
+}
+// altura "natural" por kit — mantém o diorama proporcional sem tabela gigante
+function alturaDe(path) {
+  if (path.startsWith('characters/')) return 1.8;
+  if (path.startsWith('city-')) return path.includes('tree') ? 3.5 : path.includes('fence') || path.includes('light') ? 2.2 : 5;
+  if (path.startsWith('castle/')) return path.includes('flag') ? 2.6 : path.includes('door') ? 2.4 : path.includes('stairs') ? 1.6 : 4.2;
+  if (path.startsWith('nature/')) return path.includes('tree') ? 4 : path.includes('cliff') ? 3 : path.includes('bridge') ? 1.2 : path.includes('tent') || path.includes('rock_tall') || path.includes('sign') ? 1.6 : 0.9;
+  if (path.startsWith('space/')) return path.includes('corridor') || path.includes('hangar') || path.includes('monorail_train') ? 3.6 : path.includes('astronaut') || path.includes('alien') ? 1.8 : path.includes('rover') ? 0.9 : path.includes('bones') ? 0.6 : 1.8;
+  if (path.startsWith('furniture/')) return path.includes('bear') ? 1.6 : path.includes('bookcase') || path.includes('doorway') || path.includes('coatRack') || path.includes('stairs') || path.includes('lampSquareFloor') ? 2 : 1;
+  if (path.startsWith('food/')) return 0.55;
+  if (path.startsWith('pirate/')) return 0.9;
+  if (path.startsWith('car/')) return 1.4;
+  if (path.startsWith('weapons/')) return 0.8;
+  return 1.2;
+}
+async function modelo(path, { clonar = true } = {}) {
+  try { const o = await carregaModelo(M + path, { clonar }); mede(o, path); return o; }
+  catch (e) { console.warn(e); return null; }
+}
+
+// slots do diorama: fundo (ambiente) e frente (props do parágrafo)
+const SLOTS_FUNDO = [[-6, -6.5], [-2.2, -8], [2.2, -8], [6, -6.5], [0, -10.5], [-9.5, -3.5], [9.5, -3.5], [-4, -12], [4, -12], [-12, -8], [12, -8]];
+const SLOTS_FRENTE = [[0, -2.6], [-3.6, -3], [3.6, -3], [-1.6, -4], [1.6, -4], [0, -5.2]];
+
+let heroi = null, heroiMixer = null, heroiObj = null;
+let monstro3d = null, monstroTipo = null, tempo = 0;
+let camAlvo = new THREE.Vector3(0, 3.4, 9.5), olhar = new THREE.Vector3(0, 1.2, -1.5), olharAtual = olhar.clone();
+
+async function montaCena(sec) {
+  const c = sec.cena || { ambiente: 'torre', hora: 'noite' };
+  const amb = AMBIENTES[c.ambiente] || AMBIENTES.torre;
+  defineCeu(c.hora, c.ambiente);
+  piso.material.color.set(amb.chao);
+  while (palco.children.length) palco.remove(palco.children[0]);
+
+  // fundo do ambiente (2 cópias de cada prop, alternando espelhado)
+  const fundo = [...amb.props, ...amb.props];
+  await Promise.all(fundo.map(async (p, i) => {
+    const slot = SLOTS_FUNDO[i % SLOTS_FUNDO.length]; if (!slot) return;
+    const o = await modelo(p); if (!o) return;
+    palco.add(apoia(o, p, slot[0] + (i >= amb.props.length ? 0.6 : 0), slot[1], alturaDe(p) * (0.9 + (i % 3) * 0.1), (i % 2 ? 0.5 : -0.4)));
+  }));
+  // props do parágrafo, na frente
+  await Promise.all((c.props || []).map(async (p, i) => {
+    const slot = SLOTS_FRENTE[i % SLOTS_FRENTE.length];
+    const o = await modelo(p); if (!o) return;
+    palco.add(apoia(o, p, slot[0], slot[1], alturaDe(p), (i % 2 ? -0.3 : 0.3)));
+  }));
+  // monstro em cena (fica em pose idle; a luta só começa quando o jogador clicar)
+  const tipo = c.monstro || sec.combate?.modelo || null;
+  if (tipo !== monstroTipo) { if (monstro3d) palcoAtores.remove(monstro3d); monstro3d = null; monstroTipo = tipo; }
+  if (tipo && !monstro3d) {
+    monstro3d = await criaMonstro(tipo);
+    if (monstro3d) palcoAtores.add(monstro3d);
+  }
+  if (monstro3d) { monstro3d.visible = !!tipo; monstro3d.position.set(2.6, 0, 0); monstro3d.rotation.z = 0; monstro3d.userData.baseX = 2.6; }
+  // câmera: diorama fechado no combate, aberto nas cenas
+  const combate = !!sec.combate && !(S?.resolvidos.includes(S.secao));
+  camAlvo.set(0, combate ? 2.8 : 3.4, combate ? 7.5 : 9.5);
+  olhar.set(0, combate ? 0.6 : 1.2, combate ? -0.3 : -1.5);
+}
+
+// monstros: modelo Kenney ou "@procedural" feito com primitivas
+async function criaMonstro(tipo) {
+  let g;
+  if (tipo === '@cuco') g = criaCuco();
+  else if (tipo === '@pendulo') g = criaPendulo();
+  else {
+    const o = await modelo(tipo); if (!o) return null;
+    materiaisProprios(o);
+    const h = tipo.startsWith('characters/') ? 1.9 : tipo.includes('debris-nut') ? 1.8 : tipo.includes('rock_crystals') ? 1.6 : tipo.includes('rover') ? 1 : tipo.includes('bear') ? 2.2 : 2;
+    g = apoia(o, tipo, 0, 0, h, -Math.PI / 2);
+    g.userData.corpo = o;
+    if (o.animacoes?.length) { const mx = o.criaMixer(); mx.toca('idle'); g.userData.mixer = mx; g.userData.humano = true; }
+  }
+  g.userData.tipo = tipo;
+  return g;
+}
+function caixa(w, h, d, cor, x = 0, y = 0, z = 0) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color: cor, roughness: .7 }));
+  m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; return m;
+}
+function criaCuco() {
+  const g = new THREE.Group(); const corpo = new THREE.Group();
+  corpo.add(caixa(1.3, 1.1, 1.0, '#8a5a2b', 0, 1.1, 0));                 // corpo de madeira
+  corpo.add(caixa(0.8, 0.8, 0.8, '#a06a35', -0.75, 1.9, 0));              // cabeça (olhando pra esquerda)
+  const bico = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.6, 4), new THREE.MeshStandardMaterial({ color: '#ffb300' }));
+  bico.rotation.z = Math.PI / 2; bico.position.set(-1.4, 1.85, 0); corpo.add(bico);
+  for (const s of [-1, 1]) { const olho = caixa(0.18, 0.18, 0.18, '#111', -1.05, 2.1, s * 0.28); corpo.add(olho); }
+  const asaE = caixa(0.9, 0.15, 0.7, '#6e4520', 0.2, 1.4, 0.75), asaD = caixa(0.9, 0.15, 0.7, '#6e4520', 0.2, 1.4, -0.75);
+  corpo.add(asaE, asaD); corpo.add(caixa(0.6, 0.2, 0.5, '#6e4520', 0.9, 1.3, 0)); // rabo
+  corpo.add(caixa(0.12, 0.6, 0.12, '#ffb300', -0.2, 0.3, 0.25), caixa(0.12, 0.6, 0.12, '#ffb300', -0.2, 0.3, -0.25));
+  g.add(corpo); g.userData.corpo = corpo; g.userData.asas = [asaE, asaD]; g.userData.voa = true;
+  return g;
+}
+function criaPendulo() {
+  const g = new THREE.Group(); const braco = new THREE.Group();
+  const haste = caixa(0.15, 2.6, 0.15, '#caa24a', 0, -1.3, 0); braco.add(haste);
+  const disco = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.25, 24), new THREE.MeshStandardMaterial({ color: '#d4af37', metalness: .6, roughness: .3 }));
+  disco.rotation.x = Math.PI / 2; disco.position.y = -2.7; disco.castShadow = true; braco.add(disco);
+  for (const s of [-1, 1]) braco.add(caixa(0.14, 0.14, 0.05, '#111', s * 0.25, -2.55, 0.15));
+  braco.add(caixa(0.5, 0.08, 0.05, '#111', 0, -2.95, 0.15));  // boca brava
+  braco.position.y = 3.6; g.add(braco);
+  g.add(caixa(0.3, 0.3, 0.3, '#5a4a3a', 0, 3.6, 0));           // eixo no alto
+  g.userData.corpo = braco; g.userData.balanca = true;
+  return g;
+}
+
+// heroi (personagem blocky com animações idle/attack)
+async function criaHeroi() {
+  heroiObj = await modelo(HEROI);
+  if (!heroiObj) { heroi = new THREE.Group(); heroi.add(caixa(0.6, 1.8, 0.4, '#66ddff', 0, 0.9, 0)); }
+  else {
+    materiaisProprios(heroiObj);
+    heroi = apoia(heroiObj, HEROI, 0, 0, 1.8, Math.PI / 2);
+    heroiMixer = heroiObj.criaMixer(); heroiMixer.toca('idle');
+  }
+  heroi.position.set(-2.4, 0, 0); heroi.userData.baseX = -2.4;
+  palcoAtores.add(heroi);
+}
+
+// flash vermelho em quem toma dano
+function flash(obj, cor = 0xff2020) {
+  const mats = []; obj.traverse(n => { if (n.isMesh) (Array.isArray(n.material) ? n.material : [n.material]).forEach(m => { if (m.emissive) mats.push(m); }); });
+  mats.forEach(m => { m.userData._e = m.emissive.getHex(); m.emissive.setHex(cor); m.emissiveIntensity = 1.2; });
+  setTimeout(() => mats.forEach(m => { m.emissive.setHex(m.userData._e || 0); m.emissiveIntensity = 1; }), 220);
+}
+// avanço + recuo (ataque) de um ator até perto do outro
+async function investida(ator, dir) {
+  const x0 = ator.userData.baseX;
+  const ini = performance.now(), dur = 380;
+  await new Promise(res => { (function passo() {
+    const t = Math.min(1, (performance.now() - ini) / dur);
+    const k = t < 0.45 ? t / 0.45 : 1 - (t - 0.45) / 0.55;
+    ator.position.x = x0 + dir * 3.4 * Math.sin(k * Math.PI / 2);
+    ator.position.y = Math.sin(k * Math.PI) * 0.35;
+    t < 1 ? requestAnimationFrame(passo) : res();
+  })(); });
+  ator.position.set(x0, 0, 0);
+}
+
+// ---------------------------------------------------------------- dados 3D
+const GEO_DADO = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+function texturaFace(n, fundo, ponto) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128; const ctx = cv.getContext('2d');
+  ctx.fillStyle = fundo; ctx.fillRect(0, 0, 128, 128);
+  ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 6; ctx.strokeRect(3, 3, 122, 122);
+  ctx.fillStyle = ponto;
+  const P = { 1: [[64, 64]], 2: [[32, 32], [96, 96]], 3: [[32, 32], [64, 64], [96, 96]], 4: [[32, 32], [96, 32], [32, 96], [96, 96]],
+              5: [[32, 32], [96, 32], [64, 64], [32, 96], [96, 96]], 6: [[32, 28], [96, 28], [32, 64], [96, 64], [32, 100], [96, 100]] };
+  for (const [x, y] of P[n]) { ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2); ctx.fill(); }
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+// ordem dos materiais do BoxGeometry: +x,-x,+y,-y,+z,-z → valores 1,6,2,5,3,4 (opostos somam 7)
+const VAL_FACE = [1, 6, 2, 5, 3, 4];
+const NORMAL_FACE = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+function criaDado(fundo, ponto) {
+  const mats = VAL_FACE.map(v => new THREE.MeshStandardMaterial({ map: texturaFace(v, fundo, ponto), roughness: .35 }));
+  const d = new THREE.Mesh(GEO_DADO, mats); d.castShadow = true; d.visible = false; palcoDados.add(d);
+  return d;
+}
+const dadosJog = [criaDado('#fff8e6', '#222'), criaDado('#fff8e6', '#222')];
+const dadosMon = [criaDado('#5a1616', '#fff'), criaDado('#5a1616', '#fff')];
+const UP = new THREE.Vector3(0, 1, 0);
+function quatParaValor(v) { // rotação que deixa a face `v` virada pra cima
+  const i = VAL_FACE.indexOf(v); const n = new THREE.Vector3(...NORMAL_FACE[i]);
+  return new THREE.Quaternion().setFromUnitVectors(n, UP);
+}
+// rola um conjunto de dados: física simples (gravidade + quique), depois "assenta" na face sorteada
+function rolaDados(dados, valores, xBase) {
+  somDado(); document.body.classList.add('rolando');
+  const fim = Promise.all(dados.map((d, i) => new Promise(res => {
+    d.visible = true;
+    d.position.set(xBase + i * 0.9 - 0.45, 2.6 + Math.random(), 2.2 + Math.random() * 0.6);
+    const vel = new THREE.Vector3((Math.random() - .5) * 1.5, 0, -(2.2 + Math.random()));
+    const ang = new THREE.Vector3(Math.random() * 12, Math.random() * 12, Math.random() * 12);
+    const qAlvo = quatParaValor(valores[i]);
+    let ultimo = performance.now(), quiques = 0, assentando = false, tAss = 0;
+    (function passo(agora) {
+      const dt = Math.min(0.033, (agora - ultimo) / 1000); ultimo = agora;
+      if (!assentando) {
+        vel.y -= 14 * dt; d.position.addScaledVector(vel, dt);
+        d.rotation.x += ang.x * dt; d.rotation.y += ang.y * dt; d.rotation.z += ang.z * dt;
+        if (d.position.y < 0.35) { d.position.y = 0.35; vel.y = -vel.y * 0.45; vel.x *= .8; vel.z *= .8; ang.multiplyScalar(.6); quiques++; if (quiques > 1) bip(500, .03, 'triangle', .02); }
+        if (quiques >= 3 && Math.abs(vel.y) < 1) { assentando = true; }
+        requestAnimationFrame(passo);
+      } else {
+        tAss += dt * 4; d.quaternion.slerp(qAlvo, Math.min(1, tAss)); d.position.y += (0.35 - d.position.y) * 0.3;
+        tAss < 1 ? requestAnimationFrame(passo) : res();
+      }
+    })(performance.now());
+  })));
+  fim.then(() => setTimeout(() => document.body.classList.remove('rolando'), 1300)); // texto volta, dados ficam na mesa
+  return fim;
+}
+function escondeDados() { [...dadosJog, ...dadosMon].forEach(d => d.visible = false); document.body.classList.remove('rolando'); }
+function mostraGrande(html, ms = 1400) {
+  const el = $('dadoGrande'); el.innerHTML = html; el.classList.add('on');
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), ms);
+}
+
+// ============================================================================
+// loop
+// ============================================================================
+let fadeCena = 0;
+cena.tick(dt => {
+  const d = Math.min(dt, 0.05); tempo += d;
+  lerpCeu(d);
+  heroiMixer?.update(d);
+  if (monstro3d?.visible) {
+    const u = monstro3d.userData;
+    u.mixer?.update(d);
+    if (u.voa) { monstro3d.position.y = 0.6 + Math.sin(tempo * 3) * 0.25; u.asas.forEach((a, i) => a.rotation.x = (i ? -1 : 1) * Math.sin(tempo * 9) * 0.6); }
+    else if (u.balanca) u.corpo.rotation.z = Math.sin(tempo * 1.6) * 0.55;
+    else if (u.tipo?.includes('debris-nut')) u.corpo.rotation.y += d * 2.5;
+    else if (!u.humano) { monstro3d.position.y = Math.abs(Math.sin(tempo * 2.2)) * 0.12; monstro3d.rotation.y = -Math.PI / 2 + Math.sin(tempo * 1.3) * 0.15; }
+  }
+  camera.position.lerp(camAlvo, Math.min(1, d * 2.2));
+  olharAtual.lerp(olhar, Math.min(1, d * 2.2));
+  camera.lookAt(olharAtual);
+});
+
+// ============================================================================
+// fluxo do livro
+// ============================================================================
+async function transicao(fn) {
+  $('fade').classList.add('on'); await espera(360);
+  await fn();
+  await espera(60); $('fade').classList.remove('on');
+}
+
+function botao(txt, cls, on) {
+  const b = document.createElement('button'); b.textContent = txt; if (cls) b.className = cls;
+  b.addEventListener('click', () => { if (travado) return; bip(520, .04, 'triangle', .03); on(); });
+  return b;
+}
+function textoHtml(t) { // **negrito** → <b>, escapando o resto
+  const esc = t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  return esc.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+}
+
+async function vaiPara(id, { efeitoEscolha } = {}) {
+  if (efeitoEscolha) aplicaEfeito(efeitoEscolha);
+  const sec = SECOES[id];
+  if (!sec) { console.error('seção inexistente', id); return; }
+  travado = true; emCombate = false;
+  await transicao(async () => {
+    S.secao = id;
+    if (!S.visitados.includes(id)) S.visitados.push(id);
+    if (sec.efeito && !S.efeitos.includes(id)) { S.efeitos.push(id); aplicaEfeito(sec.efeito); }
+    if (sec.checkpoint) CP = JSON.parse(JSON.stringify(S));
+    salva();
+    await montaCena(sec);
+    escondeDados();
+    $('dadosMsg').textContent = '';
+    mostraSecao(sec);
+  });
+  travado = false;
+  if (S.eng <= 0) morte();
+}
+
+function mostraSecao(sec) {
+  $('numero').textContent = `${TITULO} · parágrafo ${S.secao}` + (sec.checkpoint ? ' · 🔖 ponto de retorno' : '');
+  $('texto').innerHTML = textoHtml(sec.texto); $('texto').scrollTop = 0;
+  const E = $('escolhas'); E.innerHTML = '';
+  const resolvido = S.resolvidos.includes(S.secao);
+
+  if (sec.fim) { E.appendChild(botao('🏁 Ver o resultado', 'acao', () => telaFim(sec.fim))); return; }
+
+  if (sec.combate && !resolvido) {
+    for (const e of sec.escolhasAntes || []) if (condOk(e.cond)) E.appendChild(botao(e.txt, '', () => vaiPara(e.ir, { efeitoEscolha: e.efeito })));
+    E.appendChild(botao(`⚔️ Lutar contra ${sec.combate.nome} (HAB ${sec.combate.hab} · ENERGIA ${sec.combate.eng})`, 'perigo', () => iniciaCombate(sec)));
+  } else if (sec.teste) {
+    E.appendChild(botao(`🍀 Testar a Sorte (2 dados ≤ ${S.sorte})`, 'acao', () => testeSorteSecao(sec)));
+  } else {
+    const escolhas = sec.combate && resolvido ? [{ txt: '➡️ Continuar', ir: sec.combate.ir }] : (sec.escolhas || []);
+    for (const e of escolhas) if (condOk(e.cond)) E.appendChild(botao(e.txt, '', () => vaiPara(e.ir, { efeitoEscolha: e.efeito })));
+  }
+  const linha = document.createElement('div'); linha.className = 'linha';
+  if (sec.comer && !(sec.combate && !resolvido)) linha.appendChild(botao(`🍞 Comer (+4 ENERGIA, ${S.prov} provisões)`, 'sec', comer));
+  if (!S.pocaoUsada) linha.appendChild(botao(`🧪 Beber poção`, 'sec', bebePocao));
+  if (linha.children.length) E.appendChild(linha);
+}
+
+function comer() {
+  if (S.prov <= 0) { $('dadosMsg').innerHTML = '<span class="ruim">Mochila vazia! Nem farelo.</span>'; return; }
+  if (S.eng >= S.engIni) { $('dadosMsg').innerHTML = 'Você já está cheio. Guarde pra depois.'; return; }
+  S.prov--; S.eng = Math.min(S.engIni, S.eng + 4); atualizaFicha(); salva(); somBom();
+  $('dadosMsg').innerHTML = '<span class="ok">Nhac! +4 de ENERGIA.</span>';
+  mostraSecao(SECOES[S.secao]);
+}
+function bebePocao() {
+  if (S.pocaoUsada) return;
+  S.pocaoUsada = true;
+  if (S.pocao === 'hab') S.hab = S.habIni;
+  else if (S.pocao === 'eng') S.eng = S.engIni;
+  else { S.sorteIni += 1; S.sorte = S.sorteIni; }   // Poção da Fortuna também sobe a SORTE inicial em 1 (regra do livro)
+  atualizaFicha(); salva(); somBom();
+  $('dadosMsg').innerHTML = '<span class="ok">Glup! Poção bebida. Restaurado ao valor inicial.</span>';
+  if (!$('fichaFull').hidden) abreFicha(); else if (!emCombate) mostraSecao(SECOES[S.secao]);
+}
+
+// Teste de Sorte "cru": rola 2d6, compara com SORTE atual, gasta 1 de SORTE. Devolve true se teve sorte.
+async function rolaTesteSorte() {
+  const a = d6(), b = d6();
+  await rolaDados(dadosJog, [a, b], -0.6);
+  const ok = a + b <= S.sorte;
+  S.sorte = Math.max(0, S.sorte - 1); atualizaFicha();
+  mostraGrande(`${a + b}<small>${ok ? '🍀 SORTE!' : '💨 AZAR...'}</small>`, 1600);
+  ok ? somBom() : somRuim();
+  return { ok, soma: a + b };
+}
+async function testeSorteSecao(sec) {
+  travado = true; $('escolhas').innerHTML = '';
+  const { ok, soma } = await rolaTesteSorte();
+  $('dadosMsg').innerHTML = `Dados: <b>${soma}</b> ${ok ? '≤' : '>'} Sorte → <span class="${ok ? 'ok' : 'ruim'}">${ok ? 'teve sorte!' : 'azar!'}</span>`;
+  salva(); await espera(1400); travado = false;
+  vaiPara(ok ? sec.teste.sorte : sec.teste.azar);
+}
+
+// ---------------------------------------------------------------- combate
+let C = null; // { sec, engM, rodada }
+let emCombate = false;
+function iniciaCombate(sec) {
+  C = { sec, engM: sec.combate.eng, rodada: 0 }; emCombate = true;
+  camAlvo.set(0, 2.8, 7.5); olhar.set(0, 0.6, -0.3);
+  $('numero').textContent = `⚔️ COMBATE · ${sec.combate.nome}`;
+  $('texto').innerHTML = `<b>${sec.combate.nome}</b> — HABILIDADE ${sec.combate.hab} · ENERGIA <span id="engM">${C.engM}</span>\n\nCada rodada: 2 dados + HABILIDADE. Quem tirar mais, fere o outro em 2.`;
+  botoesCombate();
+}
+function botoesCombate() {
+  const E = $('escolhas'); E.innerHTML = '';
+  E.appendChild(botao('🎲 Rolar os dados!', 'perigo', rodadaCombate));
+  if (C.sec.combate.fuga != null) E.appendChild(botao('🏃 Fugir (perde 2 de ENERGIA)', 'sec', fugir));
+  if (!S.pocaoUsada) E.appendChild(botao('🧪 Beber poção', 'sec', () => { bebePocao(); botoesCombate(); }));
+}
+async function rodadaCombate() {
+  travado = true; $('escolhas').innerHTML = ''; C.rodada++;
+  const j = [d6(), d6()], m = [d6(), d6()];
+  await Promise.all([rolaDados(dadosJog, j, -1.8), rolaDados(dadosMon, m, 1.2)]);
+  const faJ = j[0] + j[1] + S.hab, faM = m[0] + m[1] + C.sec.combate.hab;
+  mostraGrande(`${faJ} <small>×</small> ${faM}<small>VOCÊ · MONSTRO</small>`, 1500);
+  $('dadosMsg').innerHTML = `<span class="voce">Você ${j[0]}+${j[1]}+${S.hab} = <b>${faJ}</b></span> &nbsp;vs&nbsp; <span class="ele">${C.sec.combate.nome} ${m[0]}+${m[1]}+${C.sec.combate.hab} = <b>${faM}</b></span>`;
+  await espera(900);
+  if (faJ === faM) {
+    $('dadosMsg').innerHTML += '<br>⚔️ Empate! As armas se chocam e ninguém se fere.'; bip(700, .1);
+    travado = false; botoesCombate(); return;
+  }
+  const voceFeriu = faJ > faM;
+  // opção de Testar a Sorte antes de aplicar o dano (regra do livro)
+  const E = $('escolhas'); E.innerHTML = '';
+  $('dadosMsg').innerHTML += voceFeriu ? '<br><span class="ok">Você acertou! Dano 2.</span>' : '<br><span class="ruim">Ele te acertou! Dano 2.</span>';
+  travado = false;
+  E.appendChild(botao(voceFeriu ? `🍀 Testar a Sorte pra ferir mais (sorte: 4 · azar: 1)` : `🍀 Testar a Sorte pra amortecer (sorte: 1 · azar: 3)`, 'acao', async () => {
+    travado = true; E.innerHTML = '';
+    const { ok } = await rolaTesteSorte();
+    const dano = voceFeriu ? (ok ? 4 : 1) : (ok ? 1 : 3);
+    $('dadosMsg').innerHTML += `<br>${ok ? '🍀 Sorte' : '💨 Azar'}: dano ${dano}.`;
+    await espera(700); await aplicaDano(voceFeriu, dano);
+  }));
+  E.appendChild(botao('➡️ Continuar sem testar', '', async () => { travado = true; E.innerHTML = ''; await aplicaDano(voceFeriu, 2); }));
+}
+async function aplicaDano(voceFeriu, dano) {
+  if (voceFeriu) {
+    heroiMixer?.toca('attack-melee-right', { loop: false, fade: .1 });
+    await investida(heroi, +1); somGolpe(); if (monstro3d) flash(monstro3d);
+    C.engM = Math.max(0, C.engM - dano);
+    heroiMixer?.toca('idle', { fade: .2 });
+  } else {
+    if (monstro3d) { monstro3d.userData.mixer?.toca('attack-melee-right', { loop: false, fade: .1 }); await investida(monstro3d, -1); monstro3d.userData.mixer?.toca('idle', { fade: .2 }); }
+    somGolpe(); if (heroi) flash(heroi);
+    S.eng = Math.max(0, S.eng - dano);
+  }
+  atualizaFicha();
+  const em = $('engM'); if (em) em.textContent = C.engM;
+  await espera(500); travado = false;
+  if (S.eng <= 0) { salva(); return morte(); }
+  if (C.engM <= 0) {
+    somBom();
+    $('dadosMsg').innerHTML = `<span class="ok">🏆 Você venceu ${C.sec.combate.nome}!</span>`;
+    if (monstro3d) { // monstro cai
+      const ini = performance.now(); (function cai() { const t = Math.min(1, (performance.now() - ini) / 600); monstro3d.rotation.z = -t * Math.PI / 2 * (monstro3d.userData.balanca ? 0 : 1); monstro3d.position.y = -t * 0.3; t < 1 && requestAnimationFrame(cai); })();
+    }
+    S.resolvidos.push(S.secao); emCombate = false; salva();
+    const E = $('escolhas'); E.innerHTML = '';
+    E.appendChild(botao('➡️ Continuar', 'acao', () => vaiPara(C.sec.combate.ir)));
+    return;
+  }
+  botoesCombate();
+}
+async function fugir() {
+  travado = true; $('escolhas').innerHTML = '';
+  S.eng = Math.max(0, S.eng - 2); atualizaFicha(); somRuim();
+  if (heroi) flash(heroi);
+  $('dadosMsg').innerHTML = '<span class="ruim">Você foge! O monstro te acerta nas costas: -2 de ENERGIA.</span>';
+  await espera(900); travado = false;
+  if (S.eng <= 0) { salva(); return morte(); }
+  vaiPara(C.sec.combate.fuga);
+}
+
+// ---------------------------------------------------------------- fim / morte
+const FINS = {
+  epico: ['★ FIM ÉPICO ★', 'Você consertou o tempo com as três engrenagens antigas. Ponteiro Torto nunca mais vai se atrasar (só você, às segundas).'],
+  bom:   ['FIM BOM', 'O relógio funciona — meio torto. Dizem que as três engrenagens antigas (pedra, ferro e cristal) consertam de vez. Achou todas?'],
+  torto: ['FIM TORTO', 'O Relógio Que Faz o Que Quer virou atração turística. Mas o zelador jura que existem três engrenagens antigas na torre...'],
+  ruim:  ['FIM (o ruim)', 'Recreio eterno parecia boa ideia. Não era. Tente de novo e diga não pro vilão de cartola.'],
+  morte: ['💀 SUA AVENTURA TERMINA AQUI', 'Sua ENERGIA chegou a zero. Mas o papai é bonzinho: pode voltar ao último ponto de retorno.'],
+};
+function telaFim(tipo) {
+  const [t, txt] = FINS[tipo];
+  $('fimTitulo').innerHTML = `${t}<small>${TITULO}</small>`;
+  $('fimTexto').textContent = txt;
+  $('btCheckpoint').hidden = !CP;
+  $('fim').hidden = false;
+  tipo === 'morte' || tipo === 'ruim' ? somRuim() : somBom();
+  if (tipo !== 'morte') { try { localStorage.setItem(LS + 'final_' + tipo, '1'); } catch {} }
+}
+function morte() { if (heroiMixer) heroiMixer.toca('die', { loop: false }); travado = false; telaFim('morte'); }
+
+// ---------------------------------------------------------------- ficha completa
+function abreFicha() {
+  $('fichaGrid').innerHTML = [
+    ['⚔️ Habilidade', `${S.hab} <small>/ ${S.habIni}</small>`], ['❤️ Energia', `${S.eng} <small>/ ${S.engIni}</small>`], ['🍀 Sorte', `${S.sorte} <small>/ ${S.sorteIni}</small>`],
+    ['🪙 Ouro', S.ouro], ['🍞 Provisões', S.prov], ['🧪 Poção', (S.pocao === 'hab' ? 'Habilidade' : S.pocao === 'eng' ? 'Energia' : 'Fortuna') + (S.pocaoUsada ? ' (usada)' : '')],
+  ].map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join('');
+  $('itens').innerHTML = '<b>🎒 Mochila:</b> ' + (S.itens.length ? S.itens.map(i => ITENS_NOME[i] || i).join(' · ') : 'só a espada e a coragem');
+  const ids = Object.keys(SECOES).map(Number).sort((a, b) => a - b);
+  $('mapa').innerHTML = ids.map(i => `<span class="${i === S.secao ? 'atual' : S.visitados.includes(i) ? 'v' : ''}">${S.visitados.includes(i) || i === S.secao ? i : '·'}</span>`).join('');
+  $('btPocao').disabled = S.pocaoUsada;
+  $('fichaFull').hidden = false;
+}
+
+// ---------------------------------------------------------------- menu / criação
+let rolagensRestantes = 1, cria = { hab: 0, eng: 0, sorte: 0, pocao: 'eng' };
+function rolaFicha() {
+  cria.hab = d6() + 6; cria.eng = d6() + d6() + 12; cria.sorte = d6() + 6;
+  $('cHab').textContent = cria.hab; $('cEng').textContent = cria.eng; $('cSor').textContent = cria.sorte;
+  somDado();
+}
+$('btNova').addEventListener('click', () => {
+  if (localStorage.getItem(LS + 'save') && !confirm('Começar uma aventura nova apaga a atual. Continuar?')) return;
+  rolagensRestantes = 1; $('btRerolar').disabled = false; rolaFicha();
+  $('menu').hidden = true; $('cria').hidden = false;
+});
+$('btRerolar').addEventListener('click', () => { if (rolagensRestantes-- > 0) rolaFicha(); $('btRerolar').disabled = rolagensRestantes <= 0; });
+document.querySelectorAll('#cria .pocoes button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#cria .pocoes button').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); cria.pocao = b.dataset.p;
+}));
+$('btComecar').addEventListener('click', async () => {
+  S = novoEstado(cria.hab, cria.eng, cria.sorte, cria.pocao); CP = null;
+  $('cria').hidden = true; entraNoJogo(); await vaiPara(1);
+});
+$('btContinuar').addEventListener('click', async () => { if (carrega()) { $('menu').hidden = true; entraNoJogo(); await vaiPara(S.secao); } });
+$('btComo').addEventListener('click', () => { $('como').hidden = false; });
+$('btComoFecha').addEventListener('click', () => { $('como').hidden = true; });
+$('btFicha').addEventListener('click', abreFicha);
+$('btFichaFecha').addEventListener('click', () => { $('fichaFull').hidden = true; });
+$('btPocao').addEventListener('click', bebePocao);
+$('btRecomecar').addEventListener('click', () => { try { localStorage.removeItem(LS + 'save'); } catch {} location.reload(); });
+$('btCheckpoint').addEventListener('click', async () => {
+  if (!CP) return;
+  S = JSON.parse(JSON.stringify(CP)); S.eng = Math.max(S.eng, Math.ceil(S.engIni / 2)); // volta com pelo menos metade da energia
+  salva(); $('fim').hidden = true; heroiMixer?.toca('idle'); await vaiPara(S.secao);
+});
+function entraNoJogo() { $('ficha').hidden = false; $('painel').hidden = false; atualizaFicha(); }
+
+// ---------------------------------------------------------------- start
+await criaHeroi();
+await montaCena(SECOES[1]);
+escondeLoading();
+$('btContinuar').disabled = !localStorage.getItem(LS + 'save');
+// no menu, o heroi acena de vez em quando
+setInterval(() => { if (!$('menu').hidden && heroiMixer) { heroiMixer.toca('emote-yes', { loop: false }); setTimeout(() => heroiMixer.toca('idle'), 1500); } }, 5000);
+</script>
+<script src="/idiomas.js"></script>
+<script src="/telacheia.js"></script>
+</body>
+</html>

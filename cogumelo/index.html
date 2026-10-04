@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Chuva de Cogumelos 🍄 - Cogumelo Games</title>
+<title>Chuva de Cogumelos 3 🍄 - Cogumelo Games</title>
 <meta name="description" content="Pegue os cogumelos que caem do céu com a sua cesta! Cuidado com os venenosos!">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -50,7 +50,7 @@
 
 <div class="overlay" id="menu">
   <a class="voltar" href="/" style="position:static; margin-bottom:10px">⬅ Voltar pro site</a>
-  <h1 class="titulo">🍄 Chuva de Cogumelos</h1>
+  <h1 class="titulo">🍄 Chuva de Cogumelos 3</h1>
   <div class="subtitulo">Cogumelos estão caindo do céu! Mova a cesta e pegue o máximo que puder. Mas cuidado: os roxos são VENENOSOS! ☠️</div>
   <button class="btn" id="btn-jogar">▶ JOGAR</button>
   <div class="legenda">
@@ -78,7 +78,8 @@ const KEY = 'cogumelo-chuva-recorde';
 let recorde = +(localStorage.getItem(KEY)||0);
 document.getElementById('recorde-menu').textContent = recorde ? '🏆 Recorde: '+recorde : '';
 
-let jogando=false, pontos=0, vidas=3, nivel=1, itens=[], parts=[], tSpawn=0, tempo=0;
+const VIDAS_INICIAIS=3;
+let jogando=false, pontos=0, vidas=VIDAS_INICIAIS, nivel=1, itens=[], parts=[], tSpawn=0, tempo=0;
 const cesta = { x:0, w:110, y:0 };
 let teclas = {};
 
@@ -91,7 +92,7 @@ addEventListener('touchstart', pointer, {passive:true});
 addEventListener('touchmove', pointer, {passive:true});
 
 function iniciar(){
-  pontos=0; vidas=3; nivel=1; itens=[]; parts=[]; tSpawn=0; tempo=0;
+  pontos=0; vidas=VIDAS_INICIAIS; nivel=1; itens=[]; parts=[]; tSpawn=0; tempo=0;
   cesta.x=W/2; alvoX=null;
   document.getElementById('menu').classList.add('hidden');
   document.getElementById('fim').classList.add('hidden');
@@ -113,7 +114,7 @@ function fim(){
 function spawn(){
   const r=Math.random();
   let tipo='normal';
-  if(r<0.05 && vidas<5) tipo='vida';
+  if(r<0.05 && vidas<VIDAS_INICIAIS) tipo='vida';
   else if(r<0.17) tipo='dourado';
   else if(r<0.17+Math.min(0.35, 0.12+nivel*0.03)) tipo='veneno';
   itens.push({ x:40+Math.random()*(W-80), y:-40, tipo,
@@ -159,27 +160,34 @@ function loop(t){
     cesta.y=H-64;
 
     tSpawn-=dt;
-    if(tSpawn<=0){ spawn(); tSpawn=Math.max(14, 46-nivel*4)+Math.random()*20; }
+    if(tSpawn<=0){ spawn(); tSpawn=Math.max(38, 100-nivel*5)+Math.random()*34; }
 
     for(let i=itens.length-1;i>=0;i--){
       const it=itens[i]; it.y+=it.v*dt; it.ang+=it.giro*dt;
       // pegou?
       if(it.y>cesta.y-18 && it.y<cesta.y+26 && Math.abs(it.x-cesta.x)<cesta.w/2){
         if(it.tipo==='veneno'){ vidas--; boom(it.x,it.y,'#b04ad6',18); if(vidas<=0){ itens.splice(i,1); fim(); break; } }
-        else if(it.tipo==='vida'){ vidas=Math.min(5,vidas+1); boom(it.x,it.y,'#ff6b81',14); }
+        else if(it.tipo==='vida'){ vidas=Math.min(VIDAS_INICIAIS,vidas+1); boom(it.x,it.y,'#ff6b81',14); }
         else if(it.tipo==='dourado'){ pontos+=5; boom(it.x,it.y,'#ffd54a',16); }
         else { pontos++; boom(it.x,it.y,'#ff5252',10); }
         itens.splice(i,1); continue;
       }
-      // caiu no chão
+      // caiu no chão: deixou escapar um cogumelo bom = perde uma vida
       if(it.y>H-40){
-        if(it.tipo==='normal'||it.tipo==='dourado') boom(it.x,H-46,'#888',6);
+        if(it.tipo==='normal'||it.tipo==='dourado'){
+          vidas--;
+          boom(it.x,H-46,'#ff5252',14);
+          itens.splice(i,1);
+          if(vidas<=0){ fim(); break; }
+          continue;
+        }
         itens.splice(i,1);
       }
     }
     document.getElementById('hud-pontos').textContent='🍄 '+pontos;
     document.getElementById('hud-nivel').textContent='Nível '+nivel;
-    document.getElementById('hud-vidas').textContent='❤️'.repeat(vidas);
+    document.getElementById('hud-vidas').textContent =
+      vidas>5 ? ('❤️ x'+vidas) : '❤️'.repeat(Math.max(0,vidas));
   }
 
   // itens
@@ -203,5 +211,7 @@ function loop(t){
 requestAnimationFrame(loop);
 </script>
 <script src="/idiomas.js"></script>
+<script src="/musica.js"></script>
+<script src="/telacheia.js"></script>
 </body>
 </html>

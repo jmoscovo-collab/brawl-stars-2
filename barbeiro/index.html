@@ -1,0 +1,575 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Barbeiro Maluco 💈</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#2b1a3d; font-family:'Comic Sans MS','Chalkboard SE',cursive,sans-serif; touch-action:none; user-select:none; -webkit-user-select:none; }
+  #wrap { position:relative; width:100%; height:100%; }
+  canvas { display:block; width:100%; height:100%; }
+  .screen { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; background:linear-gradient(rgba(60,20,90,0.94),rgba(20,8,40,0.97)); z-index:10; text-align:center; padding:20px; }
+  .hidden { display:none !important; }
+  h1 { font-size:clamp(28px,7vw,56px); color:#fff; text-shadow:0 0 12px #ff3d7f,3px 3px 0 #c2185b; }
+  h2 { font-size:clamp(22px,5vw,36px); color:#ffe0ec; }
+  p  { color:#e9c6ff; font-size:clamp(15px,3.6vw,20px); max-width:460px; line-height:1.5; }
+  .btn { font-family:inherit; font-size:clamp(18px,4vw,26px); padding:12px 34px; border:none; border-radius:18px; cursor:pointer; color:#fff; background:#ff3d7f; box-shadow:0 5px 0 #b3134f; transition:transform .08s; }
+  .btn:active { transform:translateY(4px); box-shadow:0 1px 0 #b3134f; }
+  .btn.azul { background:#4a7bd6; box-shadow:0 5px 0 #2b4f9e; }
+  .btn.verde { background:#2fb85a; box-shadow:0 5px 0 #1a7a38; }
+  .btn.amarelo { background:#e0a52a; box-shadow:0 5px 0 #a3730f; color:#2b1a05; }
+  .tag { font-size:clamp(16px,4vw,22px); color:#fff6d8; background:#3a1650; border:2px solid #ff3d7f; border-radius:14px; padding:6px 18px; }
+
+  /* HUD do jogo */
+  #hud { position:absolute; top:0; left:0; right:0; padding:8px 10px; display:flex; justify-content:space-between; align-items:flex-start; z-index:5; pointer-events:none; color:#fff; text-shadow:0 0 6px #000; gap:8px; }
+  #hudLeft { display:flex; flex-direction:column; gap:4px; font-size:clamp(15px,3.8vw,20px); }
+  #timeBar { width:clamp(120px,36vw,220px); height:16px; background:#00000088; border:2px solid #fff; border-radius:10px; overflow:hidden; }
+  #timeFill { height:100%; width:100%; background:linear-gradient(90deg,#2fb85a,#ffe14a); transition:width .1s linear; }
+  #card { background:#fff8e6; border:4px solid #ff3d7f; border-radius:14px; padding:4px 6px; display:flex; flex-direction:column; align-items:center; color:#3a1650; box-shadow:0 4px 0 #b3134f; pointer-events:none; }
+  #card b { font-size:clamp(12px,3vw,15px); }
+  #cardName { font-size:clamp(11px,2.8vw,14px); max-width:150px; line-height:1.15; }
+  #cardCv { width:96px; height:104px; }
+
+  /* Barra de ferramentas */
+  #tools { position:absolute; left:0; right:0; bottom:0; z-index:5; display:flex; flex-direction:column; align-items:center; gap:6px; padding:6px 8px 10px; background:linear-gradient(transparent,rgba(0,0,0,0.55)); }
+  #toolRow { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
+  .tool { font-family:inherit; font-size:clamp(22px,6vw,32px); width:clamp(52px,13vw,68px); height:clamp(52px,13vw,68px); border-radius:16px; border:3px solid #fff5; background:#3a1650; cursor:pointer; box-shadow:0 4px 0 #0008; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#fff; line-height:1; }
+  .tool small { font-size:10px; }
+  .tool.on { background:#ff3d7f; border-color:#fff; transform:translateY(-4px); }
+  #colorRow { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
+  .cor { width:34px; height:34px; border-radius:50%; border:3px solid #fff8; cursor:pointer; box-shadow:0 3px 0 #0008; }
+  .cor.on { border-color:#fff; transform:scale(1.2); }
+  #btnPronto { font-size:clamp(16px,4vw,22px); padding:8px 26px; }
+  #bubble { position:absolute; left:50%; transform:translateX(-50%); z-index:6; background:#fff; color:#3a1650; padding:8px 14px; border-radius:16px; font-size:clamp(13px,3.4vw,17px); max-width:80vw; text-align:center; pointer-events:none; box-shadow:0 4px 0 #0006; opacity:0; transition:opacity .3s; }
+  #bubble:after { content:''; position:absolute; bottom:-10px; left:50%; margin-left:-8px; border:8px solid transparent; border-top-color:#fff; border-bottom:0; }
+
+  /* Loja */
+  #shopList { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-width:min(96vw,560px); max-height:56vh; overflow-y:auto; padding:4px; }
+  .item { background:#1e0f30; border:3px solid #553; border-radius:16px; padding:8px; width:150px; display:flex; flex-direction:column; align-items:center; gap:4px; color:#fff; }
+  .item .ic { font-size:36px; }
+  .item .nm { font-size:14px; font-weight:bold; }
+  .item .ds { font-size:12px; color:#d9b8ff; line-height:1.2; min-height:30px; }
+  .item.owned { border-color:#2fb85a; }
+</style>
+
+<div id="wrap">
+  <canvas id="cv"></canvas>
+
+  <div id="hud" class="hidden">
+    <div id="hudLeft">
+      <div id="hudDay">📅 Dia 1 · Cliente 1/5</div>
+      <div id="timeBar"><div id="timeFill"></div></div>
+      <div id="hudCoins">🪙 0</div>
+    </div>
+    <div id="card"><b>📋 PEDIDO</b><canvas id="cardCv" width="192" height="208"></canvas><div id="cardName">Careca</div></div>
+  </div>
+  <div id="bubble"></div>
+
+  <div id="tools" class="hidden">
+    <div id="colorRow" class="hidden"></div>
+    <div id="toolRow"></div>
+    <button class="btn verde" id="btnPronto">✅ PRONTO!</button>
+  </div>
+
+  <!-- MENU -->
+  <div id="scrMenu" class="screen">
+    <h1>💈 Barbeiro Maluco</h1>
+    <div class="tag" id="menuCoins">🪙 0 moedas</div>
+    <div class="tag" id="menuBest">🏆 Melhor dia: 0</div>
+    <p>Você é o barbeiro! Cada cliente chega com um PEDIDO no cartão. Use ✂️ tesoura, 🪒 máquina, 🎨 tinta, 🧔 barba e 🪮 pente arrastando sobre a cabeça. Capriche antes do tempo acabar pra ganhar gorjeta 🪙 e comprar coisas na loja!<br><br>PC: mouse. Celular: dedo.</p>
+    <button class="btn" id="btnPlay">▶️ ABRIR A BARBEARIA</button>
+    <button class="btn amarelo" id="btnShop">🛒 LOJA</button>
+    <a href="/" class="btn azul" style="text-decoration:none;display:inline-block">🏠 Voltar</a>
+  </div>
+
+  <!-- RESULTADO DO CLIENTE -->
+  <div id="scrResult" class="screen hidden">
+    <div id="resEmoji" style="font-size:80px;line-height:1">😍</div>
+    <h2 id="resTitle">Perfeito!</h2>
+    <div id="resStats" style="color:#ffe0ec;font-size:clamp(17px,4vw,22px);line-height:1.6"></div>
+    <p id="resFala" style="background:#fff;color:#3a1650;border-radius:16px;padding:10px 16px"></p>
+    <button class="btn" id="btnNext">➡️ Próximo cliente</button>
+  </div>
+
+  <!-- FIM DO DIA -->
+  <div id="scrDay" class="screen hidden">
+    <h2 id="dayTitle">🌙 Fim do dia 1!</h2>
+    <div id="dayStats" style="color:#ffe0ec;font-size:clamp(17px,4vw,22px);line-height:1.6"></div>
+    <button class="btn" id="btnNextDay">🌅 Próximo dia</button>
+    <button class="btn amarelo" id="btnShop2">🛒 LOJA</button>
+    <a href="/" class="btn azul" style="text-decoration:none;display:inline-block">🏠 Menu</a>
+  </div>
+
+  <!-- LOJA -->
+  <div id="scrShop" class="screen hidden">
+    <h2>🛒 Loja do Barbeiro</h2>
+    <div class="tag" id="shopCoins">🪙 0</div>
+    <div id="shopMsg" style="color:#ffe14a;font-size:16px;height:20px;opacity:0;transition:opacity .3s"></div>
+    <div id="shopList"></div>
+    <button class="btn" id="shopBack">⬅️ Voltar</button>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var LS={ get:function(k,d){try{var v=localStorage.getItem('barbeiro_'+k);return v===null?d:JSON.parse(v);}catch(e){return d;}}, set:function(k,v){try{localStorage.setItem('barbeiro_'+k,JSON.stringify(v));}catch(e){}} };
+function $(id){ return document.getElementById(id); }
+function rnd(a,b){ return a+Math.random()*(b-a); }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+
+var coins=LS.get('coins',0);
+var bestDay=LS.get('bestDay',0);
+var owned=LS.get('owned',[]);
+function has(id){ return owned.indexOf(id)>=0; }
+
+// ---- SONS ----
+var AC=null;
+function ac(){ if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}} if(AC&&AC.state==='suspended')AC.resume(); return AC; }
+function beep(f,d,t,v,slide){ var c=ac(); if(!c)return; var o=c.createOscillator(),g=c.createGain(); o.type=t||'square'; o.frequency.value=f; if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,slide),c.currentTime+d); g.gain.value=v||0.1; g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d); o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+d); }
+var buzzOsc=null;
+var snd={
+  snip:function(){ beep(1800,0.05,'square',0.05,600); beep(2400,0.04,'square',0.04,900); },
+  paint:function(){ beep(500,0.06,'triangle',0.06,900); },
+  comb:function(){ beep(700,0.05,'sine',0.04,1000); },
+  beard:function(){ beep(300,0.08,'sawtooth',0.05,500); },
+  click:function(){ beep(900,0.05,'square',0.06); },
+  coin:function(){ beep(1200,0.08,'square',0.08); beep(1800,0.15,'square',0.07); },
+  happy:function(){ beep(523,0.12,'square',0.08); setTimeout(function(){beep(659,0.12,'square',0.08);},120); setTimeout(function(){beep(784,0.2,'square',0.08);},240); },
+  meh:function(){ beep(400,0.2,'triangle',0.08); setTimeout(function(){beep(380,0.25,'triangle',0.08);},200); },
+  angry:function(){ beep(200,0.3,'sawtooth',0.12,80); setTimeout(function(){beep(150,0.4,'sawtooth',0.12,60);},200); },
+  tick:function(){ beep(1000,0.04,'square',0.05); },
+  buzzOn:function(){ var c=ac(); if(!c||buzzOsc)return; var o=c.createOscillator(),g=c.createGain(); o.type='sawtooth'; o.frequency.value=90; g.gain.value=0.04; o.connect(g); g.connect(c.destination); o.start(); buzzOsc={o:o,g:g}; },
+  buzzOff:function(){ if(!buzzOsc)return; try{ buzzOsc.o.stop(); }catch(e){} buzzOsc=null; }
+};
+
+// ---- CORES DE CABELO ----
+var NATURAL={ preto:'#2b1d14', castanho:'#6b3e1e', loiro:'#e8c04a', ruivo:'#c9482a' };
+var COLORS=[
+  { id:'rosa',    hex:'#ff5fa8', nome:'Rosa' },
+  { id:'azul',    hex:'#3b82f6', nome:'Azul' },
+  { id:'verde',   hex:'#22c55e', nome:'Verde' },
+  { id:'roxo',    hex:'#a855f7', nome:'Roxo',    shop:'cor_roxo' },
+  { id:'laranja', hex:'#f97316', nome:'Laranja', shop:'cor_laranja' },
+  { id:'branco',  hex:'#f1f5f9', nome:'Branco',  shop:'cor_branco' },
+  { id:'arco',    hex:'arco',    nome:'Arco-íris', shop:'cor_arco' }
+];
+function colorById(id){ for(var i=0;i<COLORS.length;i++) if(COLORS[i].id===id) return COLORS[i]; return null; }
+function ownedColors(){ return COLORS.filter(function(c){ return !c.shop || has(c.shop); }); }
+function hairHex(c, natHex, col){
+  if(c==='nat') return natHex;
+  if(c==='arco') return 'hsl('+((col*40)%360)+',90%,55%)';
+  var cc=colorById(c); return cc?cc.hex:natHex;
+}
+
+// ---- LOJA ----
+var SHOP=[
+  { id:'tesoura2',   ic:'✂️', nome:'Tesourão',        ds:'Tesoura maior: corta mais de uma vez', preco:60 },
+  { id:'maquina2',   ic:'🪒', nome:'Máquina Turbo',   ds:'Raspa uma área bem maior',            preco:80 },
+  { id:'pente2',     ic:'🪮', nome:'Pente Mágico',    ds:'Restaura o cabelo bem mais rápido',   preco:60 },
+  { id:'relogio',    ic:'⏰', nome:'Relógio Lento',   ds:'+6 segundos em cada cliente',         preco:120 },
+  { id:'cor_roxo',   ic:'🟣', nome:'Tinta Roxa',      ds:'Nova cor pra pintar',                 preco:40 },
+  { id:'cor_laranja',ic:'🟠', nome:'Tinta Laranja',   ds:'Nova cor pra pintar',                 preco:40 },
+  { id:'cor_branco', ic:'⚪', nome:'Tinta Branca',    ds:'Cabelo de vovô!',                     preco:50 },
+  { id:'cor_arco',   ic:'🌈', nome:'Tinta Arco-íris', ds:'A cor mais maluca de todas',          preco:150 },
+  { id:'poster',     ic:'🖼️', nome:'Pôster Legal',    ds:'Decoração · +10% gorjeta',            preco:70 },
+  { id:'planta',     ic:'🪴', nome:'Plantinha',       ds:'Decoração · +10% gorjeta',            preco:90 },
+  { id:'espelho',    ic:'🪞', nome:'Espelho Dourado', ds:'Decoração · +15% gorjeta',            preco:160 },
+  { id:'disco',      ic:'🪩', nome:'Globo de Festa',  ds:'Decoração · +20% gorjeta',            preco:260 },
+  { id:'cadeira',    ic:'💺', nome:'Cadeira VIP',     ds:'Decoração · +25% gorjeta',            preco:400 }
+];
+var DECOR_BONUS={ poster:0.10, planta:0.10, espelho:0.15, disco:0.20, cadeira:0.25 };
+function decorBonus(){ var b=0; for(var k in DECOR_BONUS) if(has(k)) b+=DECOR_BONUS[k]; return b; }
+
+// ---- GRADE DE CABELO ----
+// Cada célula fica em coordenadas da cabeça (nx,ny em unidades do raio). h = altura 0..3, c = cor ('nat' ou id).
+var COLS=18, ROWS=22, NX0=-1.15, NX1=1.15, NY0=-1.45, NY1=1.2;
+var CW=(NX1-NX0)/COLS, CH=(NY1-NY0)/ROWS;
+var CELLS=[]; // {col,row,nx,ny,tipo:'hair'|'must'|'chin'}
+(function buildCells(){
+  for(var r=0;r<ROWS;r++) for(var c=0;c<COLS;c++){
+    var nx=NX0+(c+0.5)*CW, ny=NY0+(r+0.5)*CH;
+    var inHead=(nx/1.08)*(nx/1.08)+(ny/1.25)*(ny/1.25)<=1;
+    if(!inHead) continue;
+    var tipo=null;
+    if(ny<-0.38) tipo='hair';
+    else if(ny>0.3 && ny<0.46 && Math.abs(nx)<0.45) tipo='must';
+    else if(ny>0.62) tipo='chin';
+    if(tipo) CELLS.push({ col:c,row:r,nx:nx,ny:ny,tipo:tipo });
+  }
+})();
+function newGrid(){ var g=[]; for(var i=0;i<CELLS.length;i++) g.push({h:0,c:'nat'}); return g; }
+function copyGrid(g){ return g.map(function(x){ return {h:x.h,c:x.c}; }); }
+
+function heart(nx,ny){ var x=nx/0.42, y=-(ny+0.9)/0.42; var a=x*x+y*y-1; return a*a*a - x*x*y*y*y <= 0; }
+
+var HAIR_STYLES=[
+  { id:'careca',  nome:'Careca',           dif:1, fn:function(){ return 0; } },
+  { id:'cheio',   nome:'Cabelão',          dif:1, fn:function(){ return 3; } },
+  { id:'curto',   nome:'Curtinho',         dif:1, fn:function(){ return 1; } },
+  { id:'moicano', nome:'Moicano',          dif:1, fn:function(cl){ return Math.abs(cl.nx)<0.22?3:0; } },
+  { id:'lateral', nome:'Lateral raspada',  dif:1, fn:function(cl){ return Math.abs(cl.nx)>0.62?0:3; } },
+  { id:'listras', nome:'Listras',          dif:2, fn:function(cl){ return (cl.col%4)<2?0:3; } },
+  { id:'topete',  nome:'Topete',           dif:2, fn:function(cl){ return cl.ny<-1.0?3:1; } },
+  { id:'franja',  nome:'Franja',           dif:2, fn:function(cl){ return cl.ny>-0.62?3:1; } },
+  { id:'coracao', nome:'Coração raspado',  dif:3, fn:function(cl){ return heart(cl.nx,cl.ny)?0:3; } },
+  { id:'meio',    nome:'Metade raspada',   dif:3, fn:function(cl){ return cl.nx<0?0:3; } }
+];
+var BEARD_STYLES=[
+  { id:'nada',      nome:'',            fn:function(){ return 0; } },
+  { id:'cheia',     nome:'barba cheia', fn:function(){ return 1; } },
+  { id:'cavanhaque',nome:'cavanhaque',  fn:function(cl){ return (cl.tipo==='chin' && Math.abs(cl.nx)<0.42)?1:0; } },
+  { id:'bigode',    nome:'bigode',      fn:function(cl){ return cl.tipo==='must'?1:0; } },
+  { id:'costeleta', nome:'costeletas',  fn:function(cl){ return (cl.tipo==='chin' && Math.abs(cl.nx)>0.55)?1:0; } }
+];
+
+// ---- CLIENTES ----
+var NOMES=['Seu Zé','Dona Capi','Tio Beto','Fungo Fred','Capivara Carlão','Juninho','Vovô Bigode','Cogu Célia','Dudu Zoiúdo','Capi Capitão','Chico Chapéu','Lelê Sorriso','Doutor Fungo','Mestre Capi','Tia Nena','Bebeto Bocão'];
+var FALAS_HAPPY=['Ficou PERFEITO! Vou virar modelo! 😎','UAU! Nunca fiquei tão bonito!','Minha mãe nem vai me reconhecer! Toma a gorjeta!','Isso sim é arte! Volto amanhã!','TOP DEMAIS! Me sinto um astro!'];
+var FALAS_MEH=['Hmm... tá ok, eu acho. 🤔','Não era bem isso, mas passa.','Meu cabelo cresce de novo, né?','Tá... diferente. Vou usar boné.','Quase! Mas quase não vale ponto.'];
+var FALAS_ANGRY=['O QUE VOCÊ FEZ COMIGO?! 😱','Isso não foi o que eu pedi!!','Vou processar essa barbearia!','Minha vó corta melhor de olhos fechados!','Socorro! Chamem outro barbeiro!'];
+
+function newFace(){
+  var tipo=pick(['humano','humano','humano','capivara','cogumelo']);
+  var f={ tipo:tipo, nome:pick(NOMES),
+    skin: tipo==='humano'?pick(['#ffd9b3','#f1c27d','#c68642','#8d5524','#ffe0bd','#e0ac69']):(tipo==='capivara'?'#a9743f':'#fff1d6'),
+    eyes: pick(['normal','grande','oculos','sono','zonzo']),
+    mouth: pick(['sorriso','aberta','lingua','serio','dente']),
+    natId: pick(['preto','castanho','loiro','ruivo']) };
+  if(tipo==='capivara') f.natId='castanho';
+  f.natHex=NATURAL[f.natId];
+  return f;
+}
+
+// ---- DESENHO DA CABEÇA ----
+function drawHead(g, cx, cy, R, face, grid, t){
+  g.save(); g.translate(cx,cy);
+  var s=R; // 1 unidade = R pixels
+  function E(x,y,rx,ry){ g.beginPath(); g.ellipse(x*s,y*s,rx*s,ry*s,0,0,Math.PI*2); }
+  // pescoço
+  g.fillStyle=face.skin; g.fillRect(-0.35*s,0.9*s,0.7*s,0.6*s);
+  // orelhas
+  if(face.tipo==='capivara'){ g.fillStyle='#7a4f25'; E(-0.7,-0.95,0.2,0.22); g.fill(); E(0.7,-0.95,0.2,0.22); g.fill(); }
+  else if(face.tipo==='humano'){ g.fillStyle=face.skin; E(-1.02,0.05,0.16,0.22); g.fill(); E(1.02,0.05,0.16,0.22); g.fill(); }
+  // cabeça
+  g.fillStyle=face.skin; E(0,0,face.tipo==='capivara'?1.08:1.0,1.2); g.fill();
+  g.strokeStyle='rgba(0,0,0,0.25)'; g.lineWidth=s*0.04; g.stroke();
+  // chapéu de cogumelo (cabelo cresce em cima dele)
+  if(face.tipo==='cogumelo'){
+    g.save(); g.beginPath(); g.ellipse(0,0,1.0*s,1.2*s,0,0,Math.PI*2); g.clip();
+    g.fillStyle='#e84d4d'; g.fillRect(-1.1*s,-1.3*s,2.2*s,0.95*s);
+    g.fillStyle='#fff'; E(-0.5,-0.9,0.16,0.14); g.fill(); E(0.3,-1.05,0.12,0.11); g.fill(); E(0.6,-0.6,0.1,0.09); g.fill();
+    g.restore();
+  }
+  // focinho capivara
+  if(face.tipo==='capivara'){
+    g.fillStyle='#c48d55'; E(0,0.45,0.62,0.5); g.fill();
+    g.fillStyle='#3a2410'; E(-0.2,0.28,0.09,0.06); g.fill(); E(0.2,0.28,0.09,0.06); g.fill();
+    g.fillStyle='#fff'; g.fillRect(-0.12*s,0.62*s,0.11*s,0.18*s); g.fillRect(0.01*s,0.62*s,0.11*s,0.18*s);
+  }
+  // bochechas
+  g.fillStyle='rgba(255,100,120,0.28)'; E(-0.55,0.25,0.18,0.12); g.fill(); E(0.55,0.25,0.18,0.12); g.fill();
+  // olhos
+  var ey=-0.15, ex=0.38, er=face.eyes==='grande'?0.2:0.14;
+  var blink=(Math.sin(t*1.3)>0.97);
+  [-1,1].forEach(function(sd){
+    g.fillStyle='#fff'; E(sd*ex,ey,er,blink?0.02:er*1.1); g.fill();
+    if(!blink){
+      var px=face.eyes==='zonzo'?sd*0.05:0.02, py=face.eyes==='sono'?0.06:0;
+      g.fillStyle='#222'; E(sd*ex+px,ey+py,er*0.5,er*0.55); g.fill();
+      g.fillStyle='#fff'; E(sd*ex+px-er*0.15,ey+py-er*0.2,er*0.14,er*0.14); g.fill();
+    }
+    if(face.eyes==='sono'){ g.fillStyle=face.skin; g.fillRect((sd*ex-er)*s,(ey-er)*s,er*2*s,er*0.9*s); }
+  });
+  if(face.eyes==='oculos'){ g.strokeStyle='#223'; g.lineWidth=s*0.05; E(-ex,ey,er+0.08,er+0.08); g.stroke(); E(ex,ey,er+0.08,er+0.08); g.stroke(); g.beginPath(); g.moveTo(-(ex-er-0.08)*s,ey*s); g.lineTo((ex-er-0.08)*s,ey*s); g.stroke(); }
+  // sobrancelhas
+  g.strokeStyle='rgba(0,0,0,0.6)'; g.lineWidth=s*0.05; g.lineCap='round';
+  g.beginPath(); g.moveTo(-0.55*s,-0.42*s); g.lineTo(-0.22*s,-0.38*s); g.stroke();
+  g.beginPath(); g.moveTo(0.22*s,-0.38*s); g.lineTo(0.55*s,-0.42*s); g.stroke();
+  // nariz (humano/cogumelo)
+  if(face.tipo!=='capivara'){ g.fillStyle='rgba(0,0,0,0.18)'; E(0,0.2,0.1,0.08); g.fill(); }
+  // boca
+  g.strokeStyle='#5a1e1e'; g.lineWidth=s*0.05; g.fillStyle='#8b2635';
+  if(face.tipo==='capivara'){ g.beginPath(); g.moveTo(-0.2*s,0.6*s); g.quadraticCurveTo(0,0.72*s,0.2*s,0.6*s); g.stroke(); }
+  else if(face.mouth==='sorriso'){ g.beginPath(); g.arc(0,0.42*s,0.28*s,0.2,Math.PI-0.2); g.stroke(); }
+  else if(face.mouth==='aberta'){ E(0,0.55,0.2,0.16); g.fill(); g.fillStyle='#ff8aa0'; E(0,0.62,0.1,0.07); g.fill(); }
+  else if(face.mouth==='lingua'){ g.beginPath(); g.arc(0,0.42*s,0.26*s,0.2,Math.PI-0.2); g.stroke(); g.fillStyle='#ff5f8a'; E(0.08,0.66,0.1,0.1); g.fill(); }
+  else if(face.mouth==='dente'){ g.beginPath(); g.arc(0,0.42*s,0.28*s,0.2,Math.PI-0.2); g.stroke(); g.fillStyle='#fff'; g.fillRect(-0.14*s,0.53*s,0.12*s,0.12*s); g.fillRect(0.02*s,0.53*s,0.12*s,0.12*s); }
+  else { g.beginPath(); g.moveTo(-0.22*s,0.55*s); g.lineTo(0.22*s,0.55*s); g.stroke(); }
+
+  // ---- fios de cabelo e barba ----
+  var cs=CW*s; // largura da célula em px
+  var beardHex=face.natHex;
+  for(var i=0;i<CELLS.length;i++){
+    var cl=CELLS[i], cell=grid[i];
+    if(cell.h<=0) continue;
+    var x=cl.nx*s, y=cl.ny*s;
+    if(cl.tipo==='hair'){
+      var hgt=cs*(0.55+cell.h*0.42), w=cs*0.92;
+      g.fillStyle=hairHex(cell.c,face.natHex,cl.col);
+      g.beginPath();
+      g.moveTo(x-w/2,y+cs*0.45); g.lineTo(x-w/2,y+cs*0.45-hgt*0.7);
+      g.quadraticCurveTo(x,y+cs*0.45-hgt*1.25,x+w/2,y+cs*0.45-hgt*0.7);
+      g.lineTo(x+w/2,y+cs*0.45); g.closePath(); g.fill();
+      if(cell.h>=2){ g.fillStyle='rgba(255,255,255,0.18)'; g.fillRect(x-w*0.3,y+cs*0.45-hgt*0.95,w*0.2,hgt*0.5); }
+    } else {
+      g.fillStyle=beardHex; g.beginPath(); g.arc(x,y,cs*0.48,0,Math.PI*2); g.fill();
+      g.fillStyle='rgba(255,255,255,0.15)'; g.beginPath(); g.arc(x-cs*0.12,y-cs*0.12,cs*0.15,0,Math.PI*2); g.fill();
+    }
+  }
+  g.restore();
+}
+
+// ---- CENÁRIO ----
+var cv=$('cv'), ctx=cv.getContext('2d'), W=0, H=0, DPR=1;
+function resize(){ DPR=Math.min(2,window.devicePixelRatio||1); W=cv.clientWidth; H=cv.clientHeight; cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
+window.addEventListener('resize',resize); resize();
+
+function drawShop(t){
+  // parede
+  var grd=ctx.createLinearGradient(0,0,0,H); grd.addColorStop(0,'#3f7cb8'); grd.addColorStop(1,'#2b5f94');
+  ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,0.06)'; for(var i=0;i<W;i+=48) ctx.fillRect(i,0,24,H);
+  // chão
+  var fy=H*0.78; ctx.fillStyle='#8a5a33'; ctx.fillRect(0,fy,W,H-fy);
+  ctx.strokeStyle='rgba(0,0,0,0.2)'; ctx.lineWidth=2; for(var x=0;x<W;x+=60){ ctx.beginPath(); ctx.moveTo(x,fy); ctx.lineTo(x,H); ctx.stroke(); }
+  // poste de barbeiro (listras girando)
+  var px=W-34, py=H*0.16, pw=26, ph=120;
+  ctx.save(); ctx.beginPath(); ctx.rect(px,py,pw,ph); ctx.clip();
+  for(var k=-2;k<10;k++){ var yy=py+((k*30+t*40)%(ph+60))-30; ctx.fillStyle=k%2?'#ff3d3d':'#3d6bff'; ctx.beginPath(); ctx.moveTo(px,yy); ctx.lineTo(px+pw,yy-14); ctx.lineTo(px+pw,yy+1); ctx.lineTo(px,yy+15); ctx.closePath(); ctx.fill(); }
+  ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.fillRect(px+3,py,5,ph);
+  ctx.restore();
+  ctx.fillStyle='#ccc'; ctx.fillRect(px-4,py-8,pw+8,8); ctx.fillRect(px-4,py+ph,pw+8,8);
+  // decorações compradas
+  ctx.font='40px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  if(has('poster')){ ctx.fillStyle='#fff'; ctx.fillRect(22,H*0.3-30,56,72); ctx.fillStyle='#ff3d7f'; ctx.fillRect(28,H*0.3-24,44,60); ctx.fillText('🦫',50,H*0.3+6); }
+  if(has('planta')) ctx.fillText('🪴',W-40,fy-22);
+  if(has('espelho')){ ctx.fillStyle='#e0a52a'; ctx.beginPath(); ctx.ellipse(W*0.5,H*0.42,W*0.26,H*0.3,0,0,7); ctx.fill(); ctx.fillStyle='#bfe8ff'; ctx.beginPath(); ctx.ellipse(W*0.5,H*0.42,W*0.24,H*0.28,0,0,7); ctx.fill(); }
+  if(has('disco')){ ctx.fillStyle='#aaa'; ctx.fillRect(W*0.5-1,0,2,30); ctx.fillText('🪩',W*0.5,48); for(var j=0;j<5;j++){ ctx.fillStyle='hsla('+((t*120+j*70)%360)+',90%,60%,0.25)'; ctx.beginPath(); ctx.arc(W*0.5+Math.cos(t+j)*W*0.4,H*0.3+Math.sin(t*1.3+j)*H*0.2,18,0,7); ctx.fill(); } }
+  // cadeira
+  var cx=W*0.5, cy=H*0.52;
+  ctx.fillStyle=has('cadeira')?'#e0a52a':'#b23a3a';
+  ctx.fillRect(cx-60,fy-40,120,40); ctx.fillRect(cx-8,fy,16,H*0.06); ctx.fillRect(cx-40,fy+H*0.06,80,10);
+  if(has('cadeira')){ ctx.fillStyle='#fff'; ctx.font='16px sans-serif'; ctx.fillText('VIP',cx,fy-20); }
+}
+
+// ---- ESTADO DO JOGO ----
+var state='menu'; // menu | play | result | day | shop
+var day=1, clientIdx=0, dayMoney=0, totalMoney=0;
+var face=null, grid=null, target=null, targetDesc='', timeLeft=30, timeMax=30;
+var tool='tesoura', paintColor='rosa', stroking=false, touched={};
+var elapsed=0, lastT=0, lastTick=99;
+var particles=[];
+
+var TOOLS=[
+  { id:'tesoura', ic:'✂️', nome:'tesoura' },
+  { id:'maquina', ic:'🪒', nome:'máquina' },
+  { id:'tinta',   ic:'🎨', nome:'tinta' },
+  { id:'barba',   ic:'🧔', nome:'barba' },
+  { id:'pente',   ic:'🪮', nome:'pente' }
+];
+function renderTools(){
+  var row=$('toolRow'); row.innerHTML='';
+  TOOLS.forEach(function(tl){
+    var b=document.createElement('button'); b.className='tool'+(tl.id===tool?' on':''); b.innerHTML=tl.ic+'<small>'+tl.nome+'</small>';
+    b.onclick=function(){ tool=tl.id; snd.click(); renderTools(); };
+    row.appendChild(b);
+  });
+  var cr=$('colorRow'); cr.innerHTML=''; cr.classList.toggle('hidden',tool!=='tinta');
+  if(tool==='tinta') ownedColors().forEach(function(c){
+    var d=document.createElement('div'); d.className='cor'+(c.id===paintColor?' on':'');
+    d.style.background=c.id==='arco'?'linear-gradient(90deg,red,orange,yellow,green,blue,violet)':c.hex;
+    d.onclick=function(){ paintColor=c.id; snd.click(); renderTools(); };
+    cr.appendChild(d);
+  });
+}
+
+function headGeom(){
+  var top=130, bottom=170;
+  var R=Math.min(W*0.3,(H-top-bottom)*0.34);
+  return { cx:W*0.5, cy:top+(H-top-bottom)*0.5+R*0.05, R:R };
+}
+
+function newClient(){
+  face=newFace();
+  // cabelo inicial: cheio, cor natural. Barba inicial: às vezes cheia (pra ter que raspar)
+  grid=newGrid();
+  var startBeard=day>=2 && Math.random()<0.5;
+  for(var i=0;i<CELLS.length;i++){ grid[i].h=CELLS[i].tipo==='hair'?3:(startBeard?1:0); }
+  // alvo
+  var styles=HAIR_STYLES.filter(function(s){ return s.dif<=Math.min(3,day); });
+  var hs=pick(styles);
+  var beard=BEARD_STYLES[0];
+  if(day===1){ if(Math.random()<0.25) beard=BEARD_STYLES[1]; }
+  else if(Math.random()<0.6) beard=pick(BEARD_STYLES.slice(1));
+  var colorId='nat';
+  var wantColor=(day===1?0.3:0.6);
+  if(hs.id!=='careca' && Math.random()<wantColor) colorId=pick(ownedColors()).id;
+  if(hs.id==='careca' && beard.id==='nada' && !startBeard) beard=BEARD_STYLES[1]; // careca puro é fácil demais
+  target=newGrid();
+  for(var j=0;j<CELLS.length;j++){
+    var cl=CELLS[j];
+    if(cl.tipo==='hair'){ target[j].h=hs.fn(cl); target[j].c=target[j].h>0?colorId:'nat'; }
+    else target[j].h=beard.fn(cl);
+  }
+  var cc=colorById(colorId);
+  targetDesc=hs.nome+(cc?' '+cc.nome.toLowerCase():'')+(beard.nome?' + '+beard.nome:'');
+  timeMax=Math.max(14,32-(day-1)*2.5)+(has('relogio')?6:0); timeLeft=timeMax;
+  touched={}; stroking=false; lastTick=99;
+  $('hudDay').textContent='📅 Dia '+day+' · Cliente '+(clientIdx+1)+'/5';
+  $('hudCoins').textContent='🪙 '+coins;
+  $('cardName').textContent=targetDesc;
+  drawCard();
+  bubble(face.nome+': "Quero '+targetDesc.toLowerCase()+', por favor!"',2600);
+}
+function drawCard(){
+  var c=$('cardCv'), g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height);
+  g.fillStyle='#fff8e6'; g.fillRect(0,0,c.width,c.height);
+  drawHead(g,c.width/2,c.height/2+6,c.width*0.36,face,target,0);
+}
+function bubble(txt,ms){ var b=$('bubble'); b.textContent=txt; b.style.opacity=1; var gm=headGeom(); b.style.top=(gm.cy-gm.R*1.55-52)+'px'; clearTimeout(bubble._t); bubble._t=setTimeout(function(){ b.style.opacity=0; },ms||2000); }
+
+// ---- FERRAMENTAS ----
+function applyTool(px,py){
+  var gm=headGeom(), s=gm.R, cs=CW*s;
+  var rad={ tesoura:has('tesoura2')?1.35:0.85, maquina:has('maquina2')?1.9:1.2, tinta:1.25, barba:1.25, pente:has('pente2')?1.4:0.95 }[tool]*cs;
+  var did=false;
+  for(var i=0;i<CELLS.length;i++){
+    var cl=CELLS[i], x=gm.cx+cl.nx*s, y=gm.cy+cl.ny*s;
+    var dx=x-px, dy=y-py; if(dx*dx+dy*dy>rad*rad) continue;
+    var cell=grid[i], key=i;
+    if(tool==='tesoura'){ if(cl.tipo!=='hair'||cell.h<=0||touched[key]) continue; cell.h-=1; touched[key]=1; did=true; spawn(x,y,hairHex(cell.c,face.natHex,cl.col)); }
+    else if(tool==='maquina'){ if(cell.h<=0) continue; spawn(x,y,cl.tipo==='hair'?hairHex(cell.c,face.natHex,cl.col):face.natHex); cell.h=0; if(cl.tipo==='hair') cell.c='nat'; did=true; }
+    else if(tool==='tinta'){ if(cl.tipo!=='hair'||cell.h<=0||cell.c===paintColor) continue; cell.c=paintColor; did=true; spawn(x,y,hairHex(paintColor,face.natHex,cl.col)); }
+    else if(tool==='barba'){ if(cl.tipo==='hair'||cell.h>=1) continue; cell.h=1; did=true; }
+    else if(tool==='pente'){ if(touched[key]) continue; var mx=cl.tipo==='hair'?3:1; if(cell.h>=mx) continue; cell.h=Math.min(mx,cell.h+(has('pente2')?2:1)); touched[key]=1; did=true; }
+  }
+  if(did){
+    if(tool==='tesoura') snd.snip(); else if(tool==='tinta') snd.paint(); else if(tool==='barba') snd.beard(); else if(tool==='pente') snd.comb();
+  }
+}
+function spawn(x,y,col){ if(particles.length>120) return; for(var i=0;i<2;i++) particles.push({x:x,y:y,vx:rnd(-60,60),vy:rnd(-120,-20),t:0.6,c:col}); }
+
+function canvasPos(e){ var r=cv.getBoundingClientRect(); return { x:e.clientX-r.left, y:e.clientY-r.top }; }
+cv.addEventListener('pointerdown',function(e){ if(state!=='play') return; e.preventDefault(); ac(); stroking=true; touched={}; if(tool==='maquina') snd.buzzOn(); var p=canvasPos(e); applyTool(p.x,p.y); });
+cv.addEventListener('pointermove',function(e){ if(state!=='play'||!stroking) return; e.preventDefault(); var p=canvasPos(e); applyTool(p.x,p.y); });
+function endStroke(){ stroking=false; touched={}; snd.buzzOff(); }
+cv.addEventListener('pointerup',endStroke); cv.addEventListener('pointercancel',endStroke); cv.addEventListener('pointerleave',endStroke);
+
+// ---- AVALIAÇÃO ----
+function compare(){
+  var sum=0, n=0;
+  for(var i=0;i<CELLS.length;i++){
+    var a=grid[i], b=target[i], sc;
+    if(CELLS[i].tipo==='hair'){
+      var hs=1-Math.abs(a.h-b.h)/3;
+      var cm=(a.h===0&&b.h===0)||(a.h>0&&b.h>0&&a.c===b.c)?1:0;
+      sc=hs*0.7+cm*0.3;
+    } else sc=a.h===b.h?1:0;
+    sum+=sc; n++;
+  }
+  return n?Math.round(sum/n*100):0;
+}
+function finishClient(){
+  state='result'; endStroke();
+  var pct=compare();
+  var base=pct>=90?30:(pct>=72?15:(pct>=45?6:1));
+  var tip=Math.round(base*(1+(day-1)*0.25)*(1+decorBonus()));
+  coins+=tip; dayMoney+=tip; totalMoney+=tip; LS.set('coins',coins);
+  var emo,title,fala;
+  if(pct>=90){ emo='😍'; title='Perfeito!'; fala=pick(FALAS_HAPPY); snd.happy(); }
+  else if(pct>=72){ emo='😐'; title='Mais ou menos...'; fala=pick(FALAS_MEH); snd.meh(); }
+  else { emo='😡'; title='Que desastre!'; fala=pick(FALAS_ANGRY); snd.angry(); }
+  $('resEmoji').textContent=emo; $('resTitle').textContent=title;
+  $('resStats').innerHTML='Pedido: <b>'+targetDesc+'</b><br>Semelhança: <b>'+pct+'%</b><br>Gorjeta: <b>🪙 '+tip+'</b>'+(decorBonus()>0?' <small>(+'+Math.round(decorBonus()*100)+'% decoração)</small>':'');
+  $('resFala').textContent=face.nome+': "'+fala+'"';
+  $('hud').classList.add('hidden'); $('tools').classList.add('hidden'); $('bubble').style.opacity=0;
+  show('scrResult');
+}
+function nextClient(){
+  clientIdx++;
+  if(clientIdx>=5){ endDay(); return; }
+  state='play'; newClient(); show(null); $('hud').classList.remove('hidden'); $('tools').classList.remove('hidden');
+}
+function endDay(){
+  state='day';
+  if(day>bestDay){ bestDay=day; LS.set('bestDay',bestDay); }
+  $('dayTitle').textContent='🌙 Fim do dia '+day+'!';
+  $('dayStats').innerHTML='Ganhou hoje: <b>🪙 '+dayMoney+'</b><br>Total na loja: <b>🪙 '+coins+'</b><br>'+(day>=3?'Os clientes estão ficando exigentes! 😅':'Amanhã tem mais cliente maluco!');
+  show('scrDay'); snd.coin();
+}
+function startGame(){ day=1; clientIdx=0; dayMoney=0; totalMoney=0; state='play'; newClient(); show(null); $('hud').classList.remove('hidden'); $('tools').classList.remove('hidden'); renderTools(); }
+function nextDay(){ day++; clientIdx=0; dayMoney=0; state='play'; newClient(); show(null); $('hud').classList.remove('hidden'); $('tools').classList.remove('hidden'); renderTools(); }
+
+// ---- LOJA ----
+var shopFrom='scrMenu';
+function shopMsg(m){ var el=$('shopMsg'); el.textContent=m; el.style.opacity=1; clearTimeout(shopMsg._t); shopMsg._t=setTimeout(function(){ el.style.opacity=0; },1500); }
+function renderShop(){
+  $('shopCoins').textContent='🪙 '+coins;
+  var box=$('shopList'); box.innerHTML='';
+  SHOP.forEach(function(it){
+    var ow=has(it.id);
+    var d=document.createElement('div'); d.className='item'+(ow?' owned':'');
+    d.innerHTML='<div class="ic">'+it.ic+'</div><div class="nm">'+it.nome+'</div><div class="ds">'+it.ds+'</div>';
+    var b=document.createElement('button'); b.className='btn'; b.style.cssText='font-size:14px;padding:7px 12px;box-shadow:0 3px 0 #0006';
+    if(ow){ b.textContent='✅ TEM'; b.style.background='#2fb85a'; }
+    else { b.textContent='🪙 '+it.preco; b.style.background=coins>=it.preco?'#e0a52a':'#666'; }
+    b.onclick=function(){
+      if(ow) return;
+      if(coins>=it.preco){ coins-=it.preco; LS.set('coins',coins); owned.push(it.id); LS.set('owned',owned); snd.coin(); shopMsg('Comprou '+it.nome+'! 🎉'); renderShop(); }
+      else { snd.meh(); shopMsg('Faltam '+(it.preco-coins)+' moedas 😅'); }
+    };
+    d.appendChild(b); box.appendChild(d);
+  });
+}
+function openShop(from){ shopFrom=from; state='shop'; renderShop(); show('scrShop'); }
+
+function show(id){ ['scrMenu','scrResult','scrDay','scrShop'].forEach(function(s){ $(s).classList.add('hidden'); }); if(id) $(id).classList.remove('hidden'); }
+function refreshMenu(){ $('menuCoins').textContent='🪙 '+coins+' moedas'; $('menuBest').textContent='🏆 Melhor dia: '+bestDay; }
+
+// ---- LOOP ----
+function loop(ts){
+  var dt=lastT?Math.min(0.05,(ts-lastT)/1000):0; lastT=ts; elapsed+=dt;
+  if(state==='play'){
+    timeLeft-=dt;
+    $('timeFill').style.width=Math.max(0,timeLeft/timeMax*100)+'%';
+    $('timeFill').style.background=timeLeft<6?'#ff3d3d':'linear-gradient(90deg,#2fb85a,#ffe14a)';
+    if(timeLeft<5.5 && Math.floor(timeLeft)!==lastTick){ lastTick=Math.floor(timeLeft); snd.tick(); }
+    if(timeLeft<=0){ timeLeft=0; finishClient(); }
+  }
+  for(var i=particles.length-1;i>=0;i--){ var p=particles[i]; p.t-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=300*dt; if(p.t<=0) particles.splice(i,1); }
+
+  drawShop(elapsed);
+  if(state==='play'||state==='result'){
+    var gm=headGeom();
+    // cadeira atrás da cabeça
+    drawHead(ctx,gm.cx,gm.cy,gm.R,face,grid,elapsed);
+    particles.forEach(function(pa){ ctx.globalAlpha=Math.max(0,pa.t*1.6); ctx.fillStyle=pa.c; ctx.fillRect(pa.x-3,pa.y-3,6,6); });
+    ctx.globalAlpha=1;
+  } else if(state==='menu'||state==='shop'||state==='day'){
+    // um cliente de exemplo sentado na cadeira
+    if(!face){ face=newFace(); grid=newGrid(); for(var k=0;k<CELLS.length;k++) grid[k].h=CELLS[k].tipo==='hair'?3:0; }
+    var g2=headGeom(); drawHead(ctx,g2.cx,g2.cy,g2.R,face,grid,elapsed);
+  }
+  requestAnimationFrame(loop);
+}
+
+// ---- BOTÕES ----
+$('btnPlay').onclick=function(){ ac(); snd.click(); startGame(); };
+$('btnNext').onclick=function(){ snd.click(); nextClient(); };
+$('btnNextDay').onclick=function(){ snd.click(); nextDay(); };
+$('btnPronto').onclick=function(){ if(state==='play'){ snd.click(); finishClient(); } };
+$('btnShop').onclick=function(){ openShop('scrMenu'); };
+$('btnShop2').onclick=function(){ openShop('scrDay'); };
+$('shopBack').onclick=function(){ refreshMenu(); state=shopFrom==='scrDay'?'day':'menu'; show(shopFrom); };
+refreshMenu(); renderTools(); show('scrMenu');
+requestAnimationFrame(loop);
+})();
+</script>
+<script src="/stats.js?v=358"></script>
+<script src="/avisos.js?v=6"></script>
+<script>if (window.initStats) initStats('barbeiro');</script>
+<script src="/mascote.js"></script>
+<script src="/gamepad.js?v=358"></script>
+<script src="/idiomas.js"></script>
+
+<script src="/telacheia.js"></script>

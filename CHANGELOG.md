@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v438 (2026-10-04)
+- BOTAO DE TELA CHEIA em todos os 51 jogos: o botaozinho no canto (ou a tecla F) faz o jogo ocupar a tela inteira; some sozinho em navegador que nao suporta
+
 ## v437 (2026-10-04)
 - JOGOS DA COMUNIDADE: conte uma ideia ("um sapo pegando moscas fugindo de cobras") e a IA monta um jogo jogavel de verdade; galeria com o nome de quem criou, likes e botao JOGAR; 6 tipos de jogo (coletar, desviar, plataforma, clicker, labirinto, corrida). A IA so escolhe as PECAS do jogo (personagem, inimigos, cores, velocidade) - nenhum codigo de usuario roda no site
 

@@ -3,37 +3,102 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>RETROCEDER — Cogumelo Games</title>
+<title>RETROCEDER 3D — Cogumelo Games</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#0a0a18; overflow:hidden; font-family:Arial,sans-serif; }
-  #game { width:100vw; height:100vh; }
-  .tbtn {
-    position:fixed; bottom:18px; z-index:10; width:64px; height:64px; border-radius:50%;
-    border:none; font-size:26px; background:rgba(255,184,77,.25); color:#ffb84d;
-    touch-action:none; display:none;
-  }
+  body { background:#0a0a18; overflow:hidden; font-family:Arial,sans-serif; color:#ffe9b0; }
+  #game { position:fixed; inset:0; }
+  #game canvas { display:block; width:100%; height:100%; }
+
+  /* HUD */
+  #hud { position:fixed; top:0; left:0; right:0; z-index:5; pointer-events:none; text-align:center; padding:8px 10px 0; }
+  #fase { font-size:clamp(13px,3.4vw,18px); font-weight:bold; text-shadow:0 2px 4px #000; }
+  #tbar { position:relative; margin:6px auto 0; width:min(92vw,560px); height:clamp(16px,4.5vw,24px); border-radius:12px;
+          background:linear-gradient(90deg,#3050ff 0%,#8fa3ff 35%,#ffb84d 62%,#ff5a2a 82%,#2a1040 100%);
+          box-shadow:0 0 0 2px rgba(0,0,0,.6), inset 0 0 10px rgba(0,0,0,.5); overflow:hidden; }
+  #tbar .lbl { position:absolute; top:0; bottom:0; display:flex; align-items:center; font-size:clamp(9px,2.4vw,12px);
+               font-weight:bold; color:#fff; text-shadow:0 1px 2px #000; padding:0 8px; }
+  #tbar .lbl.p { left:0 } #tbar .lbl.f { right:0 }
+  #tcur { position:absolute; top:-2px; bottom:-2px; width:6px; margin-left:-3px; background:#fff; border-radius:3px;
+          box-shadow:0 0 8px #fff, 0 0 16px #66ddff; left:0; transition:left .05s linear; }
+  #tval { position:absolute; left:50%; top:0; bottom:0; transform:translateX(-50%); display:flex; align-items:center;
+          font-size:clamp(10px,2.6vw,13px); font-weight:bold; color:#fff; text-shadow:0 1px 3px #000; }
+  #msg { margin-top:6px; font-size:clamp(12px,3.2vw,16px); text-shadow:0 2px 4px #000; min-height:1.3em; white-space:pre-line; }
+  #msg.grande { font-size:clamp(18px,5vw,30px); margin-top:14vh; line-height:1.4; }
+
+  /* rebobinar */
+  #rew { position:fixed; inset:0; z-index:4; pointer-events:none; opacity:0;
+         background:radial-gradient(ellipse at center, rgba(40,80,255,0) 40%, rgba(30,60,220,.55) 100%);
+         transition:opacity .15s; }
+  #rew::after { content:'◀◀ REBOBINANDO'; position:absolute; left:50%; top:22%; transform:translateX(-50%);
+                font-weight:bold; letter-spacing:2px; font-size:clamp(14px,4vw,22px); color:#9fc3ff; text-shadow:0 0 12px #3060ff; }
+
+  /* touch */
+  .tbtn { position:fixed; bottom:18px; z-index:10; width:clamp(58px,15vw,72px); height:clamp(58px,15vw,72px); border-radius:50%;
+          border:2px solid rgba(255,184,77,.5); font-size:26px; background:rgba(255,184,77,.22); color:#ffb84d;
+          touch-action:none; display:none; user-select:none; -webkit-user-select:none; }
+  .tbtn:active { background:rgba(255,184,77,.5); }
   body.touch .tbtn { display:block; }
-  #bL{left:16px} #bR{left:92px} #bJ{right:92px} #bE{right:16px}
+  #bL{left:14px} #bR{left:calc(14px + clamp(58px,15vw,72px) + 12px)} #bJ{right:calc(14px + clamp(58px,15vw,72px) + 12px)} #bE{right:14px}
+
+  /* menu inicial */
+  #menu { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center;
+          gap:14px; background:rgba(6,8,30,.9); text-align:center; padding:20px; }
+  #menu h1 { font-size:clamp(30px,9vw,60px); letter-spacing:4px; color:#ffb84d; text-shadow:0 0 24px rgba(255,184,77,.6); }
+  #menu h1 small { display:block; font-size:.35em; letter-spacing:2px; color:#8fa3ff; }
+  #menu p { max-width:520px; font-size:clamp(13px,3.5vw,17px); line-height:1.5; color:#dfe6ff; }
+  #menu button { font-size:clamp(18px,5vw,26px); padding:14px 36px; border-radius:40px; border:none; cursor:pointer;
+                 background:#ffb84d; color:#2a1a00; font-weight:bold; box-shadow:0 6px 20px rgba(255,184,77,.4); }
+  #menu a { color:#8fa3ff; font-size:14px; }
+  #versao { position:fixed; right:8px; bottom:6px; z-index:6; font-size:11px; color:rgba(255,233,176,.55); pointer-events:none; }
+  body.touch #versao { bottom:auto; top:6px; right:8px; }
 </style>
+<!-- OBRIGATÓRIO: addons do three importam "three" internamente (ver /assets/README.md) -->
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
+} }
+</script>
 </head>
 <body>
 <div id="game"></div>
+<div id="rew"></div>
+<div id="hud">
+  <div id="fase"></div>
+  <div id="tbar"><span class="lbl p">⏪ PASSADO</span><span id="tval"></span><span class="lbl f">FUTURO ⏩</span><div id="tcur"></div></div>
+  <div id="msg"></div>
+</div>
+<div id="menu">
+  <h1>RETROCEDER<small>3D · feito pelo Papai</small></h1>
+  <p>➡️ Andar pra <b>FRENTE</b> avança o tempo. ⬅️ Andar pra <b>TRÁS</b> rebobina!<br>
+     Pontes só existem na época certa, pedras caem em instantes exatos…<br>
+     Leve a ⚙️ engrenagem até a placa pra abrir o portão e chegar na porta.</p>
+  <p style="font-size:13px;color:#9fb0dd">Teclado: setas/WASD, espaço pula, E pega/solta · Celular: botões na tela</p>
+  <button id="btJogar">▶ JOGAR</button>
+  <a href="/pai-recur/2d/">🕹️ Versão 2D clássica</a>
+</div>
+<span id="versao">3D v1</span>
 <button class="tbtn" id="bL">◀</button>
 <button class="tbtn" id="bR">▶</button>
 <button class="tbtn" id="bJ">⤒</button>
 <button class="tbtn" id="bE">✋</button>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
-<script>
+<script type="module">
+import { THREE, criaCena, carregaModelo, chao, mostraLoading, escondeLoading } from '/cg3d.js';
+
 // ============================================================================
-// RETROCEDER — andar pra frente avança o tempo, andar pra trás rebobina.
-// Agora com FASES: cada fase é um mundo com suas pontes (janelas de época),
-// pedras que caem em momentos diferentes e a engrenagem pra levar até a placa.
+// RETROCEDER 3D — a MESMA mecânica do original 2D (Phaser), agora em three.js.
+// Toda a física roda em PIXELS 2D exatamente como antes (T_PER_PX, AABB, LEVELS);
+// só a hora de desenhar converte px → metros: X3 = x*S, Y3 = (H - y)*S, Z fixo.
 // ============================================================================
 const H = 600;
 const T_MAX = 100;
 const T_PER_PX = 0.045;
+const S = 1/40;                    // 40 px = 1 metro
+const PROF = 3.2;                  // profundidade (Z) das plataformas
+const px = v => v * S;             // x 2D → X 3D
+const py = v => (H - v) * S;       // y 2D (pra baixo) → Y 3D (pra cima)
 
 // kit padrão do lado esquerdo: plataforma do portão + porta final
 const KIT_PLATS = [[180,440,120,20],[40,330,120,20]];
@@ -43,7 +108,7 @@ const KIT = {
   porta: {x:60, y:266, w:44, h:64},
 };
 
-// pedra: fica em yA até T=tq, depois desce/sobe até yB em `dur` de T
+// pedra: fica em yA até T=tq, depois desce até yB em `dur` de T
 const pedra = (x,tq,dur=6)=>({x, w:56, h:72, yA:120, yB:448, tq, dur});
 
 const LEVELS = [
@@ -52,6 +117,7 @@ const LEVELS = [
   pontes:[{x:760,y:520,w:300,h:80,t0:16,t1:55}],
   pedras:[pedra(320,28)],
   eng:{x:2200,y:480}, ...KIT,
+  estrelas:[[900,380],[1700,440]],
   dicas:[[300,470,'➡️ andar pra FRENTE avança o tempo\n⬅️ andar pra TRÁS rebobina!'],
          [900,430,'a ponte só existe numa ÉPOCA:\nno passado ainda não foi construída,\nno futuro já DESABOU!'],
          [2200,400,'encoste pra pegar a engrenagem\ne leve pro PASSADO'],
@@ -62,6 +128,7 @@ const LEVELS = [
   pontes:[{x:600,y:520,w:300,h:80,t0:4,t1:60},{x:1600,y:520,w:300,h:80,t0:25,t1:96}],
   pedras:[],
   eng:{x:2650,y:480}, ...KIT,
+  estrelas:[[750,400],[1750,400],[2300,440]],
   dicas:[[750,430,'cada ponte pertence\na uma ÉPOCA diferente!'],
          [1750,430,'esta aqui é do FUTURO —\ncuidado ao rebobinar em cima dela!']] },
 
@@ -70,6 +137,7 @@ const LEVELS = [
   pontes:[{x:760,y:520,w:300,h:80,t0:12,t1:70}],
   pedras:[pedra(320,28), pedra(1350,55,5), pedra(1550,45,5)],
   eng:{x:2250,y:480}, ...KIT,
+  estrelas:[[1450,360],[2000,440]],
   dicas:[[1450,430,'pedras caem em épocas diferentes —\nrebobine pra levantá-las de novo!']] },
 
 { nome:'A Travessia', W:2600, spawn:{x:80,y:400},
@@ -77,6 +145,7 @@ const LEVELS = [
   pontes:[{x:700,y:520,w:550,h:80,t0:14,t1:58}],
   pedras:[pedra(320,30)],
   eng:{x:2450,y:480}, ...KIT,
+  estrelas:[[970,380],[1800,440]],
   dicas:[[970,430,'ponte COMPRIDA: o tempo passa\nenquanto você atravessa... não pare!']] },
 
 { nome:'Ruínas no Céu', W:2600, spawn:{x:80,y:400},
@@ -86,6 +155,7 @@ const LEVELS = [
   pontes:[],
   pedras:[pedra(320,26)],
   eng:{x:2450,y:480}, ...KIT,
+  estrelas:[[1085,360],[1265,360],[2100,440]],
   dicas:[[1200,340,'a ponte virou RUÍNAS —\npule pelos pedaços flutuantes!']] },
 
 { nome:'O Colapso', W:2800, spawn:{x:80,y:400},
@@ -93,6 +163,7 @@ const LEVELS = [
   pontes:[{x:700,y:520,w:1200,h:80,t0:8,t1:92}],
   pedras:[pedra(1000,80,4), pedra(1400,88,4), pedra(320,30)],
   eng:{x:2650,y:480}, ...KIT,
+  estrelas:[[1000,380],[1600,380],[2300,440]],
   dicas:[[1300,430,'a ponte GIGANTE apodrece no futuro...\npegue a engrenagem e CORRA de volta!']] },
 
 { nome:'Caminho Inverso', W:2600, spawn:{x:80,y:400},
@@ -104,6 +175,7 @@ const LEVELS = [
   placa:{x:2300,y:432,w:80},
   portao:{x:2410,y:230,w:24,h:100},
   porta:{x:2500,y:266,w:44,h:64},
+  estrelas:[[700,440],[1250,400],[1800,440]],
   dicas:[[350,430,'desta vez a engrenagem está AQUI —\nleve-a para o FUTURO!'],
          [2330,400,'solte a engrenagem\nna placa (E)']] },
 
@@ -112,25 +184,28 @@ const LEVELS = [
   pontes:[{x:760,y:520,w:300,h:80,t0:4,t1:55},{x:1660,y:520,w:300,h:80,t0:30,t1:97}],
   pedras:[pedra(320,28), pedra(1450,70,5)],
   eng:{x:2850,y:480}, ...KIT,
+  estrelas:[[900,380],[1800,380],[2500,440]],
   dicas:[[1400,430,'FASE FINAL: tudo junto!\nduas pontes, pedras e o caminho de volta...']] },
 ];
 
+// ---------- estado ----------
 let fase = Math.min(parseInt(localStorage.getItem('retroceder_fase')||'0',10)||0, LEVELS.length-1);
 let LV = LEVELS[fase];
-
 let T = 0;
-let keys, touch = {L:0,R:0,J:0,E:0};
-let msg, tbar, tbarBg, venceu = false;
+let venceu = false, rodando = false;
+const touch = {L:0,R:0,J:0,E:0};
+const keys = {};
+window.addEventListener('keydown', e=>{ keys[e.code]=true; if (['Space','ArrowUp','ArrowDown'].includes(e.code)) e.preventDefault(); });
+window.addEventListener('keyup', e=>{ keys[e.code]=false; });
+
+// estrelas coletadas: { "fase:idx": 1 }
+let estrelasSalvas = {};
+try { estrelasSalvas = JSON.parse(localStorage.getItem('retroceder_estrelas')||'{}') || {}; } catch { estrelasSalvas = {}; }
+const salvaEstrelas = ()=>{ try { localStorage.setItem('retroceder_estrelas', JSON.stringify(estrelasSalvas)); } catch {} };
 
 const lerp = (a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
-
 const ponteExiste = (p) => T >= p.t0 && T < p.t1;
 const pedraY = (p) => T < p.tq ? p.yA : lerp(p.yA, p.yB, (T-p.tq)/p.dur);
-const corFundo = () => {
-  const t = T/T_MAX;
-  const r = Math.round(lerp(14, 60, t)), g = Math.round(lerp(16, 30, t)), b = Math.round(lerp(46, 18, t));
-  return Phaser.Display.Color.GetColor(r,g,b);
-};
 
 // engrenagem: track padrão = parada em LV.eng; override = onde o jogador largar
 let eng = { override: null, hold: false, podePegar: true };
@@ -145,7 +220,7 @@ function portaoAberto(){
   return Math.abs(p.x - (LV.placa.x + LV.placa.w/2)) < 50 && p.y < LV.placa.y + 28 && p.y > LV.placa.y - 42;
 }
 
-// ---------- física própria (AABB simples e determinística) ----------
+// ---------- física própria (AABB simples e determinística, em px) ----------
 const P = { x: 80, y: 400, vx: 0, vy: 0, w: 30, h: 46, chao: false };
 
 function solidosAtuais(){
@@ -155,69 +230,418 @@ function solidosAtuais(){
   if (!portaoAberto()) s.push({x:LV.portao.x, y:LV.portao.y, w:LV.portao.w, h:LV.portao.h});
   return s;
 }
-function colide(px,py,pw,ph,s){ return px < s.x+s.w && px+pw > s.x && py < s.y+s.h && py+ph > s.y; }
+function colide(px_,py_,pw,ph,s){ return px_ < s.x+s.w && px_+pw > s.x && py_ < s.y+s.h && py_+ph > s.y; }
 
 // ============================================================================
-new Phaser.Game({
-  type: Phaser.AUTO, parent: 'game', backgroundColor: '#0e1030',
-  scale: { mode: Phaser.Scale.RESIZE },
-  scene: { create, update }
-});
+// 3D — cena, modelos, helpers
+// ============================================================================
+mostraLoading(document.getElementById('game'));
+const cena = criaCena({ container: document.getElementById('game'), ceu:'dia', sombras:true, bloom:true, bloomForca:0.35, pixelRatioMax:2 });
+const { scene, camera, renderer, luzSol, luzAmbiente } = cena;
+camera.fov = 45; camera.updateProjectionMatrix();
+luzSol.shadow.mapSize.set(2048, 2048);
+luzSol.shadow.camera.left = luzSol.shadow.camera.bottom = -18;
+luzSol.shadow.camera.right = luzSol.shadow.camera.top = 18;
+luzSol.shadow.camera.far = 80;
+const ceuMesh = scene.getObjectByName('ceu');
 
-let gfx, cam, textos = [], scRef;
-function loadLevel(sc, idx){
+// modelos Kenney (CC0) — caminhos absolutos, confirmados no catalog.json
+const M = '/assets/models/';
+const MODELOS = {
+  heroi:    M+'characters/character-d.glb',
+  ponte:    M+'castle/bridge-straight.glb',
+  plat:     M+'nature/platform_stone.glb',
+  pedra:    M+'nature/rock_largeA.glb',
+  pedra2:   M+'nature/rock_largeB.glb',
+  eng:      M+'car/debris-nut.glb',
+  placa:    M+'nature/path_stone.glb',
+  portao:   M+'castle/metal-gate.glb',
+  porta:    M+'castle/door.glb',
+  bandeira: M+'castle/flag.glb',
+  placaDica:M+'nature/sign.glb',
+  pinheiro: M+'nature/tree_pineRoundA.glb',
+  carvalho: M+'nature/tree_oak.glb',
+  arvore:   M+'nature/tree_default.glb',
+  grama:    M+'nature/grass_large.glb',
+  flor:     M+'nature/flower_redA.glb',
+  arbusto:  M+'nature/plant_bush.glb',
+  ruina:    M+'castle/rocks-large.glb',
+};
+
+// Mede um modelo e devolve {tam, min} no espaço local (feito 1x por path).
+const _medidas = new Map();
+function mede(obj, chave){
+  if (_medidas.has(chave)) return _medidas.get(chave);
+  obj.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(obj);
+  const r = { tam: box.getSize(new THREE.Vector3()), min: box.min.clone(), max: box.max.clone() };
+  _medidas.set(chave, r);
+  return r;
+}
+
+// Encaixa um modelo (qualquer pivô) num paralelepípedo: canto mínimo em (x,y,z) e tamanho (w,h,d).
+// uniforme=true mantém proporção (escala pela menor razão) e centraliza dentro da caixa.
+function encaixa(obj, chave, x,y,z, w,h,d, { uniforme=false, apoiaBase=true } = {}){
+  const m = mede(obj, chave);
+  let sx = w/(m.tam.x||1), sy = h/(m.tam.y||1), sz = d/(m.tam.z||1);
+  if (uniforme){ const s = Math.min(sx,sy,sz); sx = sy = sz = s; }
+  const g = new THREE.Group();
+  obj.scale.set(sx,sy,sz);
+  const tw = m.tam.x*sx, th = m.tam.y*sy, td = m.tam.z*sz;
+  obj.position.set(-m.min.x*sx + (w-tw)/2, -m.min.y*sy + (apoiaBase ? 0 : (h-th)/2), -m.min.z*sz + (d-td)/2);
+  g.add(obj);
+  g.position.set(x,y,z);
+  return g;
+}
+
+// Clona materiais pra poder tingir um objeto sem afetar os outros clones.
+function materiaisProprios(obj){
+  obj.traverse(n=>{ if (n.isMesh){ n.material = Array.isArray(n.material) ? n.material.map(m=>m.clone()) : n.material.clone(); } });
+  return obj;
+}
+function tinge(obj, cor, emissive=null){
+  obj.traverse(n=>{ if (n.isMesh){ n.material.color.set(cor); if (emissive) { n.material.emissive?.set(emissive); n.material.emissiveIntensity = 0.6; } } });
+}
+// Versão "fantasma": azul, transparente, wireframe.
+const MAT_FANTASMA = new THREE.MeshBasicMaterial({ color:0x66aaff, transparent:true, opacity:0.15, wireframe:true, depthWrite:false });
+function fantasma(obj){
+  obj.traverse(n=>{ if (n.isMesh){ n.material = MAT_FANTASMA; n.castShadow = false; n.receiveShadow = false; } });
+  return obj;
+}
+
+// materiais dos blocos de chão (poucos draw calls: 1 mesh por sólido)
+const MAT_TERRA = new THREE.MeshStandardMaterial({ color:'#6b5137', roughness:0.95 });
+const MAT_GRAMA = new THREE.MeshStandardMaterial({ color:'#5fa84a', roughness:0.9 });
+const MAT_PEDRA = new THREE.MeshStandardMaterial({ color:'#7d8494', roughness:0.85 });
+const GEO_BOX = new THREE.BoxGeometry(1,1,1);
+function bloco(x,y,z,w,h,d,mat){
+  const m = new THREE.Mesh(GEO_BOX, mat);
+  m.scale.set(w,h,d); m.position.set(x+w/2, y+h/2, z+d/2);
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+
+// texto no mundo (dicas) — canvas → sprite
+function criaTexto(txt, cor='#8fa3ff', tam=30){
+  const linhas = txt.split('\n');
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d');
+  ctx.font = `bold ${tam}px Arial`;
+  const larg = Math.max(...linhas.map(l=>ctx.measureText(l).width)) + 40;
+  c.width = Math.ceil(larg); c.height = linhas.length*(tam*1.25) + 24;
+  ctx.font = `bold ${tam}px Arial`; ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillStyle = 'rgba(10,10,30,0.55)';
+  if (ctx.roundRect){ ctx.beginPath(); ctx.roundRect(0,0,c.width,c.height,16); ctx.fill(); } else ctx.fillRect(0,0,c.width,c.height);
+  ctx.fillStyle = cor;
+  linhas.forEach((l,i)=> ctx.fillText(l, c.width/2, 12 + i*tam*1.25));
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true, depthWrite:false }));
+  const escala = 0.0115;                          // px do canvas → metros
+  sp.scale.set(c.width*escala, c.height*escala, 1);
+  return sp;
+}
+
+// ---------- partículas (pool único, 1 draw call) ----------
+const NP = 400;
+const partPos = new Float32Array(NP*3), partCor = new Float32Array(NP*3);
+const part = Array.from({length:NP}, ()=>({vida:0, x:0,y:0,z:0, vx:0,vy:0,vz:0, r:1,g:1,b:1, grav:0}));
+let partIdx = 0;
+const partGeo = new THREE.BufferGeometry();
+partGeo.setAttribute('position', new THREE.BufferAttribute(partPos,3));
+partGeo.setAttribute('color', new THREE.BufferAttribute(partCor,3));
+const partMesh = new THREE.Points(partGeo, new THREE.PointsMaterial({ size:0.18, vertexColors:true, transparent:true, opacity:0.9, depthWrite:false, sizeAttenuation:true }));
+partMesh.frustumCulled = false;
+scene.add(partMesh);
+function emite(x,y,z, n, cor, { esp=1.5, sobe=1.5, grav=-3, vida=0.8 } = {}){
+  const c = new THREE.Color(cor);
+  for (let i=0;i<n;i++){
+    const p = part[partIdx = (partIdx+1)%NP];
+    p.x=x+(Math.random()-.5)*0.4; p.y=y+(Math.random()-.5)*0.4; p.z=z+(Math.random()-.5)*0.6;
+    p.vx=(Math.random()-.5)*esp; p.vy=Math.random()*sobe; p.vz=(Math.random()-.5)*esp;
+    p.r=c.r; p.g=c.g; p.b=c.b; p.grav=grav; p.vida=vida*(0.6+Math.random()*0.6);
+  }
+}
+function atualizaParticulas(dt){
+  for (let i=0;i<NP;i++){
+    const p = part[i];
+    if (p.vida>0){ p.vida-=dt; p.vy+=p.grav*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.z+=p.vz*dt;
+      partPos[i*3]=p.x; partPos[i*3+1]=p.y; partPos[i*3+2]=p.z;
+      const f = Math.max(0,Math.min(1,p.vida*2)); partCor[i*3]=p.r*f; partCor[i*3+1]=p.g*f; partCor[i*3+2]=p.b*f; }
+    else { partPos[i*3+1] = -999; }
+  }
+  partGeo.attributes.position.needsUpdate = true;
+  partGeo.attributes.color.needsUpdate = true;
+}
+
+// ---------- som (WebAudio, sem arquivos) ----------
+let actx = null, oscRew = null, gainRew = null;
+function iniciaAudio(){
+  if (actx) return;
+  try {
+    actx = new (window.AudioContext||window.webkitAudioContext)();
+    oscRew = actx.createOscillator(); gainRew = actx.createGain();
+    oscRew.type='sawtooth'; oscRew.frequency.value=180; gainRew.gain.value=0;
+    oscRew.connect(gainRew).connect(actx.destination); oscRew.start();
+  } catch { actx = null; }
+}
+function bip(freq=440, dur=0.12, tipo='square', vol=0.08){
+  if (!actx) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type=tipo; o.frequency.setValueAtTime(freq, actx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(Math.max(40,freq*0.6), actx.currentTime+dur);
+  g.gain.setValueAtTime(vol, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+dur);
+  o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime+dur);
+}
+// "som reverso": serra descendo enquanto rebobina
+function somRebobina(ativo, dt){
+  if (!gainRew) return;
+  const alvo = ativo ? 0.05 : 0;
+  gainRew.gain.value += (alvo - gainRew.gain.value) * Math.min(1, dt*12);
+  if (ativo){ oscRew.frequency.value -= dt*260; if (oscRew.frequency.value < 90) oscRew.frequency.value = 320; }
+}
+
+// ============================================================================
+// carrega tudo
+// ============================================================================
+const mod = {};
+await Promise.all(Object.entries(MODELOS).map(async ([k,p])=>{
+  try { mod[k] = await carregaModelo(p, { clonar:false }); mede(mod[k], k); }
+  catch (e) { console.warn(e); mod[k] = null; }
+}));
+const clone = async (k, opts={}) => mod[k] ? carregaModelo(MODELOS[k], opts) : null;
+
+// herói (personagem blocky com animações idle/walk/sprint/holding-both)
+const heroiObj = await clone('heroi');
+const heroi = new THREE.Group();
+let mixer = null;
+if (heroiObj){
+  const g = encaixa(heroiObj, 'heroi', -px(P.w)/2, 0, -0.4, px(P.w)*1.15, py(H-P.h), 0.8, { uniforme:true });
+  heroi.add(g);
+  mixer = heroiObj.criaMixer(); mixer.toca('idle');
+} else {
+  heroi.add(bloco(-px(P.w)/2,0,-0.3, px(P.w), py(H-P.h), 0.6, new THREE.MeshStandardMaterial({color:0x66ddff})));
+}
+const heroiVis = heroi.children[0];      // o que sofre squash/inclinação
+scene.add(heroi);
+// eco temporal (silhueta azul atrás)
+const eco = new THREE.Mesh(GEO_BOX, new THREE.MeshBasicMaterial({ color:0x66ddff, transparent:true, opacity:0.22, depthWrite:false }));
+eco.scale.set(px(P.w), py(H-P.h), 0.5); scene.add(eco);
+
+// engrenagem (porca dourada girando = a engrenagem do tempo)
+const engObj = await clone('eng');
+const engMesh = new THREE.Group();
+if (engObj){ materiaisProprios(engObj); tinge(engObj, '#ffb84d', '#ff9a1a');
+  engMesh.add(encaixa(engObj, 'eng', -0.45,-0.45,-0.45, 0.9,0.9,0.9, { uniforme:true, apoiaBase:false })); }
+else engMesh.add(new THREE.Mesh(new THREE.TorusGeometry(0.3,0.12,8,12), new THREE.MeshStandardMaterial({color:0xffb84d, emissive:0xff9a1a})));
+engMesh.children[0].rotation.x = Math.PI/2;   // deita a porca de frente pra câmera
+scene.add(engMesh);
+const luzEng = new THREE.PointLight(0xffb84d, 6, 5); engMesh.add(luzEng);
+
+// ---------- chão distante + decoração fixa ----------
+const CHAO_Y = -4.5;
+const chaoMesh = chao({ tamanho: 400, cor: '#3f7a3a' }); chaoMesh.position.y = CHAO_Y; chaoMesh.receiveShadow = true;
+scene.add(chaoMesh);
+
+// ============================================================================
+// construção do nível
+// ============================================================================
+let nivel = null;               // Group com tudo do nível atual
+let pontesVis = [];             // {p, solida, fant, mats, existia}
+let pedrasVis = [];             // {p, mesh, emBaixo}
+let portaoMesh = null, portaMesh = null, placaMesh = null, placaMats = [];
+let estrelasVis = [];           // {i, mesh, pego}
+let ultimaFase = -1;
+
+async function constroiNivel(){
+  if (nivel){ scene.remove(nivel); }
+  nivel = new THREE.Group(); scene.add(nivel);
+  pontesVis = []; pedrasVis = []; estrelasVis = []; placaMats = [];
+  const Z0 = -PROF/2;
+
+  // sólidos: box terra + tampa de grama (plataformas finas = pedra)
+  for (const [x,y,w,h] of LV.solidos){
+    const fino = h <= 20;
+    if (fino){
+      const pl = await clone('plat');
+      if (pl) nivel.add(encaixa(pl, 'plat', px(x), py(y+h), Z0+0.3, px(w), px(h)+0.25, PROF-0.6));
+      else nivel.add(bloco(px(x), py(y+h), Z0+0.3, px(w), px(h), PROF-0.6, MAT_PEDRA));
+    } else {
+      nivel.add(bloco(px(x), py(y+h)-3.4, Z0, px(w), px(h)+3.4, PROF, MAT_TERRA));
+      nivel.add(bloco(px(x), py(y)-0.12, Z0-0.05, px(w), 0.12, PROF+0.1, MAT_GRAMA));
+      // grama / flores / arbustos em cima (atrás do jogador, Z negativo)
+      for (let gx = x+40; gx < x+w-40; gx += 130){
+        const k = ['grama','flor','arbusto','grama'][Math.floor(gx/130)%4];
+        const d = await clone(k);
+        if (d){ const dg = encaixa(d, k, px(gx), py(y), Z0+0.1, 0.5,0.45,0.5, {uniforme:true}); dg.rotation.y = gx; nivel.add(dg); }
+      }
+      // árvores no fundo, sobre o sólido
+      for (let tx = x+120; tx < x+w-100; tx += 420){
+        const k = ['pinheiro','carvalho','arvore'][Math.floor(tx/420)%3];
+        const a = await clone(k);
+        if (a){ const alt = 2.6 + (tx%3)*0.4; nivel.add(encaixa(a, k, px(tx)-0.8, py(y), Z0-1.4, 1.6, alt, 1.6, {uniforme:true})); }
+      }
+    }
+  }
+  // floresta no vale lá embaixo (dá profundidade e mostra o abismo)
+  for (let tx = -200; tx < LV.W+200; tx += 260){
+    const k = ['pinheiro','arvore','carvalho'][Math.floor(tx/260)%3];
+    const a = await clone(k);
+    if (a){ const alt = 3.5 + ((tx/260)%3); const z = -6 - ((tx/260)%4)*2.2;
+      nivel.add(encaixa(a, k, px(tx), CHAO_Y, z, 2, alt, 2, {uniforme:true})); }
+  }
+
+  // pontes: versão sólida (madeira) + fantasma (wireframe azul)
+  for (const p of LV.pontes){
+    const w3 = px(p.w), esp = 0.5;   // 20px de tábua como no original
+    const solida = new THREE.Group(), fant = new THREE.Group();
+    const largMod = mod.ponte ? mede(mod.ponte,'ponte').tam.x : 2;
+    const n = Math.max(1, Math.round(w3 / Math.max(1.2, largMod*0.9)));
+    const seg = w3/n;
+    const mats = [];
+    for (let i=0;i<n;i++){
+      const a = await clone('ponte'), b = await clone('ponte');
+      if (a){ materiaisProprios(a); a.traverse(m=>{ if (m.isMesh) mats.push(m.material); });
+        solida.add(encaixa(a, 'ponte', px(p.x)+i*seg, py(p.y)-esp, Z0+0.2, seg+0.02, esp+0.35, PROF-0.4));
+        fant.add(encaixa(fantasma(b), 'ponte', px(p.x)+i*seg, py(p.y)-esp, Z0+0.2, seg+0.02, esp+0.35, PROF-0.4)); }
+      else { const m = bloco(px(p.x)+i*seg, py(p.y)-esp, Z0+0.2, seg, esp, PROF-0.4, new THREE.MeshStandardMaterial({color:0x8a6a3c})); mats.push(m.material); solida.add(m);
+        fant.add(bloco(px(p.x)+i*seg, py(p.y)-esp, Z0+0.2, seg, esp, PROF-0.4, MAT_FANTASMA)); }
+    }
+    // escombros lá embaixo (só aparecem depois que a ponte desabou)
+    const escombros = new THREE.Group();
+    for (let i=0;i<3;i++){ const r = await clone('ruina'); if (r) escombros.add(encaixa(r, 'ruina', px(p.x)+w3*(0.15+0.3*i), CHAO_Y, -1+i*0.8, 1.6, 1.1, 1.6, {uniforme:true})); }
+    nivel.add(solida, fant, escombros);
+    pontesVis.push({ p, solida, fant, escombros, mats, corBase: mats.map(m=>m.color.clone()), existia: ponteExiste(p) });
+  }
+
+  // pedras que caem
+  for (const [i,p] of LV.pedras.entries()){
+    const r = await clone(i%2 ? 'pedra2' : 'pedra');
+    let g;
+    if (r) g = encaixa(r, i%2?'pedra2':'pedra', 0,0,Z0+0.4, px(p.w), px(p.h), PROF-0.8);
+    else { g = new THREE.Group(); g.add(bloco(0,0,Z0+0.4, px(p.w), px(p.h), PROF-0.8, MAT_PEDRA)); }
+    nivel.add(g);
+    pedrasVis.push({ p, mesh:g, emBaixo: pedraY(p) >= p.yB - 0.01 });
+  }
+
+  // placa de pressão (path_stone tingida) + portão + porta + bandeiras
+  const pl = await clone('placa');
+  placaMesh = pl ? (materiaisProprios(pl), encaixa(pl, 'placa', px(LV.placa.x), py(LV.placa.y+8), Z0+0.3, px(LV.placa.w), 0.22, PROF-0.6))
+                 : bloco(px(LV.placa.x), py(LV.placa.y+8), Z0+0.3, px(LV.placa.w), 0.2, PROF-0.6, new THREE.MeshStandardMaterial({color:0xcc4444}));
+  placaMesh.traverse(m=>{ if (m.isMesh) placaMats.push(m.material); });
+  nivel.add(placaMesh);
+
+  const pg = await clone('portao');
+  portaoMesh = pg ? encaixa(pg, 'portao', px(LV.portao.x)-0.35, py(LV.portao.y+LV.portao.h), Z0+0.4, px(LV.portao.w)+0.7, px(LV.portao.h), PROF-0.8)
+                  : bloco(px(LV.portao.x), py(LV.portao.y+LV.portao.h), Z0+0.4, px(LV.portao.w), px(LV.portao.h), PROF-0.8, new THREE.MeshStandardMaterial({color:0xaa3355}));
+  nivel.add(portaoMesh);
+
+  const pt = await clone('porta');
+  portaMesh = pt ? (materiaisProprios(pt), encaixa(pt, 'porta', px(LV.porta.x), py(LV.porta.y+LV.porta.h), Z0+0.9, px(LV.porta.w), px(LV.porta.h), 0.5))
+                 : bloco(px(LV.porta.x), py(LV.porta.y+LV.porta.h), Z0+0.9, px(LV.porta.w), px(LV.porta.h), 0.5, new THREE.MeshStandardMaterial({color:0x555577}));
+  nivel.add(portaMesh);
+  const luzPorta = new THREE.PointLight(0xffd700, 0, 6); luzPorta.position.set(px(LV.porta.x+LV.porta.w/2), py(LV.porta.y), 1); portaMesh.add(luzPorta); portaMesh.luz = luzPorta;
+  for (const dx of [-1.2, px(LV.porta.w)+0.6]){
+    const b = await clone('bandeira');
+    if (b) nivel.add(encaixa(b, 'bandeira', px(LV.porta.x)+dx, py(LV.porta.y+LV.porta.h), Z0+0.6, 0.6, 1.6, 0.6, {uniforme:true}));
+  }
+
+  // dicas: placa de madeira + texto flutuante
+  for (const [x,y,t] of LV.dicas){
+    const sp = criaTexto(t); sp.position.set(px(x), py(y)+0.6, 1.2); nivel.add(sp);
+    const s = await clone('placaDica');
+    if (s){ // encontra o sólido embaixo da dica pra apoiar a plaquinha
+      const sol = LV.solidos.find(a=> x>=a[0] && x<=a[0]+a[2] && a[1] >= y);
+      if (sol) nivel.add(encaixa(s, 'placaDica', px(x)-0.35, py(sol[1]), Z0+0.5, 0.7, 0.9, 0.5, {uniforme:true})); }
+  }
+
+  // estrelas coletáveis
+  const geoEstrela = new THREE.OctahedronGeometry(0.32, 0);
+  const matEstrela = new THREE.MeshStandardMaterial({ color:0xffe14d, emissive:0xffaa00, emissiveIntensity:0.8, roughness:0.3 });
+  for (const [i,[x,y]] of (LV.estrelas||[]).entries()){
+    const pego = !!estrelasSalvas[`${fase}:${i}`];
+    const m = new THREE.Mesh(geoEstrela, matEstrela); m.position.set(px(x), py(y), 0.2); m.castShadow = true; m.visible = !pego;
+    nivel.add(m); estrelasVis.push({ i, x, y, mesh:m, pego });
+  }
+}
+
+function loadLevel(idx){
   fase = idx; LV = LEVELS[idx];
   localStorage.setItem('retroceder_fase', String(idx));
   T = 0; venceu = false;
   eng = { override: null, hold: false, podePegar: true };
   P.x = LV.spawn.x; P.y = LV.spawn.y; P.vx = 0; P.vy = 0;
-  cam.setBounds(0, 0, LV.W, H);
-  for (const t of textos) t.destroy();
-  textos = [];
-  for (const [x,y,t] of LV.dicas)
-    textos.push(sc.add.text(x,y,t,{fontSize:'15px',color:'#8fa3ff',align:'center'}).setOrigin(0.5));
+  document.getElementById('msg').className = '';
+  return constroiNivel();
 }
 
-function create(){
-  const sc = scRef = this;
-  gfx = sc.add.graphics();
-  cam = sc.cameras.main;
-
-  keys = sc.input.keyboard.addKeys('LEFT,RIGHT,UP,SPACE,A,D,W,E,F');
-
-  // HUD fixa
-  tbarBg = sc.add.rectangle(0,0,10,10,0x000000,0.5).setScrollFactor(0).setDepth(10);
-  tbar = sc.add.rectangle(0,0,10,10,0xffb84d).setScrollFactor(0).setDepth(11);
-  msg = sc.add.text(0, 0, '', {fontSize:'16px', color:'#ffe9b0', align:'center'}).setScrollFactor(0).setDepth(12);
-
-  loadLevel(sc, fase);
-
-  // toque
-  if ('ontouchstart' in window || navigator.maxTouchPoints > 0){
-    document.body.classList.add('touch');
-    const bind=(id,k)=>{ const el=document.getElementById(id);
-      el.addEventListener('touchstart',e=>{e.preventDefault();touch[k]=1;},{passive:false});
-      el.addEventListener('touchend',()=>touch[k]=0);
-      el.addEventListener('touchcancel',()=>touch[k]=0);
-    };
-    bind('bL','L'); bind('bR','R'); bind('bJ','J'); bind('bE','E');
-  }
+// ============================================================================
+// céu/luz conforme a ÉPOCA (T): dia → pôr-do-sol → noite
+// ============================================================================
+const EPOCAS = [ // [topo, horizonte, nevoa, sol, forçaSol, hemisfério]
+  ['#4a90e2', '#cfe8ff', '#cfe8ff', '#fff4d6', 2.4, '#cfe8ff'],
+  ['#2b1b5a', '#ff9a5c', '#ffb98a', '#ffb070', 1.7, '#ffb98a'],
+  ['#050818', '#1a1f4a', '#0d1230', '#9fb4ff', 0.9, '#3a4a8a'],
+];
+const _c1 = new THREE.Color(), _c2 = new THREE.Color();
+const mix = (a,b,t)=> _c1.set(a).lerp(_c2.set(b), t);
+function aplicaCeu(){
+  const t = T/T_MAX;
+  const [A,B,f] = t < 0.5 ? [EPOCAS[0],EPOCAS[1],t*2] : [EPOCAS[1],EPOCAS[2],(t-0.5)*2];
+  if (ceuMesh){ ceuMesh.material.uniforms.topo.value.copy(mix(A[0],B[0],f)); ceuMesh.material.uniforms.horizonte.value.copy(mix(A[1],B[1],f)); }
+  if (scene.fog){ scene.fog.color.copy(mix(A[2],B[2],f)); scene.fog.near = 25; scene.fog.far = 90; }
+  luzSol.color.copy(mix(A[3],B[3],f)); luzSol.intensity = lerp(A[4],B[4],f);
+  luzAmbiente.color.copy(mix(A[5],B[5],f));
+  luzAmbiente.intensity = lerp(0.8, 0.5, t);
+  // sol gira do leste (passado) pro oeste (futuro)
+  const ang = lerp(0.35, 2.75, t);
+  luzSol.position.set(heroi.position.x + Math.cos(ang)*22, 10 + Math.sin(ang)*22, 14);
+  luzSol.target.position.set(heroi.position.x, 1, 0); luzSol.target.updateMatrixWorld();
 }
 
-let ePrev = false;
-function update(_, dms){
-  const dt = Math.min(dms/1000, 0.033);
-  if (venceu) return;
+// ============================================================================
+// HUD + input
+// ============================================================================
+const elFase = document.getElementById('fase'), elMsg = document.getElementById('msg'),
+      elCur = document.getElementById('tcur'), elVal = document.getElementById('tval'), elRew = document.getElementById('rew');
+function totalEstrelas(){ return Object.keys(estrelasSalvas).length; }
+
+if ('ontouchstart' in window || navigator.maxTouchPoints > 0){
+  document.body.classList.add('touch');
+  const bind=(id,k)=>{ const el=document.getElementById(id);
+    el.addEventListener('touchstart',e=>{e.preventDefault();touch[k]=1;},{passive:false});
+    el.addEventListener('touchend',()=>touch[k]=0);
+    el.addEventListener('touchcancel',()=>touch[k]=0);
+    el.addEventListener('mousedown',()=>touch[k]=1); el.addEventListener('mouseup',()=>touch[k]=0);
+  };
+  bind('bL','L'); bind('bR','R'); bind('bJ','J'); bind('bE','E');
+}
+
+// ============================================================================
+// loop
+// ============================================================================
+let ePrev = false, rewForca = 0, anim = 'idle', squash = 0, faceAlvo = Math.PI/2;
+const camAlvo = new THREE.Vector3(), olhar = new THREE.Vector3(), olharAtual = new THREE.Vector3();
+let camInit = false;
+
+function distanciaCamera(){
+  // enquadra ~22 metros de largura (cabe a fase inteira em algumas telas) respeitando o aspecto
+  const vis = 22;
+  const dH = (vis/2) / Math.tan(THREE.MathUtils.degToRad(camera.fov)/2) / camera.aspect;
+  return THREE.MathUtils.clamp(dH, 9, 26);
+}
+
+function update(dt){
+  if (!rodando || venceu) return;
 
   // ---------- input ----------
-  const esq = keys.LEFT.isDown || keys.A.isDown || touch.L;
-  const dir = keys.RIGHT.isDown || keys.D.isDown || touch.R;
-  const pulo = keys.UP.isDown || keys.SPACE.isDown || keys.W.isDown || touch.J;
-  const acao = keys.E.isDown || keys.F.isDown || touch.E;
+  const esq = keys.ArrowLeft || keys.KeyA || touch.L;
+  const dir = keys.ArrowRight || keys.KeyD || touch.R;
+  const pulo = keys.ArrowUp || keys.Space || keys.KeyW || touch.J;
+  const acao = keys.KeyE || keys.KeyF || touch.E;
 
   const VEL = 220, PULO = -580, GRAV = 1300;
   P.vx = dir ? VEL : esq ? -VEL : 0;
-  if (pulo && P.chao) P.vy = PULO;
+  if (pulo && P.chao){ P.vy = PULO; squash = 1; bip(520, 0.15, 'square', 0.05); }
   P.vy += GRAV*dt;
 
   // ---------- mover X (e o TEMPO junto!) ----------
@@ -230,10 +654,13 @@ function update(_, dms){
       dx = P.x - oldX;
     }
   }
+  const tAntes = T;
   T = Math.max(0, Math.min(T_MAX, T + dx * T_PER_PX));
+  const rebobinando = T < tAntes - 1e-6;
 
   // ---------- mover Y ----------
   P.y += P.vy*dt;
+  const estavaNoChao = P.chao;
   P.chao = false;
   for (const s of solidosAtuais()){
     if (colide(P.x, P.y, P.w, P.h, s)){
@@ -242,7 +669,12 @@ function update(_, dms){
       P.vy = 0;
     }
   }
-  if (P.y > H+100){ P.x = LV.spawn.x; P.y = LV.spawn.y; P.vy = 0; T = Math.min(T, 10); } // caiu: volta
+  if (P.chao && !estavaNoChao){ squash = -0.6; emite(px(P.x+P.w/2), py(P.y+P.h), 0, 8, '#c9b28a', {esp:2, sobe:1, grav:-4, vida:0.5}); }
+  if (P.y > H+100){ // caiu: volta
+    P.x = LV.spawn.x; P.y = LV.spawn.y; P.vy = 0; T = Math.min(T, 10);
+    bip(160, 0.4, 'sawtooth', 0.08);
+    emite(px(P.x+P.w/2), py(P.y+P.h/2), 0, 40, '#66ddff', {esp:4, sobe:3, grav:-2});
+  }
 
   // ---------- pegar / soltar ----------
   // encostar na engrenagem já pega; E/✋ solta. Depois de soltar, só
@@ -252,106 +684,160 @@ function update(_, dms){
   const distEng = Math.hypot(P.x+P.w/2 - ep.x, P.y+P.h/2 - ep.y);
   if (!eng.hold && distEng > 70) eng.podePegar = true;
   if (!eng.hold && eng.podePegar && distEng < 44){
-    eng.hold = true; eng.override = null;
+    eng.hold = true; eng.override = null; bip(880, 0.1, 'triangle', 0.06);
   }
   if (acao && !ePrev){
     if (eng.hold){
       eng.hold = false; eng.podePegar = false;
       eng.override = { x: P.x + P.w/2, y: P.y + P.h - 14 }; // solta no chão onde está
+      bip(330, 0.1, 'triangle', 0.06);
     } else if (distEng < 60){
-      eng.hold = true; eng.override = null;
+      eng.hold = true; eng.override = null; bip(880, 0.1, 'triangle', 0.06);
     }
   }
   ePrev = acao;
 
+  // ---------- estrelas ----------
+  for (const e of estrelasVis){
+    if (e.pego) continue;
+    if (Math.hypot(P.x+P.w/2 - e.x, P.y+P.h/2 - e.y) < 40){
+      e.pego = true; e.mesh.visible = false; estrelasSalvas[`${fase}:${e.i}`] = 1; salvaEstrelas();
+      bip(1200, 0.2, 'sine', 0.08); emite(e.mesh.position.x, e.mesh.position.y, 0.2, 30, '#ffe14d', {esp:3, sobe:3, grav:-3});
+    }
+  }
+
   // ---------- vitória ----------
   if (portaoAberto() && colide(P.x,P.y,P.w,P.h,LV.porta)){
     venceu = true;
+    bip(660, 0.3, 'square', 0.08); setTimeout(()=>bip(990, 0.4, 'square', 0.08), 150);
+    emite(px(P.x+P.w/2), py(P.y), 0, 80, '#ffd700', {esp:5, sobe:5, grav:-3, vida:1.5});
+    elMsg.className = 'grande';
     if (fase < LEVELS.length - 1){
-      msg.setText(`🎉 FASE ${fase+1} COMPLETA! 🎉\npreparando a próxima época...`);
-      scRef.time.delayedCall(2000, ()=> loadLevel(scRef, fase+1));
+      elMsg.textContent = `🎉 FASE ${fase+1} COMPLETA! 🎉\npreparando a próxima época...`;
+      setTimeout(()=> loadLevel(fase+1), 2200);
     } else {
       localStorage.removeItem('retroceder_fase');
-      msg.setText('🏆 VOCÊ QUEBROU A LINHA DO TEMPO INTEIRA! 🏆\nTodas as fases completas — você é o mestre do tempo!\n(F5 pra recomeçar da fase 1)');
+      elMsg.textContent = `🏆 VOCÊ QUEBROU A LINHA DO TEMPO INTEIRA! 🏆\nTodas as fases completas — você é o mestre do tempo!\n⭐ ${totalEstrelas()} estrelas\n(F5 pra recomeçar da fase 1)`;
     }
   }
 
-  // ---------- render ----------
-  const g = gfx; g.clear();
-  cam.setBackgroundColor(corFundo());
-  cam.startFollow({x:P.x, y:P.y}, true, 0.15, 0.15);
-
-  // estrelas do passado / brasas do futuro
-  g.fillStyle(T<50 ? 0x8fa3ff : 0xff8844, 0.5);
-  for (let i=0;i<40;i++){ const sx=(i*211)%LV.W, sy=(i*137)%300; g.fillRect(sx, sy, 2, 2); }
-
-  // sólidos fixos
-  g.fillStyle(0x2e3560);
-  for (const a of LV.solidos) g.fillRect(a[0],a[1],a[2],a[3]);
-  g.fillStyle(0x4a5490);
-  for (const a of LV.solidos) g.fillRect(a[0],a[1],a[2],6);
-
-  // pontes (com rachaduras conforme T se aproxima do fim da época)
-  for (const p of LV.pontes){
-    if (ponteExiste(p)){
-      const rachadura = Math.max(0,(T-(p.t1-20))/20);
-      g.fillStyle(Phaser.Display.Color.GetColor(120-rachadura*70, 90-rachadura*50, 60), 1);
-      g.fillRect(p.x,p.y,p.w,20);
-      if (rachadura>0.2){ g.fillStyle(0x000000,0.6);
-        const n = Math.max(3, Math.floor(p.w/60));
-        for(let i=0;i<n;i++) g.fillRect(p.x+40+i*(p.w-80)/n, p.y, 3, 20*rachadura); }
-    } else if (T < p.t0) { // ainda em obra no passado
-      g.fillStyle(0x6a5a3a, 0.8);
-      for(let i=0;i<4;i++) g.fillRect(p.x+20+i*(p.w/4), p.y, 8, 60);
-      g.fillStyle(0x8a7a5a, 0.5); g.fillRect(p.x, p.y+56, p.w*(T/p.t0), 8);
-    } else {
-      g.fillStyle(0x1a1030); g.fillRect(p.x, p.y+60, p.w, 20); // escombros lá embaixo
-    }
-  }
-
-  // pedras que caem
-  for (const p of LV.pedras){
-    const py = pedraY(p);
-    g.fillStyle(0x8a7a6a); g.fillRect(p.x, py, p.w, p.h);
-    g.fillStyle(0x6a5a4a); g.fillRect(p.x+8, py+10, p.w-16, 8);
-  }
-
-  // placa de pressão
-  g.fillStyle(portaoAberto() ? 0x33ff88 : 0xcc4444);
-  g.fillRect(LV.placa.x, LV.placa.y+4, LV.placa.w, 6);
-
-  // portão
-  if (!portaoAberto()){
-    g.fillStyle(0xaa3355); g.fillRect(LV.portao.x, LV.portao.y, LV.portao.w, LV.portao.h);
-    g.fillStyle(0xdd6688); for(let i=0;i<4;i++) g.fillRect(LV.portao.x, LV.portao.y+10+i*28, LV.portao.w, 4);
-  }
-
-  // porta final
-  g.fillStyle(portaoAberto()?0xffd700:0x555577);
-  g.fillRect(LV.porta.x, LV.porta.y, LV.porta.w, LV.porta.h);
-  g.fillStyle(0x332200); g.fillRect(LV.porta.x+30, LV.porta.y+30, 6, 10);
-
-  // engrenagem (dourada; pisca se for incoerência)
+  // ======================= visual =======================
+  const aberto = portaoAberto();
   const inco = eng.override && !eng.hold;
-  g.fillStyle(0xffb84d, inco ? (0.7+0.3*Math.sin(Date.now()/150)) : 1);
-  g.fillCircle(ep.x, ep.y, 14);
-  g.fillStyle(0x0a0a18); g.fillCircle(ep.x, ep.y, 5);
-  for (let i=0;i<8;i++){ const a=i/8*Math.PI*2 + T*0.1;
-    g.fillStyle(0xffb84d,1); g.fillRect(ep.x+Math.cos(a)*16-3, ep.y+Math.sin(a)*16-3, 6, 6); }
 
-  // jogador (com "eco temporal" atrás)
-  g.fillStyle(0x66ddff, 0.25); g.fillRect(P.x - (P.vx>0?8:-8), P.y, P.w, P.h);
-  g.fillStyle(0x66ddff); g.fillRect(P.x, P.y, P.w, P.h);
-  g.fillStyle(0xffffff); g.fillRect(P.x + (P.vx>=0?18:4), P.y+10, 6, 6); // olho
+  // herói: posição, virada, animação, squash
+  heroi.position.set(px(P.x+P.w/2), py(P.y+P.h), 0);
+  if (P.vx > 0) faceAlvo = Math.PI/2; else if (P.vx < 0) faceAlvo = -Math.PI/2;
+  heroi.rotation.y += (faceAlvo - heroi.rotation.y) * Math.min(1, dt*12);
+  const novaAnim = !P.chao ? 'pulo' : P.vx !== 0 ? (eng.hold ? 'walk' : 'sprint') : (eng.hold ? 'holding-both' : 'idle');
+  if (novaAnim !== anim){ anim = novaAnim; mixer?.toca(anim === 'pulo' ? 'holding-both' : anim, {fade:0.15}); }
+  mixer?.update(dt * (anim === 'sprint' ? 1.4 : 1));
+  squash += (0 - squash) * Math.min(1, dt*8);
+  heroiVis.scale.set(1 - squash*0.18, 1 + squash*0.25, 1 - squash*0.18);
+  heroiVis.rotation.z = -P.vx/VEL * 0.08 * (P.chao ? 1 : 0.4);   // inclina pra frente ao correr
+  eco.position.set(heroi.position.x - Math.sign(P.vx||1)*0.25, heroi.position.y + py(H-P.h)/2, -0.2);
+  eco.material.opacity = 0.12 + Math.abs(P.vx)/VEL*0.15;
+  if (Math.abs(P.vx) > 0 && P.chao && Math.random() < 0.35) emite(heroi.position.x - Math.sign(P.vx)*0.3, heroi.position.y+0.05, 0, 1, rebobinando ? '#66aaff' : '#c9b28a', {esp:1, sobe:0.6, grav:-2, vida:0.5});
 
-  // HUD: barra do tempo
-  const vw = cam.width;
-  tbarBg.setPosition(vw/2, 24).setSize(vw*0.6, 14);
-  tbar.setPosition(vw/2 - vw*0.3 + (T/T_MAX)*vw*0.6/2, 24).setSize((T/T_MAX)*vw*0.6, 10);
-  if (!venceu) msg.setText(`🕹️ FASE ${fase+1}/${LEVELS.length}: ${LV.nome}  ⏱️ T=${Math.round(T)}  ${eng.hold?'✋ carregando engrenagem':''}  ${inco?'⚡ INCOERÊNCIA!':''}`);
-  msg.setPosition(vw/2 - msg.width/2, 40);
+  // engrenagem
+  engMesh.position.set(px(ep.x), py(ep.y), 0.3);
+  engMesh.rotation.z = -T*0.12 + performance.now()*0.0015;
+  const pisc = inco ? 0.55 + 0.45*Math.sin(performance.now()/150) : 1;
+  luzEng.intensity = 4*pisc + (eng.hold ? 2 : 0);
+  engMesh.children[0].scale.setScalar(0.85 + 0.15*pisc);
+
+  // pontes: sólida dentro da época, fantasma fora; rachaduras (escurece) perto do fim
+  for (const pv of pontesVis){
+    const existe = ponteExiste(pv.p);
+    if (existe && !pv.existia){ // materializou!
+      for (let i=0;i<6;i++) emite(px(pv.p.x)+px(pv.p.w)*(i+0.5)/6, py(pv.p.y)+0.2, 0, 6, '#8fd0ff', {esp:2, sobe:2.5, grav:-1.5, vida:0.9});
+      bip(700, 0.25, 'sine', 0.05);
+    }
+    if (!existe && pv.existia){ // sumiu (desabou ou foi "desconstruída")
+      for (let i=0;i<6;i++) emite(px(pv.p.x)+px(pv.p.w)*(i+0.5)/6, py(pv.p.y), 0, 6, T >= pv.p.t1 ? '#6a5a4a' : '#8fd0ff', {esp:2, sobe:1, grav:-6, vida:0.9});
+      bip(140, 0.3, 'sawtooth', 0.06);
+    }
+    pv.existia = existe;
+    pv.solida.visible = existe; pv.fant.visible = !existe;
+    pv.escombros.visible = T >= pv.p.t1;
+    if (existe){
+      const rach = Math.max(0, (T-(pv.p.t1-20))/20);
+      pv.mats.forEach((m,i)=> m.color.copy(pv.corBase[i]).multiplyScalar(1 - rach*0.6));
+    }
+    MAT_FANTASMA.opacity = 0.12 + 0.05*Math.sin(performance.now()/300);
+  }
+
+  // pedras: caem (interpola em T); poeira quando batem no chão
+  for (const pd of pedrasVis){
+    const y = pedraY(pd.p);
+    pd.mesh.position.set(px(pd.p.x), py(y+pd.p.h), 0);
+    const emBaixo = y >= pd.p.yB - 0.01;
+    if (emBaixo && !pd.emBaixo){ emite(px(pd.p.x+pd.p.w/2), py(pd.p.yB+pd.p.h), 0, 40, '#b09a7a', {esp:4, sobe:2, grav:-4, vida:0.9}); bip(90, 0.35, 'sawtooth', 0.09); }
+    if (!emBaixo && y > pd.p.yA + 1 && Math.random() < 0.5) emite(px(pd.p.x+pd.p.w/2), py(y+pd.p.h)+0.2, 0, 1, '#b09a7a', {esp:1.5, sobe:0.5, grav:-3, vida:0.5});
+    pd.emBaixo = emBaixo;
+  }
+
+  // placa / portão / porta
+  const corPlaca = aberto ? '#33ff88' : '#cc4444';
+  placaMats.forEach(m=>{ m.color.set(corPlaca); if (m.emissive){ m.emissive.set(corPlaca); m.emissiveIntensity = aberto ? 0.7 : 0.25; } });
+  portaoMesh.visible = !aberto;
+  portaMesh.traverse(m=>{ if (m.isMesh && m.material.emissive){ m.material.emissive.set(aberto ? '#ffd700' : '#000000'); m.material.emissiveIntensity = aberto ? 0.5 : 0; } });
+  portaMesh.luz.intensity = aberto ? 5 : 0;
+
+  // estrelas giram e flutuam
+  for (const e of estrelasVis){ if (!e.pego){ e.mesh.rotation.y += dt*2; e.mesh.position.y = py(e.y) + Math.sin(performance.now()/400 + e.x)*0.12; } }
+
+  // rebobinar: vinheta azul + partículas voltando + som reverso
+  rewForca += ((rebobinando ? 1 : 0) - rewForca) * Math.min(1, dt*8);
+  elRew.style.opacity = rewForca.toFixed(2);
+  if (rebobinando && Math.random() < 0.7) emite(heroi.position.x + 2 + Math.random()*4, heroi.position.y + Math.random()*2.5, Math.random()*2-1, 1, '#66aaff', {esp:0.5, sobe:0.3, grav:0, vida:0.7});
+  for (let i=0;i<NP;i++) if (part[i].vida>0 && part[i].grav===0) part[i].vx = -6;   // as partículas azuis "voltam"
+  somRebobina(rebobinando, dt);
+
+  // câmera lateral com leve ¾ seguindo o herói (lerp)
+  const dist = distanciaCamera();
+  const limX = Math.max(0, px(LV.W) - dist*camera.aspect*0.9);
+  const cx = THREE.MathUtils.clamp(heroi.position.x, Math.min(dist*camera.aspect*0.75, limX), Math.max(limX, dist*camera.aspect*0.75));
+  camAlvo.set(cx + 1.5, 3.2 + heroi.position.y*0.35, dist);
+  olhar.set(cx, 1.6 + heroi.position.y*0.35, 0);
+  if (!camInit){ camera.position.copy(camAlvo); olharAtual.copy(olhar); camInit = true; }
+  camera.position.lerp(camAlvo, Math.min(1, dt*3.5));
+  olharAtual.lerp(olhar, Math.min(1, dt*3.5));
+  camera.lookAt(olharAtual);
+  camera.position.x += rebobinando ? (Math.random()-.5)*0.03 : 0;   // tremidinha ao rebobinar
+
+  aplicaCeu();
+  atualizaParticulas(dt);
+
+  // HUD
+  elCur.style.left = `${(T/T_MAX)*100}%`;
+  elVal.textContent = `⏱️ T=${Math.round(T)}`;
+  elFase.textContent = `🕹️ FASE ${fase+1}/${LEVELS.length}: ${LV.nome}   ⭐ ${totalEstrelas()}`;
+  elMsg.textContent = `${eng.hold?'✋ carregando engrenagem  ':''}${inco?'⚡ INCOERÊNCIA! a engrenagem está fora do lugar':''}${!eng.hold && !inco ? (T < 33 ? '🌅 época: PASSADO' : T < 66 ? '🌇 época: PRESENTE' : '🌃 época: FUTURO') : ''}`;
 }
+
+// ============================================================================
+// start
+// ============================================================================
+await loadLevel(fase);
+heroi.position.set(px(P.x+P.w/2), py(P.y+P.h), 0);
+aplicaCeu();
+escondeLoading();
+rodando = false;
+document.getElementById('btJogar').addEventListener('click', ()=>{
+  iniciaAudio(); document.getElementById('menu').remove(); rodando = true;
+});
+cena.tick((dt)=>{
+  const d = Math.min(dt, 0.033);
+  if (!rodando){ // menu: só gira o herói e o céu
+    heroi.rotation.y += d*0.6; mixer?.update(d); aplicaCeu(); atualizaParticulas(d);
+    if (!camInit){ camera.position.set(heroi.position.x+3, 4, 12); camera.lookAt(heroi.position.x, 1.5, 0); }
+    return;
+  }
+  update(d);
+});
 </script>
 <script src="/idiomas.js"></script>
+<script src="/telacheia.js"></script>
 </body>
 </html>
