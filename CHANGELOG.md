@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v435 (2026-10-03)
+- JOGO NOVO: Minijogos - cinco classicos num lugar so: Jogo da Memoria, Jogo da Velha (contra o PC ou 2 jogadores), Pedra-Papel-Tesoura, Campo Minado e Genius
+- Genius: cada cor virou um COGUMELO gigante que toca uma nota (do, mi, sol, do agudo), com brilho ao acender, musiquinha de acerto e som grave no erro
+- Campo Minado: botao grande pra trocar entre CAVAR e por BANDEIRA, com contador de bombas que faltam
+
 ## v434 (2026-10-03)
 - MEGA SP ficou 3D de verdade: 455 predios trocados por modelos (arranha-ceus no centro, casas no bairro), a cidade inteira forrada com pecas de rua (4.285 pecas em 3 draw calls), 340 faixas de pedestre, 6 rotatorias, 70 entradas de garagem, 120 arvores
 - MEGA SP: 160 postes de luz altos ligados por 468 fios de energia em catenaria

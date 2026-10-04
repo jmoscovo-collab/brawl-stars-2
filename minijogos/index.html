@@ -1,0 +1,563 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Minijogos 🎲 — Cogumelo Games</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family:'Comic Sans MS','Baloo',system-ui,sans-serif;
+    background:linear-gradient(160deg,#07213a 0%,#123a5e 50%,#0b2d4a 100%);
+    color:#fff; min-height:100vh; overflow-x:hidden;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  #topo {
+    width:100%; max-width:640px; display:flex; justify-content:space-between;
+    align-items:center; padding:12px 16px; gap:10px;
+  }
+  .btn {
+    border:none; border-radius:16px; padding:12px 18px; font-size:17px;
+    font-weight:bold; cursor:pointer; font-family:inherit; color:#fff;
+    background:linear-gradient(135deg,#1e88e5,#00bcd4); box-shadow:0 4px 0 #0d47a1;
+    transition:transform .08s; user-select:none;
+  }
+  .btn:active { transform:translateY(3px); box-shadow:0 1px 0 #0d47a1; }
+  .btn.verde   { background:linear-gradient(135deg,#00c853,#64dd17); box-shadow:0 4px 0 #1b5e20; }
+  .btn.laranja { background:linear-gradient(135deg,#ff9100,#ff3d00); box-shadow:0 4px 0 #bf360c; }
+  .btn.pequeno { padding:8px 14px; font-size:15px; box-shadow:0 3px 0 rgba(0,0,0,.4); }
+  .btn:disabled { opacity:.45; cursor:default; }
+
+  .tela { width:100%; max-width:640px; padding:16px; text-align:center; display:none; flex-direction:column; align-items:center; gap:14px; }
+  .tela.on { display:flex; }
+  h1 { font-size:38px; text-shadow:0 3px 0 #0d47a1; margin:8px 0; }
+  h2 { font-size:24px; margin:4px 0; }
+  .sub { font-size:16px; color:#9fd8ff; }
+  .placar { font-size:19px; font-weight:bold; color:#ffe700; min-height:26px; }
+
+  /* menu */
+  .menuGrid { display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; }
+  .jogoCard {
+    background:rgba(255,255,255,.09); border:2px solid rgba(255,255,255,.18);
+    border-radius:20px; padding:18px 10px; cursor:pointer; color:#fff;
+    font-family:inherit; font-size:16px; font-weight:bold; text-align:center;
+    box-shadow:0 6px 18px rgba(0,0,0,.35); transition:transform .1s;
+  }
+  .jogoCard:active { transform:scale(.96); }
+  .jogoCard .ico { font-size:44px; display:block; margin-bottom:6px; }
+  .jogoCard .desc { display:block; font-size:12px; font-weight:normal; color:#bfe4ff; margin-top:4px; }
+
+  /* memória */
+  #memGrid { display:grid; gap:8px; width:100%; max-width:420px; }
+  .carta {
+    aspect-ratio:1/1; border-radius:14px; border:none; cursor:pointer;
+    background:linear-gradient(135deg,#1e88e5,#0d47a1); font-size:34px;
+    display:flex; align-items:center; justify-content:center; color:transparent;
+    box-shadow:0 4px 0 rgba(0,0,0,.35); font-family:inherit;
+  }
+  .carta.aberta { background:linear-gradient(135deg,#fff,#cfe8ff); color:#000; }
+  .carta.achou  { background:linear-gradient(135deg,#00c853,#64dd17); color:#fff; }
+
+  /* velha */
+  #velhaGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; max-width:330px; }
+  .casa {
+    aspect-ratio:1/1; border-radius:16px; border:none; cursor:pointer; font-family:inherit;
+    background:rgba(255,255,255,.12); font-size:52px; font-weight:bold; color:#fff;
+    box-shadow:0 4px 0 rgba(0,0,0,.35);
+  }
+  .casa.ganhou { background:linear-gradient(135deg,#00c853,#64dd17); }
+
+  /* pedra papel tesoura */
+  .pptRow { display:flex; gap:12px; justify-content:center; width:100%; }
+  .pptBtn { font-size:46px; padding:14px 18px; border-radius:20px; border:none; cursor:pointer;
+            background:rgba(255,255,255,.12); box-shadow:0 5px 0 rgba(0,0,0,.35); font-family:inherit; }
+  .pptBtn:active { transform:translateY(3px); }
+  #pptLuta { font-size:56px; min-height:70px; }
+
+  /* campo minado */
+  #minaGrid { display:grid; gap:4px; width:100%; max-width:400px; }
+  .mina {
+    aspect-ratio:1/1; border-radius:8px; border:none; cursor:pointer; font-family:inherit;
+    background:linear-gradient(135deg,#4a7fb5,#2e5882); font-size:18px; font-weight:bold; color:#fff;
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .mina.aberta { background:rgba(255,255,255,.18); }
+  .mina.bomba  { background:linear-gradient(135deg,#ff3d00,#bf360c); }
+
+  /* genius */
+  #geniusGrid { display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; max-width:340px; }
+  .luz { aspect-ratio:1/1; border-radius:24px; border:none; cursor:pointer; opacity:.6;
+         transition:opacity .12s, transform .12s, filter .12s; display:flex;
+         align-items:center; justify-content:center; font-size:62px; line-height:1;
+         filter:grayscale(.45) brightness(.8); }
+  .luz.acesa { opacity:1; transform:scale(1.12); filter:none;
+               box-shadow:0 0 26px 6px rgba(255,255,255,.55); }
+  .luz.c0 { background:linear-gradient(160deg,#ff6b7d,#c62828); }
+  .luz.c1 { background:linear-gradient(160deg,#64b5f6,#1565c0); }
+  .luz.c2 { background:linear-gradient(160deg,#ffe082,#f9a825); }
+  .luz.c3 { background:linear-gradient(160deg,#81c784,#2e7d32); }
+  .luz .chapeu { pointer-events:none; }
+  @media (max-width:420px){ .luz { font-size:46px; } }
+
+  @media (max-width:420px){
+    h1 { font-size:30px; }
+    .jogoCard .ico { font-size:38px; }
+    .pptBtn { font-size:38px; padding:12px 14px; }
+  }
+</style>
+
+<div id="topo">
+  <button class="btn pequeno" id="btnVoltar" onclick="voltarMenu()" style="visibility:hidden">← Menu</button>
+  <div class="placar" id="placarTopo"></div>
+  <a class="btn pequeno laranja" href="/" style="text-decoration:none">🏠 Site</a>
+</div>
+
+<!-- ======== MENU ======== -->
+<div class="tela on" id="telaMenu">
+  <h1>🎲 Minijogos</h1>
+  <div class="sub">Cinco jogos clássicos num lugar só. Escolhe um!</div>
+  <div class="menuGrid">
+    <button class="jogoCard" onclick="abreMemoria()">
+      <span class="ico">🧠</span>Jogo da Memória<span class="desc">Ache os pares de emoji</span></button>
+    <button class="jogoCard" onclick="abreVelha()">
+      <span class="ico">⭕</span>Jogo da Velha<span class="desc">Contra o computador ou um amigo</span></button>
+    <button class="jogoCard" onclick="abrePPT()">
+      <span class="ico">✌️</span>Pedra, Papel e Tesoura<span class="desc">Melhor de 5</span></button>
+    <button class="jogoCard" onclick="abreMinado()">
+      <span class="ico">💣</span>Campo Minado<span class="desc">Ache os números, fuja das bombas</span></button>
+    <button class="jogoCard" onclick="abreGenius()">
+      <span class="ico">🎵</span>Genius<span class="desc">Repita a sequência de cores</span></button>
+  </div>
+  <div class="sub" style="margin-top:10px">🏆 Seus recordes ficam salvos neste aparelho.</div>
+  <div class="sub" id="recordes"></div>
+</div>
+
+<!-- ======== MEMÓRIA ======== -->
+<div class="tela" id="telaMemoria">
+  <h2>🧠 Jogo da Memória</h2>
+  <div class="sub" id="memInfo">Escolha o tamanho</div>
+  <div class="pptRow">
+    <button class="btn pequeno" onclick="novaMemoria(3)">Fácil 3×4</button>
+    <button class="btn pequeno" onclick="novaMemoria(4)">Médio 4×4</button>
+    <button class="btn pequeno" onclick="novaMemoria(6)">Difícil 4×6</button>
+  </div>
+  <div id="memGrid"></div>
+</div>
+
+<!-- ======== VELHA ======== -->
+<div class="tela" id="telaVelha">
+  <h2>⭕ Jogo da Velha</h2>
+  <div class="pptRow">
+    <button class="btn pequeno" onclick="novaVelha(true)">🤖 Contra o PC</button>
+    <button class="btn pequeno verde" onclick="novaVelha(false)">👫 2 jogadores</button>
+  </div>
+  <div class="sub" id="velhaInfo">Você é o ❌</div>
+  <div id="velhaGrid"></div>
+  <div class="placar" id="velhaPlacar"></div>
+</div>
+
+<!-- ======== PEDRA PAPEL TESOURA ======== -->
+<div class="tela" id="telaPPT">
+  <h2>✌️ Pedra, Papel e Tesoura</h2>
+  <div class="sub">Melhor de 5 — quem fizer 3 pontos primeiro ganha!</div>
+  <div id="pptLuta">🤜 🤛</div>
+  <div class="sub" id="pptTexto">Escolha a sua jogada</div>
+  <div class="pptRow">
+    <button class="pptBtn" onclick="jogaPPT(0)">🪨</button>
+    <button class="pptBtn" onclick="jogaPPT(1)">📄</button>
+    <button class="pptBtn" onclick="jogaPPT(2)">✂️</button>
+  </div>
+  <div class="placar" id="pptPlacar">Você 0 × 0 PC</div>
+  <button class="btn pequeno" onclick="novaPPT()">🔄 Recomeçar</button>
+</div>
+
+<!-- ======== CAMPO MINADO ======== -->
+<div class="tela" id="telaMinado">
+  <h2>💣 Campo Minado</h2>
+  <div class="sub" id="minaInfo">Toque pra abrir. Ligue a bandeira 🚩 pra marcar onde acha que tem bomba</div>
+  <button class="btn" id="btnBandeira" onclick="alternaBandeira()">⛏️ Modo: CAVAR</button>
+  <div class="pptRow">
+    <button class="btn pequeno" onclick="novoMinado(6,5)">Fácil 6×6</button>
+    <button class="btn pequeno" onclick="novoMinado(8,10)">Médio 8×8</button>
+    <button class="btn pequeno" onclick="novoMinado(10,18)">Difícil 10×10</button>
+  </div>
+  <div id="minaGrid"></div>
+</div>
+
+<!-- ======== GENIUS ======== -->
+<div class="tela" id="telaGenius">
+  <h2>🎵 Genius</h2>
+  <div class="sub" id="geniusInfo">Cada cogumelo tem um som! Olhe a sequência e repita na mesma ordem 🍄🎵</div>
+  <div id="geniusGrid">
+    <button class="luz c0" onclick="clicaLuz(0)"><span class="chapeu">🍄</span></button>
+    <button class="luz c1" onclick="clicaLuz(1)"><span class="chapeu">🍄</span></button>
+    <button class="luz c2" onclick="clicaLuz(2)"><span class="chapeu">🍄</span></button>
+    <button class="luz c3" onclick="clicaLuz(3)"><span class="chapeu">🍄</span></button>
+  </div>
+  <div class="placar" id="geniusPlacar"></div>
+  <button class="btn verde" onclick="novoGenius()">▶ Começar</button>
+</div>
+
+<script>
+// ===== utilidades do site =====
+function $(id){ return document.getElementById(id); }
+function embaralha(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+// recordes ficam só neste aparelho; se o navegador bloquear, o jogo continua funcionando
+function leRec(){ try { return JSON.parse(localStorage.getItem('minijogos_rec')) || {}; } catch(e){ return {}; } }
+function salvaRec(r){ try { localStorage.setItem('minijogos_rec', JSON.stringify(r)); } catch(e){} }
+function marcaRecorde(chave, valor, menorEhMelhor){
+  const r = leRec();
+  const atual = r[chave];
+  const melhor = atual === undefined || (menorEhMelhor ? valor < atual : valor > atual);
+  if (melhor){ r[chave] = valor; salvaRec(r); pintaRecordes(); return true; }
+  return false;
+}
+function pintaRecordes(){
+  const r = leRec(); const ps = [];
+  if (r.memoria   !== undefined) ps.push('🧠 memória em ' + r.memoria + ' jogadas');
+  if (r.velha     !== undefined) ps.push('⭕ ' + r.velha + ' vitórias contra o PC');
+  if (r.minado    !== undefined) ps.push('💣 campo minado nível ' + r.minado);
+  if (r.genius    !== undefined) ps.push('🎵 genius ' + r.genius + (r.genius === 1 ? ' cor' : ' cores'));
+  $('recordes').textContent = ps.length ? '🏆 ' + ps.join(' · ') : '';
+}
+
+// ===== navegação entre telas =====
+const TELAS = ['telaMenu','telaMemoria','telaVelha','telaPPT','telaMinado','telaGenius'];
+function mostra(id){
+  TELAS.forEach(t => $(t).classList.toggle('on', t === id));
+  $('btnVoltar').style.visibility = (id === 'telaMenu') ? 'hidden' : 'visible';
+  $('placarTopo').textContent = '';
+  window.scrollTo(0,0);
+}
+function voltarMenu(){ pararGenius(); mostra('telaMenu'); }
+
+// ====================== 🧠 MEMÓRIA ======================
+const EMOJIS_MEM = ['🐶','🐱','🦊','🐼','🐸','🦁','🐵','🐨','🐷','🐮','🦄','🐙'];
+let memAberta = null, memTravado = false, memJogadas = 0, memAchou = 0, memTotal = 0;
+
+function abreMemoria(){ mostra('telaMemoria'); novaMemoria(4); }
+function novaMemoria(pares){
+  const grid = $('memGrid');
+  const cols = pares === 3 ? 3 : 4;
+  grid.style.gridTemplateColumns = 'repeat(' + cols + ',1fr)';
+  const baralho = embaralha(EMOJIS_MEM.slice(0, pares * 2).concat(EMOJIS_MEM.slice(0, pares * 2)));
+  memAberta = null; memTravado = false; memJogadas = 0; memAchou = 0; memTotal = pares * 2;
+  grid.innerHTML = '';
+  baralho.forEach(e => {
+    const b = document.createElement('button');
+    b.className = 'carta'; b.textContent = e; b.dataset.emoji = e;
+    b.onclick = () => viraCarta(b);
+    grid.appendChild(b);
+  });
+  $('memInfo').textContent = 'Ache os ' + memTotal + ' pares!';
+  $('placarTopo').textContent = 'Jogadas: 0';
+}
+function viraCarta(b){
+  if (memTravado || b.classList.contains('aberta') || b.classList.contains('achou')) return;
+  b.classList.add('aberta');
+  if (!memAberta){ memAberta = b; return; }
+  memJogadas++;
+  $('placarTopo').textContent = 'Jogadas: ' + memJogadas;
+  if (memAberta.dataset.emoji === b.dataset.emoji){
+    memAberta.classList.add('achou'); b.classList.add('achou');
+    memAberta = null; memAchou += 2;
+    if (memAchou === memTotal){
+      const rec = marcaRecorde('memoria', memJogadas, true);
+      $('memInfo').textContent = '🎉 Achou todos em ' + memJogadas + ' jogadas!' + (rec ? ' NOVO RECORDE! 🏆' : '');
+    }
+  } else {
+    memTravado = true;
+    const a = memAberta; memAberta = null;
+    setTimeout(() => { a.classList.remove('aberta'); b.classList.remove('aberta'); memTravado = false; }, 700);
+  }
+}
+
+// ====================== ⭕ JOGO DA VELHA ======================
+const LINHAS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+let velha = [], velhaVez = 'X', velhaVsPC = true, velhaFim = false, velhaVitorias = 0;
+
+function abreVelha(){ mostra('telaVelha'); novaVelha(true); }
+function novaVelha(vsPC){
+  velhaVsPC = vsPC; velha = Array(9).fill(''); velhaVez = 'X'; velhaFim = false;
+  const grid = $('velhaGrid'); grid.innerHTML = '';
+  for (let i = 0; i < 9; i++){
+    const b = document.createElement('button');
+    b.className = 'casa'; b.onclick = () => jogaVelha(i);
+    grid.appendChild(b);
+  }
+  $('velhaInfo').textContent = vsPC ? 'Você é o ❌ — o PC é o ⭕' : 'Vez do ❌';
+  $('velhaPlacar').textContent = '';
+  pintaVelha();
+}
+function pintaVelha(){
+  const casas = $('velhaGrid').children;
+  for (let i = 0; i < 9; i++) casas[i].textContent = velha[i] === 'X' ? '❌' : velha[i] === 'O' ? '⭕' : '';
+}
+function venceu(tab, p){ return LINHAS.find(l => l.every(i => tab[i] === p)); }
+function jogaVelha(i){
+  if (velhaFim || velha[i]) return;
+  velha[i] = velhaVez; pintaVelha();
+  if (fimDaVelha()) return;
+  velhaVez = velhaVez === 'X' ? 'O' : 'X';
+  if (velhaVsPC && velhaVez === 'O'){
+    $('velhaInfo').textContent = 'O PC está pensando... 🤖';
+    setTimeout(() => { const j = jogadaDoPC(); velha[j] = 'O'; pintaVelha();
+      if (fimDaVelha()) return;
+      velhaVez = 'X'; $('velhaInfo').textContent = 'Sua vez ❌'; }, 420);
+  } else if (!velhaVsPC){
+    $('velhaInfo').textContent = 'Vez do ' + (velhaVez === 'X' ? '❌' : '⭕');
+  }
+}
+function fimDaVelha(){
+  const linha = venceu(velha, velhaVez);
+  if (linha){
+    velhaFim = true;
+    linha.forEach(i => $('velhaGrid').children[i].classList.add('ganhou'));
+    if (velhaVsPC && velhaVez === 'X'){
+      velhaVitorias++; marcaRecorde('velha', velhaVitorias, false);
+      $('velhaInfo').textContent = '🎉 Você ganhou do PC!';
+    } else if (velhaVsPC){
+      $('velhaInfo').textContent = '🤖 O PC ganhou dessa vez!';
+    } else {
+      $('velhaInfo').textContent = '🎉 Ganhou o ' + (velhaVez === 'X' ? '❌' : '⭕') + '!';
+    }
+    $('velhaPlacar').textContent = 'Toque em um modo acima pra jogar de novo';
+    return true;
+  }
+  if (velha.every(c => c)){
+    velhaFim = true;
+    $('velhaInfo').textContent = '😐 Deu velha! Ninguém ganhou.';
+    $('velhaPlacar').textContent = 'Toque em um modo acima pra jogar de novo';
+    return true;
+  }
+  return false;
+}
+// PC simples: ganha se puder, senão bloqueia, senão centro/canto
+function jogadaDoPC(){
+  const livres = velha.map((c,i) => c ? -1 : i).filter(i => i >= 0);
+  for (const p of ['O','X']){
+    for (const i of livres){
+      const t = velha.slice(); t[i] = p;
+      if (venceu(t, p)) return i;
+    }
+  }
+  if (velha[4] === '') return 4;
+  const cantos = [0,2,6,8].filter(i => velha[i] === '');
+  if (cantos.length) return cantos[Math.floor(Math.random() * cantos.length)];
+  return livres[Math.floor(Math.random() * livres.length)];
+}
+
+// ====================== ✌️ PEDRA, PAPEL E TESOURA ======================
+const MAOS = ['🪨','📄','✂️'];
+const NOMES = ['Pedra','Papel','Tesoura'];
+let pptVoce = 0, pptPC = 0;
+
+function abrePPT(){ mostra('telaPPT'); novaPPT(); }
+function novaPPT(){
+  pptVoce = 0; pptPC = 0;
+  $('pptPlacar').textContent = 'Você 0 × 0 PC';
+  $('pptTexto').textContent = 'Escolha a sua jogada';
+  $('pptLuta').textContent = '🤜 🤛';
+}
+function jogaPPT(v){
+  if (pptVoce === 3 || pptPC === 3) return;        // já acabou, precisa recomeçar
+  const pc = Math.floor(Math.random() * 3);
+  $('pptLuta').textContent = MAOS[v] + ' × ' + MAOS[pc];
+  let txt;
+  if (v === pc){ txt = 'Empate! Os dois fizeram ' + NOMES[v]; }
+  else if ((v === 0 && pc === 2) || (v === 1 && pc === 0) || (v === 2 && pc === 1)){
+    pptVoce++; txt = '✅ Você ganhou! ' + NOMES[v] + ' vence ' + NOMES[pc];
+  } else {
+    pptPC++; txt = '❌ O PC ganhou! ' + NOMES[pc] + ' vence ' + NOMES[v];
+  }
+  $('pptPlacar').textContent = 'Você ' + pptVoce + ' × ' + pptPC + ' PC';
+  if (pptVoce === 3) txt = '🏆 VOCÊ GANHOU A MELHOR DE 5!';
+  if (pptPC === 3)   txt = '🤖 O PC ganhou a melhor de 5. Tenta de novo!';
+  $('pptTexto').textContent = txt;
+}
+
+// ====================== 💣 CAMPO MINADO ======================
+let minaN = 8, minaBombas = 10, minaMapa = [], minaAberto = [], minaBandeira = [], minaFim = false, minaNivel = 0;
+let modoBandeira = false;   // ligado = tocar na casa poe/tira bandeira em vez de cavar
+function pintaBotaoBandeira(){
+  const b = document.getElementById('btnBandeira');
+  if (!b) return;
+  b.textContent = modoBandeira ? '🚩 Modo: BANDEIRA' : '⛏️ Modo: CAVAR';
+  b.style.background = modoBandeira
+    ? 'linear-gradient(135deg,#ff5252,#b71c1c)'
+    : 'linear-gradient(135deg,#00c853,#2e7d32)';
+}
+function alternaBandeira(){ modoBandeira = !modoBandeira; pintaBotaoBandeira(); }
+
+function abreMinado(){ mostra('telaMinado'); novoMinado(8,10); }
+function novoMinado(n, bombas){
+  minaN = n; minaBombas = bombas; minaFim = false;
+  minaNivel = n === 6 ? 1 : n === 8 ? 2 : 3;
+  minaMapa = Array(n*n).fill(0);
+  minaAberto = Array(n*n).fill(false);
+  minaBandeira = Array(n*n).fill(false);
+  // sorteia as bombas
+  const pos = embaralha(minaMapa.map((_,i) => i)).slice(0, bombas);
+  pos.forEach(p => minaMapa[p] = -1);
+  // conta as bombas vizinhas de cada casa
+  for (let i = 0; i < n*n; i++){
+    if (minaMapa[i] === -1) continue;
+    minaMapa[i] = vizinhos(i).filter(v => minaMapa[v] === -1).length;
+  }
+  const grid = $('minaGrid');
+  grid.style.gridTemplateColumns = 'repeat(' + n + ',1fr)';
+  grid.innerHTML = '';
+  for (let i = 0; i < n*n; i++){
+    const b = document.createElement('button');
+    b.className = 'mina';
+    b.onclick = () => { if (modoBandeira) poeBandeira(i); else abreCasa(i); };
+    b.oncontextmenu = e => { e.preventDefault(); poeBandeira(i); };
+    let timer = null;
+    b.ontouchstart = () => { timer = setTimeout(() => { poeBandeira(i); timer = null; }, 450); };
+    b.ontouchend = e => { if (timer){ clearTimeout(timer); } else { e.preventDefault(); } };
+    grid.appendChild(b);
+  }
+  modoBandeira = false; pintaBotaoBandeira();
+  $('minaInfo').textContent = '💣 ' + bombas + ' bombas escondidas. Use o botão pra trocar entre cavar e pôr bandeira.';
+  $('placarTopo').textContent = '';
+  pintaMinado();
+}
+function vizinhos(i){
+  const n = minaN, x = i % n, y = Math.floor(i / n), vs = [];
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++){
+    if (dx === 0 && dy === 0) continue;
+    const nx = x + dx, ny = y + dy;
+    if (nx >= 0 && nx < n && ny >= 0 && ny < n) vs.push(ny * n + nx);
+  }
+  return vs;
+}
+function pintaMinado(){
+  const cs = $('minaGrid').children;
+  for (let i = 0; i < minaN*minaN; i++){
+    const c = cs[i];
+    c.className = 'mina' + (minaAberto[i] ? ' aberta' : '');
+    if (minaBandeira[i] && !minaAberto[i]){ c.textContent = '🚩'; continue; }
+    if (!minaAberto[i]){ c.textContent = ''; continue; }
+    if (minaMapa[i] === -1){ c.textContent = '💣'; c.className += ' bomba'; }
+    else c.textContent = minaMapa[i] || '';
+  }
+}
+function abreCasa(i){
+  if (minaFim || minaAberto[i] || minaBandeira[i]) return;
+  minaAberto[i] = true;
+  if (minaMapa[i] === -1){
+    minaFim = true;
+    minaMapa.forEach((v,k) => { if (v === -1) minaAberto[k] = true; });
+    pintaMinado();
+    $('minaInfo').textContent = '💥 Boom! Pisou numa bomba. Escolhe um tamanho pra jogar de novo.';
+    return;
+  }
+  // casa vazia abre os vizinhos sozinha
+  if (minaMapa[i] === 0) vizinhos(i).forEach(v => { if (!minaAberto[v]) abreCasa(v); });
+  pintaMinado();
+  const faltam = minaAberto.filter(a => !a).length;
+  if (faltam === minaBombas){
+    minaFim = true;
+    marcaRecorde('minado', minaNivel, false);
+    $('minaInfo').textContent = '🎉 Limpou o campo todo! Mandou bem!';
+  }
+}
+function poeBandeira(i){
+  if (minaFim || minaAberto[i]) return;
+  minaBandeira[i] = !minaBandeira[i];
+  pintaMinado();
+  const postas = minaBandeira.filter(Boolean).length;
+  const faltam = minaBombas - postas;
+  $('minaInfo').textContent = '🚩 ' + postas + ' bandeira(s) · ' +
+    (faltam >= 0 ? 'faltam ' + faltam + ' bomba(s)' : 'passou do número de bombas!');
+}
+
+// ====================== 🎵 GENIUS ======================
+let geniusSeq = [], geniusPasso = 0, geniusMostrando = false, geniusTimers = [];
+
+// cada cogumelo toca uma nota (do, mi, sol, do agudo) — igual ao Genius de verdade
+var _ac = null;
+var NOTAS = [261.63, 329.63, 392.00, 523.25];
+function audio(){
+  try {
+    if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (_ac.state === 'suspended') _ac.resume();
+    return _ac;
+  } catch(e){ return null; }
+}
+function tocaNota(freq, dur, tipo){
+  const a = audio(); if (!a) return;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = tipo || 'sine';
+  o.frequency.setValueAtTime(freq, a.currentTime);
+  g.gain.setValueAtTime(0.0001, a.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.25, a.currentTime + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + (dur || 0.35));
+  o.connect(g); g.connect(a.destination);
+  o.start(); o.stop(a.currentTime + (dur || 0.35) + 0.02);
+}
+function somCogumelo(c){ tocaNota(NOTAS[c] || 300, 0.34, 'triangle'); }
+function somErro(){ tocaNota(120, 0.5, 'sawtooth'); setTimeout(()=>tocaNota(90, 0.5, 'sawtooth'), 90); }
+function somAcerto(){ [523.25, 659.25, 784].forEach((f,i)=> setTimeout(()=>tocaNota(f, 0.18, 'sine'), i*80)); }
+
+function abreGenius(){ mostra('telaGenius'); geniusSeq = []; $('geniusPlacar').textContent = 'Toque em COMEÇAR'; }
+function pararGenius(){ geniusTimers.forEach(clearTimeout); geniusTimers = []; geniusMostrando = false; }
+function novoGenius(){
+  pararGenius();
+  geniusSeq = []; geniusPasso = 0;
+  $('geniusPlacar').textContent = 'Sequência: 0';
+  proximaCorGenius();
+}
+function proximaCorGenius(){
+  geniusSeq.push(Math.floor(Math.random() * 4));
+  geniusPasso = 0;
+  $('geniusInfo').textContent = 'Olhe bem... 👀';
+  mostraSequencia();
+}
+function acendeLuz(c, ms){
+  const luz = $('geniusGrid').children[c];
+  luz.classList.add('acesa');
+  somCogumelo(c);
+  const t = setTimeout(() => luz.classList.remove('acesa'), ms);
+  geniusTimers.push(t);
+}
+function mostraSequencia(){
+  geniusMostrando = true;
+  geniusSeq.forEach((c, k) => {
+    const t = setTimeout(() => acendeLuz(c, 380), k * 620 + 300);
+    geniusTimers.push(t);
+  });
+  const fim = setTimeout(() => {
+    geniusMostrando = false;
+    $('geniusInfo').textContent = 'Agora repita! 👆';
+  }, geniusSeq.length * 620 + 400);
+  geniusTimers.push(fim);
+}
+function clicaLuz(c){
+  if (geniusMostrando || !geniusSeq.length) return;
+  acendeLuz(c, 220);
+  if (geniusSeq[geniusPasso] === c){
+    geniusPasso++;
+    if (geniusPasso === geniusSeq.length){
+      $('geniusPlacar').textContent = 'Sequência: ' + geniusSeq.length;
+      somAcerto();
+      marcaRecorde('genius', geniusSeq.length, false);
+      $('geniusInfo').textContent = '✅ Isso! Vem mais uma...';
+      const t = setTimeout(proximaCorGenius, 900);
+      geniusTimers.push(t);
+    }
+  } else {
+    pararGenius();
+    somErro();
+    $('geniusInfo').textContent = '❌ Errou! Você chegou a ' + geniusSeq.length + (geniusSeq.length === 1 ? ' cogumelo' : ' cogumelos') + '. Toque em COMEÇAR.';
+    geniusSeq = [];
+  }
+}
+
+pintaRecordes();
+</script>
+<script src="/stats.js?v=358"></script>
+<script src="/avisos.js?v=6"></script>
+<script>
+if (window.initStats) initStats('minijogos');
+</script>
+<script src="/mascote.js"></script>
+<script src="/idiomas.js"></script>
