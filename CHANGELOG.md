@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v437 (2026-10-04)
+- JOGOS DA COMUNIDADE: conte uma ideia ("um sapo pegando moscas fugindo de cobras") e a IA monta um jogo jogavel de verdade; galeria com o nome de quem criou, likes e botao JOGAR; 6 tipos de jogo (coletar, desviar, plataforma, clicker, labirinto, corrida). A IA so escolhe as PECAS do jogo (personagem, inimigos, cores, velocidade) - nenhum codigo de usuario roda no site
+
 ## v436 (2026-10-03)
 - Minijogos/Genius: sons refeitos pra nao parecer robo - cada cogumelo agora soa como uma marimba de madeira (nota + 3 harmonicos sumindo em tempos diferentes, toc da baqueta, vibrato e filtro); erro virou um poing de mola solta e o acerto um trecho de marimba subindo
 

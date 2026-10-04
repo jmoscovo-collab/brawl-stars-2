@@ -1,0 +1,1048 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Jogos da Comunidade 🍄 — Cogumelo Games</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family:'Comic Sans MS','Baloo',system-ui,sans-serif;
+    background:linear-gradient(160deg,#0b1e3e 0%,#2d0b4e 45%,#3e0b2e 100%);
+    color:#fff; min-height:100vh; overflow-x:hidden;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  #topo { width:100%; max-width:720px; display:flex; justify-content:space-between; align-items:center; padding:12px 16px; gap:10px; }
+  .btn {
+    border:none; border-radius:16px; padding:12px 18px; font-size:17px;
+    font-weight:bold; cursor:pointer; font-family:inherit; color:#fff;
+    background:linear-gradient(135deg,#7b2ff7,#f107a3); box-shadow:0 4px 0 #4a1a8a;
+    transition:transform .08s; user-select:none;
+  }
+  .btn:active { transform:translateY(3px); box-shadow:0 1px 0 #4a1a8a; }
+  .btn.verde { background:linear-gradient(135deg,#00c853,#64dd17); box-shadow:0 4px 0 #1b5e20; }
+  .btn.azul { background:linear-gradient(135deg,#2979ff,#00b0ff); box-shadow:0 4px 0 #0d47a1; }
+  .btn.laranja { background:linear-gradient(135deg,#ff9100,#ff3d00); box-shadow:0 4px 0 #bf360c; }
+  .btn.amarelo { background:linear-gradient(135deg,#ffd600,#ff9100); box-shadow:0 4px 0 #b26a00; color:#3a1a00; }
+  .btn.pequeno { padding:8px 14px; font-size:15px; box-shadow:0 3px 0 rgba(0,0,0,.4); }
+  .btn.grandao { font-size:21px; padding:18px; width:100%; }
+  .btn:disabled { opacity:.45; cursor:default; }
+  .tela { width:100%; max-width:720px; padding:16px; text-align:center; display:none; flex-direction:column; align-items:center; gap:14px; }
+  .tela.on { display:flex; }
+  h1 { font-size:34px; text-shadow:0 3px 0 #4a1a8a; margin:8px 0; }
+  h2 { font-size:23px; margin:6px 0; }
+  .sub { font-size:16px; color:#c9b3ff; }
+  .card {
+    background:rgba(255,255,255,.08); border:2px solid rgba(255,255,255,.15);
+    border-radius:22px; padding:20px; width:100%; box-shadow:0 8px 24px rgba(0,0,0,.35);
+  }
+
+  /* ===== GALERIA ===== */
+  #abas { display:flex; gap:8px; width:100%; }
+  .aba {
+    flex:1; border:none; border-radius:16px; padding:11px; font-size:16px; font-weight:bold;
+    font-family:inherit; cursor:pointer; color:#fff; background:rgba(255,255,255,.1);
+    border:2px solid transparent;
+  }
+  .aba.sel { background:linear-gradient(135deg,#7b2ff7,#f107a3); border-color:#ffe700; }
+  #grade { display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; }
+  @media (max-width:430px){ #grade { grid-template-columns:1fr; } }
+  .jcard {
+    position:relative; background:rgba(255,255,255,.09); border:2px solid rgba(255,255,255,.16);
+    border-radius:20px; padding:14px 12px 12px; display:flex; flex-direction:column;
+    align-items:center; gap:7px; box-shadow:0 6px 18px rgba(0,0,0,.3);
+  }
+  .jcard .capa { font-size:46px; line-height:1; }
+  .jcard .tit { font-size:18px; font-weight:bold; word-break:break-word; line-height:1.2; }
+  .jcard .aut { font-size:14px; color:#c9b3ff; word-break:break-word; }
+  .jcard .nums { display:flex; gap:12px; font-size:15px; font-weight:bold; align-items:center; }
+  .jcard .modoSelo { font-size:12px; background:rgba(255,255,255,.14); border-radius:12px; padding:3px 10px; color:#ffe700; }
+  .coracao {
+    border:none; background:rgba(255,255,255,.1); border-radius:14px; padding:5px 10px;
+    font-size:15px; font-weight:bold; color:#fff; font-family:inherit; cursor:pointer;
+  }
+  .coracao.on { background:rgba(241,7,163,.45); }
+  .menu3 {
+    position:absolute; top:8px; right:10px; border:none; background:rgba(255,255,255,.12);
+    color:#fff; border-radius:12px; width:32px; height:28px; font-size:16px; font-weight:bold;
+    cursor:pointer; font-family:inherit; line-height:1;
+  }
+  .popup {
+    position:absolute; top:40px; right:10px; background:#1b1036; border:2px solid rgba(255,255,255,.2);
+    border-radius:14px; padding:6px; z-index:20; display:flex; flex-direction:column; gap:4px;
+  }
+  .popup button { border:none; background:transparent; color:#fff; font-family:inherit; font-size:15px; padding:8px 12px; border-radius:10px; cursor:pointer; white-space:nowrap; }
+  .popup button:hover { background:rgba(255,255,255,.12); }
+  #vazio { padding:30px 16px; }
+  #vazio .big { font-size:68px; }
+
+  /* ===== CRIADOR ===== */
+  #ideia {
+    width:100%; min-height:92px; border-radius:16px; border:2px solid rgba(255,255,255,.25);
+    background:rgba(0,0,0,.25); color:#fff; font-family:inherit; font-size:18px; padding:12px; resize:none;
+  }
+  #chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:4px; }
+  .chip {
+    border:2px solid rgba(255,255,255,.25); background:rgba(255,255,255,.08); color:#fff;
+    border-radius:18px; padding:8px 13px; font-size:14px; font-family:inherit; cursor:pointer;
+  }
+  .chip:active { transform:scale(.96); }
+  #contador { font-size:14px; color:#c9b3ff; align-self:flex-end; }
+  #carregando { display:none; flex-direction:column; align-items:center; gap:14px; padding:26px 0; }
+  #carregando.on { display:flex; }
+  #cogu { font-size:76px; animation:gira 1.3s linear infinite; display:inline-block; }
+  @keyframes gira { 0%{transform:rotate(0) scale(1)} 50%{transform:rotate(180deg) scale(1.18)} 100%{transform:rotate(360deg) scale(1)} }
+  #fraseIA { font-size:19px; color:#ffe700; font-weight:bold; min-height:26px; }
+  #erroBox { display:none; font-size:17px; background:rgba(213,0,0,.3); border:2px solid #ff5252; border-radius:16px; padding:14px; }
+  #erroBox.on { display:block; }
+
+  /* ===== JOGO ===== */
+  #telaJogo { max-width:720px; }
+  #hud { display:flex; justify-content:space-between; width:100%; gap:8px; font-size:15px; font-weight:bold; }
+  .hudBox { flex:1; background:rgba(255,255,255,.08); border-radius:16px; padding:7px; }
+  .hudBox .big { font-size:24px; color:#ffe700; }
+  #palco { width:100%; border-radius:20px; overflow:hidden; border:3px solid rgba(255,255,255,.2); box-shadow:0 8px 24px rgba(0,0,0,.4); }
+  #cv { display:block; width:100%; height:auto; touch-action:none; }
+  #comoJogarTxt { font-size:15px; color:#ffe700; }
+  #controles { display:flex; gap:10px; width:100%; justify-content:center; align-items:center; }
+  .dpad { display:grid; grid-template-columns:repeat(3,56px); grid-template-rows:repeat(2,52px); gap:6px; }
+  .dbtn {
+    border:none; border-radius:16px; background:rgba(255,255,255,.14); color:#fff;
+    font-size:24px; font-family:inherit; cursor:pointer; user-select:none;
+  }
+  .dbtn:active { background:rgba(255,255,255,.3); }
+  .dbtn.vazio { visibility:hidden; }
+  #msg { position:fixed; top:18%; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.88); padding:16px 26px; border-radius:18px; font-size:20px; font-weight:bold; z-index:200; display:none; text-align:center; max-width:90%; }
+</style>
+
+<div id="topo">
+  <a href="/" class="btn pequeno azul" style="text-decoration:none;">🏠 Voltar</a>
+  <span id="quemSou" style="font-size:15px;color:#ffe700;font-weight:bold;"></span>
+</div>
+
+<!-- ================= GALERIA ================= -->
+<div id="telaGaleria" class="tela on">
+  <h1>🍄 Jogos da Comunidade</h1>
+  <p class="sub">Jogos inventados pela galera — e pela IA do Cogumelo!</p>
+  <button class="btn grandao amarelo" onclick="abreCriador()">✨ CRIAR MEU JOGO COM IA</button>
+  <div id="abas">
+    <button class="aba sel" id="abaLikes" onclick="mudaOrdem('likes')">❤️ Mais curtidos</button>
+    <button class="aba" id="abaNovos" onclick="mudaOrdem('novos')">🆕 Novos</button>
+  </div>
+  <div id="grade"></div>
+  <div id="vazio" class="card" style="display:none;">
+    <div class="big">🍄</div>
+    <h2>Ainda não tem nenhum jogo aqui!</h2>
+    <p class="sub">Seja a primeira pessoa a inventar um. É só contar sua ideia e a IA monta o jogo. 🎮</p>
+  </div>
+  <div id="carregandoGaleria" class="sub">carregando os jogos... 🎲</div>
+</div>
+
+<!-- ================= CRIADOR ================= -->
+<div id="telaCriar" class="tela">
+  <h1>✨ Criar meu jogo</h1>
+  <div class="card" id="cardCriar">
+    <h2>Conte sua ideia de jogo</h2>
+    <p class="sub" style="margin-bottom:10px;">Escreva com suas palavras. A IA transforma em jogo de verdade!</p>
+    <textarea id="ideia" maxlength="200" placeholder="Ex: um sapo pegando moscas antes que o tempo acabe"></textarea>
+    <div id="contador">0/200</div>
+    <div id="chips"></div>
+    <button class="btn verde grandao" id="btnCriar" style="margin-top:14px;" onclick="criarJogo()">🪄 CRIAR MEU JOGO!</button>
+    <div id="erroBox"></div>
+  </div>
+  <div id="carregando" class="card">
+    <span id="cogu">🍄</span>
+    <div id="fraseIA"></div>
+    <p class="sub">A IA está montando seu jogo...</p>
+  </div>
+  <button class="btn azul" id="btnVoltaGaleria" onclick="abreGaleria()">⬅️ Voltar pra galeria</button>
+</div>
+
+<!-- ================= JOGO ================= -->
+<div id="telaJogo" class="tela">
+  <div id="hud">
+    <div class="hudBox"><div>PONTOS</div><div class="big" id="hudPts">0</div></div>
+    <div class="hudBox"><div>VIDAS</div><div class="big" id="hudVidas">❤️</div></div>
+    <div class="hudBox"><div id="hudLabelC">TEMPO</div><div class="big" id="hudTempo">-</div></div>
+  </div>
+  <h2 id="tituloJogo"></h2>
+  <div id="comoJogarTxt"></div>
+  <div id="palco"><canvas id="cv"></canvas></div>
+  <div id="controles">
+    <div class="dpad" id="dpad">
+      <button class="dbtn vazio" id="dCima">⬆️</button>
+      <button class="dbtn" id="dEsq">⬅️</button>
+      <button class="dbtn" id="dDir">➡️</button>
+      <button class="dbtn vazio" id="dBaixo">⬇️</button>
+      <button class="dbtn" id="dPulo">🔼</button>
+      <button class="dbtn vazio"></button>
+    </div>
+  </div>
+  <button class="btn azul pequeno" onclick="sairDoJogo()">⬅️ Sair</button>
+</div>
+
+<!-- ================= FIM ================= -->
+<div id="telaFim" class="tela">
+  <h1 id="fimTitulo">🏁 Fim de jogo!</h1>
+  <div class="card">
+    <div style="font-size:52px;" id="fimEmoji">🎮</div>
+    <div style="font-size:30px;font-weight:bold;color:#ffe700;" id="fimPts">0</div>
+    <div class="sub" id="fimRec"></div>
+  </div>
+  <div id="fimBotoes" style="display:flex;flex-direction:column;gap:10px;width:100%;"></div>
+</div>
+
+<div id="msg"></div>
+
+<script>
+/* =========================================================
+   MOTOR DOS JOGOS DA COMUNIDADE
+   Puro: não toca no DOM. Recebe spec + um contexto 2d.
+   NUNCA executa código vindo do servidor — só lê campos do schema.
+   ==ENGINE-INICIO==
+   ========================================================= */
+var MODOS = ['coletar','desviar','plataforma','clicker','labirinto','corrida'];
+
+function _n(v, min, max, pad){
+  var x = parseInt(v, 10);
+  if (!isFinite(x)) x = pad;
+  return Math.max(min, Math.min(max, x));
+}
+function _txt(v, max){
+  if (typeof v !== 'string') return '';
+  return v.replace(/[<>&"']/g, '').replace(/https?:\/\/\S+/gi, '').trim().slice(0, max);
+}
+function _cor(v, pad){
+  return (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v)) ? v : pad;
+}
+function _ehEmoji(s){
+  if (typeof s !== 'string') return false;
+  var t = Array.from(s);
+  if (t.length < 1 || t.length > 2) return false;
+  try { return /\p{Extended_Pictographic}/u.test(s); } catch(e){ return s.charCodeAt(0) > 0x2000; }
+}
+function _emojis(arr, max, pad){
+  var out = [];
+  if (Array.isArray(arr)) {
+    for (var i = 0; i < arr.length && out.length < max; i++) if (_ehEmoji(arr[i])) out.push(arr[i]);
+  }
+  return out.length ? out : pad.slice();
+}
+
+/* Normaliza/valida um spec vindo da API. Joga erro só se o modo for impossível. */
+function validaSpec(raw){
+  if (!raw || typeof raw !== 'object') throw new Error('spec vazio');
+  var modo = MODOS.indexOf(raw.modo) >= 0 ? raw.modo : null;
+  if (!modo) throw new Error('modo desconhecido');
+  return {
+    modo: modo,
+    titulo: _txt(raw.titulo, 40) || 'Jogo sem nome',
+    comoJogar: _txt(raw.comoJogar, 120) || 'Divirta-se!',
+    heroi: _ehEmoji(raw.heroi) ? raw.heroi : '🙂',
+    bons: _emojis(raw.bons, 4, ['⭐']),
+    ruins: _emojis(raw.ruins, 4, []).slice(0, 4),
+    corCeu: _cor(raw.corCeu, '#6ec6ff'),
+    corChao: _cor(raw.corChao, '#43a047'),
+    velocidade: _n(raw.velocidade, 1, 10, 5),
+    quantidade: _n(raw.quantidade, 1, 10, 5),
+    vidas: _n(raw.vidas, 1, 5, 3),
+    tempo: _n(raw.tempo, 0, 180, 60)
+  };
+}
+/* ruins pode legitimamente vir vazio; só "desviar" precisa de pelo menos um */
+function _ruinsDe(spec){ return spec.ruins.length ? spec.ruins : ['💣']; }
+
+function _bate(a, b){
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+function _rnd(a, b){ return a + Math.random() * (b - a); }
+
+function gerarLabirinto(cols, rows){
+  var g = [], c, l;
+  for (l = 0; l < rows; l++){ g[l] = []; for (c = 0; c < cols; c++) g[l][c] = 1; }
+  var pilha = [[1, 1]];
+  g[1][1] = 0;
+  var dirs = [[0,-2],[0,2],[-2,0],[2,0]];
+  while (pilha.length){
+    var topo = pilha[pilha.length - 1], viz = [];
+    for (var i = 0; i < 4; i++){
+      var nc = topo[0] + dirs[i][0], nl = topo[1] + dirs[i][1];
+      if (nc > 0 && nl > 0 && nc < cols - 1 && nl < rows - 1 && g[nl][nc] === 1) viz.push([nc, nl]);
+    }
+    if (!viz.length){ pilha.pop(); continue; }
+    var e = viz[Math.floor(Math.random() * viz.length)];
+    g[(e[1] + topo[1]) / 2][(e[0] + topo[0]) / 2] = 0;
+    g[e[1]][e[0]] = 0;
+    pilha.push(e);
+  }
+  // o DFS sempre carva todas as células ímpares => caminho garantido até a saída
+  g[rows - 2][cols - 2] = 0;
+  return g;
+}
+
+/* Cria um jogo rodável. ctx pode ser qualquer contexto 2d (inclusive falso, em teste). */
+function novoJogo(spec, ctx, W, H){
+  var U = Math.max(16, Math.min(W, H) / 18);
+  var hw = U * 1.4;
+  var j = {
+    spec: spec, ctx: ctx, W: W, H: H, modo: spec.modo, U: U,
+    pontos: 0, vidas: spec.vidas, tempoRest: spec.tempo, fim: false, motivo: '',
+    t: 0, acc: 0, spawnT: 0, piscar: 0, dist: 0, nivel: 1,
+    itens: [], plataformas: [], cliques: [],
+    heroi: { x: W / 2 - hw / 2, y: H - U * 2.6, w: hw, h: hw },
+    vy: 0, noChao: true,
+    entrada: { esq: false, dir: false, cima: false, baixo: false, pulo: false },
+    chaoY: H - U * 1.6,
+    grade: null, cel: 0, ox: 0, oy: 0, cols: 0, rows: 0,
+    clique: function(x, y){ this.cliques.push({ x: x, y: y }); },
+    passo: _passo, desenha: _desenha
+  };
+  j.vel = (40 + spec.velocidade * 34) * (U / 26);
+  j.intervalo = Math.max(0.22, 1.5 - spec.quantidade * 0.12);
+
+  if (spec.modo === 'plataforma'){
+    for (var p = 0; p < 6; p++){
+      j.plataformas.push({ x: _rnd(0, W - U * 5), y: H - p * (H / 6) - U, w: U * 5, h: U * 0.6 });
+    }
+    j.plataformas[0].x = j.W / 2 - U * 2.5;
+    j.heroi.y = j.plataformas[0].y - j.heroi.h;
+  }
+  if (spec.modo === 'corrida'){
+    j.heroi.x = W * 0.16;
+    j.heroi.y = j.chaoY - j.heroi.h;
+  }
+  if (spec.modo === 'labirinto') _montaLabirinto(j);
+  return j;
+}
+
+function _montaLabirinto(j){
+  var cel = Math.max(22, Math.min(j.W, j.H) / 11);
+  var cols = Math.floor(j.W / cel); if (cols % 2 === 0) cols--; if (cols < 7) cols = 7;
+  var rows = Math.floor(j.H / cel); if (rows % 2 === 0) rows--; if (rows < 7) rows = 7;
+  j.cel = cel; j.cols = cols; j.rows = rows;
+  j.ox = (j.W - cols * cel) / 2; j.oy = (j.H - rows * cel) / 2;
+  j.grade = gerarLabirinto(cols, rows);
+  j.heroi.w = j.heroi.h = cel * 0.66;
+  j.heroi.x = j.ox + cel + (cel - j.heroi.w) / 2;
+  j.heroi.y = j.oy + cel + (cel - j.heroi.h) / 2;
+  j.itens = [];
+  var livres = [], c, l;
+  for (l = 1; l < rows - 1; l++) for (c = 1; c < cols - 1; c++){
+    if (j.grade[l][c] === 0 && !(c === 1 && l === 1) && !(c === cols - 2 && l === rows - 2)) livres.push([c, l]);
+  }
+  var quantos = Math.min(j.spec.quantidade, livres.length);
+  for (var i = 0; i < quantos; i++){
+    var k = livres.splice(Math.floor(Math.random() * livres.length), 1)[0];
+    j.itens.push({
+      x: j.ox + k[0] * cel + cel * 0.2, y: j.oy + k[1] * cel + cel * 0.2,
+      w: cel * 0.6, h: cel * 0.6, emoji: j.spec.bons[i % j.spec.bons.length], ruim: false
+    });
+  }
+}
+
+function _perdeVida(j){
+  if (j.piscar > 0) return;
+  j.vidas--; j.piscar = 1.1;
+  if (j.vidas <= 0){ j.vidas = 0; j.fim = true; j.motivo = 'vidas'; }
+}
+function _dx(j){ return (j.entrada.dir ? 1 : 0) - (j.entrada.esq ? 1 : 0); }
+function _dy(j){ return (j.entrada.baixo ? 1 : 0) - (j.entrada.cima ? 1 : 0); }
+function _clamp(j){
+  if (j.heroi.x < 0) j.heroi.x = 0;
+  if (j.heroi.x + j.heroi.w > j.W) j.heroi.x = j.W - j.heroi.w;
+}
+function _novoItem(j, soRuim){
+  var ruins = j.spec.ruins, usaRuim;
+  if (soRuim) usaRuim = true;
+  else usaRuim = ruins.length > 0 && Math.random() < 0.35;
+  var lista = usaRuim ? _ruinsDe(j.spec) : j.spec.bons;
+  var s = j.U * 1.2;
+  return {
+    x: _rnd(0, Math.max(1, j.W - s)), y: -s, w: s, h: s,
+    emoji: lista[Math.floor(Math.random() * lista.length)], ruim: usaRuim, vida: 99
+  };
+}
+
+function _passo(dt){
+  var j = this;
+  if (j.fim) return;
+  if (!(dt > 0)) dt = 0;
+  if (dt > 0.05) dt = 0.05;
+  j.t += dt;
+  if (j.piscar > 0) j.piscar -= dt;
+  if (j.spec.tempo > 0){
+    j.tempoRest -= dt;
+    if (j.tempoRest <= 0){ j.tempoRest = 0; j.fim = true; j.motivo = 'tempo'; return; }
+  }
+  if (j.modo === 'coletar') _passoColetar(j, dt);
+  else if (j.modo === 'desviar') _passoDesviar(j, dt);
+  else if (j.modo === 'plataforma') _passoPlataforma(j, dt);
+  else if (j.modo === 'clicker') _passoClicker(j, dt);
+  else if (j.modo === 'labirinto') _passoLabirinto(j, dt);
+  else if (j.modo === 'corrida') _passoCorrida(j, dt);
+  j.cliques.length = 0;
+}
+
+function _passoColetar(j, dt){
+  j.heroi.x += _dx(j) * j.vel * dt; _clamp(j);
+  j.spawnT -= dt;
+  if (j.spawnT <= 0){ j.spawnT = j.intervalo; j.itens.push(_novoItem(j, false)); }
+  for (var i = j.itens.length - 1; i >= 0; i--){
+    var it = j.itens[i];
+    it.y += j.vel * 0.9 * dt;
+    if (_bate(it, j.heroi)){
+      if (it.ruim) _perdeVida(j); else j.pontos += 10;
+      j.itens.splice(i, 1); continue;
+    }
+    if (it.y > j.H) j.itens.splice(i, 1);
+  }
+}
+
+function _passoDesviar(j, dt){
+  j.heroi.x += _dx(j) * j.vel * dt; _clamp(j);
+  j.acc += dt;
+  while (j.acc >= 1){ j.acc -= 1; j.pontos += 5; }
+  j.spawnT -= dt;
+  if (j.spawnT <= 0){ j.spawnT = j.intervalo * 0.7; j.itens.push(_novoItem(j, true)); }
+  for (var i = j.itens.length - 1; i >= 0; i--){
+    var it = j.itens[i];
+    it.y += j.vel * 1.1 * dt;
+    if (_bate(it, j.heroi)){ _perdeVida(j); j.itens.splice(i, 1); continue; }
+    if (it.y > j.H) j.itens.splice(i, 1);
+  }
+}
+
+function _passoPlataforma(j, dt){
+  var g = j.U * 62;
+  j.heroi.x += _dx(j) * j.vel * dt; _clamp(j);
+  if (j.entrada.pulo && j.noChao){ j.vy = -Math.sqrt(2 * g * j.U * 5); j.noChao = false; }
+  j.vy += g * dt;
+  var antes = j.heroi.y;
+  j.heroi.y += j.vy * dt;
+  j.noChao = false;
+  for (var p = 0; p < j.plataformas.length; p++){
+    var pl = j.plataformas[p];
+    pl.y += j.vel * 0.25 * dt;
+    if (pl.y > j.H){
+      pl.y = -j.U; pl.x = _rnd(0, Math.max(1, j.W - pl.w));
+      if (Math.random() < 0.7){
+        j.itens.push({ x: pl.x + pl.w / 2 - j.U * 0.6, y: pl.y - j.U * 1.3, w: j.U * 1.2, h: j.U * 1.2,
+          emoji: j.spec.bons[Math.floor(Math.random() * j.spec.bons.length)], ruim: false, plat: p });
+      }
+    }
+    if (j.vy >= 0 && antes + j.heroi.h <= pl.y + 1 && j.heroi.y + j.heroi.h >= pl.y &&
+        j.heroi.x + j.heroi.w > pl.x && j.heroi.x < pl.x + pl.w){
+      j.heroi.y = pl.y - j.heroi.h; j.vy = 0; j.noChao = true;
+    }
+  }
+  for (var i = j.itens.length - 1; i >= 0; i--){
+    var it = j.itens[i];
+    it.y += j.vel * 0.25 * dt;
+    if (_bate(it, j.heroi)){ j.pontos += 10; j.itens.splice(i, 1); continue; }
+    if (it.y > j.H + j.U) j.itens.splice(i, 1);
+  }
+  if (j.heroi.y > j.H){
+    _perdeVida(j);
+    var base = j.plataformas[0];
+    j.heroi.x = base.x + base.w / 2 - j.heroi.w / 2;
+    j.heroi.y = base.y - j.heroi.h; j.vy = 0;
+  }
+}
+
+function _passoClicker(j, dt){
+  j.spawnT -= dt;
+  if (j.spawnT <= 0){
+    j.spawnT = j.intervalo;
+    var s = j.U * 2;
+    var ruim = j.spec.ruins.length > 0 && Math.random() < 0.35;
+    var lista = ruim ? _ruinsDe(j.spec) : j.spec.bons;
+    j.itens.push({
+      x: _rnd(0, Math.max(1, j.W - s)), y: _rnd(0, Math.max(1, j.H - s)), w: s, h: s,
+      emoji: lista[Math.floor(Math.random() * lista.length)], ruim: ruim,
+      vida: Math.max(0.6, 2.6 - j.spec.velocidade * 0.18)
+    });
+  }
+  for (var i = j.itens.length - 1; i >= 0; i--){
+    var it = j.itens[i];
+    it.vida -= dt;
+    var pego = false;
+    for (var c = 0; c < j.cliques.length; c++){
+      var k = j.cliques[c];
+      if (k.x >= it.x && k.x <= it.x + it.w && k.y >= it.y && k.y <= it.y + it.h){ pego = true; break; }
+    }
+    if (pego){
+      if (it.ruim) _perdeVida(j); else j.pontos += 10;
+      j.itens.splice(i, 1); continue;
+    }
+    if (it.vida <= 0) j.itens.splice(i, 1);
+  }
+}
+
+function _paredeEm(j, px, py){
+  var c = Math.floor((px - j.ox) / j.cel), l = Math.floor((py - j.oy) / j.cel);
+  if (l < 0 || c < 0 || l >= j.rows || c >= j.cols) return true;
+  return j.grade[l][c] === 1;
+}
+function _livre(j, x, y, w, h){
+  return !_paredeEm(j, x, y) && !_paredeEm(j, x + w - 1, y) &&
+         !_paredeEm(j, x, y + h - 1) && !_paredeEm(j, x + w - 1, y + h - 1);
+}
+function _passoLabirinto(j, dt){
+  var d = j.vel * 0.7 * dt;
+  var nx = j.heroi.x + _dx(j) * d;
+  if (_livre(j, nx, j.heroi.y, j.heroi.w, j.heroi.h)) j.heroi.x = nx;
+  var ny = j.heroi.y + _dy(j) * d;
+  if (_livre(j, j.heroi.x, ny, j.heroi.w, j.heroi.h)) j.heroi.y = ny;
+  for (var i = j.itens.length - 1; i >= 0; i--){
+    if (_bate(j.itens[i], j.heroi)){ j.pontos += 10; j.itens.splice(i, 1); }
+  }
+  var sx = j.ox + (j.cols - 2) * j.cel, sy = j.oy + (j.rows - 2) * j.cel;
+  if (_bate({ x: sx, y: sy, w: j.cel, h: j.cel }, j.heroi)){
+    j.pontos += 50; j.nivel++; _montaLabirinto(j);
+  }
+}
+
+function _passoCorrida(j, dt){
+  var g = j.U * 62;
+  j.dist += j.vel * dt;
+  var novos = Math.floor(j.dist / (j.U * 6));
+  if (novos > j.pontos) j.pontos = novos;
+  if (j.entrada.pulo && j.noChao){ j.vy = -Math.sqrt(2 * g * j.U * 4.2); j.noChao = false; }
+  j.vy += g * dt;
+  j.heroi.y += j.vy * dt;
+  if (j.heroi.y + j.heroi.h >= j.chaoY){ j.heroi.y = j.chaoY - j.heroi.h; j.vy = 0; j.noChao = true; }
+  j.spawnT -= dt;
+  if (j.spawnT <= 0){
+    j.spawnT = j.intervalo * 1.3;
+    var s = j.U * 1.3;
+    var ruim = j.spec.ruins.length === 0 ? false : Math.random() < 0.65;
+    var lista = ruim ? _ruinsDe(j.spec) : j.spec.bons;
+    j.itens.push({
+      x: j.W + s, y: ruim ? j.chaoY - s : j.chaoY - s * 3.2, w: s, h: s,
+      emoji: lista[Math.floor(Math.random() * lista.length)], ruim: ruim
+    });
+  }
+  for (var i = j.itens.length - 1; i >= 0; i--){
+    var it = j.itens[i];
+    it.x -= j.vel * dt;
+    if (_bate(it, j.heroi)){
+      if (it.ruim) _perdeVida(j); else j.pontos += 10;
+      j.itens.splice(i, 1); continue;
+    }
+    if (it.x + it.w < 0) j.itens.splice(i, 1);
+  }
+}
+
+/* ---------- desenho ---------- */
+function _emoji(ctx, txt, x, y, w, h){
+  ctx.font = Math.floor(h * 0.92) + 'px serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(txt, x + w / 2, y + h / 2);
+}
+function _desenha(){
+  var j = this, ctx = j.ctx;
+  if (!ctx) return;
+  ctx.fillStyle = j.spec.corCeu;
+  ctx.fillRect(0, 0, j.W, j.H);
+  if (j.modo === 'labirinto'){
+    ctx.fillStyle = j.spec.corChao;
+    for (var l = 0; l < j.rows; l++) for (var c = 0; c < j.cols; c++){
+      if (j.grade[l][c] === 1) ctx.fillRect(j.ox + c * j.cel, j.oy + l * j.cel, j.cel + 1, j.cel + 1);
+    }
+    _emoji(ctx, '🚪', j.ox + (j.cols - 2) * j.cel, j.oy + (j.rows - 2) * j.cel, j.cel, j.cel);
+  } else if (j.modo === 'plataforma'){
+    ctx.fillStyle = j.spec.corChao;
+    for (var p = 0; p < j.plataformas.length; p++){
+      var pl = j.plataformas[p];
+      ctx.fillRect(pl.x, pl.y, pl.w, pl.h);
+    }
+  } else {
+    ctx.fillStyle = j.spec.corChao;
+    ctx.fillRect(0, j.chaoY, j.W, j.H - j.chaoY);
+  }
+  for (var i = 0; i < j.itens.length; i++){
+    var it = j.itens[i];
+    _emoji(ctx, it.emoji, it.x, it.y, it.w, it.h);
+  }
+  if (!(j.piscar > 0) || Math.floor(j.t * 12) % 2 === 0){
+    _emoji(ctx, j.spec.heroi, j.heroi.x, j.heroi.y, j.heroi.w, j.heroi.h);
+  }
+}
+/* ==ENGINE-FIM== */
+</script>
+
+<script>
+/* =========================================================
+   GALERIA + CRIADOR + COLA COM A API
+   Segurança: tudo que vem do servidor entra por textContent.
+   ========================================================= */
+var API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+var DEV_FAKE = false;              // vira true sozinho se a API falhar (backend ainda não existe)
+var ordemAtual = 'likes';
+var jogosNaTela = [];
+var curtidosLocal = {};
+try { curtidosLocal = JSON.parse(localStorage.getItem('comunidade_curtidos') || '{}') || {}; } catch(e){ curtidosLocal = {}; }
+
+var EXEMPLOS = [
+  { id:'ex-sapo', titulo:'Sapo Come Moscas', autor:'Davi', likes:12, jogadas:40, criado:Date.now()-500000,
+    spec:{ modo:'coletar', titulo:'Sapo Come Moscas', comoJogar:'Mexa o sapo e pegue as moscas. Cuidado com as abelhas!',
+      heroi:'🐸', bons:['🪰','🦗'], ruins:['🐝'], corCeu:'#8fd4ff', corChao:'#2e7d32',
+      velocidade:5, quantidade:6, vidas:3, tempo:60 } },
+  { id:'ex-abelha', titulo:'Fuja das Abelhas', autor:'Luna', likes:8, jogadas:22, criado:Date.now()-400000,
+    spec:{ modo:'desviar', titulo:'Fuja das Abelhas', comoJogar:'Desvie das abelhas o maior tempo que conseguir!',
+      heroi:'🧒', bons:['🍦'], ruins:['🐝','🌩️'], corCeu:'#ffd59e', corChao:'#8d6e63',
+      velocidade:6, quantidade:7, vidas:3, tempo:45 } },
+  { id:'ex-nuvem', titulo:'Pulo nas Nuvens', autor:'Davi', likes:15, jogadas:61, criado:Date.now()-300000,
+    spec:{ modo:'plataforma', titulo:'Pulo nas Nuvens', comoJogar:'Pule entre as nuvens e pegue as estrelas.',
+      heroi:'🐱', bons:['⭐','🌟'], ruins:[], corCeu:'#4fc3f7', corChao:'#ffffff',
+      velocidade:4, quantidade:5, vidas:3, tempo:0 } },
+  { id:'ex-toupeira', titulo:'Toca da Toupeira', autor:'Ana', likes:5, jogadas:14, criado:Date.now()-200000,
+    spec:{ modo:'clicker', titulo:'Toca da Toupeira', comoJogar:'Toque nas toupeiras, mas nunca nas bombas!',
+      heroi:'🔨', bons:['🐹','🐰'], ruins:['💣'], corCeu:'#a1887f', corChao:'#5d4037',
+      velocidade:5, quantidade:6, vidas:3, tempo:40 } },
+  { id:'ex-queijo', titulo:'Rato no Labirinto', autor:'Davi', likes:9, jogadas:31, criado:Date.now()-100000,
+    spec:{ modo:'labirinto', titulo:'Rato no Labirinto', comoJogar:'Pegue os queijos e ache a porta de saída!',
+      heroi:'🐭', bons:['🧀'], ruins:[], corCeu:'#fff3c4', corChao:'#6d4c41',
+      velocidade:6, quantidade:6, vidas:3, tempo:90 } },
+  { id:'ex-dino', titulo:'Corrida do Dino', autor:'Luna', likes:11, jogadas:52, criado:Date.now()-50000,
+    spec:{ modo:'corrida', titulo:'Corrida do Dino', comoJogar:'Pule os cactos e corra o máximo que puder!',
+      heroi:'🦖', bons:['🍎'], ruins:['🌵','🪨'], corCeu:'#ffe0b2', corChao:'#c49a6c',
+      velocidade:6, quantidade:5, vidas:3, tempo:0 } }
+];
+
+var FRASES = ['misturando ingredientes... 🧪','escolhendo os emojis... 🎨','pintando o céu... 🌈',
+  'colocando as regras... 📏','chamando o cogumelo chefe... 🍄','testando se é divertido... 🎮'];
+var EXEMPLOS_IDEIA = ['um sapo pegando moscas','fugir das abelhas pegando sorvete','um gato pulando nas nuvens',
+  'um rato no labirinto atrás de queijo','um dinossauro correndo e pulando cactos','tocar nas toupeiras e desviar das bombas'];
+
+function logado(){ return !!localStorage.getItem('cg_usuario'); }
+function mostraMsg(txt, cor, ms){
+  var el = document.getElementById('msg');
+  el.textContent = txt;
+  el.style.color = cor || '#fff';
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(function(){ el.style.display = 'none'; }, ms || 2200);
+}
+function mostraTela(id){
+  var t = document.querySelectorAll('.tela');
+  for (var i = 0; i < t.length; i++) t[i].classList.remove('on');
+  document.getElementById(id).classList.add('on');
+  window.scrollTo(0, 0);
+}
+async function api(payload){
+  var r = await fetch(API, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(Object.assign({
+      nome: localStorage.getItem('cg_usuario'),
+      senhaHash: localStorage.getItem('cg_senhaHash')
+    }, payload))
+  });
+  if (!r.ok) throw new Error('http ' + r.status);
+  var d = await r.json();
+  if (!d || d.ok !== true) throw new Error((d && (d.erro || d.error)) || 'resposta estranha');
+  return d;
+}
+function vaiProLogin(){
+  mostraMsg('🔒 Entre na sua conta pra curtir!', '#ffe700', 1600);
+  setTimeout(function(){ location.href = '/conta/'; }, 900);
+}
+
+/* ---------- GALERIA ---------- */
+function abreGaleria(){ mostraTela('telaGaleria'); carregaGaleria(); }
+function mudaOrdem(o){
+  ordemAtual = o;
+  document.getElementById('abaLikes').classList.toggle('sel', o === 'likes');
+  document.getElementById('abaNovos').classList.toggle('sel', o === 'novos');
+  carregaGaleria();
+}
+async function carregaGaleria(){
+  var carregando = document.getElementById('carregandoGaleria');
+  carregando.style.display = 'block';
+  var jogos;
+  try {
+    var d = await api({ acao: 'comunidade_listar', ordem: ordemAtual, limite: 50 });
+    jogos = Array.isArray(d.jogos) ? d.jogos : [];
+    DEV_FAKE = false;
+  } catch(e){
+    DEV_FAKE = true;                       // backend ainda não respondeu: cai pros exemplos locais
+    jogos = EXEMPLOS.map(function(g){ return Object.assign({}, g, { spec: JSON.stringify(g.spec) }); });
+  }
+  jogos.sort(function(a, b){
+    return ordemAtual === 'likes' ? (b.likes || 0) - (a.likes || 0) : (b.criado || 0) - (a.criado || 0);
+  });
+  carregando.style.display = 'none';
+  pintaGaleria(jogos);
+}
+function specDe(g){
+  var raw = g.spec;
+  if (typeof raw === 'string'){ try { raw = JSON.parse(raw); } catch(e){ return null; } }
+  try { return validaSpec(raw); } catch(e){ return null; }
+}
+function pintaGaleria(jogos){
+  jogosNaTela = [];
+  var grade = document.getElementById('grade');
+  grade.textContent = '';
+  var vazio = document.getElementById('vazio');
+  var validos = 0;
+  for (var i = 0; i < jogos.length; i++){
+    var spec = specDe(jogos[i]);
+    if (!spec) continue;                   // spec quebrado: simplesmente não aparece
+    var reg = { id: String(jogos[i].id || ''), titulo: spec.titulo, autor: String(jogos[i].autor || '?'),
+      likes: parseInt(jogos[i].likes, 10) || 0, jogadas: parseInt(jogos[i].jogadas, 10) || 0, spec: spec };
+    jogosNaTela.push(reg);
+    grade.appendChild(cardJogo(reg, jogosNaTela.length - 1));
+    validos++;
+  }
+  vazio.style.display = validos ? 'none' : 'block';
+  if (DEV_FAKE) mostraMsg('🛠️ Modo de teste: jogos de exemplo', '#ffe700', 1800);
+}
+function cardJogo(reg, idx){
+  var eu = (localStorage.getItem('cg_usuario') || '').toLowerCase();
+  var meu = eu && reg.autor.toLowerCase() === eu;
+  var div = document.createElement('div');
+  div.className = 'jcard';
+
+  var m3 = document.createElement('button');
+  m3.className = 'menu3'; m3.textContent = '···';
+  m3.onclick = function(ev){ ev.stopPropagation(); abrePopup(div, idx, meu); };
+  div.appendChild(m3);
+
+  var capa = document.createElement('div');
+  capa.className = 'capa'; capa.textContent = reg.spec.heroi;
+  div.appendChild(capa);
+
+  var tit = document.createElement('div');
+  tit.className = 'tit'; tit.textContent = reg.titulo;
+  div.appendChild(tit);
+
+  var aut = document.createElement('div');
+  aut.className = 'aut'; aut.textContent = 'por ' + reg.autor;
+  div.appendChild(aut);
+
+  var selo = document.createElement('div');
+  selo.className = 'modoSelo'; selo.textContent = reg.spec.modo;
+  div.appendChild(selo);
+
+  var nums = document.createElement('div');
+  nums.className = 'nums';
+  var cor = document.createElement('button');
+  cor.className = 'coracao' + (curtidosLocal[reg.id] ? ' on' : '');
+  cor.textContent = '❤️ ' + reg.likes;
+  cor.onclick = function(ev){ ev.stopPropagation(); curtir(idx, cor); };
+  nums.appendChild(cor);
+  var jog = document.createElement('span');
+  jog.textContent = '🕹️ ' + reg.jogadas;
+  nums.appendChild(jog);
+  div.appendChild(nums);
+
+  var btn = document.createElement('button');
+  btn.className = 'btn verde'; btn.style.width = '100%';
+  btn.textContent = 'JOGAR';
+  btn.onclick = function(){ jogar(idx); };
+  div.appendChild(btn);
+  return div;
+}
+function fechaPopups(){
+  var p = document.querySelectorAll('.popup');
+  for (var i = 0; i < p.length; i++) p[i].remove();
+}
+function abrePopup(card, idx, meu){
+  var jaTinha = card.querySelector('.popup');
+  fechaPopups();
+  if (jaTinha) return;
+  var pop = document.createElement('div');
+  pop.className = 'popup';
+  var b = document.createElement('button');
+  if (meu){ b.textContent = '🗑️ Apagar meu jogo'; b.onclick = function(){ fechaPopups(); apagar(idx); }; }
+  else { b.textContent = '🚩 Denunciar'; b.onclick = function(){ fechaPopups(); denunciar(idx); }; }
+  pop.appendChild(b);
+  card.appendChild(pop);
+}
+document.addEventListener('click', fechaPopups);
+
+async function curtir(idx, botao){
+  var reg = jogosNaTela[idx];
+  if (!reg) return;
+  if (!logado()) return vaiProLogin();
+  var curtido = !!curtidosLocal[reg.id];
+  var antes = reg.likes;
+  reg.likes = Math.max(0, antes + (curtido ? -1 : 1));   // otimista
+  curtidosLocal[reg.id] = !curtido;
+  pintaCoracao(botao, reg);
+  salvaCurtidos();
+  if (DEV_FAKE) return;
+  try {
+    var d = await api({ acao: 'comunidade_curtir', id: reg.id });
+    reg.likes = parseInt(d.likes, 10) || 0;
+    curtidosLocal[reg.id] = !!d.curtiu;
+    pintaCoracao(botao, reg); salvaCurtidos();
+  } catch(e){
+    reg.likes = antes; curtidosLocal[reg.id] = curtido;  // reverte
+    pintaCoracao(botao, reg); salvaCurtidos();
+    mostraMsg('😕 Não consegui curtir agora', '#ff8a80', 1800);
+  }
+}
+function pintaCoracao(botao, reg){
+  botao.textContent = '❤️ ' + reg.likes;
+  botao.classList.toggle('on', !!curtidosLocal[reg.id]);
+}
+function salvaCurtidos(){
+  try { localStorage.setItem('comunidade_curtidos', JSON.stringify(curtidosLocal)); } catch(e){}
+}
+async function apagar(idx){
+  var reg = jogosNaTela[idx];
+  if (!reg) return;
+  if (!confirm('Apagar o jogo "' + reg.titulo + '" pra sempre?')) return;
+  if (DEV_FAKE){ mostraMsg('🛠️ Modo de teste: nada foi apagado', '#ffe700', 1800); return; }
+  try { await api({ acao: 'comunidade_apagar', id: reg.id }); mostraMsg('🗑️ Apagado!', '#00e676', 1500); carregaGaleria(); }
+  catch(e){ mostraMsg('😕 Não deu pra apagar', '#ff8a80', 1800); }
+}
+async function denunciar(idx){
+  var reg = jogosNaTela[idx];
+  if (!reg) return;
+  if (!logado()) return vaiProLogin();
+  if (!confirm('Avisar os adultos sobre o jogo "' + reg.titulo + '"?')) return;
+  if (DEV_FAKE){ mostraMsg('🛠️ Modo de teste', '#ffe700', 1600); return; }
+  try { await api({ acao: 'comunidade_denunciar', id: reg.id }); mostraMsg('🚩 Obrigado por avisar!', '#ffe700', 2000); }
+  catch(e){ mostraMsg('😕 Não deu pra enviar', '#ff8a80', 1800); }
+}
+
+/* ---------- CRIADOR ---------- */
+var criadoAgora = null;
+function abreCriador(){
+  if (!logado()) return vaiProLogin();
+  mostraTela('telaCriar');
+  document.getElementById('erroBox').classList.remove('on');
+  document.getElementById('carregando').classList.remove('on');
+  document.getElementById('cardCriar').style.display = 'block';
+}
+function montaChips(){
+  var box = document.getElementById('chips');
+  box.textContent = '';
+  for (var i = 0; i < EXEMPLOS_IDEIA.length; i++){
+    (function(txt){
+      var b = document.createElement('button');
+      b.className = 'chip'; b.textContent = '💡 ' + txt;
+      b.onclick = function(){
+        var ta = document.getElementById('ideia');
+        ta.value = txt; contaIdeia();
+      };
+      box.appendChild(b);
+    })(EXEMPLOS_IDEIA[i]);
+  }
+}
+function contaIdeia(){
+  var ta = document.getElementById('ideia');
+  document.getElementById('contador').textContent = ta.value.length + '/200';
+}
+function erroAmigavel(msg){
+  var m = String(msg || '').toLowerCase();
+  if (m.indexOf('login') >= 0 || m.indexOf('senha') >= 0 || m.indexOf('auth') >= 0 || m.indexOf('401') >= 0)
+    return '🔒 Você precisa entrar na sua conta pra criar jogos.';
+  if (m.indexOf('limite') >= 0 || m.indexOf('429') >= 0)
+    return '😴 Você já criou vários jogos hoje! Volte amanhã pra criar mais.';
+  if (m.indexOf('impropri') >= 0 || m.indexOf('recus') >= 0 || m.indexOf('tema') >= 0 || m.indexOf('palavr') >= 0)
+    return '🙈 Essa ideia não dá pra virar jogo aqui. Tente outra bem divertida!';
+  return '😕 Não consegui montar o jogo agora. Tenta de novo com outras palavras!';
+}
+var fraseTimer = null;
+function ligaFrases(){
+  var el = document.getElementById('fraseIA'), i = 0;
+  el.textContent = FRASES[0];
+  fraseTimer = setInterval(function(){ i = (i + 1) % FRASES.length; el.textContent = FRASES[i]; }, 1400);
+}
+function desligaFrases(){ if (fraseTimer){ clearInterval(fraseTimer); fraseTimer = null; } }
+
+async function criarJogo(){
+  if (!logado()) return vaiProLogin();
+  var ideia = document.getElementById('ideia').value.trim().slice(0, 200);
+  if (ideia.length < 4){ mostraMsg('✍️ Escreva sua ideia primeiro!', '#ffe700', 1800); return; }
+  document.getElementById('erroBox').classList.remove('on');
+  document.getElementById('cardCriar').style.display = 'none';
+  document.getElementById('carregando').classList.add('on');
+  ligaFrases();
+  try {
+    var d = await api({ acao: 'comunidade_criar', ideia: ideia });
+    var spec = validaSpec(typeof d.spec === 'string' ? JSON.parse(d.spec) : d.spec);
+    criadoAgora = { id: String(d.id || ''), spec: spec };
+    desligaFrases();
+    document.getElementById('carregando').classList.remove('on');
+    abrePreview();
+  } catch(e){
+    desligaFrases();
+    document.getElementById('carregando').classList.remove('on');
+    document.getElementById('cardCriar').style.display = 'block';
+    var box = document.getElementById('erroBox');
+    box.textContent = erroAmigavel(e && e.message);
+    box.classList.add('on');
+  }
+}
+function abrePreview(){
+  // o backend já salvou; o preview é a chance de testar antes de deixar na galeria
+  jogarSpec(criadoAgora.spec, criadoAgora.id, true);
+}
+function tentarOutra(){
+  var alvo = criadoAgora;
+  criadoAgora = null;
+  if (alvo && alvo.id && !DEV_FAKE){ api({ acao: 'comunidade_apagar', id: alvo.id }).catch(function(){}); }
+  abreCriador();
+}
+function publicarNaGaleria(){
+  criadoAgora = null;
+  mostraMsg('🎉 Seu jogo está na galeria!', '#00e676', 2200);
+  abreGaleria();
+}
+
+/* ---------- JOGO (cola DOM <-> motor) ---------- */
+var jogoAtual = null, specAtual = null, idAtual = '', ehPreview = false, rafId = 0, ultimo = 0;
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d'), CW = 0, CH = 0;
+
+function ajustaCanvas(){
+  var larg = document.getElementById('palco').clientWidth || 360;
+  var alt = Math.round(Math.min(larg * 1.15, Math.max(320, window.innerHeight * 0.56)));
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(larg * dpr); cv.height = Math.round(alt * dpr);
+  cv.style.height = alt + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  CW = larg; CH = alt;
+}
+function jogar(idx){
+  var reg = jogosNaTela[idx];
+  if (!reg) return;
+  jogarSpec(reg.spec, reg.id, false);
+  if (!DEV_FAKE) api({ acao: 'comunidade_jogo', id: reg.id }).catch(function(){});
+}
+function jogarSpec(spec, id, preview){
+  specAtual = spec; idAtual = id || ''; ehPreview = !!preview;
+  mostraTela('telaJogo');
+  document.getElementById('tituloJogo').textContent = spec.titulo;
+  document.getElementById('comoJogarTxt').textContent = spec.comoJogar;
+  ajustaCanvas();
+  jogoAtual = novoJogo(spec, ctx, CW, CH);
+  configuraDpad(spec.modo);
+  atualizaHud();
+  ultimo = 0;
+  cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+function configuraDpad(modo){
+  var precisaCima = (modo === 'labirinto');
+  var precisaPulo = (modo === 'plataforma' || modo === 'corrida');
+  var precisaLado = (modo !== 'clicker' && modo !== 'corrida');
+  document.getElementById('dCima').classList.toggle('vazio', !precisaCima);
+  document.getElementById('dBaixo').classList.toggle('vazio', !precisaCima);
+  document.getElementById('dEsq').classList.toggle('vazio', !precisaLado);
+  document.getElementById('dDir').classList.toggle('vazio', !precisaLado);
+  document.getElementById('dPulo').classList.toggle('vazio', !precisaPulo);
+}
+function loop(ts){
+  if (!jogoAtual) return;
+  if (!ultimo) ultimo = ts;
+  var dt = (ts - ultimo) / 1000; ultimo = ts;
+  jogoAtual.passo(dt);
+  jogoAtual.desenha();
+  atualizaHud();
+  if (jogoAtual.fim){ terminaJogo(); return; }
+  rafId = requestAnimationFrame(loop);
+}
+function atualizaHud(){
+  if (!jogoAtual) return;
+  document.getElementById('hudPts').textContent = jogoAtual.pontos;
+  document.getElementById('hudVidas').textContent = jogoAtual.vidas > 0 ? '❤️'.repeat(jogoAtual.vidas) : '💀';
+  document.getElementById('hudTempo').textContent = specAtual.tempo > 0 ? Math.ceil(jogoAtual.tempoRest) : '∞';
+}
+function sairDoJogo(){
+  cancelAnimationFrame(rafId); jogoAtual = null;
+  if (ehPreview) abreCriador(); else abreGaleria();
+}
+function terminaJogo(){
+  cancelAnimationFrame(rafId);
+  var pts = jogoAtual.pontos;
+  var chave = 'comunidade_rec_' + idAtual;
+  var rec = parseInt(localStorage.getItem(chave) || '0', 10);
+  var novoRec = pts > rec;
+  if (novoRec){ try { localStorage.setItem(chave, String(pts)); } catch(e){} rec = pts; }
+  jogoAtual = null;
+  mostraTela('telaFim');
+  document.getElementById('fimEmoji').textContent = specAtual.heroi;
+  document.getElementById('fimTitulo').textContent = novoRec ? '🏆 Novo recorde!' : '🏁 Fim de jogo!';
+  document.getElementById('fimPts').textContent = pts + ' pontos';
+  document.getElementById('fimRec').textContent = 'Seu recorde neste jogo: ' + rec;
+  var box = document.getElementById('fimBotoes');
+  box.textContent = '';
+  box.appendChild(botao('🎮 Jogar de novo', 'verde', function(){ jogarSpec(specAtual, idAtual, ehPreview); }));
+  if (ehPreview){
+    box.appendChild(botao('🔄 Tentar outra ideia', 'laranja', tentarOutra));
+    box.appendChild(botao('✅ Publicar na galeria', 'amarelo', publicarNaGaleria));
+  } else {
+    box.appendChild(botao('🍄 Voltar pra galeria', 'azul', abreGaleria));
+  }
+}
+function botao(txt, cor, fn){
+  var b = document.createElement('button');
+  b.className = 'btn ' + cor; b.textContent = txt; b.onclick = fn;
+  return b;
+}
+
+/* ---------- entradas ---------- */
+var TECLAS = {
+  ArrowLeft:'esq', KeyA:'esq', ArrowRight:'dir', KeyD:'dir',
+  ArrowUp:'cima', KeyW:'cima', ArrowDown:'baixo', KeyS:'baixo', Space:'pulo'
+};
+window.addEventListener('keydown', function(e){
+  if (!jogoAtual) return;
+  var k = TECLAS[e.code];
+  if (!k) return;
+  e.preventDefault();
+  jogoAtual.entrada[k] = true;
+  if (k === 'cima' && (jogoAtual.modo === 'plataforma' || jogoAtual.modo === 'corrida')) jogoAtual.entrada.pulo = true;
+});
+window.addEventListener('keyup', function(e){
+  if (!jogoAtual) return;
+  var k = TECLAS[e.code];
+  if (!k) return;
+  jogoAtual.entrada[k] = false;
+  if (k === 'cima') jogoAtual.entrada.pulo = false;
+});
+function segura(id, campo){
+  var el = document.getElementById(id);
+  function liga(e){ e.preventDefault(); if (jogoAtual) jogoAtual.entrada[campo] = true; }
+  function desliga(e){ e.preventDefault(); if (jogoAtual) jogoAtual.entrada[campo] = false; }
+  ['touchstart','mousedown'].forEach(function(ev){ el.addEventListener(ev, liga, { passive:false }); });
+  ['touchend','touchcancel','mouseup','mouseleave'].forEach(function(ev){ el.addEventListener(ev, desliga, { passive:false }); });
+}
+segura('dEsq','esq'); segura('dDir','dir'); segura('dCima','cima'); segura('dBaixo','baixo'); segura('dPulo','pulo');
+
+cv.addEventListener('pointerdown', function(e){
+  if (!jogoAtual) return;
+  e.preventDefault();
+  var r = cv.getBoundingClientRect();
+  var x = (e.clientX - r.left) * (CW / r.width);
+  var y = (e.clientY - r.top) * (CH / r.height);
+  if (jogoAtual.modo === 'clicker'){ jogoAtual.clique(x, y); return; }
+  if (jogoAtual.modo === 'plataforma' || jogoAtual.modo === 'corrida'){
+    jogoAtual.entrada.pulo = true;
+    setTimeout(function(){ if (jogoAtual) jogoAtual.entrada.pulo = false; }, 140);
+  }
+});
+window.addEventListener('resize', function(){
+  if (!jogoAtual) return;
+  ajustaCanvas();
+  jogarSpec(specAtual, idAtual, ehPreview);
+});
+
+/* ---------- start ---------- */
+document.getElementById('ideia').addEventListener('input', contaIdeia);
+(function inicio(){
+  var u = localStorage.getItem('cg_usuario');
+  document.getElementById('quemSou').textContent = u ? '👤 ' + u : '';
+  montaChips();
+  carregaGaleria();
+})();
+</script>
+
+<script src="/stats.js?v=358"></script>
+<script src="/avisos.js?v=6"></script>
+<script>
+if (window.initStats) initStats('comunidade');
+</script>
+<script src="/mascote.js"></script>
+<script src="/idiomas.js"></script>
