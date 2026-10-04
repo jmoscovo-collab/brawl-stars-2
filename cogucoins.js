@@ -248,3 +248,60 @@
     } catch (e) {}
   }
 })();
+
+/* === RECEBER DOAÇÃO ===
+   Alguém te doou? O presente fica guardado no servidor até você abrir o site.
+   Aqui a gente pega, soma no seu saldo e avisa quem mandou. */
+(function () {
+  var API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+  var CC = window.CoguCoins;
+
+  function cred() {
+    try {
+      var u = localStorage.getItem('cg_usuario');
+      var s = localStorage.getItem('cg_senhaHash');
+      return (u && s) ? { nome: u, senhaHash: s } : null;
+    } catch (e) { return null; }
+  }
+
+  function coleta() {
+    var c = cred();
+    if (!c || !window.fetch) return;
+    fetch(API, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ acao: 'cogu_pegar', nome: c.nome, senhaHash: c.senhaHash })
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (!j || !j.doacoes || !j.doacoes.length) return;
+        var total = 0, de = [];
+        j.doacoes.forEach(function (d) {
+          var v = Math.max(0, Math.round(Number(d.valor) || 0));
+          if (!v) return;
+          total += v;
+          if (d.de && de.indexOf(d.de) < 0) de.push(d.de);
+        });
+        if (!total) return;
+        CC.ganhaSilencioso(total);
+        CC.oferece({
+          emoji: '🎁',
+          titulo: 'Você ganhou um presente!',
+          texto: de.join(', ') + ' te ' + (de.length > 1 ? 'doaram' : 'doou') + ' ' +
+                 total.toLocaleString('pt-BR') + ' Cogu Coins!',
+          preco: 0,
+          textoBotao: 'OBRIGADO!',
+          textoRecusar: 'Fechar',
+          aoComprar: function () {}, aoRecusar: function () {}
+        });
+      })
+      .catch(function () {});
+  }
+
+  // só nas páginas "de fora" dos jogos — ninguém quer um popup no meio da partida
+  var p = location.pathname.replace(/\/+$/, '');
+  var podeAqui = (p === '' || p === '/index.html' || p === '/conta' || p === '/cogucoins' || p === '/loja');
+  if (!podeAqui) return;
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', coleta);
+  else coleta();
+})();

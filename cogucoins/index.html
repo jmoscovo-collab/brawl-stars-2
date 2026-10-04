@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍄 Doar Cogu Coins — Cogumelo Games</title>
+<link rel="icon" href="/icons/icon-192.png">
+<script src="/cogucoins.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;background:linear-gradient(160deg,#1a0b2e,#2d1b4e 60%,#0f0a1f);
+       color:#fff;min-height:100vh;padding:16px 14px 100px}
+  .wrap{max-width:620px;margin:0 auto}
+  .topo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .voltar{background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.25);color:#fff;
+          border-radius:14px;padding:8px 14px;text-decoration:none;font-weight:bold;font-size:14px}
+  h1{font-size:24px;flex:1;min-width:170px;text-shadow:0 3px 10px #000}
+  .saldo{background:rgba(10,10,30,.75);border:2px solid #ffcc33;color:#ffcc33;border-radius:18px;
+         padding:8px 16px;font-size:18px;font-weight:bold;white-space:nowrap}
+  .caixa{background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.15);border-radius:18px;
+         padding:16px;margin-bottom:16px}
+  h2{font-size:17px;color:#ffcc33;margin-bottom:10px}
+  input{width:100%;padding:12px 14px;font-size:16px;border-radius:14px;border:2px solid #444;
+        background:rgba(20,20,50,.9);color:#fff;outline:none;font-family:inherit}
+  input:focus{border-color:#ffcc33}
+  .amigos{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .amigo{background:rgba(0,255,136,.12);border:2px solid rgba(0,255,136,.4);color:#fff;border-radius:14px;
+         padding:8px 14px;font-size:14px;font-weight:bold;cursor:pointer;font-family:inherit}
+  .amigo.sel{background:#00ff88;color:#07301c;border-color:#00ff88}
+  .vazio{opacity:.65;font-size:13px;line-height:1.45}
+  .valores{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+  .valor{background:rgba(255,204,51,.1);border:2px solid rgba(255,204,51,.35);color:#ffcc33;
+         border-radius:14px;padding:14px 6px;font-size:15px;font-weight:bold;cursor:pointer;font-family:inherit}
+  .valor.sel{background:#ffcc33;color:#2a1800}
+  .valor:disabled{opacity:.3;cursor:default}
+  #doar{width:100%;margin-top:14px;border:none;border-radius:16px;padding:16px;font-size:18px;
+        font-weight:bold;font-family:inherit;cursor:pointer;
+        background:linear-gradient(135deg,#ffcc33,#ff9500);color:#2a1800}
+  #doar:disabled{background:rgba(255,255,255,.12);color:#999;cursor:default}
+  .msg{margin-top:12px;font-size:14px;font-weight:bold;line-height:1.4;min-height:20px}
+  .msg.erro{color:#ff8a8a} .msg.ok{color:#6cff9f}
+  .dica{font-size:12px;opacity:.65;margin-top:10px;line-height:1.45}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topo">
+    <a class="voltar" href="/">← Voltar</a>
+    <h1>🍄 Doar Cogu Coins</h1>
+    <div class="saldo" id="saldo">🍄 0</div>
+  </div>
+
+  <div class="caixa" id="cxLogin" style="display:none">
+    <h2>Entra na sua conta primeiro!</h2>
+    <div class="vazio">Pra doar e pra receber, você precisa estar logado — senão o presente não sabe pra quem ir. 😄</div>
+    <a class="voltar" style="display:inline-block;margin-top:12px" href="/conta/">👤 Entrar na conta</a>
+  </div>
+
+  <div id="cxTudo">
+    <div class="caixa">
+      <h2>1. Pra quem você quer doar?</h2>
+      <input id="nome" placeholder="Escreve o nome da pessoa..." maxlength="20" autocomplete="off">
+      <div class="amigos" id="amigos"></div>
+    </div>
+
+    <div class="caixa">
+      <h2>2. Quanto?</h2>
+      <div class="valores" id="valores"></div>
+      <button id="doar" disabled>Escolhe uma pessoa e um valor</button>
+      <div class="msg" id="msg"></div>
+      <div class="dica">🔒 O que você doar sai da sua conta na hora e chega na conta da pessoa assim que ela abrir o site. Dá pra doar 20 vezes por dia.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+  var VALORES = [10, 100, 600, 1000, 22000, 100000];
+  var CC = window.CoguCoins;
+
+  var eNome = document.getElementById('nome');
+  var eAmigos = document.getElementById('amigos');
+  var eValores = document.getElementById('valores');
+  var eDoar = document.getElementById('doar');
+  var eMsg = document.getElementById('msg');
+  var eSaldo = document.getElementById('saldo');
+
+  var escolhido = 0;
+  var enviando = false;
+
+  function usuario(){ try { return localStorage.getItem('cg_usuario') || ''; } catch(e){ return ''; } }
+  function senha(){ try { return localStorage.getItem('cg_senhaHash') || ''; } catch(e){ return ''; } }
+
+  if (!usuario() || !senha()) {
+    document.getElementById('cxLogin').style.display = '';
+    document.getElementById('cxTudo').style.display = 'none';
+  }
+
+  function pintaSaldo(){ eSaldo.textContent = '🍄 ' + CC.saldo().toLocaleString('pt-BR'); }
+  pintaSaldo();
+  window.addEventListener('cogucoins', pintaSaldo);
+
+  // --- lista de amigos (fica salva no aparelho quando você entra na conta) ---
+  var amigos = [];
+  try { amigos = JSON.parse(localStorage.getItem('cg_amigos') || '[]') || []; } catch(e){}
+  if (amigos.length) {
+    amigos.slice(0, 30).forEach(function(a){
+      var b = document.createElement('button');
+      b.className = 'amigo';
+      b.textContent = '🍄 ' + a;
+      b.onclick = function(){
+        eNome.value = a;
+        Array.prototype.forEach.call(eAmigos.children, function(c){ c.classList.remove('sel'); });
+        b.classList.add('sel');
+        atualiza();
+      };
+      eAmigos.appendChild(b);
+    });
+  } else {
+    var d = document.createElement('div');
+    d.className = 'vazio';
+    d.textContent = 'Você ainda não tem amigos salvos aqui — mas pode escrever o nome de qualquer jogador ali em cima.';
+    eAmigos.appendChild(d);
+  }
+
+  // --- botões de valor ---
+  var botoesValor = VALORES.map(function(v){
+    var b = document.createElement('button');
+    b.className = 'valor';
+    b.textContent = '🍄 ' + v.toLocaleString('pt-BR');
+    b.onclick = function(){
+      escolhido = v;
+      botoesValor.forEach(function(x){ x.classList.remove('sel'); });
+      b.classList.add('sel');
+      atualiza();
+    };
+    eValores.appendChild(b);
+    return b;
+  });
+
+  function atualiza(){
+    var saldo = CC.saldo();
+    botoesValor.forEach(function(b, i){
+      var podeV = saldo >= VALORES[i];
+      b.disabled = !podeV;
+      if (!podeV && escolhido === VALORES[i]) { escolhido = 0; b.classList.remove('sel'); }
+    });
+    var nome = eNome.value.trim();
+    var souEu = nome.toLowerCase() === usuario().trim().toLowerCase();
+    var ok = nome.length >= 2 && escolhido > 0 && saldo >= escolhido && !souEu && !enviando;
+    eDoar.disabled = !ok;
+    if (souEu && nome) eDoar.textContent = 'Não dá pra doar pra você mesmo 😅';
+    else if (!nome) eDoar.textContent = 'Escolhe pra quem vai doar';
+    else if (!escolhido) eDoar.textContent = 'Escolhe quanto quer doar';
+    else eDoar.textContent = '🎁 Doar 🍄 ' + escolhido.toLocaleString('pt-BR') + ' pro ' + nome;
+  }
+  eNome.addEventListener('input', atualiza);
+  atualiza();
+
+  function diz(txt, bom){
+    eMsg.textContent = txt;
+    eMsg.className = 'msg ' + (bom ? 'ok' : 'erro');
+  }
+
+  eDoar.onclick = async function(){
+    var nome = eNome.value.trim();
+    var valor = escolhido;
+    if (!nome || !valor || enviando) return;
+    enviando = true; atualiza();
+    eDoar.textContent = 'Enviando...';
+    diz('', true);
+
+    // tira do seu saldo ANTES de mandar — se der erro, devolve
+    if (!CC.gasta(valor)) { enviando = false; atualiza(); return diz('Você não tem tudo isso! 😅'); }
+
+    try {
+      var r = await fetch(API, {
+        method: 'POST', headers: {'content-type':'application/json'},
+        body: JSON.stringify({ acao:'cogu_doar', nome: usuario(), senhaHash: senha(),
+                               para: nome, valor: valor })
+      });
+      var j = await r.json().catch(function(){ return {}; });
+      if (!r.ok) throw new Error(j.erro || 'deu erro no servidor');
+      diz('🎉 Mandou 🍄 ' + valor.toLocaleString('pt-BR') + ' pro ' + j.para +
+          (j.online ? '! Ele está online agora.' : '! Vai chegar quando ele abrir o site.'), true);
+      escolhido = 0;
+      botoesValor.forEach(function(x){ x.classList.remove('sel'); });
+    } catch (e) {
+      CC.ganhaSilencioso(valor);   // deu ruim: devolve o dinheiro
+      diz('Não deu: ' + (e.message || 'sem internet') + ' — suas moedas voltaram.');
+    }
+    enviando = false;
+    pintaSaldo();
+    atualiza();
+  };
+})();
+</script>
+</body>
+</html>
