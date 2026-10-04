@@ -136,6 +136,14 @@
     #actBtn { bottom:auto; top:110px; font-size:14px; padding:10px 16px; }
     #startScreen h1 { font-size:40px; }
     #controls { font-size:12px; padding:0 12px; }
+    /* botões maiores: dedo é mais grosso que mouse */
+    #phoneScreen { padding:12px; }
+    .card button { width:100%; padding:13px 16px; font-size:16px; margin-top:10px; }
+    .backBtn { padding:13px 18px; font-size:15px; }
+    .appIcon { padding:20px 8px; font-size:14px; min-height:96px; }
+    .appGrid { gap:14px; }
+    #touchBtns button { width:72px; height:72px; font-size:14px; }
+    #startBtn { padding:18px 44px; font-size:22px; }
   }
 
   #startScreen {
@@ -241,15 +249,38 @@ if (G.bank === undefined) G.bank = 0;
 if (!G.inv) G.inv = {};
 if (!G.shirt) G.shirt = 0x22cc66;
 if (!G.cap) G.cap = 0xdd2233;
+if (!G.profFeitas) G.profFeitas = {};
+if (!G.advert) G.advert = {};      // advertências por profissão (3 = demissão)
+if (!G.demitido) G.demitido = {};  // profId -> dia da demissão (volta no dia seguinte)
+const PRAZO_JOB = 150;             // 2min30 pra terminar a entrega
+// save antigo: G.job era {label,pay,x,z} com jobPhase 0=pegar / 1=entregar.
+// converte pro formato novo (passos[]) pra missão em andamento não quebrar.
+if (G.job && !Array.isArray(G.job.passos)){
+  G.job.passos = ['Vá PEGAR no ponto vermelho', 'Agora ENTREGUE no ponto vermelho'];
+  if (!G.job.label) G.job.label = '📦 Entrega';
+  if (!G.job.pay) G.job.pay = 300;
+}
+if (typeof G.jobPhase !== 'number' || G.jobPhase < 0) G.jobPhase = 0;
 function save(){ try{ localStorage.setItem('spcity_save', JSON.stringify(G)); }catch(e){} }
 
+// glb = modelo 3D de verdade (o visual de caixas continua como fallback)
+// reqProf = só pode comprar depois de completar essa profissão pelo menos 1 vez
 const CARS = [
-  {name:'🚗 Fusca',      color:0x3aa0ff, price:0,     max:70,  acc:22, tank:100},
-  {name:'🚙 Uno Turbo',  color:0xff4444, price:3000,  max:100, acc:32, tank:120},
-  {name:'🏎️ Esportivo',  color:0xffcc00, price:12000, max:150, acc:48, tank:140},
-  {name:'🚓 Viatura',    color:0xeeeeee, price:20000, max:160, acc:52, tank:160},
-  {name:'🏁 Super SP-1', color:0xaa00ff, price:50000, max:220, acc:70, tank:200},
+  {name:'🚗 Fusca',      color:0x3aa0ff, price:0,     max:70,  acc:22, tank:100, glb:'/assets/compat/hatchback-sports.glb'},
+  {name:'🚙 Uno Turbo',  color:0xff4444, price:3000,  max:100, acc:32, tank:120, glb:'/assets/compat/sedan-sports.glb'},
+  {name:'🏎️ Esportivo',  color:0xffcc00, price:12000, max:150, acc:48, tank:140, glb:'/assets/compat/sedan.glb'},
+  {name:'🚓 Viatura',    color:0xeeeeee, price:20000, max:160, acc:52, tank:160, glb:'/assets/compat/police.glb', reqProf:'policial'},
+  {name:'🏁 Super SP-1', color:0xaa00ff, price:50000, max:220, acc:70, tank:200, glb:'/assets/compat/race-future.glb'},
 ];
+// Carro com reqProf só libera depois de trabalhar na profissão.
+// Quem já tem o carro num save antigo nunca perde (ownedCars manda).
+function carLiberado(i){
+  const c = CARS[i];
+  if (!c || !c.reqProf) return true;
+  if (G.ownedCars.includes(i)) return true;
+  return ((G.profFeitas && G.profFeitas[c.reqProf]) || 0) >= 1;
+}
+window.carLiberado = carLiberado;
 const HOMES = [
   {name:'🏚️ Barraco no Brás', price:2000},
   {name:'🏠 Casa na Mooca', price:15000},
@@ -261,17 +292,105 @@ const HOMES = [
   {name:'🏡 Casinha da Vila', price:800},
   {name:'🌇 Loft do Centro', price:8000},
 ];
-const JOBS = [
-  {label:'🍕 Entregar pizza', pay:300},
-  {label:'📦 Levar encomenda', pay:450},
-  {label:'🚕 Corrida de táxi', pay:600},
-  {label:'💼 Motorista executivo', pay:900},
-  {label:'🏥 Entrega urgente de remédio', pay:1200},
-  {label:'🏖️ Salva-vidas na praia', pay:500},
-  {label:'📰 Entregar jornais', pay:350},
-  {label:'🚌 Levar turistas pro shopping', pay:750},
-  {label:'💎 Transporte de joias pro banco', pay:1500},
+// ============ PROFISSÕES ============
+// Cada profissão tem um salário, uma dificuldade (⭐1-5) e 2-4 tarefas.
+// Cada tarefa tem "passos": cada passo vira um ponto vermelho no mapa.
+// Quanto mais difícil, mais passos (e mais dinheiro).
+// req: o que falta pra liberar — {money} dinheiro, {carro} índice mínimo de carro,
+//      {prof:{id,n}} ter completado N vezes outra profissão.
+const PROFS = [
+  {id:'entregador', emoji:'🛵', nome:'Entregador', salario:300, dif:1, req:{},
+   desc:'Pega a mochila e sai correndo! Todo mundo começa aqui.',
+   tarefas:[
+     {txt:'🍕 Entregar pizza', passos:['Vá até a pizzaria pegar a pizza','Entregue a pizza ainda quentinha']},
+     {txt:'📦 Levar encomenda', passos:['Pegue a encomenda no galpão','Entregue na casa do cliente']},
+   ]},
+  {id:'motorista', emoji:'🚕', nome:'Motorista de App', salario:600, dif:1, req:{money:300},
+   desc:'Leva gente pra lá e pra cá e ainda ganha 5 estrelas.',
+   tarefas:[
+     {txt:'🚕 Corrida rápida', passos:['Busque o passageiro','Deixe o passageiro no destino']},
+     {txt:'🛫 Corrida pro aeroporto', passos:['Busque o passageiro','Pegue a mala na portaria','Deixe tudo no aeroporto']},
+   ]},
+  {id:'jornalista', emoji:'📰', nome:'Jornalista', salario:900, dif:2, req:{prof:{id:'entregador', n:2}},
+   desc:'Corre atrás da notícia antes que ela esfrie.',
+   tarefas:[
+     {txt:'📸 Fotografar a notícia', passos:['Vá até o local do acontecimento','Leve as fotos pra redação']},
+     {txt:'🎤 Entrevistar o prefeito', passos:['Encontre o prefeito','Volte pra redação escrever a matéria']},
+     {txt:'🚨 Cobrir ocorrência', passos:['Vá até a delegacia','Fale com a testemunha','Entregue a reportagem']},
+   ]},
+  {id:'professor', emoji:'👨‍🏫', nome:'Professor', salario:1300, dif:2, req:{money:1200},
+   desc:'Ensina a cidade inteira — e corrige prova no fim de semana.',
+   tarefas:[
+     {txt:'📚 Dar aula na escola', passos:['Pegue o material na papelaria','Dê a aula na escola']},
+     {txt:'🎒 Levar a turma pro passeio', passos:['Busque a turma na escola','Leve todo mundo pro museu','Devolva a turma na escola']},
+   ]},
+  {id:'chef', emoji:'🍳', nome:'Chef de Cozinha', salario:2000, dif:3, req:{money:3000},
+   desc:'Chapéu branco, panela quente e nada de queimar o alho.',
+   tarefas:[
+     {txt:'🥬 Buscar ingredientes', passos:['Vá na feira comprar os ingredientes','Leve tudo pro restaurante']},
+     {txt:'🎂 Banquete de aniversário', passos:['Compre os ingredientes','Prepare o bolo na cozinha','Sirva o banquete na festa']},
+     {txt:'🍝 Jantar especial', passos:['Pegue a massa fresca','Sirva o cliente VIP']},
+   ]},
+  {id:'veterinario', emoji:'🐶', nome:'Veterinário', salario:2800, dif:3, req:{prof:{id:'entregador', n:3}},
+   desc:'Cuida de cachorro, gato, papagaio e até capivara.',
+   tarefas:[
+     {txt:'🐕 Resgatar cachorrinho', passos:['Ache o cachorrinho perdido','Leve pra clínica']},
+     {txt:'🦜 Atender o papagaio', passos:['Busque o papagaio na casa do dono','Leve pra clínica','Devolve o papagaio curado']},
+     {txt:'🐈 Vacinar os gatos', passos:['Pegue as vacinas','Vacine os gatos do abrigo']},
+   ]},
+  {id:'policial', emoji:'👮', nome:'Policial', salario:4500, dif:4, req:{prof:{id:'motorista', n:3}},
+   desc:'Sirene ligada! Corre atrás do ladrão e protege a cidade.',
+   tarefas:[
+     {txt:'🚓 Perseguir o ladrão', passos:['Vá até a delegacia pegar a viatura','Alcance o ladrão','Leve o ladrão pra cadeia']},
+     {txt:'🚦 Blitz na avenida', passos:['Monte a blitz no ponto marcado','Leve o relatório pra delegacia']},
+     {txt:'💎 Escoltar o cofre', passos:['Pegue o cofre no banco','Escolte até o destino']},
+   ]},
+  {id:'bombeiro', emoji:'🚒', nome:'Bombeiro', salario:6000, dif:4, req:{money:12000},
+   desc:'Apaga incêndio, salva gato de árvore e é herói da criançada.',
+   tarefas:[
+     {txt:'🔥 Apagar o incêndio', passos:['Pegue o caminhão no quartel','Chegue no prédio em chamas','Volte pro quartel']},
+     {txt:'🐱 Salvar o gato da árvore', passos:['Pegue a escada no quartel','Salve o gato']},
+     {txt:'🚑 Socorrer acidente', passos:['Vá pro local do acidente','Leve o ferido pro hospital']},
+   ]},
+  {id:'medico', emoji:'🏥', nome:'Médico', salario:9000, dif:5, req:{prof:{id:'veterinario', n:2}},
+   desc:'Jaleco branco e plantão puxado: cada segundo vale uma vida.',
+   tarefas:[
+     {txt:'🚨 Plantão de emergência', passos:['Vá ao hospital pegar o paciente','Leve o paciente pro pronto-socorro','Volte pro hospital pro próximo plantão']},
+     {txt:'💉 Levar a vacina', passos:['Pegue as vacinas no hospital','Entregue no posto de saúde']},
+     {txt:'🫀 Transporte de órgão', passos:['Pegue a caixa no heliponto','Corra até o hospital','Entregue na sala de cirurgia']},
+   ]},
+  {id:'piloto', emoji:'✈️', nome:'Piloto de Avião', salario:14000, dif:5, req:{prof:{id:'medico', n:2}},
+   desc:'A profissão mais difícil da cidade. Decola só quem é fera!',
+   tarefas:[
+     {txt:'🛫 Voo internacional', passos:['Chegue no aeroporto','Pegue o plano de voo na torre','Decole do fim da pista']},
+     {txt:'🚁 Resgate aéreo', passos:['Vá até o heliponto','Resgate a pessoa','Pouse no hospital']},
+   ]},
 ];
+const PROF_BY_ID = {};
+PROFS.forEach(p => { PROF_BY_ID[p.id] = p; });
+
+// Devolve '' se liberou, ou o texto do que ainda falta.
+// quanto a profissão paga hoje: cada advertência derruba o salário
+function salarioAtual(p){
+  const adv = (G.advert && G.advert[p.id]) || 0;
+  return Math.max(1, Math.round(p.salario * Math.pow(0.7, adv)));
+}
+function profFalta(p){
+  if (G.demitido && G.demitido[p.id] !== undefined && G.day <= G.demitido[p.id])
+    return `Você foi demitido hoje 😬 — volte amanhã (dia ${G.demitido[p.id]+1})`;
+  const r = p.req || {};
+  if (r.money && G.money < r.money) return `Junte R$ ${r.money.toLocaleString('pt-BR')} primeiro`;
+  if (r.carro !== undefined && !G.ownedCars.some(i => i >= r.carro))
+    return `Compre o ${CARS[r.carro].name}`;
+  if (r.prof){
+    const feitas = (G.profFeitas && G.profFeitas[r.prof.id]) || 0;
+    if (feitas < r.prof.n){
+      const o = PROF_BY_ID[r.prof.id];
+      return `Complete ${r.prof.n}x ${o.emoji} ${o.nome} (você fez ${feitas})`;
+    }
+  }
+  return '';
+}
 
 // ============ CENA ============
 const scene = new THREE.Scene();
@@ -414,15 +533,7 @@ for(let i=0;i<75;i++){
   boia.position.set(-250,7,zP+2.8); scene.add(boia);
 }
 
-// faixas das ruas
-const lineMat = new THREE.MeshBasicMaterial({color:0xffdd44});
-for (let i=0;i<=GRID;i++){
-  const p = -CITY/2 + i*CELL;
-  const l1 = new THREE.Mesh(new THREE.PlaneGeometry(0.8, CITY), lineMat);
-  l1.rotation.x=-Math.PI/2; l1.position.set(p, 0.02, 0); scene.add(l1);
-  const l2 = new THREE.Mesh(new THREE.PlaneGeometry(CITY, 0.8), lineMat);
-  l2.rotation.x=-Math.PI/2; l2.position.set(0, 0.02, p); scene.add(l2);
-}
+// as faixas amarelas pintadas sairam: agora cada trecho de rua e uma peca 3D (ver forraRuas()).
 
 // ===== letreiro com texto (canvas) =====
 function makeSign(text, bg){
@@ -1024,26 +1135,7 @@ const shopCells = new Set(['3,3','12,12','6,10','11,4','8,13','2,8','8,2','13,8'
   ...HOME_CELLS.map(c=>c[0]+','+c[1]), ...LOT_CELLS.map(c=>c[0]+','+c[1]),
   '0,4','0,5','0,6','0,7','9,9','10,9']);
 
-// ===== faixas de pedestre nas avenidas principais =====
-{
-  const cwCv = document.createElement('canvas'); cwCv.width=64; cwCv.height=64;
-  const cc = cwCv.getContext('2d');
-  cc.fillStyle='#3a3a3a'; cc.fillRect(0,0,64,64);
-  cc.fillStyle='#e8e8e8';
-  for(let i=4;i<64;i+=14) cc.fillRect(i,4,8,56);
-  const cwTex = new THREE.CanvasTexture(cwCv);
-  const cwMat = new THREE.MeshLambertMaterial({map:cwTex});
-  for (let i=0;i<=GRID;i+=4){
-    for (let j=0;j<=GRID;j+=4){
-      const ix=-CITY/2+i*CELL, iz=-CITY/2+j*CELL;
-      [[0,-14,0],[0,14,0],[-14,0,Math.PI/2],[14,0,Math.PI/2]].forEach(([dx,dz,rot])=>{
-        const cw = new THREE.Mesh(new THREE.PlaneGeometry(16,7), cwMat);
-        cw.rotation.x=-Math.PI/2; cw.rotation.z=rot;
-        cw.position.set(ix+dx,0.03,iz+dz); scene.add(cw);
-      });
-    }
-  }
-}
+// as faixas de pedestre pintadas sairam: agora sao o modelo road-crossing.glb (ver forraRuas()).
 
 // ===== postes de luz =====
 {
@@ -1067,6 +1159,11 @@ const bColors=[0x8899aa,0xaa8877,0x99aabb,0xbbb8a0,0x778899,0xcfcfd8,0x9a7b6c];
 const facadeMats = bColors.map(c=>makeFacade(c));
 const facadeOf = c => facadeMats[bColors.indexOf(c)] || facadeMats[0];
 const houseColors=[0xf5d5b0,0xf0c0c0,0xc0e0f0,0xd8f0c0,0xf0e8b0];
+// candidatos a virar modelo 3D de verdade: {x,z,w,d,h,meshes}
+// nada aqui muda posicao nem colisao — so a aparencia e trocada depois (async)
+const glbSpots=[];
+const pracaSpots=[];   // centros das praças redondas (pra espalhar árvore de verdade)
+const casaSpots=[];    // casas de subúrbio: {cx,cz,hx,hz} — usadas pra entrada de garagem
 for (let gx=0; gx<GRID; gx++){
   for (let gz=0; gz<GRID; gz++){
     if (shopCells.has(gx+','+gz)) continue;
@@ -1086,6 +1183,7 @@ for (let gx=0; gx<GRID; gx++){
         const tr = new THREE.Mesh(new THREE.ConeGeometry(3,9,7), new THREE.MeshLambertMaterial({color:0x2c7a2c}));
         tr.position.set(cx+Math.cos(a)*r, 4.5, cz+Math.sin(a)*r); tr.castShadow=true; scene.add(tr);
       }
+      pracaSpots.push({x:cx, z:cz});
       continue;
     }
 
@@ -1110,6 +1208,8 @@ for (let gx=0; gx<GRID; gx++){
           const roof = new THREE.Mesh(new THREE.ConeGeometry(10.5,5,4), new THREE.MeshLambertMaterial({color:0xaa4433}));
           roof.position.set(bx,8.5,bz); roof.rotation.y=Math.PI/4; roof.castShadow=true; scene.add(roof);
           buildings.push({x:bx,z:bz,w:14,d:12});
+          glbSpots.push({x:bx,z:bz,w:14,d:12,h:11,meshes:[base,roof]});
+          casaSpots.push({cx,cz,hx,hz});
         }
       }
     } else if (kind < 0.55){
@@ -1124,16 +1224,19 @@ for (let gx=0; gx<GRID; gx++){
       const topo = new THREE.Mesh(new THREE.CylinderGeometry(r*0.6,r,6,16), new THREE.MeshLambertMaterial({color:0x556}));
       topo.position.set(cx,h+3,cz); scene.add(topo);
       buildings.push({x:cx,z:cz,w:r*2,d:r*2});
+      glbSpots.push({x:cx,z:cz,w:r*2,d:r*2,h,meshes:[t,topo]});
     } else if (kind < 0.70){
       // PRÉDIO ESCADINHA (3 blocos empilhados)
       const col = bColors[Math.floor(rand(0,bColors.length))];
       const h1 = rand(15,40);
-      let y=0;
+      let y=0; const escMeshes=[];
       [[26,26,h1],[18,18,h1*0.7],[10,10,h1*0.5]].forEach(([w,d,h])=>{
         const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), facadeOf(col));
         m.position.set(cx, y+h/2, cz); m.castShadow=true; scene.add(m); y+=h;
+        escMeshes.push(m);
       });
       buildings.push({x:cx,z:cz,w:26,d:26});
+      glbSpots.push({x:cx,z:cz,w:26,d:26,h:y,meshes:escMeshes});
     } else {
       // PRÉDIOS NORMAIS variados (2-3 por quarteirão)
       const n = 2+Math.floor(rand(0,2));
@@ -1147,10 +1250,491 @@ for (let gx=0; gx<GRID; gx++){
         const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), facadeOf(col));
         m.position.set(bx, h/2, bz); m.castShadow = h<60; scene.add(m);
         buildings.push({x:bx,z:bz,w,d});
+        glbSpots.push({x:bx,z:bz,w,d,h,meshes:[m]});
       }
     }
   }
 }
+
+// ===== carregador .glb compartilhado =====
+// devolve {obj,w,h,d} com o tamanho REAL medido por Box3, ou null se o arquivo falhar.
+// um glb que não carrega nunca pode derrubar a cidade — por isso tudo resolve com null.
+const glbLoader = (typeof THREE.GLTFLoader === 'function') ? new THREE.GLTFLoader() : null;
+function carregaGLB(url){
+  return new Promise(res=>{
+    if (!glbLoader) return res(null);
+    try {
+      glbLoader.load(url, g=>{
+        try {
+          const o = g.scene;
+          const s = new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3());
+          if (!(s.x>0 && s.y>0 && s.z>0)) return res(null);
+          o.traverse(n=>{ if(n.isMesh){ n.castShadow=false; n.receiveShadow=false; } });
+          res({obj:o, w:s.x, h:s.y, d:s.z, url});
+        } catch(e){ res(null); }
+      }, undefined, ()=>res(null));
+    } catch(e){ res(null); }
+  });
+}
+function triDe(o){ let t=0; o.traverse(n=>{ if(n.isMesh && n.geometry){ const g=n.geometry;
+  t += g.index ? g.index.count/3 : (g.attributes.position ? g.attributes.position.count/3 : 0); } }); return t|0; }
+// apoia o objeto já escalado/rotacionado exatamente no chão (y=0)
+function apoiaNoChao(o){ o.updateMatrixWorld(true); o.position.y -= new THREE.Box3().setFromObject(o).min.y; }
+
+// ===== prédios de verdade (.glb) no lugar de parte das caixas =====
+// Troca só a APARÊNCIA: posição e buildings[] (colisão) ficam idênticos.
+(function trocaPredios(){
+  // modelos: baixo = a/b/c/g, alto = skyscraper
+  const MODELS = [
+    {url:'/assets/compat/building-a.glb', tall:false},
+    {url:'/assets/compat/building-b.glb', tall:false},
+    {url:'/assets/compat/building-c.glb', tall:false},
+    {url:'/assets/compat/building-g.glb', tall:false},
+    {url:'/assets/compat/building-skyscraper-e.glb', tall:true},
+    // casas de subúrbio: entram no mesmo sorteio, só pros prédios baixos
+    {url:'/assets/compat/building-type-i.glb', tall:false, casa:true},
+    {url:'/assets/compat/building-type-q.glb', tall:false, casa:true},
+    {url:'/assets/compat/building-type-m.glb', tall:false, casa:true},
+  ];
+  const ALTO = 55;           // acima disso é arranha-céu (centro/comercial)
+  const ALVO = 0.5;          // ~50% dos prédios trocados
+  // rng próprio: roda depois (async) e não pode mexer no seed global do jogo
+  let rs = 1337; const rng = ()=>{ rs = (rs*1103515245 + 12345) & 0x7fffffff; return rs >>> 8; };
+  let triAdd=0, triRem=0, meshAdd=0;   // contadores pro diagnostico de desempenho
+  const tris = triDe;
+  const sum = {trocados:0, casas:0, total:glbSpots.length, glbOk:false, sMin:Infinity, sMax:0, hMin:Infinity, hMax:0, erro:''};
+  const el = document.createElement('div');
+  el.id='glbSummary'; el.style.display='none'; document.body.appendChild(el);
+  const report = ()=>{ el.textContent = 'trocados='+sum.trocados+' casas='+sum.casas+' total='+sum.total+' glbOk='+sum.glbOk
+    +' escalaMin='+(isFinite(sum.sMin)?sum.sMin.toFixed(3):'-')+' escalaMax='+sum.sMax.toFixed(3)
+    +' alturaMin='+(isFinite(sum.hMin)?sum.hMin.toFixed(1):'-')+' alturaMax='+sum.hMax.toFixed(1)
+    +' buildings='+buildings.length+' colisaoIntacta='+(chk()===chk0)+(sum.erro?' erro='+sum.erro:''); };
+  const chk = ()=>buildings.reduce((a,b)=>(a + b.x*3 + b.z*5 + b.w*7 + b.d*11)|0, buildings.length);
+  const chk0 = chk();
+  report();
+
+  if (!glbLoader){ sum.erro='sem GLTFLoader'; report(); return; }
+  const carrega = m => carregaGLB(m.url).then(r => r && Object.assign(r, {tall:m.tall, casa:!!m.casa}));
+
+  Promise.all(MODELS.map(carrega)).then(mods=>{
+    const ok = mods.filter(Boolean);
+    sum.glbOk = ok.length === MODELS.length;
+    if (!ok.length){ sum.erro='nenhum glb carregou'; report(); return; }
+    const altos = ok.filter(m=>m.tall);
+    const casas = ok.filter(m=>m.casa);                 // só pras casinhas do subúrbio
+    const baixos = ok.filter(m=>!m.tall && !m.casa);
+
+    glbSpots.forEach((sp,i)=>{
+      try {
+        // espalhado pela cidade: hash da célula + índice, não um lado só
+        const cel = Math.floor((sp.x+CITY/2)/CELL)*7 + Math.floor((sp.z+CITY/2)/CELL)*13;
+        if (((cel + i*3) % 100) >= ALVO*100) return;
+
+        // a casinha gerada no bairro residencial tem medida fixa 14x12x11 — essa vira casa de verdade
+        const ehCasa = (sp.w===14 && sp.d===12 && sp.h===11);
+        const pool = ehCasa ? casas : (sp.h >= ALTO ? altos : baixos);
+        const cand = pool.length ? pool : ok;
+        // escolhe o modelo cuja proporção altura/base mais parece com a do prédio atual
+        const alvoProp = sp.h / Math.min(sp.w, sp.d);
+        let mod = cand[0], melhor = Infinity;
+        cand.forEach(m=>{
+          const p = m.h / Math.min(m.w, m.d);
+          const dif = Math.abs(Math.log(p/alvoProp));
+          if (dif < melhor){ melhor = dif; mod = m; }
+        });
+
+        const rot = (rng() & 3) * Math.PI/2;                    // 0/90/180/270
+        const girado = (Math.floor(rot/(Math.PI/2)) % 2) === 1;
+        const mw = girado ? mod.d : mod.w, md = girado ? mod.w : mod.d;
+        // menor razão pra não vazar da caixa de colisão; altura fica proporcional
+        const s = Math.min(sp.w/mw, sp.d/md);
+        const hFinal = mod.h * s;
+        if (!isFinite(s) || s<=0) return;
+        if (hFinal > sp.h*2.5 || hFinal < sp.h*0.35) return;     // nada de caixa virar torre (ou o contrário)
+
+        const o = mod.obj.clone(true);  // clone(true) compartilha geometria e material
+        o.scale.setScalar(s);
+        o.rotation.y = rot;
+        o.position.set(sp.x, 0, sp.z);
+        apoiaNoChao(o);
+        o.traverse(n=>{ if(n.isMesh) n.castShadow = hFinal < 60; });
+        scene.add(o);
+        triAdd += tris(o); o.traverse(n=>{ if(n.isMesh) meshAdd++; });
+        sp.meshes.forEach(m=>{ triRem += tris(m); m.visible = false; }); // some a caixa antiga, colisão fica
+
+        sum.trocados++; if (mod.casa) sum.casas++;
+        sum.sMin = Math.min(sum.sMin, s); sum.sMax = Math.max(sum.sMax, s);
+        sum.hMin = Math.min(sum.hMin, hFinal); sum.hMax = Math.max(sum.hMax, hFinal);
+      } catch(e){ /* um prédio que falha não derruba a cidade */ }
+    });
+    report();
+    // diagnostico de desempenho (so pro teste headless; div escondida)
+    setTimeout(()=>{ try{ el.textContent += ' drawCalls='+renderer.info.render.calls
+      +' triRender='+renderer.info.render.triangles+' objetos='+scene.children.length
+      +' geomCache='+renderer.info.memory.geometries+' triAdd='+triAdd+' triRem='+triRem
+      +' meshAdd='+meshAdd; }catch(e){} }, 2000);
+  }).catch(e=>{ sum.erro = String(e && e.message || e); report(); });
+})();
+
+// ===== asfalto 3D: TODA a malha viaria forrada com pecas Kenney =====
+// Cada trecho reto vira uma fileira de road-straight; cada cruzamento, um road-crossroad-line.
+// Sao milhares de pecas, entao tudo vai em InstancedMesh (1 draw call por geometria+material).
+// E 100% decorativo: nao entra em buildings[], nao muda a fisica do carro.
+(function forraRuas(){
+  const RUA = CELL - BLOCK;          // 22 — largura da pista
+  const VAO = BLOCK;                 // 78 — trecho reto entre dois cruzamentos
+  const PECAS = 4;                   // pecas por trecho (19.5 cada: quase quadrada, textura sem esticar)
+  const LP = VAO / PECAS;
+  const Y_PISTA = 0.03;              // um fio acima do asfalto plano antigo, sem z-fighting
+  const Y_FAIXA = 0.06;              // faixa de pedestre por cima da pista
+  const el = document.createElement('div');
+  el.id='ruasSummary'; el.style.display='none'; document.body.appendChild(el);
+  const st = {retas:0, cruz:0, faixas:0, draws:0, tri:0, erro:''};
+  // assinatura de buildings[] antes/depois: prova que o asfalto nao tocou na colisao
+  const chk = ()=>buildings.reduce((a,b)=>(a + b.x*3 + b.z*5 + b.w*7 + b.d*11)|0, buildings.length);
+  const chk0 = chk(), nB0 = buildings.length;
+  const report = ()=>{ el.textContent =
+      'ruasRetas='+st.retas+' ruasCruz='+st.cruz+' ruasFaixas='+st.faixas
+    + ' ruasDraws='+st.draws+' ruasTri='+st.tri
+    + ' ruasBuildingsAntes='+nB0+' ruasBuildingsDepois='+buildings.length
+    + ' ruasColisaoIntacta='+(chk()===chk0 && buildings.length===nB0)
+    + (st.erro?' ruasErro='+st.erro:''); };
+  report();
+  if (!glbLoader){ st.erro='sem GLTFLoader'; report(); return; }
+
+  // tira as geometrias do glb ja em espaco de mundo e normaliza pra 1x1 na base (y=0 embaixo),
+  // assim a matriz de cada instancia e so escala + giro em Y + posicao.
+  function partes(mod){
+    const o = mod.obj; o.updateMatrixWorld(true);
+    const ps = [];
+    o.traverse(n=>{ if (n.isMesh && n.geometry){
+      const g = n.geometry.clone(); g.applyMatrix4(n.matrixWorld);
+      ps.push({geo:g, mat: Array.isArray(n.material) ? n.material[0] : n.material});
+    }});
+    if (!ps.length) return null;
+    const box = new THREE.Box3();
+    ps.forEach(p=>{ p.geo.computeBoundingBox(); box.union(p.geo.boundingBox); });
+    const s = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+    ps.forEach(p=>{ p.geo.translate(-c.x, -box.min.y, -c.z);
+                    p.geo.scale(1/(s.x||1), 1, 1/(s.z||1)); });
+    return ps;
+  }
+
+  // lista = [{x,z,sx,sz,rot}] — um InstancedMesh por par geometria+material
+  function instancia(mod, lista, y, cat){
+    if (!mod) { st.erro = (st.erro?st.erro+'+':'') + 'glb '+cat+' faltando'; return; }
+    const ps = partes(mod);
+    if (!ps || !lista.length) return;
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+    const pos = new THREE.Vector3(), esc = new THREE.Vector3();
+    ps.forEach(p=>{
+      const im = new THREE.InstancedMesh(p.geo, p.mat, lista.length);
+      for (let i=0;i<lista.length;i++){
+        const it = lista[i];
+        e.set(0, it.rot||0, 0); q.setFromEuler(e);
+        pos.set(it.x, y, it.z);
+        esc.set(it.sx, Math.min(it.sx, it.sz), it.sz);  // altura segue o menor lado, igual ao resto da decoracao
+        m.compose(pos, q, esc);
+        im.setMatrixAt(i, m);
+      }
+      im.instanceMatrix.needsUpdate = true;
+      im.castShadow = false; im.receiveShadow = false;
+      im.frustumCulled = false;      // a malha cobre a cidade inteira; bbox de instancia nao ajuda
+      scene.add(im);
+      st.draws++;
+      const g = p.geo;
+      st.tri += ((g.index ? g.index.count/3 : g.attributes.position.count/3) * lista.length)|0;
+    });
+    st[cat] += lista.length;
+  }
+
+  // road-straight corre ao longo do X local (largura no Z): avenida vertical leva giro de 90 graus
+  const eixo = [];
+  for (let i=0;i<=GRID;i++) eixo.push(-CITY/2 + i*CELL);
+  const retas = [], cruz = [], faixas = [];
+  for (const a of eixo){
+    for (let k=0;k<GRID;k++){
+      const ini = -CITY/2 + k*CELL + RUA/2;      // onde acaba o cruzamento anterior
+      for (let p=0;p<PECAS;p++){
+        const c = ini + LP*(p+0.5);
+        retas.push({x:c, z:a, sx:LP, sz:RUA, rot:0});           // avenida horizontal
+        retas.push({x:a, z:c, sx:LP, sz:RUA, rot:Math.PI/2});   // avenida vertical
+      }
+    }
+  }
+  for (const x of eixo) for (const z of eixo) cruz.push({x, z, sx:RUA, sz:RUA, rot:0});
+  // faixa de pedestre: uma barra em cada aproximacao dos cruzamentos pares (antes era pintura em canvas)
+  for (let i=0;i<=GRID;i+=2){
+    for (let j=0;j<=GRID;j+=2){
+      const X=-CITY/2+i*CELL, Z=-CITY/2+j*CELL;
+      faixas.push({x:X, z:Z-16, sx:RUA-2, sz:7, rot:0});
+      faixas.push({x:X, z:Z+16, sx:RUA-2, sz:7, rot:0});
+      faixas.push({x:X-16, z:Z, sx:7, sz:RUA-2, rot:0});
+      faixas.push({x:X+16, z:Z, sx:7, sz:RUA-2, rot:0});
+    }
+  }
+
+  Promise.all(['/assets/compat/road-straight.glb',
+               '/assets/compat/road-crossroad-line.glb',
+               '/assets/compat/road-crossing.glb'].map(carregaGLB))
+    .then(([reto, cross, faixa])=>{
+      try {
+        instancia(reto,  retas,  Y_PISTA, 'retas');
+        instancia(cross, cruz,   Y_PISTA, 'cruz');     // a rotatoria entra depois em y=0.04 e cobre o cruzamento
+        instancia(faixa, faixas, Y_FAIXA, 'faixas');
+      } catch(e){ st.erro = String(e && e.message || e); }
+      report();
+      // total da cena inteira so depois que predios/decoracao tambem terminaram de entrar
+      setTimeout(()=>{ try {
+        let t=0; scene.traverse(o=>{ if(o.isMesh && o.visible && o.geometry){
+          let v=o, ok=true; while(v){ if(!v.visible){ok=false;break;} v=v.parent; }
+          if(!ok) return; const g=o.geometry;
+          const n = g.index ? g.index.count/3 : (g.attributes.position ? g.attributes.position.count/3 : 0);
+          t += n * (o.isInstancedMesh ? o.count : 1); } });
+        el.textContent += ' ruasTriCenaTotal='+(t|0);
+      } catch(e){} }, 3000);
+    }).catch(e=>{ st.erro = String(e && e.message || e); report(); });
+})();
+
+// ===== decoração de rua (.glb): faixas, rotatórias, garagens, postes e árvores =====
+// Tudo aqui é DECORATIVO: nada entra em buildings[], então nada bloqueia o carro.
+(function decoraCidade(){
+  const RUA = CELL - BLOCK;                 // 22 — largura da pista entre quarteirões
+  const BORDA = BLOCK/2;                    // 39 — onde a calçada acaba e a rua começa
+  const el = document.createElement('div');
+  el.id='decorSummary'; el.style.display='none'; document.body.appendChild(el);
+  const n = {faixas:0, rotatorias:0, garagens:0, arvores:0};
+  const tri = {faixas:0, rotatorias:0, garagens:0, arvores:0};
+  // assinatura de buildings[] antes e depois: prova que a decoração não mexeu na colisão
+  const chk = ()=>buildings.reduce((a,b)=>(a + b.x*3 + b.z*5 + b.w*7 + b.d*11)|0, buildings.length);
+  const chk0 = chk(), nBuild0 = buildings.length;
+  let erro = '';
+  const report = ()=>{ const t = tri.faixas+tri.rotatorias+tri.garagens+tri.arvores;
+    el.textContent = 'faixas='+n.faixas+' rotatorias='+n.rotatorias+' garagens='+n.garagens
+      +' arvores='+n.arvores
+      +' triFaixas='+tri.faixas+' triRotatorias='+tri.rotatorias+' triGaragens='+tri.garagens
+      +' triArvores='+tri.arvores+' triDecor='+t
+      +' buildingsAntes='+nBuild0+' buildingsDepois='+buildings.length
+      +' colisaoIntacta='+(chk()===chk0 && buildings.length===nBuild0)+(erro?' erro='+erro:''); };
+  // total da cena inteira (só visíveis) — é esse número que tem que caber no orçamento
+  const totalCena = ()=>{ let t=0; scene.traverse(o=>{ if(o.isMesh && o.visible && o.geometry){
+    let v=o, ok=true; while(v){ if(!v.visible){ok=false;break;} v=v.parent; }
+    if(!ok) return; const g=o.geometry;
+    t += g.index ? g.index.count/3 : (g.attributes.position ? g.attributes.position.count/3 : 0); } }); return t|0; };
+  report();
+  if (!glbLoader){ erro='sem GLTFLoader'; report(); return; }
+
+  // livre = nenhum retângulo de colisão existente encosta nessa área
+  const livre = (x,z,w,d)=>{
+    for (const b of buildings){
+      if (Math.abs(b.x-x) < (b.w+w)/2 && Math.abs(b.z-z) < (b.d+d)/2) return false;
+    }
+    return true;
+  };
+  // rng próprio: roda async, não pode mexer no seed do jogo
+  let rs = 9173; const rng = ()=>{ rs = (rs*1103515245 + 12345) & 0x7fffffff; return (rs>>>8)/0x7fffff; };
+
+  // põe um clone deitado/apoiado no chão; sempre mede o modelo com Box3 antes de escalar
+  const poe = (mod, x, z, sx, sz, rotY, alt, cat)=>{
+    const o = mod.obj.clone(true);          // clone(true) compartilha geometria e material
+    const s = Math.min(sx/mod.w, sz/mod.d);
+    o.scale.set(sx/mod.w, s, sz/mod.d);
+    o.rotation.y = rotY || 0;
+    o.position.set(x, 0, z);
+    apoiaNoChao(o);
+    o.position.y += alt || 0;
+    scene.add(o);
+    n[cat]++; tri[cat] += triDe(o);
+    return o;
+  };
+  // objeto em pé (escala uniforme pela altura desejada)
+  const poeEmPe = (mod, x, z, altura, rotY, cat)=>{
+    const o = mod.obj.clone(true);
+    o.scale.setScalar(altura/mod.h);
+    o.rotation.y = rotY || 0;
+    o.position.set(x, 0, z);
+    apoiaNoChao(o);
+    scene.add(o);
+    n[cat]++; tri[cat] += triDe(o);
+    return o;
+  };
+
+  const URLS = ['/assets/compat/road-roundabout.glb',
+                '/assets/compat/road-driveway-double.glb',
+                '/assets/compat/tree-large.glb'];
+  Promise.all(URLS.map(carregaGLB)).then(([rota, drive, arvore])=>{
+    try {
+      // --- 1. faixas de pedestre: saiu daqui, agora e InstancedMesh em forraRuas() ---
+
+      // --- 2. rotatórias: só onde o cruzamento inteiro (RUA x RUA) está livre ---
+      if (rota){
+        for (let i=5;i<GRID && n.rotatorias<6;i+=5){
+          for (let j=5;j<GRID && n.rotatorias<6;j+=5){
+            const X=-CITY/2+i*CELL, Z=-CITY/2+j*CELL;
+            if (!livre(X, Z, RUA, RUA)) continue;
+            poe(rota, X, Z, RUA, RUA, 0, 0.04, 'rotatorias');
+          }
+        }
+      }
+
+      // --- 3. entradas de garagem: borda do quarteirão, na frente de casas do subúrbio ---
+      if (drive){
+        casaSpots.forEach((c,i)=>{
+          if (i % 4 !== 0 || n.garagens >= 70) return;
+          const x = c.cx + c.hx*(BORDA + RUA/4);   // da calçada até a boca da rua
+          const z = c.cz + c.hz*16;
+          if (!livre(x, z, 11, 14)) return;
+          poe(drive, x, z, 11, 14, 0, 0.05, 'garagens');
+        });
+      }
+
+      // --- 4. postes: saiu daqui, viraram fileiras com fios em postesEFios() ---
+
+      // --- 5. árvores: calçadas e praças, nunca dentro de prédio nem na pista ---
+      if (arvore){
+        pracaSpots.forEach(p=>{
+          if (n.arvores >= 120) return;
+          for (let t=0;t<3;t++){
+            const a = rng()*Math.PI*2, r = 12+rng()*16;
+            poeEmPe(arvore, p.x+Math.cos(a)*r, p.z+Math.sin(a)*r, 8+rng()*3, rng()*6.28, 'arvores');
+          }
+        });
+        for (let gx=0; gx<GRID && n.arvores<120; gx++){
+          for (let gz=0; gz<GRID && n.arvores<120; gz++){
+            if (shopCells.has(gx+','+gz)) continue;
+            if ((gx*5+gz*3) % 4 !== 1) continue;
+            const cx=-CITY/2+gx*CELL+CELL/2, cz=-CITY/2+gz*CELL+CELL/2;
+            const anel = BORDA-8;   // dentro da calçada, longe do asfalto
+            const cand = [[cx+anel, cz-20],[cx-anel, cz+20],[cx+20, cz+anel],[cx-20, cz-anel]];
+            const ini = Math.floor(rng()*4);
+            for (let k=0;k<2;k++){
+              const [x,z] = cand[(ini+k)%4];
+              if (!livre(x, z, 7, 7)) continue;
+              poeEmPe(arvore, x, z, 8+rng()*3, rng()*6.28, 'arvores');
+            }
+          }
+        }
+      }
+      if (!rota||!drive||!arvore) erro='algum glb nao carregou';
+    } catch(e){ erro = String(e && e.message || e); }
+    report();
+    setTimeout(()=>{ try{ el.textContent += ' triCenaTotal='+totalCena(); }catch(e){} }, 2500);
+  }).catch(e=>{ erro = String(e && e.message || e); report(); });
+})();
+
+// ===== postes de energia GRANDES, em fileira, ligados por fios =====
+// Decorativo: nada entra em buildings[], o carro atravessa sem travar.
+// Os postes ficam em fileiras na calçada, com espaçamento fixo, e cada vão
+// vizinho ganha 3 fios em catenária (a barriguinha que fio de luz faz).
+// Todos os fios viram UMA geometria só — senão seriam centenas de draw calls.
+(function postesEFios(){
+  const ALTURA = 20;        // rua tem 22 de largura e prédio baixo ~15: 20 aparece de longe
+  const PASSO  = 50;        // distância entre postes da mesma fileira
+  const SAG    = 2.2;       // o quanto o fio cai no meio do vão
+  const RAIO   = 0.2;       // espessura do fio
+  const MAX    = 160;
+  const COLS   = [1, 6, 11, 16];   // quais colunas de quarteirão ganham fileira
+
+  const el = document.createElement('div');
+  el.id = 'postesSummary'; el.style.display = 'none'; document.body.appendChild(el);
+  const chk = ()=>buildings.reduce((a,b)=>(a + b.x*3 + b.z*5 + b.w*7 + b.d*11)|0, buildings.length);
+  const chk0 = chk(), nBuild0 = buildings.length;
+  let nPostes = 0, nFios = 0, triPostes = 0, triFios = 0, erro = '';
+  const report = ()=>{ el.textContent =
+    'postes='+nPostes+' fios='+nFios+' triPostes='+triPostes+' triFios='+triFios
+    +' triPostesFios='+(triPostes+triFios)
+    +' buildingsAntes='+nBuild0+' buildingsDepois='+buildings.length
+    +' colisaoIntacta='+(chk()===chk0 && buildings.length===nBuild0)+(erro?' erro='+erro:''); };
+  report();
+  if (!glbLoader){ erro='sem GLTFLoader'; report(); return; }
+
+  const livre = (x,z,w,d)=>{
+    for (const b of buildings){
+      if (Math.abs(b.x-x) < (b.w+w)/2 && Math.abs(b.z-z) < (b.d+d)/2) return false;
+    }
+    return true;
+  };
+
+  // junta várias geometrias indexadas numa só (só posição — o fio usa material flat)
+  const mescla = geos => {
+    let nv=0, ni=0;
+    for (const g of geos){ nv += g.attributes.position.count; ni += g.index.count; }
+    const pos = new Float32Array(nv*3), idx = new Uint32Array(ni);
+    let vo=0, io=0;
+    for (const g of geos){
+      pos.set(g.attributes.position.array, vo*3);
+      const gi = g.index.array;
+      for (let i=0;i<gi.length;i++) idx[io+i] = gi[i] + vo;
+      vo += g.attributes.position.count; io += gi.length;
+      g.dispose();
+    }
+    const out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    out.setIndex(new THREE.BufferAttribute(idx, 1));
+    out.computeBoundingSphere();
+    return out;
+  };
+
+  // fio entre dois topos: catenária amostrada + tubo fininho
+  const fio = (a, b) => {
+    const pts = [];
+    for (let i=0;i<=6;i++){
+      const t = i/6, u = 2*t - 1;
+      pts.push(new THREE.Vector3(
+        a.x + (b.x-a.x)*t,
+        a.y + (b.y-a.y)*t - SAG*(1 - u*u),
+        a.z + (b.z-a.z)*t));
+    }
+    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 6, RAIO, 3, false);
+  };
+
+  carregaGLB('/assets/compat/electricity-side.glb').then(mod => {
+    try {
+      if (!mod){ erro='glb do poste nao carregou'; report(); return; }
+      // escala uniforme pela ALTURA medida no Box3 — nada de número mágico
+      const esc = ALTURA / mod.h;
+      const fiosGeo = [];
+
+      for (const gx of COLS){
+        const cx = -CITY/2 + gx*CELL + CELL/2;
+        const x  = cx + BLOCK/2 - 2;        // em cima da calçada, braço virado pra rua
+        let anterior = null;                // topo do poste anterior da MESMA fileira
+        for (let z = -CITY/2 + PASSO/2; z < CITY/2; z += PASSO){
+          if (nPostes >= MAX) break;
+          if (!livre(x, z, 6, 6)){ anterior = null; continue; }
+          const o = mod.obj.clone(true);    // clone(true) compartilha geometria e material
+          o.scale.setScalar(esc);
+          o.position.set(x, 0, z);
+          apoiaNoChao(o);
+          scene.add(o);
+          nPostes++; triPostes += triDe(o);
+
+          const topoY = new THREE.Box3().setFromObject(o).max.y - 1.2;
+          const topo = new THREE.Vector3(x, topoY, z);
+          if (anterior){
+            for (const off of [-2, 0, 2]){     // 3 fios paralelos por vão
+              fiosGeo.push(fio(
+                new THREE.Vector3(anterior.x + off, anterior.y, anterior.z),
+                new THREE.Vector3(topo.x + off,     topo.y,     topo.z)));
+              nFios++;
+            }
+          }
+          anterior = topo;
+        }
+        if (nPostes >= MAX) break;
+      }
+
+      if (fiosGeo.length){
+        const g = mescla(fiosGeo);
+        const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({color:0x1b1b1b}));
+        m.frustumCulled = false;   // a geometria cobre a cidade toda
+        scene.add(m);
+        triFios = triDe(m);
+      }
+    } catch(e){ erro = String(e && e.message || e); }
+    report();
+  }).catch(e=>{ erro = String(e && e.message || e); report(); });
+})();
 
 // marcador de missão
 const jobMarker = new THREE.Mesh(new THREE.CylinderGeometry(7,7,60,16),
@@ -1159,9 +1743,99 @@ jobMarker.visible=false; scene.add(jobMarker);
 
 // ============ CARRO ============
 const car = new THREE.Group();
+// ===== modelos .glb dos carros =====
+// Troca SÓ a aparência: física, colisão, câmera e controles continuam iguais.
+// Alvo = o tamanho que as caixas do buildCarCaixas() produzem (4.4 larg x 8.6 compr).
+const CAR_ALVO = {w:4.4, h:3.4, d:8.5};   // mesmo tamanho do carro de caixas antigo
+const carGlbCache = {};
+function carregaCarGLB(url){
+  if (!carGlbCache[url]) carGlbCache[url] = carregaGLB(url);
+  return carGlbCache[url];
+}
+// escala uniforme pra caber no alvo sem distorcer + rodas no chão.
+// nesses modelos a roda dianteira fica em z>0, mesma frente do carro do jogo → sem girar 180°.
+function montaCarModelo(mod){
+  const o = mod.obj.clone(true);
+  o.position.set(0,0,0); o.rotation.set(0,0,0);
+  const s = Math.min(CAR_ALVO.w/mod.w, CAR_ALVO.d/mod.d);   // comprimento e largura mandam
+  o.scale.setScalar(s);
+  o.traverse(n=>{ if(n.isMesh) n.castShadow = true; });
+  return {obj:o, escala:s, w:mod.w*s, h:mod.h*s, d:mod.d*s};
+}
+// alguns modelos trazem as rodas como nós separados; outros vêm com tudo num mesh só.
+function achaRodas(o){
+  // CUIDADO: se pegar o no raiz (ou um grupo que contem o carro todo),
+  // o "giro da roda" vira giro do CARRO INTEIRO e ele empina. Por isso
+  // so aceitamos nos pequenos de verdade, nunca o proprio objeto raiz.
+  const r = [];
+  const bbCarro = new THREE.Box3().setFromObject(o);
+  const compCarro = bbCarro.max.z - bbCarro.min.z;
+  o.traverse(n=>{
+    if (n === o) return;                                  // nunca o raiz
+    if (!/wheel|roda|tire|tyre/i.test(n.name||'')) return;
+    const bb = new THREE.Box3().setFromObject(n);
+    const comp = bb.max.z - bb.min.z;
+    if (!(comp > 0) || comp > compCarro * 0.45) return;    // grande demais pra ser roda
+    r.push({n, frente:(n.position.z||0) > 0, baseY:n.rotation.y});
+  });
+  return (r.length >= 2) ? r : [];                         // 1 "roda" so = achou errado, melhor nao girar nada
+}
+let carGen = 0;  // invalida um .glb que chega atrasado depois de trocar de carro
+function limpaCar(){
+  while(car.children.length){
+    const c = car.children[0];
+    car.remove(c);
+    // o modelo .glb compartilha geometria/material com o cache — só as caixas são descartadas
+    if (c.userData && c.userData.glbModelo) continue;
+    c.traverse(n=>{
+      if (!n.isMesh) return;
+      if (n.geometry) n.geometry.dispose();
+      if (n.material) (Array.isArray(n.material)?n.material:[n.material]).forEach(m=>m.dispose());
+    });
+  }
+}
 function buildCar(){
-  while(car.children.length) car.remove(car.children[0]);
-  const spec = CARS[G.carIdx];
+  limpaCar();
+  const idx = G.carIdx;
+  const spec = CARS[idx];
+  car.userData.rodas = [];
+  buildCarCaixas(spec);                      // visual imediato (e fallback se o .glb falhar)
+  if (!spec.glb) return;
+  const gen = ++carGen;
+  try {
+    carregaCarGLB(spec.glb).then(mod=>{
+      if (gen !== carGen || G.carIdx !== idx) return;   // já trocou de carro
+      if (!mod) { window._carModelo = {idx, url:spec.glb, ok:false, motivo:'glb falhou — caixas'}; return; }
+      try {
+        const m = montaCarModelo(mod);
+        m.obj.userData.glbModelo = true;
+        limpaCar();
+        car.add(m.obj);
+        // encosta as rodas no chao, uma vez so, ja dentro do carro
+        car.updateMatrixWorld(true);
+        const bbCar = new THREE.Box3().setFromObject(m.obj);
+        m.obj.position.y -= (bbCar.min.y - car.position.y);
+        window._carChao = {minY:+bbCar.min.y.toFixed(2), alturaFinal:+(bbCar.max.y-bbCar.min.y).toFixed(2)};
+        car.userData.rodas = achaRodas(m.obj);
+        window._carModelo = {idx, url:spec.glb, ok:true, escala:+m.escala.toFixed(3),
+          w:+m.w.toFixed(2), h:+m.h.toFixed(2), d:+m.d.toFixed(2),
+          rodas:car.userData.rodas.length, tris:triDe(m.obj)};
+      } catch(e){ limpaCar(); buildCarCaixas(spec); }
+    }).catch(()=>{});
+  } catch(e){}
+}
+// gira as rodas do modelo conforme a velocidade e vira as da frente com o volante.
+// se o .glb vier com tudo num mesh só (sem nós de roda), não faz nada.
+function giraRodas(speed, steer, dt){
+  const rs = car.userData.rodas;
+  if (!rs || !rs.length) return;
+  const giro = speed * dt / 0.9;     // 0.9 = raio aproximado da roda no jogo
+  for (const r of rs){
+    r.n.rotation.x -= giro;
+    if (r.frente) r.n.rotation.y = r.baseY + steer * 0.45;
+  }
+}
+function buildCarCaixas(spec){
   const bodyMat = new THREE.MeshPhongMaterial({color:spec.color, shininess:80});
   const body = new THREE.Mesh(new THREE.BoxGeometry(4.4,1.4,8.5), bodyMat);
   body.position.y=1.1; body.castShadow=true; car.add(body);
@@ -1298,6 +1972,38 @@ for(let i=0;i<25;i++){
   c.rotation.y = horiz ? (c.userData.dir>0 ? Math.PI/2 : -Math.PI/2) : (c.userData.dir>0 ? 0 : Math.PI);
   scene.add(c); npcs.push(c);
 }
+
+// ===== carros do trânsito com modelo de verdade =====
+// Só troca se couber no orçamento de triângulos — cidade bonita não pode travar o jogo.
+(function trocaNpcs(){
+  const URLS = ['/assets/compat/hatchback-sports.glb','/assets/compat/sedan-sports.glb','/assets/compat/sedan.glb'];
+  const ORCAMENTO = 120000;          // teto de triângulos somados dos 25 NPCs
+  const ALVO = {w:3.8, h:3.0, d:7.1};
+  Promise.all(URLS.map(carregaCarGLB)).then(mods=>{
+    const ok = mods.filter(Boolean);
+    if (!ok.length) { window._npcModelos = {trocou:false, motivo:'glb falhou'}; return; }
+    const triMedio = ok.reduce((a,m)=>a+triDe(m.obj),0) / ok.length;
+    const previsto = triMedio * npcs.length;
+    if (previsto > ORCAMENTO){ window._npcModelos = {trocou:false, motivo:'pesado', previsto:previsto|0}; return; }
+    let tri = 0;
+    npcs.forEach(c=>{
+      try {
+        const mod = ok[Math.floor(Math.random()*ok.length)];
+        const o = mod.obj.clone(true);
+        const s = Math.min(ALVO.w/mod.w, ALVO.h/mod.h, ALVO.d/mod.d);
+        o.scale.setScalar(s); apoiaNoChao(o);
+        o.position.y -= c.position.y;       // os NPCs ficam com o grupo em y=1
+        while(c.children.length){
+          const old = c.children[0]; c.remove(old);
+          old.traverse(n=>{ if(n.isMesh){ n.geometry && n.geometry.dispose();
+            n.material && (Array.isArray(n.material)?n.material:[n.material]).forEach(m=>m.dispose()); } });
+        }
+        c.add(o); tri += triDe(o);
+      } catch(e){}
+    });
+    window._npcModelos = {trocou:true, tris:tri|0, n:npcs.length};
+  }).catch(()=>{});
+})();
 
 // ===== PEDESTRES (pessoas andando pelo mapa) =====
 const pedestres = [];
@@ -1556,42 +2262,156 @@ function showHome(){
       <button class="appIcon" onclick="appMaps()" style="grid-column:1 / -1;background:rgba(60,180,90,.3)"><span class="emoji">🗺️</span>Maps + Uber</button>
     </div>`;
 }
+// texto do passo atual da missão (com fallback pra save antigo)
+function passoAtual(){
+  if (!G.job) return '';
+  const ps = G.job.passos || [];
+  return ps[G.jobPhase] || ps[ps.length-1] || 'Vá até o ponto vermelho';
+}
+function sorteiaPonto(){
+  return { x: -CITY/2 + Math.floor(Math.random()*GRID)*CELL,
+           z: -CITY/2 + Math.floor(Math.random()*GRID)*CELL };
+}
+function pintaMissao(){
+  const el = document.getElementById('mission');
+  if (!G.job){ el.style.display='none'; return; }
+  const ps = G.job.passos || [];
+  el.style.display='block';
+  el.innerHTML = `${G.job.label} — ${passoAtual()} (${G.jobPhase+1}/${ps.length||1}) 💰 R$ ${G.job.pay}`
+    + (G.job.tempo !== undefined ? ` <span id="jobTimer" style="color:${G.job.tempo<30?'#f55':'#0ff'}">⏱ ${relogioJob(G.job.tempo)}</span>` : '');
+}
+function relogioJob(s){
+  s = Math.max(0, Math.ceil(s));
+  return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+}
+// o tempo acabou: a entrega acaba sem pagar e o chefe dá advertência (3 = demissão)
+function falhaJob(){
+  if (!G.job) return;
+  const pid = G.job.profId;
+  G.job = null; G.jobPhase = 0; jobMarker.visible = false; pintaMissao();
+  if (pid){
+    G.advert[pid] = (G.advert[pid] || 0) + 1;
+    if (G.advert[pid] >= 3){
+      G.advert[pid] = 0; G.demitido[pid] = G.day;
+      toast('⏰ Acabou o tempo! 😱 VOCÊ FOI DEMITIDO — volte amanhã.');
+    } else {
+      toast(`⏰ Acabou o tempo! Sem pagamento 😢 Advertência ${G.advert[pid]}/3 — seu salário cai.`);
+    }
+  } else {
+    toast('⏰ Acabou o tempo! A entrega foi cancelada 😢');
+  }
+  save();
+}
+window.falhaJob = falhaJob;
 window.appJobs = function(){
+  let html = `<button class="backBtn" onclick="showHome()">← Voltar</button>`;
   if (G.job){
-    screenEl.innerHTML = `<button class="backBtn" onclick="showHome()">← Voltar</button>
-      <div class="card"><b>${G.job.label}</b>
-      ${G.jobPhase===0?'Vá até o ponto VERMELHO pegar!':'Agora ENTREGUE no ponto vermelho!'}<br>
-      💰 Pagamento: R$ ${G.job.pay}</div>`;
+    const ps = G.job.passos || [];
+    html += `<div class="card" style="background:rgba(80,160,80,.35)">
+      <b>${G.job.emoji||'💼'} ${G.job.label}</b>
+      <div style="font-size:12px;opacity:.8;margin-bottom:6px">Missão em andamento</div>
+      ${ps.map((t,k)=>`<div style="font-size:13px;margin:3px 0">${k<G.jobPhase?'✅':(k===G.jobPhase?'👉':'⬜')} ${t}</div>`).join('')}
+      <div style="margin-top:8px;font-size:17px;font-weight:bold;color:#9f9">💰 R$ ${G.job.pay.toLocaleString('pt-BR')}</div>
+      <button onclick="desistirJob()" style="background:#b33">DESISTIR</button></div>`;
+    screenEl.innerHTML = html;
     return;
   }
-  let html = `<button class="backBtn" onclick="showHome()">← Voltar</button><b style="font-size:16px">💼 Vagas abertas</b>`;
-  JOBS.forEach((j,i)=>{
-    html += `<div class="card"><b>${j.label}</b>💰 R$ ${j.pay}<br><button onclick="takeJob(${i})">ACEITAR</button></div>`;
+  html += `<b style="font-size:16px">💼 Empregos SP</b>
+    <div style="font-size:11px;opacity:.75;margin:4px 0 8px">Escolha uma carreira. Quanto mais difícil, mais paga!</div>`;
+  PROFS.forEach((p,i)=>{
+    const falta = profFalta(p);
+    const feitas = G.profFeitas[p.id] || 0;
+    html += `<div class="card" style="${falta?'opacity:.6':''}">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:36px;line-height:1">${p.emoji}</span>
+        <div style="flex:1">
+          <b style="margin:0">${p.nome}</b>
+          <div style="font-size:19px;font-weight:bold;color:#9f9">R$ ${salarioAtual(p).toLocaleString('pt-BR')}${salarioAtual(p)<p.salario?` <span style="font-size:12px;color:#fc8">(era R$ ${p.salario.toLocaleString('pt-BR')})</span>`:''}</div>
+          <div style="font-size:13px">${'⭐'.repeat(p.dif)}${'·'.repeat(5-p.dif)}</div>
+        </div>
+      </div>
+      <div style="font-size:12px;opacity:.85;margin:6px 0">${p.desc}</div>
+      <div style="font-size:12px;opacity:.9">O que você faz:</div>
+      ${p.tarefas.map(t=>`<div style="font-size:12px;margin-left:6px">• ${t.txt} <span style="opacity:.6">(${t.passos.length} etapas)</span></div>`).join('')}
+      ${feitas?`<div class="owned">✅ Já completou ${feitas}x</div>`:''}
+      ${(G.advert[p.id]||0)?`<div style="font-size:12px;color:#fc8">⚠️ ${G.advert[p.id]}/3 advertências — mais uma e você é demitido!</div>`:''}
+      ${falta
+        ? `<div style="font-size:12px;color:#fc8;margin-top:6px">🔒 ${falta}</div>`
+        : `<button onclick="takeProf(${i})">TRABALHAR</button>`}
+    </div>`;
   });
+  // lá embaixo: largar o emprego de vez
+  html += `<div class="card" style="background:rgba(160,60,60,.3)">
+    <b>😔 Pedir demissão</b>
+    <div style="font-size:12px;opacity:.85">Para de trabalhar agora. A missão em andamento é cancelada e você não recebe nada — mas suas advertências somem.</div>
+    <button onclick="pedirDemissao()" style="background:#b33">PEDIR DEMISSÃO</button></div>`;
   screenEl.innerHTML = html;
 };
-window.takeJob = function(i){
-  const j = JOBS[i];
-  G.job = {label:j.label, pay:j.pay,
-    x: -CITY/2 + Math.floor(Math.random()*GRID)*CELL,
-    z: -CITY/2 + Math.floor(Math.random()*GRID)*CELL};
+window.pedirDemissao = function(){
+  const pid = G.job && G.job.profId;
+  if (pid) G.advert[pid] = 0;
+  G.job = null; G.jobPhase = 0; jobMarker.visible = false;
+  pintaMissao(); save();
+  toast('😔 Você pediu demissão. Escolha outro emprego quando quiser!');
+  window.appJobs();
+};
+window.takeProf = function(i){
+  const p = PROFS[i];
+  if (!p || profFalta(p)) return;
+  const tar = p.tarefas[Math.floor(Math.random()*p.tarefas.length)];
+  const pt = sorteiaPonto();
+  G.job = {profId:p.id, emoji:p.emoji, label:`${p.nome}: ${tar.txt}`,
+           pay:salarioAtual(p), passos:tar.passos.slice(), x:pt.x, z:pt.z,
+           tempo:PRAZO_JOB};
   G.jobPhase = 0;
   jobMarker.position.set(G.job.x, 30, G.job.z);
   jobMarker.visible = true;
-  document.getElementById('mission').style.display='block';
-  document.getElementById('mission').textContent = `${G.job.label} — vá PEGAR no ponto vermelho! 💰 R$ ${G.job.pay}`;
+  pintaMissao();
   togglePhone(); save();
+};
+// compatibilidade: código/save antigo podia chamar takeJob(i)
+window.takeJob = window.takeProf;
+// chegou no ponto vermelho: ou vai pro próximo passo, ou fecha a profissão e paga
+function avancaJob(){
+  if (!G.job) return;
+  const ps = G.job.passos || [];
+  if (G.jobPhase < ps.length - 1){
+    G.jobPhase++;
+    const pt = sorteiaPonto();
+    G.job.x = pt.x; G.job.z = pt.z;
+    jobMarker.position.set(G.job.x, 30, G.job.z);
+    pintaMissao();
+    toast(`✅ Feito! Agora: ${passoAtual()}`);
+  } else {
+    G.money += G.job.pay;
+    if (G.job.profId) G.profFeitas[G.job.profId] = (G.profFeitas[G.job.profId]||0) + 1;
+    toast(`${G.job.emoji||'💰'} Trabalho concluído! +R$ ${G.job.pay.toLocaleString('pt-BR')}`);
+    G.job = null; G.jobPhase = 0;
+    jobMarker.visible = false;
+    pintaMissao();
+    updateMoney();
+  }
+  save();
+}
+window.avancaJob = avancaJob;
+window.desistirJob = function(){
+  G.job = null; G.jobPhase = 0; jobMarker.visible = false;
+  pintaMissao(); save(); window.appJobs();
 };
 window.appCars = function(){
   let html = `<button class="backBtn" onclick="showHome()">← Voltar</button><b style="font-size:16px">🚙 SP Motors</b>`;
   CARS.forEach((c,i)=>{
     const owned = G.ownedCars.includes(i);
-    html += `<div class="card"><b>${c.name}</b>⚡ ${c.max} km/h · ⛽ tanque ${c.tank}L<br>💰 ${c.price?'R$ '+c.price.toLocaleString('pt-BR'):'Grátis'}
-      ${owned?'<div class="owned">✅ Você já tem!</div>':`<button ${G.money<c.price?'disabled':''} onclick="buyCar(${i})">COMPRAR</button>`}</div>`;
+    const liberado = carLiberado(i);
+    const trava = liberado ? '' : `<div class="owned">🔒 Só pra quem já trabalhou de Policial 👮 — complete a profissão de Policial pelo menos 1 vez pra poder comprar.</div>`;
+    html += `<div class="card"><b>${liberado?'':'🔒 '}${c.name}</b>⚡ ${c.max} km/h · ⛽ tanque ${c.tank}L<br>💰 ${c.price?'R$ '+c.price.toLocaleString('pt-BR'):'Grátis'}
+      ${trava}
+      ${owned?'<div class="owned">✅ Você já tem!</div>':`<button ${(!liberado||G.money<c.price)?'disabled':''} onclick="buyCar(${i})">COMPRAR</button>`}</div>`;
   });
   screenEl.innerHTML = html;
 };
 window.buyCar = function(i){
+  if (!carLiberado(i)){ toast('🔒 Trabalhe de Policial 👮 pelo menos 1 vez pra comprar a Viatura!'); return; }
   if (G.money < CARS[i].price) return;
   G.money -= CARS[i].price;
   G.ownedCars.push(i); G.carIdx = i; G.fuel = CARS[i].tank;
@@ -2258,8 +3078,7 @@ chatInput.addEventListener('keydown', e=>{ if(e.key==='Enter') enviarChat(); e.s
 // restaura missão
 if (G.job){
   jobMarker.position.set(G.job.x,30,G.job.z); jobMarker.visible=true;
-  document.getElementById('mission').style.display='block';
-  document.getElementById('mission').textContent = `${G.job.label} — ${G.jobPhase===0?'PEGAR':'ENTREGAR'} no ponto vermelho!`;
+  pintaMissao();
 }
 buildCar();
 
@@ -2575,6 +3394,13 @@ function tick(t){
   const dt = Math.min((t-last)/1000, 0.05); last=t;
   const spec = CARS[G.carIdx];
 
+  // cronômetro da entrega (2min30): zerou, perdeu a missão
+  if (G.job && G.job.tempo !== undefined){
+    G.job.tempo -= dt;
+    if (G.job.tempo <= 0) falhaJob();
+    else if (Math.ceil(G.job.tempo) !== tick.ultSeg){ tick.ultSeg = Math.ceil(G.job.tempo); pintaMissao(); }
+  }
+
   const fwd = keys['ArrowUp']||keys['KeyW'];
   const back = keys['ArrowDown']||keys['KeyS'];
   const left = keys['ArrowLeft']||keys['KeyA'];
@@ -2600,6 +3426,7 @@ function tick(t){
     const steer = (left?1:0) - (right?1:0);
     heading += steer * 1.9 * dt * Math.min(1, Math.abs(speed)/8) * Math.sign(speed||1);
     car.rotation.y = heading;
+    giraRodas(speed, steer, dt);
 
     const nx = car.position.x + Math.sin(heading)*speed*dt;
     const nz = car.position.z + Math.cos(heading)*speed*dt;
@@ -2850,23 +3677,7 @@ function tick(t){
     const ax = mode==='car'?car.position.x:player.position.x;
     const az = mode==='car'?car.position.z:player.position.z;
     const d = Math.hypot(ax-G.job.x, az-G.job.z);
-    if (d < 12){
-      if (G.jobPhase===0){
-        G.jobPhase=1;
-        G.job.x = -CITY/2 + Math.floor(Math.random()*GRID)*CELL;
-        G.job.z = -CITY/2 + Math.floor(Math.random()*GRID)*CELL;
-        jobMarker.position.set(G.job.x,30,G.job.z);
-        document.getElementById('mission').textContent = `${G.job.label} — agora ENTREGUE no ponto vermelho!`;
-        toast('Pegou! 📦 Agora vai entregar!');
-      } else {
-        G.money += G.job.pay;
-        toast(`Entregue! 💰 +R$ ${G.job.pay}`);
-        G.job=null; jobMarker.visible=false;
-        document.getElementById('mission').style.display='none';
-        updateMoney();
-      }
-      save();
-    }
+    if (d < 12) avancaJob();
   }
 
   updateBaus(dt, t);
@@ -2882,6 +3693,8 @@ document.getElementById('startBtn').onclick = ()=>{
   running = true; last = performance.now();
   netConnect();
 };
+
+
 </script>
 <script src="/idiomas.js"></script>
 </body>

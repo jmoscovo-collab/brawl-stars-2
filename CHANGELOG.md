@@ -1,5 +1,11 @@
 # Changelog - Cogumelo Games (site)
 
+## v434 (2026-10-03)
+- MEGA SP ficou 3D de verdade: 455 predios trocados por modelos (arranha-ceus no centro, casas no bairro), a cidade inteira forrada com pecas de rua (4.285 pecas em 3 draw calls), 340 faixas de pedestre, 6 rotatorias, 70 entradas de garagem, 120 arvores
+- MEGA SP: 160 postes de luz altos ligados por 468 fios de energia em catenaria
+- MEGA SP: os 5 carros (e 25 carros do transito) viraram modelos 3D; a Viatura so libera pra quem ja trabalhou de Policial
+- MEGA SP: 10 PROFISSOES no lugar das entregas avulsas - Entregador, Motorista de App, Jornalista, Professor, Chef, Veterinario, Policial, Bombeiro, Medico e Piloto, cada uma com salario, estrelas de dificuldade, tarefas e requisito pra liberar; tela do celular com cartoes
+
 ## v433 (2026-10-03)
 - MEGA SP: a tampa do bau abria de lado (a dobradica fica no eixo Z do modelo, nao no X) - agora levanta certinho
 - MEGA SP: removido o brilho amarelo em cima das caixas
