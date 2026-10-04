@@ -217,14 +217,14 @@ function comeca(){
   parts = []; cogus = []; trilha = [];
   player = { x: AW/2, y: CHAO - ALT, vx:0, vy:0, chao:true, dir:1, anda:0 };
   sombras = [{ atraso: ATRASO_1, cor: CORES[0] }];
-  for(var i=0;i<5;i++) novoCogu(false);
+  novoCogu(false);                  // um cogumelo por vez, sempre
   jogando = true;
   try { if(window.CoguCoins) window.CoguCoins.novaPartida(); } catch(e){}
   pintaHud();
   aviso('Corra! A sombra vem atrás 👤');
 }
 function pintaHud(){
-  el('hPontos').textContent = '🍄 ' + pontos;
+  el('hPontos').textContent = '🍄 ' + pontos + '  (❓ em ' + (5 - desde5) + ')';
   el('hVidas').textContent = vidas > 0 ? '❤️'.repeat(vidas) : '💀';
   el('hSombras').textContent = '👤 ' + sombras.length + (sombras.length===1?' sombra':' sombras');
   el('hRecorde').textContent = '🏆 ' + RECORDE;
@@ -385,11 +385,13 @@ function pegouCogu(co){
   desde5++;
   snd.pega();
   poeira(co.x, co.y, '#ff9f43', 7);
-  novoCogu(false);
+  // pegou 5? o próximo a nascer é o ❓. Senão, nasce outro 🍄. Sempre um só.
   if(desde5 >= 5){
     desde5 = 0;
     novoCogu(true);
     aviso('❓ Nasceu um interrogação!<br><small style="font-size:14px;opacity:.8">cuidado: ele cria uma sombra</small>');
+  } else {
+    novoCogu(false);
   }
   pintaHud();
 }
@@ -402,6 +404,7 @@ function pegouInterrogacao(co){
   sombras.push({ atraso: ATRASO_1 + ATRASO_EXTRA*n, cor: CORES[n % CORES.length] });
   setTimeout(function(){ snd.nasce(); }, 260);
   shake = 0.8;
+  novoCogu(false);          // e já nasce o próximo 🍄
   aviso('👤 Nasceu a sombra <b>' + sombras.length + '</b>!<br><small style="font-size:14px;opacity:.8">+5 cogumelos</small>');
   pintaHud();
 }
