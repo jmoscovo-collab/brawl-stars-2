@@ -214,3 +214,37 @@
   CC.novaPartida = novaPartida;
   CC.fechaOferta = fecha;
 })();
+
+/* === PRESENTÃO DE CRIADOR ===
+   1.000.000 🍄 só pra duas contas, uma única vez cada.
+   Só vale se a pessoa estiver logada com esse nome na conta da nuvem. */
+(function () {
+  var SORTUDOS = ['samuel9', 'davi0'];
+  var VALOR = 1000000;
+  try {
+    var u = (localStorage.getItem('cg_usuario') || '').trim().toLowerCase();
+    if (SORTUDOS.indexOf(u) < 0) return;
+    var marca = 'cg_presentao_' + u;
+    if (localStorage.getItem(marca)) return;       // já recebeu, não dá de novo
+    localStorage.setItem(marca, '1');
+    window.CoguCoins.ganhaSilencioso(VALOR);
+    if (document.readyState === 'loading')
+      document.addEventListener('DOMContentLoaded', avisa);
+    else avisa();
+  } catch (e) {}
+
+  function avisa() {
+    try {
+      window.CoguCoins.oferece({
+        emoji: '🍄',
+        titulo: 'PRESENTÃO!',
+        texto: 'Você ganhou 1.000.000 de Cogu Coins! Só você e mais uma pessoa ganharam isso.',
+        preco: 0,
+        textoBotao: 'UHUUUL!',
+        textoRecusar: 'Fechar',
+        aoComprar: function () {},
+        aoRecusar: function () {}
+      });
+    } catch (e) {}
+  }
+})();
