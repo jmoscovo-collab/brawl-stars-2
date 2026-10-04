@@ -87,6 +87,10 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
             <div style="color:#889; font-size:13px" id="jogandoDesde"></div>
         </div>
     </div>
+    <div id="favsPerfil" style="display:none; margin:10px 0 14px; text-align:left">
+        <div style="color:#ffcc33; font-weight:bold; font-size:15px; margin-bottom:7px">❤️ Meus jogos favoritos</div>
+        <div id="favsLista" style="display:flex; flex-wrap:wrap; gap:8px"></div>
+    </div>
     <button class="roxo" onclick="abreTrocaFoto()">🖼️ Trocar foto</button>
     <button style="background:linear-gradient(135deg,#ff8800,#ffcc44); color:#3a2200" onclick="abreMascotes()">🍄 Mascote</button>
     <button class="cinza" onclick="abreTrocaNome()">✏️ Mudar meu nome</button>
@@ -785,6 +789,36 @@ window.pedeCodigo = pedeCodigo;
   }
   pinta();
   window.addEventListener('cogucoins', pinta);
+})();
+</script>
+<script>
+// ❤️ jogos que você favoritou segurando o dedo em cima deles lá no site
+(function(){
+  function pinta(){
+    var box = document.getElementById('favsPerfil');
+    var lista = document.getElementById('favsLista');
+    if(!box || !lista) return;
+    var favs = [];
+    try { favs = JSON.parse(localStorage.getItem('cg_favoritos')||'[]') || []; } catch(e){}
+    lista.textContent = '';
+    if(!favs.length){ box.style.display='none'; return; }
+    box.style.display = '';
+    favs.slice(0,30).forEach(function(f){
+      if(!f || !f.href) return;
+      var a = document.createElement('a');
+      a.href = f.href;
+      a.style.cssText = 'display:flex; align-items:center; gap:6px; background:rgba(255,92,138,.14);'+
+        'border:2px solid rgba(255,92,138,.45); color:#fff; border-radius:14px; padding:7px 12px;'+
+        'font-size:14px; font-weight:bold; text-decoration:none';
+      var e = document.createElement('span'); e.textContent = f.icone || '🎮';
+      var n = document.createElement('span'); n.textContent = f.nome || f.href;
+      a.append(e, n);
+      lista.appendChild(a);
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', pinta);
+  else pinta();
+  window.addEventListener('cgfavoritos', pinta);
 })();
 </script>
 </body>
