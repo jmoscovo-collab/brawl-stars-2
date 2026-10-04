@@ -86,7 +86,7 @@ h2{font-size:21px;color:#c08bff;text-align:center}
 <div class="tela off" id="tComo">
   <h2>Como joga</h2>
   <div class="sub" style="text-align:left">
-    <b>Mexer</b> — setas ⬅️ ➡️ e ⬆️ (ou espaço) pra pular. No celular use os botões.<br><br>
+    <b>Mexer</b> — setas ⬅️ ➡️ e ⬆️ (ou espaço) pra pular. No celular use os botões.<br><br><b>Pulo duplo</b> — aperte pular <b>de novo no ar</b> pra dar mais um pulo ✨<br><br><b>As paredes</b> — ande pra fora do mapa e você aparece do outro lado! A sombra faz igual.<br><br>
     <b>A sombra</b> 👤 — ela faz exatamente o que você fez há 2 segundos. Então <b>não volte pelo seu próprio caminho!</b>
     Se encostar nela, perde uma vida ❤️.<br><br>
     <b>🍄 Cogumelos</b> — pegue pra fazer pontos. A cada 5 aparece um <b>❓</b>.<br><br>
@@ -163,7 +163,7 @@ var parts = [];
 var desde5 = 0;          // quantos 🍄 desde o último ❓
 var cogusPegos = 0;      // total de cogumelos da partida
 var flutua = [];         // os '+1' que sobem na tela quando você pega algo
-var teclas = {};
+var teclas = {}, pedidoPulo = false;
 var shake = 0;
 
 var VEL = 260, PULO = 580, GRAV = 1500;
@@ -227,7 +227,8 @@ function comeca(){
   pontos = 0; cogusPegos = 0; vidas = 3; invul = 2; desde5 = 0; t = 0; shake = 0;
   flutua = [];
   parts = []; cogus = []; trilha = [];
-  player = { x: AW/2, y: CHAO - ALT, vx:0, vy:0, chao:true, dir:1, anda:0 };
+  player = { x: AW/2, y: CHAO - ALT, vx:0, vy:0, chao:true, dir:1, anda:0, pulos:0 };
+  pedidoPulo = false;
   sombras = [];        // nenhuma sombra ainda! a primeira nasce no primeiro ❓
   novoCogu(false);                  // um cogumelo por vez, sempre
   jogando = true;
@@ -258,7 +259,7 @@ function posNaTrilha(quando){
     if(trilha[m].t < quando) lo = m + 1; else hi = m;
   }
   var b = trilha[lo], a = trilha[Math.max(0, lo-1)];
-  if(b === a) return { x:b.x, y:b.y, dir:b.dir };
+  if(b === a || b.tp) return { x:b.x, y:b.y, dir:b.dir };   // não interpola por cima do teleporte
   var f = (quando - a.t) / Math.max(0.0001, b.t - a.t);
   return { x: a.x + (b.x-a.x)*f, y: a.y + (b.y-a.y)*f, dir: b.dir };
 }
@@ -352,14 +353,31 @@ function passo(dt){
   var esq = teclas.esq, dir = teclas.dir;
   player.vx = (esq ? -VEL : 0) + (dir ? VEL : 0);
   if(player.vx !== 0){ player.dir = player.vx > 0 ? 1 : -1; player.anda += dt*12; }
-  if(teclas.pulo && player.chao){
-    player.vy = -PULO; player.chao = false; snd.pulo();
-    poeira(player.x, player.y + ALT/2, '#aa88ff', 5);
+  // pulo duplo: um no chão e mais um no ar
+  if(pedidoPulo){
+    pedidoPulo = false;
+    if(player.chao){
+      player.vy = -PULO; player.chao = false; player.pulos = 1;
+      snd.pulo();
+      poeira(player.x, player.y + ALT/2, '#aa88ff', 5);
+    } else if(player.pulos < 2){
+      player.vy = -PULO*0.88; player.pulos = 2;
+      bip(820, 0.09, 'square', 0.055);
+      poeira(player.x, player.y + ALT/2, '#ffd93d', 9);
+      sobe('✨', player.x, player.y + 6, '#ffd93d');
+    }
   }
   player.vy += GRAV*dt;
   player.x += player.vx*dt;
   player.y += player.vy*dt;
-  player.x = clamp(player.x, LARG/2, AW - LARG/2);
+  // andou na parede? sai do outro lado do mapa
+  var teleportou = false;
+  if(player.x < -LARG/2){ player.x = AW + LARG/2 - 2; teleportou = true; }
+  else if(player.x > AW + LARG/2){ player.x = -LARG/2 + 2; teleportou = true; }
+  if(teleportou){
+    bip(760, 0.07, 'triangle', 0.05);
+    poeira(player.x, player.y, '#b06bff', 6);
+  }
 
   // ---- chão e plataformas ----
   player.chao = false;
@@ -370,15 +388,15 @@ function passo(dt){
        player.x + LARG/2 > pl.x && player.x - LARG/2 < pl.x + pl.w &&
        pe >= pl.y && pe <= pl.y + Math.max(20, pl.h) + player.vy*dt){
       player.y = pl.y - ALT/2;
-      player.vy = 0; player.chao = true;
+      player.vy = 0; player.chao = true; player.pulos = 0;
     }
   }
   if(player.y > AH + 120){      // caiu fora do mapa
-    player.x = AW/2; player.y = 80; player.vy = 0;
+    player.x = AW/2; player.y = 80; player.vy = 0; player.pulos = 0;
   }
 
   // ---- grava o caminho (é isso que as sombras repetem) ----
-  trilha.push({ t:t, x:player.x, y:player.y, dir:player.dir });
+  trilha.push({ t:t, x:player.x, y:player.y, dir:player.dir, tp:teleportou });
   var maisVelho = t - (ATRASO_1 + ATRASO_EXTRA*sombras.length + 4);
   while(trilha.length > 2 && trilha[0].t < maisVelho) trilha.shift();
 
@@ -577,6 +595,7 @@ window.addEventListener('keydown', function(e){
   var k = MAPA_TECLAS[e.code];
   if(!k) return;
   e.preventDefault(); ac();
+  if(k === 'pulo' && !e.repeat && !teclas.pulo) pedidoPulo = true;
   teclas[k] = true;
 });
 window.addEventListener('keyup', function(e){
@@ -586,7 +605,7 @@ window.addEventListener('keyup', function(e){
 
 function pad(id, k){
   var b = el(id);
-  function liga(e){ e.preventDefault(); ac(); teclas[k] = true; }
+  function liga(e){ e.preventDefault(); ac(); if(k === 'pulo' && !teclas.pulo) pedidoPulo = true; teclas[k] = true; }
   function desliga(e){ if(e && e.cancelable) e.preventDefault(); teclas[k] = false; }
   b.addEventListener('touchstart', liga, {passive:false});
   b.addEventListener('touchend', desliga, {passive:false});
