@@ -159,6 +159,18 @@ input:focus{border-color:#ffb45c}
   <button class="bt cinza" data-fecha="1">Voltar</button>
 </div>
 
+<!-- trocar Cogu Coins por moedas do jogo -->
+<div class="tela off" id="tTroca">
+  <div style="font-size:58px">🍄➡️🪙</div>
+  <h2>Trocar Cogu Coins</h2>
+  <div class="sub">As <b>Cogu Coins</b> valem no site inteiro. Aqui você troca elas por
+  <b>moedas da capivara</b> pra comprar comida, remédio e roupa.</div>
+  <div class="chip" style="font-size:15px" id="trocaSaldo">🍄 0</div>
+  <div class="lista rolar" id="listaTroca"></div>
+  <div class="sub" style="font-size:12px;opacity:.6">Não dá pra trocar de volta. Cogu Coins se ganha no presente diário do site.</div>
+  <button class="bt cinza" data-fecha="1">Voltar</button>
+</div>
+
 <!-- fim de minijogo -->
 <div class="tela off" id="tFim">
   <div style="font-size:66px" id="fimEmo">🏆</div>
@@ -184,7 +196,7 @@ function el(id){ return document.getElementById(id); }
 function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
 function moedaTxt(n){ return Math.round(n).toLocaleString('pt-BR'); }
 
-var TELAS = ['tNome','tRenome','tCozinha','tLoja','tJogos','tMedico','tFim'];
+var TELAS = ['tNome','tRenome','tCozinha','tLoja','tJogos','tMedico','tFim','tTroca'];
 function fechaTelas(){ TELAS.forEach(function(t){ el(t).classList.add('off'); }); }
 function abre(id){ fechaTelas(); el(id).classList.remove('off'); }
 
@@ -517,6 +529,9 @@ function pintaUI(){
   el('hMoedas').textContent = '🪙 ' + moedaTxt(S.moedas);
   el('hNivel').textContent = '⭐ ' + S.nivel;
   el('petNome').onclick = pedeRenome;
+  el('hMoedas').onclick = abreTroca;
+  el('hMoedas').style.cursor = 'pointer';
+  el('hMoedas').style.pointerEvents = 'auto';
   // o botão do médico pisca quando ela está doente
   Array.prototype.forEach.call(document.querySelectorAll('.mb'), function(b){
     if(b.getAttribute('data-t') === 'medico') b.classList.toggle('alerta', !!S.doente);
@@ -636,6 +651,7 @@ function pintaCozinha(){
         'Dar 😋', false, function(){ alimenta(id); }, 'tem'));
     });
   } else {
+    L.appendChild(botaoTroca());
     COMIDAS.forEach(function(c){
       L.appendChild(linhaItem(c.ic, c.nome, c.desc,
         '+' + c.fome + ' fome · +' + c.fel + ' feliz · ' + (c.saude>=0?'+':'') + c.saude + ' saúde',
@@ -674,8 +690,17 @@ var abaLoja = 'chapeu';
     box.appendChild(b);
   });
 })();
+function botaoTroca(){
+  var b = document.createElement('button');
+  b.className = 'bt';
+  b.style.cssText = 'background:linear-gradient(135deg,#ffcc33,#ff9500); color:#2a1800; min-width:0; width:100%';
+  b.textContent = '🍄 Sem moedas? Troque Cogu Coins!';
+  b.onclick = abreTroca;
+  return b;
+}
 function pintaLoja(){
   var L = el('listaLoja'); L.textContent = '';
+  L.appendChild(botaoTroca());
   ROUPAS.filter(function(r){ return r.cat === abaLoja; }).forEach(function(r){
     var tem = S.roupas.indexOf(r.id) >= 0;
     var usa = S.vestindo[r.cat] === r.id;
@@ -728,6 +753,41 @@ function pintaJogos(){
       function(){ comecaEsporte(j); }, semEnergia ? 'no' : ''));
   });
 }
+
+// ---- trocar Cogu Coins por moedas do jogo ----
+// quanto mais Cogu Coins de uma vez, mais moeda por 🍄
+var TROCAS = [
+  { cogu:5,   moedas:200,   ic:'🪙' },
+  { cogu:15,  moedas:700,   ic:'💰' },
+  { cogu:40,  moedas:2200,  ic:'💵' },
+  { cogu:100, moedas:6500,  ic:'💎' },
+  { cogu:250, moedas:20000, ic:'🏆' }
+];
+function pintaTroca(){
+  var CC = window.CoguCoins;
+  el('trocaSaldo').textContent = 'Você tem 🍄 ' + (CC ? CC.texto() : '0');
+  var L = el('listaTroca'); L.textContent = '';
+  if(!CC){
+    var v = document.createElement('div'); v.className='sub';
+    v.textContent = 'Não consegui carregar suas Cogu Coins. Tente recarregar a página.';
+    L.appendChild(v); return;
+  }
+  TROCAS.forEach(function(p){
+    var pode = CC.saldo() >= p.cogu;
+    L.appendChild(linhaItem(p.ic, moedaTxt(p.moedas) + ' moedas',
+      'Troca ' + moedaTxt(p.cogu) + ' Cogu Coins por ' + moedaTxt(p.moedas) + ' 🪙.',
+      'Dá ' + Math.round(p.moedas/p.cogu) + ' 🪙 por cada 🍄',
+      '🍄 ' + moedaTxt(p.cogu), !pode, function(){
+        if(!CC.gasta(p.cogu)) return aviso('Faltam 🍄 ' + moedaTxt(p.cogu - CC.saldo()) + ' Cogu Coins!');
+        S.moedas += p.moedas;
+        snd.moeda();
+        parte('🪙', W/2, H*0.42, 8);
+        salva(); pintaUI(); pintaTroca();
+        aviso('🎉 +' + moedaTxt(p.moedas) + ' moedas!');
+      }, pode ? '' : 'no'));
+  });
+}
+function abreTroca(){ if(modo === 'jogo') return; pintaTroca(); abre('tTroca'); }
 
 // ---- navegação ----
 Array.prototype.forEach.call(document.querySelectorAll('.mb'), function(b){
