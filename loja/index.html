@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🪙 Loja Cogu Coins — Cogumelo Games</title>
+<link rel="icon" href="/icons/icon-192.png">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;background:linear-gradient(160deg,#1a0b2e,#2d1b4e 60%,#0f0a1f);
+       color:#fff;min-height:100vh;padding:16px 14px 90px}
+  .topo{max-width:900px;margin:0 auto 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .voltar{background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.25);color:#fff;
+          border-radius:14px;padding:8px 14px;text-decoration:none;font-weight:bold;font-size:14px}
+  h1{font-size:26px;flex:1;min-width:180px;text-shadow:0 3px 10px #000}
+  .saldo{background:rgba(10,10,30,.75);border:2px solid #ffcc33;color:#ffcc33;border-radius:18px;
+         padding:8px 16px;font-size:19px;font-weight:bold;white-space:nowrap}
+  .aviso{max-width:900px;margin:0 auto 20px;background:rgba(255,80,80,.14);border:2px solid #ff6b6b;
+         border-radius:16px;padding:14px 16px;display:flex;gap:12px;align-items:center}
+  .xis{font-size:34px;color:#ff6b6b;font-weight:bold;line-height:1}
+  .aviso b{color:#ff9b9b}
+  .aviso small{display:block;color:#ffd;opacity:.8;margin-top:4px;font-size:13px}
+  h2{max-width:900px;margin:0 auto 12px;font-size:19px;color:#ffcc33}
+  .grade{max-width:900px;margin:0 auto 26px;display:grid;gap:14px;
+         grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+  .item{background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.15);border-radius:18px;
+        padding:14px;display:flex;flex-direction:column;gap:8px;transition:transform .12s}
+  .item:hover{transform:translateY(-3px);border-color:#ffcc33}
+  .item .emo{font-size:40px;text-align:center}
+  .item .nome{font-weight:bold;font-size:16px}
+  .item .desc{font-size:13px;opacity:.78;flex:1;line-height:1.35}
+  .item .ondeb{font-size:11px;opacity:.6}
+  .item button{border:none;border-radius:12px;padding:10px;font-size:15px;font-weight:bold;cursor:pointer;
+               background:linear-gradient(135deg,#ffcc33,#ff9500);color:#2a1800;font-family:inherit}
+  .item button:disabled{background:rgba(255,255,255,.14);color:#9f9;cursor:default}
+  .item.meu{border-color:#00ff88}
+  .flash{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(10,10,30,.95);
+         border:2px solid #ffcc33;color:#fff;padding:12px 20px;border-radius:16px;font-weight:bold;
+         opacity:0;transition:opacity .25s;pointer-events:none;z-index:99;max-width:90vw;text-align:center}
+  .flash.on{opacity:1}
+  .comoganha{max-width:900px;margin:0 auto;background:rgba(0,255,136,.1);border:2px solid #00ff88;
+             border-radius:16px;padding:14px 16px;font-size:14px;line-height:1.5}
+</style>
+<script src="/cogucoins.js"></script>
+</head>
+<body>
+  <div class="topo">
+    <a class="voltar" href="/">← Voltar</a>
+    <h1>🪙 Loja Cogu Coins</h1>
+    <div class="saldo" id="saldo">🪙 0</div>
+  </div>
+
+  <div class="aviso">
+    <div class="xis">✕</div>
+    <div>
+      <b>Comprar Cogu Coins com dinheiro: NÃO EXISTE</b>
+      <small>Aqui ninguém gasta dinheiro de verdade. Cogu Coins só se ganha jogando e pegando o presente do dia.</small>
+    </div>
+  </div>
+
+  <div class="comoganha" style="margin-bottom:24px">
+    💡 <b>Como ganhar Cogu Coins:</b> pegue o <b>presente diário</b> na página inicial — ele dá de <b>10 a 30</b> Cogu Coins por dia. Volte todo dia!
+  </div>
+
+  <h2>Coisas pra usar nos jogos</h2>
+  <div class="grade" id="grade"></div>
+
+  <div class="flash" id="flash"></div>
+
+<script>
+(function(){
+  var ITENS = [
+    {id:'bola_ouro',    emo:'⚽', nome:'Bola de Ouro', preco:120,
+     desc:'Uma bola dourada brilhando. Aparece na lojinha do golfe já desbloqueada.', onde:'Golf Maluco'},
+    {id:'bola_real',    emo:'👑', nome:'Bola Real', preco:300,
+     desc:'A bola dos reis — custa 260 mil moedas no jogo. Aqui sai de graça.', onde:'Pênaltis'},
+    {id:'clique_duplo', emo:'✌️', nome:'Clique em Dobro', preco:150,
+     desc:'Cada clique vale o DOBRO de pontos. Pra sempre.', onde:'Cogumelo Clicker'},
+    {id:'vida_extra',   emo:'❤️', nome:'Vida Extra', preco:180,
+     desc:'Você começa a partida com 1 vida a mais.', onde:'Chuva de Cogumelos 3 · Capivara Run'},
+    {id:'trofeu_ouro',  emo:'🏆', nome:'Troféu de Ouro', preco:500,
+     desc:'Só pra mostrar que você é rico. Fica brilhando aqui na loja.', onde:'Loja'}
+  ];
+
+  var CC = window.CoguCoins;
+  var grade = document.getElementById('grade');
+  var elSaldo = document.getElementById('saldo');
+  var elFlash = document.getElementById('flash');
+  var tFlash;
+
+  function flash(txt){
+    elFlash.textContent = txt;
+    elFlash.classList.add('on');
+    clearTimeout(tFlash);
+    tFlash = setTimeout(function(){ elFlash.classList.remove('on'); }, 1900);
+  }
+
+  function pintaSaldo(){ elSaldo.textContent = '🪙 ' + CC.saldo().toLocaleString('pt-BR'); }
+
+  function desenha(){
+    grade.textContent = '';
+    pintaSaldo();
+    ITENS.forEach(function(it){
+      var meu = CC.tem(it.id);
+      var card = document.createElement('div');
+      card.className = 'item' + (meu ? ' meu' : '');
+
+      var e = document.createElement('div'); e.className = 'emo'; e.textContent = it.emo;
+      var n = document.createElement('div'); n.className = 'nome'; n.textContent = it.nome;
+      var d = document.createElement('div'); d.className = 'desc'; d.textContent = it.desc;
+      var o = document.createElement('div'); o.className = 'ondeb'; o.textContent = 'Usa em: ' + it.onde;
+      var b = document.createElement('button');
+
+      if (meu) { b.textContent = '✓ Você tem'; b.disabled = true; }
+      else {
+        b.textContent = '🪙 ' + it.preco;
+        b.onclick = function(){
+          var r = CC.compra(it.id, it.preco);
+          if (r === 'sem_moeda') flash('Faltam ' + (it.preco - CC.saldo()) + ' 🪙 — pegue o presente de amanhã!');
+          else if (r === 'ok') { flash('Comprou ' + it.nome + '! ' + it.emo); desenha(); }
+          else desenha();
+        };
+      }
+      card.append(e, n, d, o, b);
+      grade.appendChild(card);
+    });
+  }
+
+  desenha();
+  window.addEventListener('cogucoins', pintaSaldo);
+})();
+</script>
+</body>
+</html>

@@ -142,13 +142,14 @@
         a[href="/chuva/"]     { box-shadow:0 0 20px rgba(153,204,68,0.4); }
         .game-card:hover      { box-shadow:0 0 34px rgba(255,255,255,0.25) !important; }
     </style>
+<script src="/cogucoins.js"></script>
 </head>
 <body>
     <a id="btnConta" href="/conta/" style="position:fixed; top:14px; right:16px; z-index:10; text-decoration:none; color:#fff; font-weight:bold; font-size:14px; background:rgba(20,20,50,0.9); border:2px solid #444; border-radius:14px; padding:8px 16px;">👤 Entrar</a>
     <div class="header">
         <div class="logo">🍄</div>
         <div class="title">COGUMELO GAMES</div>
-        <div class="subtitle">JOGOS ONLINE GRÁTIS <span style="color:#00ff88; font-weight:bold; border:1px solid rgba(0,255,136,0.4); border-radius:10px; padding:2px 8px; margin-left:6px; font-size:12px">v438</span></div>
+        <div class="subtitle">JOGOS ONLINE GRÁTIS <span style="color:#00ff88; font-weight:bold; border:1px solid rgba(0,255,136,0.4); border-radius:10px; padding:2px 8px; margin-left:6px; font-size:12px">v439</span></div>
     </div>
 
     <input id="busca" type="search" placeholder="🔍 Pesquisar jogo..." autocomplete="off"
@@ -633,7 +634,10 @@
                 btn.onclick = null;
                 btn.style.animation = 'pacAbre .7s forwards';
                 localStorage.setItem('pacotinho_dia', chaveDia);
-                // sorteia prêmio e jogo
+                // presente do dia = COGU COINS (10 a 30) + moedas de um jogo sorteado
+                var cogu = 10 + Math.floor(Math.random()*21);   // 10..30
+                try { if(window.CoguCoins) window.CoguCoins.ganhaSilencioso(cogu);
+                      else localStorage.setItem('cg_cogucoins', String((parseInt(localStorage.getItem('cg_cogucoins')||'0',10)||0)+cogu)); } catch(e){}
                 var r = Math.random()*100, valor = 50, acc = 0;
                 for(var i=0;i<PREMIOS.length;i++){ acc += PREMIOS[i][1]; if(r < acc){ valor = PREMIOS[i][0]; break; } }
                 var jg = JOGOS[Math.floor(Math.random()*JOGOS.length)];
@@ -647,7 +651,8 @@
                     var grande = valor >= 5000;
                     m.innerHTML = '<div style="font-size:80px">'+(grande?'🤯':'🎉')+'</div>'+
                         '<div style="font-size:26px; font-weight:bold; color:#ffcc00; margin:8px 0">PACOTINHO DO DIA!</div>'+
-                        '<div style="font-size:20px; color:#fff">Você ganhou <b style="color:#00ff88">'+valor.toLocaleString('pt-BR')+' moedas</b><br>no jogo <b>'+jg[1]+'</b>!</div>'+
+                        '<div style="font-size:26px; font-weight:bold; color:#ffcc33; margin:6px 0">🪙 +'+cogu+' COGU COINS</div>'+
+                        '<div style="font-size:18px; color:#fff">e também <b style="color:#00ff88">'+valor.toLocaleString('pt-BR')+' moedas</b><br>no jogo <b>'+jg[1]+'</b>!</div>'+
                         (grande?'<div style="color:#ff66cc; font-weight:bold; margin-top:6px">😱 PRÊMIO RARO!!!</div>':'')+
                         '<div style="color:#889; font-size:13px; margin-top:10px">Volta amanhã que tem mais! 📅</div>'+
                         '<button style="margin-top:16px; font-size:17px; font-weight:bold; padding:12px 30px; border:none; border-radius:14px;'+
