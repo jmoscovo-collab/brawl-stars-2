@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v436 (2026-10-03)
+- Minijogos/Genius: sons refeitos pra nao parecer robo - cada cogumelo agora soa como uma marimba de madeira (nota + 3 harmonicos sumindo em tempos diferentes, toc da baqueta, vibrato e filtro); erro virou um poing de mola solta e o acerto um trecho de marimba subindo
+
 ## v435 (2026-10-03)
 - JOGO NOVO: Minijogos - cinco classicos num lugar so: Jogo da Memoria, Jogo da Velha (contra o PC ou 2 jogadores), Pedra-Papel-Tesoura, Campo Minado e Genius
 - Genius: cada cor virou um COGUMELO gigante que toca uma nota (do, mi, sol, do agudo), com brilho ao acender, musiquinha de acerto e som grave no erro

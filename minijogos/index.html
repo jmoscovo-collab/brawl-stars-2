@@ -494,9 +494,70 @@ function tocaNota(freq, dur, tipo){
   o.connect(g); g.connect(a.destination);
   o.start(); o.stop(a.currentTime + (dur || 0.35) + 0.02);
 }
-function somCogumelo(c){ tocaNota(NOTAS[c] || 300, 0.34, 'triangle'); }
-function somErro(){ tocaNota(120, 0.5, 'sawtooth'); setTimeout(()=>tocaNota(90, 0.5, 'sawtooth'), 90); }
-function somAcerto(){ [523.25, 659.25, 784].forEach((f,i)=> setTimeout(()=>tocaNota(f, 0.18, 'sine'), i*80)); }
+
+// ===== sons NADA roboticos =====
+// cada cogumelo soa como uma marimba de madeira: a nota + harmonicos que somem
+// rapido, com um filtro que tira a aspereza e um vibratinho que da "vida".
+function somCogumelo(c){
+  const a = audio(); if (!a) return;
+  const base = NOTAS[c] || 300;
+  const t0 = a.currentTime;
+
+  const filtro = a.createBiquadFilter();
+  filtro.type = 'lowpass';
+  filtro.frequency.setValueAtTime(base * 7, t0);
+  filtro.frequency.exponentialRampToValueAtTime(base * 2, t0 + 0.5);
+  filtro.Q.value = 0.8;
+
+  const saida = a.createGain();
+  saida.gain.value = 0.9;
+  filtro.connect(saida); saida.connect(a.destination);
+
+  // vibrato suave (e o que tira o jeitao de robo)
+  const lfo = a.createOscillator(), lfoG = a.createGain();
+  lfo.frequency.value = 5.2; lfoG.gain.value = base * 0.006;
+  lfo.connect(lfoG); lfo.start(t0); lfo.stop(t0 + 1.2);
+
+  // fundamental + harmonicos de marimba, cada um sumindo num tempo
+  [[1, 0.42, 0.95], [2.01, 0.16, 0.42], [3.02, 0.09, 0.26], [4.98, 0.05, 0.16]]
+    .forEach(([mult, vol, tempo]) => {
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = 'sine';
+      // o "toc" da batida: comeca um tiquinho acima e assenta na nota
+      o.frequency.setValueAtTime(base * mult * 1.04, t0);
+      o.frequency.exponentialRampToValueAtTime(base * mult, t0 + 0.05);
+      lfoG.connect(o.frequency);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + tempo);
+      o.connect(g); g.connect(filtro);
+      o.start(t0); o.stop(t0 + tempo + 0.05);
+    });
+}
+
+// erro: um "poing" desanimado que escorrega pra baixo, tipo mola solta
+function somErro(){
+  const a = audio(); if (!a) return;
+  const t0 = a.currentTime;
+  const filtro = a.createBiquadFilter();
+  filtro.type = 'lowpass'; filtro.frequency.value = 900;
+  filtro.connect(a.destination);
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = 'triangle';
+  o.frequency.setValueAtTime(330, t0);
+  o.frequency.exponentialRampToValueAtTime(70, t0 + 0.55);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.3, t0 + 0.03);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.6);
+  o.connect(g); g.connect(filtro);
+  o.start(t0); o.stop(t0 + 0.65);
+}
+
+// acerto: trechinho alegre de marimba subindo
+function somAcerto(){
+  [0, 1, 2, 3].forEach((c, i) => setTimeout(() => somCogumelo(c), i * 95));
+}
+
 
 function abreGenius(){ mostra('telaGenius'); geniusSeq = []; $('geniusPlacar').textContent = 'Toque em COMEÇAR'; }
 function pararGenius(){ geniusTimers.forEach(clearTimeout); geniusTimers = []; geniusMostrando = false; }
