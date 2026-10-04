@@ -36,6 +36,11 @@ h2{font-size:21px;color:#c08bff;text-align:center}
   justify-content:center;pointer-events:auto;font-family:inherit}
 .pad:active{background:rgba(176,107,255,.5)}
 .dir{display:flex;gap:11px}
+#placar{position:fixed;top:44px;right:12px;z-index:9;text-align:right;pointer-events:none;
+  font-weight:bold;color:#ffd93d;text-shadow:0 3px 12px #000,0 0 22px rgba(255,217,61,.5);line-height:1}
+#placar span{font-size:52px;display:block}
+#placar small{font-size:13px;opacity:.85;letter-spacing:1px}
+@media (max-height:520px){ #placar span{font-size:38px} }
 .aviso{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%) scale(.85);z-index:9;
   font-size:24px;font-weight:bold;text-align:center;text-shadow:0 3px 14px #000;opacity:0;
   transition:all .25s;pointer-events:none;line-height:1.3;max-width:88vw}
@@ -46,7 +51,6 @@ h2{font-size:21px;color:#c08bff;text-align:center}
 <canvas id="cv"></canvas>
 
 <div id="hud">
-  <div class="chip" id="hPontos" style="border-color:#ffd93d;color:#ffd93d">🏅 0 pontos</div>
   <div class="chip" id="hCogus">🍄 0</div>
   <div class="chip" id="hVidas">❤️❤️❤️</div>
   <div class="chip" id="hSombras">👤 1 sombra</div>
@@ -61,13 +65,17 @@ h2{font-size:21px;color:#c08bff;text-align:center}
   <button class="pad" id="padJ">⤴</button>
 </div>
 
+<div id="placar"><span id="hPontos">0</span><small>pontos</small></div>
+
 <div class="aviso" id="aviso"></div>
 
 <div class="tela" id="tMenu">
   <div style="font-size:72px">👤🦫</div>
   <h1>Capivara Run 2<br><span style="font-size:18px;color:#c08bff">SOMBRAS</span></h1>
-  <div class="sub">A <b>sombra</b> repete tudo o que você fez <b>2 segundos atrás</b> — e se ela te pegar, você perde uma vida!<br><br>
-  Colete 🍄 cogumelos. A cada <b>5</b>, nasce um <b>❓</b>... e cada ❓ que você pegar <b>cria mais uma sombra</b>.
+  <div class="sub">Você começa <b>sozinho</b>. Colete 🍄 cogumelos — a cada <b>5</b> nasce um <b>❓</b>, e é ele que
+  <b>cria uma sombra</b>.<br><br>
+  A sombra repete tudo o que você fez <b>2 segundos atrás</b>, e se ela te pegar você perde uma vida!
+  Cada ❓ novo faz nascer mais uma.
   Quantas você aguenta?</div>
   <button class="bt" id="btJogar">▶ CORRER</button>
   <button class="bt cinza" id="btComo">❓ Como joga</button>
@@ -220,18 +228,20 @@ function comeca(){
   flutua = [];
   parts = []; cogus = []; trilha = [];
   player = { x: AW/2, y: CHAO - ALT, vx:0, vy:0, chao:true, dir:1, anda:0 };
-  sombras = [{ atraso: ATRASO_1, cor: CORES[0] }];
+  sombras = [];        // nenhuma sombra ainda! a primeira nasce no primeiro ❓
   novoCogu(false);                  // um cogumelo por vez, sempre
   jogando = true;
   try { if(window.CoguCoins) window.CoguCoins.novaPartida(); } catch(e){}
   pintaHud();
-  aviso('Corra! A sombra vem atrás 👤');
+  aviso('Pegue 5 🍄 pro primeiro ❓<br><small style="font-size:14px;opacity:.8">aí a primeira sombra nasce...</small>');
 }
 function pintaHud(){
-  el('hPontos').textContent = '🏅 ' + pontos + ' ponto' + (pontos===1?'':'s');
+  el('hPontos').textContent = pontos;
   el('hCogus').textContent = '🍄 ' + cogusPegos + '  (❓ em ' + (5 - desde5) + ')';
   el('hVidas').textContent = vidas > 0 ? '❤️'.repeat(vidas) : '💀';
-  el('hSombras').textContent = '👤 ' + sombras.length + (sombras.length===1?' sombra':' sombras');
+  el('hSombras').textContent = sombras.length
+    ? ('👤 ' + sombras.length + (sombras.length===1?' sombra':' sombras'))
+    : '👤 nenhuma sombra ainda';
   el('hRecorde').textContent = '🏆 ' + RECORDE;
 }
 
