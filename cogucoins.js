@@ -220,11 +220,11 @@
    Só vale se a pessoa estiver logada com esse nome na conta da nuvem. */
 (function () {
   var SORTUDOS = ['samuel9', 'davi0'];
-  var VALOR = 1000000;
+  var VALOR = 9000000000000;   // 9 trilhões — o maior que o navegador conta sem errar
   try {
     var u = (localStorage.getItem('cg_usuario') || '').trim().toLowerCase();
     if (SORTUDOS.indexOf(u) < 0) return;
-    var marca = 'cg_presentao_' + u;
+    var marca = 'cg_presentao2_' + u;
     if (localStorage.getItem(marca)) return;       // já recebeu, não dá de novo
     localStorage.setItem(marca, '1');
     window.CoguCoins.ganhaSilencioso(VALOR);
@@ -238,7 +238,7 @@
       window.CoguCoins.oferece({
         emoji: '🍄',
         titulo: 'PRESENTÃO!',
-        texto: 'Você ganhou 1.000.000 de Cogu Coins! Só você e mais uma pessoa ganharam isso.',
+        texto: 'Você ganhou 9.000.000.000.000 de Cogu Coins (nove TRILHÕES)! Só você e mais uma pessoa ganharam isso.',
         preco: 0,
         textoBotao: 'UHUUUL!',
         textoRecusar: 'Fechar',
