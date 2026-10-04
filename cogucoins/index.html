@@ -66,9 +66,12 @@
     <div class="caixa">
       <h2>2. Quanto?</h2>
       <div class="valores" id="valores"></div>
+      <input id="valorLivre" type="number" inputmode="numeric" min="1" max="10000000"
+             placeholder="ou escreve quanto você quiser (1 a 10.000.000)"
+             style="margin-top:9px" autocomplete="off">
       <button id="doar" disabled>Escolhe uma pessoa e um valor</button>
       <div class="msg" id="msg"></div>
-      <div class="dica">🔒 O que você doar sai da sua conta na hora e chega na conta da pessoa assim que ela abrir o site. Dá pra doar 20 vezes por dia.</div>
+      <div class="dica">🔒 O que você doar sai da sua conta na hora e chega na conta da pessoa assim que ela abrir o site. Dá pra doar até 1.000 vezes por dia, de 1 a 10.000.000 por vez.</div>
     </div>
 
     <div class="caixa" id="cxHist" style="display:none">
@@ -81,7 +84,8 @@
 <script>
 (function(){
   var API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
-  var VALORES = [10, 100, 600, 1000, 22000, 100000];
+  var VALORES = [10, 100, 600, 1000, 22000, 100000];   // atalhos
+  var MIN = 1, MAX = 10000000;                         // e dá pra escrever qualquer valor aqui no meio
   var CC = window.CoguCoins;
 
   var eNome = document.getElementById('nome');
@@ -130,18 +134,28 @@
   }
 
   // --- botões de valor ---
+  var eLivre = document.getElementById('valorLivre');
   var botoesValor = VALORES.map(function(v){
     var b = document.createElement('button');
     b.className = 'valor';
     b.textContent = '🍄 ' + v.toLocaleString('pt-BR');
     b.onclick = function(){
       escolhido = v;
+      eLivre.value = '';                       // escolheu pelo atalho: limpa o campo
       botoesValor.forEach(function(x){ x.classList.remove('sel'); });
       b.classList.add('sel');
       atualiza();
     };
     eValores.appendChild(b);
     return b;
+  });
+
+  // escrever o valor na mão tem prioridade sobre os atalhos
+  eLivre.addEventListener('input', function(){
+    var n = Math.floor(Number(eLivre.value));
+    botoesValor.forEach(function(x){ x.classList.remove('sel'); });
+    escolhido = (isFinite(n) && n >= MIN && n <= MAX) ? n : 0;
+    atualiza();
   });
 
   function atualiza(){
@@ -151,12 +165,18 @@
       b.disabled = !podeV;
       if (!podeV && escolhido === VALORES[i]) { escolhido = 0; b.classList.remove('sel'); }
     });
+    var digitou = eLivre.value.trim() !== '';
+    var nDigitado = Math.floor(Number(eLivre.value));
     var nome = eNome.value.trim();
     var souEu = nome.toLowerCase() === usuario().trim().toLowerCase();
     var ok = nome.length >= 2 && escolhido > 0 && saldo >= escolhido && !souEu && !enviando;
     eDoar.disabled = !ok;
+
     if (souEu && nome) eDoar.textContent = 'Não dá pra doar pra você mesmo 😅';
     else if (!nome) eDoar.textContent = 'Escolhe pra quem vai doar';
+    else if (digitou && (!isFinite(nDigitado) || nDigitado < MIN || nDigitado > MAX))
+      eDoar.textContent = 'Escreve um número de 1 até 10.000.000';
+    else if (digitou && nDigitado > saldo) eDoar.textContent = 'Você não tem tudo isso 😅';
     else if (!escolhido) eDoar.textContent = 'Escolhe quanto quer doar';
     else eDoar.textContent = '🎁 Doar 🍄 ' + escolhido.toLocaleString('pt-BR') + ' pro ' + nome;
   }
@@ -222,6 +242,7 @@
       CC.guardaNoHistorico([{ de: j.para, valor: valor, ts: Date.now(), tipo: 'dei' }]);
       pintaHistorico();
       escolhido = 0;
+      eLivre.value = '';
       botoesValor.forEach(function(x){ x.classList.remove('sel'); });
     } catch (e) {
       CC.ganhaSilencioso(valor);   // deu ruim: devolve o dinheiro
