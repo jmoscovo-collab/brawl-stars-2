@@ -81,12 +81,12 @@ h2{font-size:21px;color:#6fd8ff}
 <div class="tela off" id="tComo">
   <h2>Como joga</h2>
   <div class="sub" style="text-align:left">
-    <b>1. Mirar</b> — segure a tela: a barra de força enche. Solte pra lançar.
-    Quanto mais força, mais longe e mais fundo o anzol vai.<br><br>
+    <b>1. Mirar</b> — toque uma vez: a barra de força começa a andar.
+    Toque <b>de novo</b> na hora certa pra lançar. Quanto mais força, mais fundo o anzol vai.<br><br>
     <b>2. Esperar</b> — o anzol afunda. Quando um peixe chegar perto aparece um <b>❗</b>.
     <b>Toque rápido!</b> Se demorar, ele foge.<br><br>
-    <b>3. Lutar</b> — segure pra puxar e solte pra descansar. Mantenha a <b>barra laranja</b> em cima do peixe
-    pra encher a linha verde. Se a <b>tensão</b> estourar, a linha arrebenta e o peixe some.<br><br>
+    <b>3. Lutar</b> — <b>CLICA CLICA CLICA!</b> Cada clique enche a barra. Encheu antes do tempo acabar,
+    o peixe é seu. Vara melhor enche mais por clique; linha melhor te dá mais tempo.<br><br>
     <b>4. Vender e melhorar</b> — venda no 🛒 e compre vara, linha e isca melhores. Peixe mais fundo vale mais!
   </div>
   <button class="bt" id="btComoOk">Entendi!</button>
@@ -356,7 +356,7 @@ function comecaMira(){
   if(modo !== 'parado') return;
   ac();
   modo = 'mira'; forca = 0; forcaSubindo = true;
-  diz('Solta na hora certa! 💪');
+  diz('Toque de novo na hora certa! 💪');
 }
 function lanca(){
   if(modo !== 'mira') return;
@@ -395,22 +395,22 @@ function fisgou(){
   snd.fisga();
   var p = mordida.peixe;
   var res = linha().res, f = vara().forca;
+  // quanto mais raro o peixe, mais cliques precisa (igual ao Pescaria 1)
+  var idxRar = ORDEM_RAR.indexOf(p.rar);
+  var precisa = (7 + idxRar * 7) * (0.8 + p.tam * 0.18);
   luta = {
     peixe: p,
-    peixeY: 0.5,            // 0..1 posição do peixe na barra
-    peixeV: 0,
-    minhaY: 0.5,            // centro da minha zona
-    minhaV: 0,
-    zona: clamp(0.17 + f*0.035, 0.12, 0.33),
-    prog: 0.32,             // barra verde: 1 = pescou
-    tensao: 0,              // 1 = arrebentou
-    limiteTensao: res,
-    vigor: p.forca,
-    t: 0, dur: 0
+    prog: 0,
+    precisa: precisa,
+    porClique: f,                       // vara melhor enche mais por clique
+    tempo: 9 + res * 2.2,               // linha melhor dá mais tempo
+    restante: 9 + res * 2.2,
+    tremor: 0,
+    peixeY: 0.5, peixeV: 0, vigor: p.forca, t: 0
   };
   modo = 'luta';
   mordida = null;
-  diz('Segure pra puxar! Solte pra descansar.');
+  diz('');
 }
 function perdeuAMordida(){
   modo = 'parado';
@@ -442,7 +442,18 @@ function pescou(){
     (novo ? '<br><b style="color:#ffcc33">🆕 Peixe novo no álbum!</b>' : '');
   mostra('tPegou');
 }
-function arrebentou(){
+// 💪 cada clique enche a barra — igual ao Pescaria Maluca 1
+function clicaNaLuta(){
+  var L = luta;
+  if(!L) return;
+  L.prog += L.porClique;
+  L.tremor = 1;
+  snd.puxa();
+  bip(360 + Math.min(L.prog/L.precisa, 1)*520, 0.05, 'square', 0.06);
+  if(L.prog >= L.precisa) pescou();
+}
+
+function escapou(){
   var p = luta.peixe;
   modo = 'parado'; luta = null;
   snd.fugiu();
@@ -455,7 +466,7 @@ function arrebentou(){
     if(window.CoguCoins && window.CoguCoins.oferece){
       ofereceu = window.CoguCoins.oferece({
         emoji: p.emoji,
-        titulo: 'A linha arrebentou!',
+        titulo: 'O peixe está fugindo!',
         texto: 'Um ' + p.nome + ' (' + RAR[p.rar].nome + ') está fugindo! Quer jogar a rede e pegar mesmo assim?',
         preco: preco,
         textoBotao: '🥅 Jogar a rede',
@@ -468,7 +479,7 @@ function arrebentou(){
       });
     }
   } catch(e){}
-  if(!ofereceu) diz('💥 A linha arrebentou! Toque pra tentar de novo.');
+  if(!ofereceu) diz('🐟💨 O peixe ESCAPOU! Toque pra tentar de novo.');
 }
 
 // ====================== TOQUES ======================
@@ -478,12 +489,13 @@ function pressiona(e){
   segurando = true;
   ac();
   if(modo === 'parado') comecaMira();
+  else if(modo === 'mira') lanca();       // 1 clique começa a barra, outro lança
   else if(modo === 'mordendo') fisgou();
+  else if(modo === 'luta') clicaNaLuta();
 }
 function solta(e){
   if(e && e.cancelable) e.preventDefault();
   segurando = false;
-  if(modo === 'mira') lanca();
 }
 cv.addEventListener('mousedown', pressiona);
 window.addEventListener('mouseup', solta);
@@ -541,36 +553,21 @@ function passo(dt){
   }
   else if(modo === 'luta'){
     var L = luta;
-    L.t += dt; L.dur += dt;
+    L.t += dt;
+    L.restante -= dt;
+    L.tremor = Math.max(0, L.tremor - dt*3.5);
 
-    // o peixe foge pra cima e pra baixo, cada vez mais nervoso
+    // o peixe se debate pra lá e pra cá enquanto você clica
     var nervo = 0.55 + L.vigor*0.2;
-    L.peixeV += (Math.sin(L.t*nervo*2.3) + Math.sin(L.t*nervo*5.1 + 1.7)*0.6) * dt * 2.2;
-    L.peixeV *= 0.94;
-    L.peixeY = clamp(L.peixeY + L.peixeV*dt*1.25, 0.04, 0.96);
-    if(L.peixeY <= 0.04 || L.peixeY >= 0.96) L.peixeV *= -0.55;
+    L.peixeV += (Math.sin(L.t*nervo*2.3) + Math.sin(L.t*nervo*5.1 + 1.7)*0.6) * dt * 2.6;
+    L.peixeV *= 0.93;
+    L.peixeY = clamp(L.peixeY + L.peixeV*dt*1.3, 0.06, 0.94);
+    if(L.peixeY <= 0.06 || L.peixeY >= 0.94) L.peixeV *= -0.55;
 
-    // minha zona: segurar puxa pra cima, soltar deixa cair
-    var puxo = vara().forca * 0.52;
-    L.minhaV += (segurando ? -puxo : puxo*0.78) * dt * 2.4;
-    L.minhaV *= 0.9;
-    L.minhaY = clamp(L.minhaY + L.minhaV*dt, L.zona/2, 1 - L.zona/2);
-    if(L.minhaY <= L.zona/2 || L.minhaY >= 1 - L.zona/2) L.minhaV = 0;
+    // parou de clicar? a barra desce devagarinho
+    L.prog = Math.max(0, L.prog - L.precisa * 0.12 * dt);
 
-    var dentro = Math.abs(L.peixeY - L.minhaY) < L.zona/2;
-    L.prog = clamp(L.prog + (dentro ? 0.33 : -0.26) * dt, 0, 1);
-
-    // tensão: só sobe quando você segura, e sobe mais se o peixe for forte
-    L.tensao += (segurando ? (0.30 + L.vigor*0.065) : -0.62) * dt;
-    L.tensao = Math.max(0, L.tensao);
-    if(segurando && Math.random() < dt*7) snd.puxa();
-
-    if(L.tensao >= L.limiteTensao) return arrebentou();
-    if(L.prog >= 1) return pescou();
-    if(L.prog <= 0 && L.dur > 2.5){
-      modo = 'parado'; luta = null; snd.fugiu();
-      diz('Ele se soltou! 😩 Toque pra tentar de novo.');
-    }
+    if(L.restante <= 0) return escapou();
   }
 }
 
@@ -682,47 +679,51 @@ function desenhaBarraForca(){
 
 function desenhaLuta(){
   var L = luta;
-  var bw = 54, bh = Math.min(H*0.5, 300);
-  var bx = W - bw - 22, by = (H - bh)/2;
+  var frac = clamp(L.prog / L.precisa, 0, 1);
+  var tf = clamp(L.restante / L.tempo, 0, 1);
+  var tr = L.tremor;
 
-  ctx.fillStyle = 'rgba(2,12,22,0.82)';
-  arredonda(bx-5, by-5, bw+10, bh+10, 16); ctx.fill();
+  // o peixe se debatendo no meio da tela
+  ctx.save();
+  ctx.translate(W/2 + (Math.random()-0.5)*18*tr, H*0.26 + H*0.26*L.peixeY + (Math.random()-0.5)*14*tr);
+  ctx.rotate(Math.sin(L.t*9)*0.22);
+  ctx.font = Math.round(Math.min(W,H)*0.17) + 'px serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(L.peixe.emoji, 0, 0);
+  ctx.restore();
 
-  // minha zona (laranja)
-  var zh = bh * L.zona;
-  var zy = by + bh*L.minhaY - zh/2;
-  ctx.fillStyle = 'rgba(255,150,40,0.55)';
-  arredonda(bx+3, zy, bw-6, zh, 9); ctx.fill();
-  ctx.strokeStyle = '#ff9628'; ctx.lineWidth = 2.5;
-  arredonda(bx+3, zy, bw-6, zh, 9); ctx.stroke();
-
-  // o peixe
-  ctx.font = '30px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(L.peixe.emoji, bx + bw/2, by + bh*L.peixeY);
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2;
-  arredonda(bx, by, bw, bh, 13); ctx.stroke();
-
-  // barra verde do progresso (esquerda da barra)
-  var pw = 13, px = bx - pw - 11;
-  ctx.fillStyle = 'rgba(2,12,22,0.82)';
-  arredonda(px-3, by-3, pw+6, bh+6, 10); ctx.fill();
-  ctx.fillStyle = '#6cff9f';
-  arredonda(px, by + bh*(1-L.prog), pw, bh*L.prog, 6); ctx.fill();
-
-  // tensão (em cima)
-  var tw = Math.min(W*0.62, 250), tx = (W-tw)/2, ty = 62;
-  var tf = clamp(L.tensao / L.limiteTensao, 0, 1);
-  ctx.fillStyle = 'rgba(2,12,22,0.82)';
-  arredonda(tx-4, ty-4, tw+8, 20, 12); ctx.fill();
-  ctx.fillStyle = tf > 0.78 ? '#ff4d4d' : (tf > 0.5 ? '#ffd93d' : '#6cff9f');
-  arredonda(tx, ty, tw*tf, 12, 6); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center'; ctx.textBaseline='middle';
-  ctx.fillText(tf > 0.78 ? '⚠️ VAI ARREBENTAR!' : 'TENSÃO DA LINHA', W/2, ty + 26);
-
-  ctx.font = 'bold 15px Arial';
+  // nome do peixe
   ctx.fillStyle = RAR[L.peixe.rar].cor;
-  ctx.fillText(L.peixe.emoji + ' ' + L.peixe.nome, W/2, ty + 50);
+  ctx.font = 'bold 18px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(L.peixe.nome + ' · ' + RAR[L.peixe.rar].nome, W/2, 74);
+
+  // ---- barra de PUXAR (a grandona, enche clicando) ----
+  var bw = Math.min(W*0.84, 380), bh = 34;
+  var bx = (W-bw)/2, by = H - 128;
+  ctx.fillStyle = 'rgba(2,12,22,0.85)';
+  arredonda(bx-5, by-5, bw+10, bh+10, 18); ctx.fill();
+  var g = ctx.createLinearGradient(bx,0,bx+bw,0);
+  g.addColorStop(0,'#6cff9f'); g.addColorStop(1,'#00e0ff');
+  ctx.fillStyle = g;
+  arredonda(bx, by, Math.max(4, bw*frac), bh, 16); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.65)'; ctx.lineWidth = 2.5;
+  arredonda(bx, by, bw, bh, 16); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 15px Arial';
+  ctx.fillText(Math.round(frac*100) + '%', W/2, by + bh/2);
+
+  // ---- tempo que falta ----
+  var tw = bw, tx = bx, ty = by + bh + 14;
+  ctx.fillStyle = 'rgba(2,12,22,0.85)';
+  arredonda(tx-4, ty-4, tw+8, 16, 10); ctx.fill();
+  ctx.fillStyle = tf < 0.3 ? '#ff4d4d' : (tf < 0.6 ? '#ffd93d' : '#6cff9f');
+  arredonda(tx, ty, tw*tf, 8, 4); ctx.fill();
+
+  // ---- o aviso piscando ----
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold ' + Math.round(20 + tr*9) + 'px Arial';
+  ctx.globalAlpha = 0.75 + Math.sin(L.t*13)*0.25;
+  ctx.fillText('💪 CLICA CLICA CLICA!', W/2, by - 30);
+  ctx.globalAlpha = 1;
 }
 
 function arredonda(x,y,w,h,r){
