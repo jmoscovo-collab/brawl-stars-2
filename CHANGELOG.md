@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v471 (2026-10-05)
+- Chuva de Meteoros: botões de seta ⬅️ ➡️ na tela pra mover no celular (além de encostar do lado)
+
 ## v438 (2026-10-04)
 - BOTAO DE TELA CHEIA em todos os 51 jogos: o botaozinho no canto (ou a tecla F) faz o jogo ocupar a tela inteira; some sozinho em navegador que nao suporta
 

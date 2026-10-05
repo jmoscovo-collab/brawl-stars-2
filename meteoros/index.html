@@ -51,11 +51,22 @@ input:focus{border-color:#ff8a3d}
 .aba.on{background:#ff8a3d;color:#2a1000;border-color:#ff8a3d}
 #toque{position:fixed;inset:0;z-index:5;display:none}
 #toque.on{display:block}
+#dpad{position:fixed;left:0;right:0;bottom:22px;z-index:7;display:none;justify-content:space-between;
+  padding:0 22px;pointer-events:none}
+#dpad.on{display:flex}
+#dpad button{pointer-events:auto;width:72px;height:72px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.16);color:#fff;font-size:30px;line-height:1;
+  display:flex;align-items:center;justify-content:center;font-family:inherit}
+#dpad button:active{background:rgba(255,255,255,.35)}
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
 <div id="toque"></div>
+<div id="dpad">
+  <button id="btEsq">⬅️</button>
+  <button id="btDir">➡️</button>
+</div>
 
 <div id="relogio" style="display:none">
   <div id="tempo">0,00</div>
@@ -89,7 +100,7 @@ input:focus{border-color:#ff8a3d}
 <div class="tela off" id="tComo">
   <h2>Como joga</h2>
   <div class="sub" style="text-align:left">
-    <b>Mexer</b> — setas ⬅️ ➡️ ou A/D. No celular, <b>encoste do lado</b> pra onde quer correr.<br><br>
+    <b>Mexer</b> — setas ⬅️ ➡️ ou A/D. No celular, use os <b>botões de seta</b> na tela ou <b>encoste do lado</b> pra onde quer correr.<br><br>
     <b>⭕ A sombra</b> — antes de cair, aparece um círculo vermelho no chão. É ali que o meteoro vai bater.
     Quanto mais o tempo passa, <b>menos aviso você tem</b>.<br><br>
     <b>💥 A explosão</b> — o estrago é maior que a sombra! Saia bem de perto, não encoste na borda.<br><br>
@@ -243,6 +254,7 @@ function comeca(){
   escudoVivo = temHab('escudo');
   el('relogio').style.display = 'block';
   el('toque').classList.toggle('on', ehToque);
+  el('dpad').classList.toggle('on', ehToque);
   pintaRelogio();
   try { if(window.CoguCoins) window.CoguCoins.novaPartida(); } catch(e){}
 }
@@ -344,6 +356,7 @@ function morreu(){
   shake = 1.2;
   el('relogio').style.display = 'none';
   el('toque').classList.remove('on');
+  el('dpad').classList.remove('on');
 
   var novo = tempoVivo > RECORDE;
   if(novo){
@@ -719,6 +732,18 @@ areaToque.addEventListener('touchmove', pegaToque, {passive:false});
 areaToque.addEventListener('touchend', function(e){ e.preventDefault(); toqueX = null; }, {passive:false});
 areaToque.addEventListener('touchcancel', function(){ toqueX = null; });
 
+// setas na tela (celular): segura o botão pra correr naquela direção
+function botaoSeta(id, tecla){
+  var b = el(id);
+  function liga(e){ e.preventDefault(); e.stopPropagation(); toqueX = null; teclas[tecla] = true; }
+  function desliga(e){ if(e){ e.preventDefault(); e.stopPropagation(); } teclas[tecla] = false; }
+  b.addEventListener('touchstart', liga, {passive:false});
+  b.addEventListener('touchend', desliga, {passive:false});
+  b.addEventListener('touchcancel', desliga, {passive:false});
+}
+botaoSeta('btEsq','esq');
+botaoSeta('btDir','dir');
+
 
 // ====================== LOJA: SKINS E HABILIDADES ======================
 var SKINS = [
@@ -1064,6 +1089,7 @@ function voltaLobby(){
   jogando = false;
   el('relogio').style.display = 'none';
   el('toque').classList.remove('on');
+  el('dpad').classList.remove('on');
   abre('tLobby');
   carregaTop();
 }
