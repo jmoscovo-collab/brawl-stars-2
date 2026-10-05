@@ -903,6 +903,7 @@ function carregaTop(){
         }
       }
       if(!top.length){ status.textContent = 'Ninguém jogou ainda. Seja o primeiro! 🥇'; return; }
+      if(!meu && RECORDE > 0) status.textContent = 'Seu recorde: ' + tempoTxt(RECORDE) + 's';
       top.slice(0,50).forEach(function(x, i){
         var d = document.createElement('div');
         var souEu = String(x.nome||'').toLowerCase() === meu;
@@ -954,6 +955,7 @@ var randomDeVerdade = Math.random;
 
 function abreSala(){
   ac();
+  pedeNomeUmaVez();        // pergunta o nome UMA vez, aqui na entrada
   abre('tSala');
   el('salaStatus').textContent = 'conectando...';
   el('salaGente').textContent = '';
@@ -992,7 +994,7 @@ function conecta(){
 function mandaOndeEstou(){
   if(!ws || ws.readyState !== 1) return;
   try {
-    ws.send(JSON.stringify({ acao:'estado', t:'meteoro', nome: pedeNomeUmaVez(),
+    ws.send(JSON.stringify({ acao:'estado', t:'meteoro', nome: nomeEscolhido() || 'Jogador',
       x: hero ? Math.round(hero.x) : 0, o: hero ? hero.olhando : 1,
       v: !!(hero && hero.vivo), tp: Math.round(tempoVivo*100), sk: SKIN_EQ }));
   } catch(e){}
@@ -1006,7 +1008,7 @@ function pintaSala(){
   var box = el('salaGente');
   if(!box) return;
   box.textContent = '';
-  var lista = [{ nome: pedeNomeUmaVez(), tempo: Math.round(tempoVivo*100), eu:true }];
+  var lista = [{ nome: nomeEscolhido() || 'Você', tempo: Math.round(tempoVivo*100), eu:true }];
   for(var k in outros) lista.push({ nome: outros[k].nome, tempo: outros[k].tempo, eu:false });
   lista.sort(function(a,b){ return b.tempo - a.tempo; });
   lista.slice(0,10).forEach(function(p, i){
