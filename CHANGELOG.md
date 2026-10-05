@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v473 (2026-10-05)
+- Desenha e Adivinha: a PINTURA MÁGICA desenhava praticamente toda palavra de comida como uma "fruta redonda" genérica (tipo uma laranja) - agora banana, maçã, laranja, uva, morango, melancia, abacaxi, limão, pera, manga, hambúrguer, pizza, cachorro-quente, batata frita, bolo, chocolate, pipoca, queijo, ovo, pão, biscoito, bala, pirulito, refrigerante, suco, leite, café, macarrão, arroz, sorvete de casquinha e pote de mel têm cada um o seu desenho certinho
+
 ## v472 (2026-10-05)
 - Desenha e Adivinha: quem tá adivinhando pode gastar 🍄15 Cogu Coins numa DICA (revela uma letra da palavra)
 - Desenha e Adivinha: quem tá desenhando pode gastar 🍄40 Cogu Coins na PINTURA MÁGICA — o jogo pinta sozinho um desenho bonitinho da palavra (tem desenho certinho pra várias palavras conhecidas, tipo sol, gato, casa, coração, e um estilo parecido pras outras)
