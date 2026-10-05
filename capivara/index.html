@@ -23,6 +23,11 @@
         #menu button:hover { transform: scale(1.05); }
         .btn-1p { background: #4caf50; }
         .btn-friend { background: #2196f3; }
+        .btn-online { background: #9c27b0; }
+        #placar-online { position:absolute; top:60px; right:10px; z-index:55; background:rgba(0,0,0,.55);
+            border-radius:12px; padding:7px 11px; color:#fff; font-size:12px; font-weight:bold;
+            line-height:1.6; min-width:118px; pointer-events:none; }
+        #placar-online .eu { color:#ffd93d; }
         .btn-modes { background: #00bcd4; position: relative; }
         .tag-novo { background: #f44336; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 8px; position: absolute; top: -6px; right: -6px; animation: pulse 1s infinite; }
         @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
@@ -221,6 +226,7 @@
             <p>Colete moedas e fuja do monstro!</p>
             <button class="btn-1p" id="btn-1p">1 JOGADOR</button>
             <button class="btn-friend" id="btn-2p">👥 2 JOGADORES</button>
+            <button class="btn-online" id="btn-online">🌐 ONLINE</button>
             <button class="btn-modes" id="btn-modes">MODOS <span class="tag-novo">NOVO</span></button>
             <button class="btn-skins" id="btn-skins">SKINS</button>
             <button class="btn-loja" id="btn-loja">🛒 LOJA</button>
@@ -328,6 +334,7 @@
         <span id="hud-vidas">❤️❤️❤️</span>
     </div>
     <div id="ghost-hud" class="hidden"></div>
+    <div id="placar-online" style="display:none"></div>
     <div class="version">v3.2.0</div>
 
     <script>
@@ -460,7 +467,24 @@ function createPlayer(index) {
     };
 }
 
+// Online: todo mundo tem que ver EXATAMENTE o mesmo mapa. Então, no online,
+// o sorteio do mapa usa a fase como semente — mesma fase, mesmo mapa, pra todos.
+let semente = 0;
+function rngSemente() {
+    semente |= 0; semente = (semente + 0x6D2B79F5) | 0;
+    let x = Math.imul(semente ^ (semente >>> 15), 1 | semente);
+    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+}
+let randomDeVerdade = Math.random;
+function ligaMapaIgual(faseN) {
+    semente = 777000 + faseN * 9176;
+    Math.random = rngSemente;
+}
+function desligaMapaIgual() { Math.random = randomDeVerdade; }
+
 function generateLevel() {
+    if (online) ligaMapaIgual(fase);
     platforms = [];
     coins = [];
     moedas = 0;
@@ -537,6 +561,7 @@ function generateLevel() {
         });
     }
     monster = monsters[0];
+    if (online) desligaMapaIgual();   // o resto do jogo volta ao sorteio normal
 }
 
 function resolveCollision(entity) {
@@ -1705,6 +1730,9 @@ function draw() {
         ctx.beginPath(); ctx.arc(d.x - 3, d.y - 4 + bob, 1.5, 0, Math.PI*2); ctx.fill();
     }
 
+    // os outros jogadores do online, atrás dos de verdade
+    if (online) desenhaOutros();
+
     // Players
     for (const pl of players) {
         if (pl.alive) drawPlayerSkin(pl);
@@ -1905,6 +1933,7 @@ function gameLoop() {
     } else if (gameRunning) {
         update();
         draw();
+        if (online && frameCount % 30 === 0) { limpaOnline(); pintaPlacarOnline(); }
     }
     requestAnimationFrame(gameLoop);
 }
@@ -1983,6 +2012,7 @@ document.getElementById('btn-revive').onclick = () => {
     gameRunning = true;
 };
 document.getElementById('btn-exit').onclick = () => {
+    saiOnline();          // voltou pro menu: sai da sala online
     document.getElementById('gameover').style.display = 'none';
     document.getElementById('gameover').classList.add('hidden');
     document.getElementById('menu').classList.remove('hidden');
@@ -2031,6 +2061,149 @@ function checkIncomingChallenge() {
 
 // 👥 2 JOGADORES no mesmo teclado: um no WASD, o outro nas setas.
 // Por isso o botão só aparece no computador — no celular não tem como.
+
+// ====================== 🌐 ONLINE ======================
+// Mesmo esquema dos outros jogos online do site: todo mundo entra na mesma
+// "sala" do servidor e fica mandando onde está. Não tem empurrão nem colisão
+// entre jogadores — é uma corrida pra ver quem passa mais fases.
+const WS_URL = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=capivara';
+let online = false, ws = null, enviaTimer = null;
+let outros = {};        // { id: {nome, x, y, facing, fase, quando} }
+
+function meuNomeOnline() {
+    try {
+        const u = localStorage.getItem('cg_usuario');
+        if (u) return String(u).slice(0, 14);
+    } catch (e) {}
+    return (playerName || 'Capivara' + Math.floor(100 + Math.random() * 900)).slice(0, 14);
+}
+
+function entraOnline() {
+    if (online) return;
+    try { ws = new WebSocket(WS_URL); } catch (e) { return avisaOnline('Não deu pra conectar 😕'); }
+    online = true;
+    document.getElementById('placar-online').style.display = 'block';
+    pintaPlacarOnline();
+
+    ws.onopen = function () {
+        startGame(1, 'normal', false);
+        enviaTimer = setInterval(mandaOndeEstou, 143);   // ~7x por segundo
+        avisaOnline('🌐 Conectado! Quem passar mais fases ganha.');
+    };
+    ws.onmessage = function (ev) {
+        let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+        if (!online || !m || !m.quem) return;
+        if (m.t === 'onde') {
+            outros[m.quem] = {
+                nome: String(m.nome || '???').slice(0, 14),
+                x: m.x || 0, y: m.y || 0, facing: m.f || 1,
+                fase: m.fase || 1, quando: performance.now()
+            };
+        } else if (m.t === 'saiu') {
+            delete outros[m.quem];
+        }
+    };
+    ws.onclose = function () { saiOnline('A conexão caiu 😕'); };
+    ws.onerror = function () { try { ws.close(); } catch (e) {} };
+}
+
+function mandaOndeEstou() {
+    if (!ws || ws.readyState !== 1 || !gameRunning || !players[0]) return;
+    const p = players[0];
+    try {
+        ws.send(JSON.stringify({ acao: 'estado', t: 'onde', nome: meuNomeOnline(),
+            x: Math.round(p.x), y: Math.round(p.y), f: p.facing, fase: fase }));
+    } catch (e) {}
+}
+
+function saiOnline(msg) {
+    if (!online) return;
+    online = false;
+    if (enviaTimer) { clearInterval(enviaTimer); enviaTimer = null; }
+    if (ws) {
+        try { ws.send(JSON.stringify({ acao: 'estado', t: 'saiu' })); } catch (e) {}
+        ws.onclose = null; ws.onmessage = null;
+        try { ws.close(); } catch (e) {}
+        ws = null;
+    }
+    outros = {};
+    document.getElementById('placar-online').style.display = 'none';
+    if (msg) avisaOnline(msg);
+}
+
+// tira do mapa quem sumiu faz mais de 6 segundos
+function limpaOnline() {
+    const agora = performance.now();
+    for (const k in outros) if (agora - outros[k].quando > 6000) delete outros[k];
+}
+
+function desenhaOutros() {
+    for (const k in outros) {
+        const o = outros[k];
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        ctx.translate(o.x + 15, o.y + 17);
+        ctx.scale(o.facing || 1, 1);
+        // uma capivarinha simples, pra ficar leve mesmo com muita gente
+        ctx.fillStyle = '#a9763f';
+        ctx.beginPath(); ctx.ellipse(0, 2, 15, 11, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(9, -8, 10, 8, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(6, -15, 3.5, 3, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#c28e52';
+        ctx.beginPath(); ctx.ellipse(16, -6, 6, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(12, -10, 2.6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#231405';
+        ctx.beginPath(); ctx.arc(13, -10, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        // o nome em cima
+        ctx.save();
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = '#90caf9';
+        ctx.font = 'bold 11px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(o.nome, o.x + 15, o.y - 6);
+        ctx.restore();
+    }
+}
+
+function pintaPlacarOnline() {
+    const el = document.getElementById('placar-online');
+    if (!el || !online) return;
+    const lista = [{ nome: meuNomeOnline(), fase: fase, eu: true }];
+    for (const k in outros) lista.push({ nome: outros[k].nome, fase: outros[k].fase, eu: false });
+    lista.sort((a, b) => b.fase - a.fase);
+    let html = '🌐 ' + lista.length + ' jogando<br>';
+    lista.slice(0, 8).forEach((p, i) => {
+        const nome = p.nome.replace(/[<>&]/g, '');
+        html += '<span class="' + (p.eu ? 'eu' : '') + '">' +
+            (i + 1) + '. ' + nome + ' — fase ' + p.fase + '</span><br>';
+    });
+    el.innerHTML = html;
+}
+
+function avisaOnline(txt) {
+    const el = document.getElementById('ghost-hud');
+    if (!el) return;
+    el.textContent = txt;
+    el.classList.remove('hidden');
+    setTimeout(function () { if (!online) el.classList.add('hidden'); }, 3000);
+}
+
+// o botão de jogar de novo mantém você na sala online
+const btnRetry = document.getElementById('btn-retry');
+if (btnRetry) {
+    const antes = btnRetry.onclick;
+    btnRetry.onclick = function (e) {
+        if (online && !ws) saiOnline();
+        if (antes) antes.call(this, e);
+    };
+}
+
+const btnOnline = document.getElementById('btn-online');
+if (btnOnline) btnOnline.onclick = entraOnline;
+window.addEventListener('pagehide', function () { saiOnline(); });
+
 const btn2p = document.getElementById('btn-2p');
 if (btn2p) {
     if (('ontouchstart' in window) || navigator.maxTouchPoints > 0) btn2p.style.display = 'none';
