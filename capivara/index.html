@@ -220,12 +220,12 @@
             <h1>🐾 Capivara Run</h1>
             <p>Colete moedas e fuja do monstro!</p>
             <button class="btn-1p" id="btn-1p">1 JOGADOR</button>
-            <button class="btn-friend" id="btn-friend">👻 DESAFIO DE AMIGO</button>
+            <button class="btn-friend" id="btn-2p">👥 2 JOGADORES</button>
             <button class="btn-modes" id="btn-modes">MODOS <span class="tag-novo">NOVO</span></button>
             <button class="btn-skins" id="btn-skins">SKINS</button>
             <button class="btn-loja" id="btn-loja">🛒 LOJA</button>
             <div class="controls-info" id="ghost-menu-info">
-                Controles: WASD ou Setas | 7 modos de jogo e skins pra desbloquear!
+                Controles: WASD ou Setas | No 2 JOGADORES: um no WASD, o outro nas Setas 👥
             </div>
         </div>
         <div id="gameover" class="hidden">
@@ -792,7 +792,7 @@ function endGame() {
     document.getElementById('gameover').style.display = 'flex';
     document.getElementById('gameover').classList.remove('hidden');
     let goText = `Fase ${fase} | Recorde: ${progress.bestStreak} fases`;
-    if (ghostTarget) {
+    if (false && ghostTarget) {
         goText += (fase > ghostTarget.streak)
             ? ` | 🏆 Você venceu o fantasma de ${ghostTarget.name} (fase ${ghostTarget.streak})!`
             : (fase === ghostTarget.streak)
@@ -818,7 +818,7 @@ function updateHUD() {
     document.getElementById('hud-moedas').textContent = `Moedas: ${moedas}/${totalMoedas}`;
     document.getElementById('hud-vidas').textContent = '❤️'.repeat(Math.max(0, vidas));
     const ghostHud = document.getElementById('ghost-hud');
-    if (ghostTarget) {
+    if (false && ghostTarget) {
         ghostHud.classList.remove('hidden');
         const ahead = fase > ghostTarget.streak ? '🔥 Você está na frente!' : (fase === ghostTarget.streak ? '👀 Empatado!' : '👻 Atrás do fantasma');
         ghostHud.textContent = `👻 Fantasma de ${ghostTarget.name}: fase ${ghostTarget.streak} — ${ahead}`;
@@ -1911,7 +1911,7 @@ function gameLoop() {
 
 function startGame(np, mode, bot) {
     numPlayers = np;
-    botMode = (np === 2) ? true : !!bot;
+    botMode = !!bot;        // no 2 jogadores os DOIS são gente de verdade
     gameMode = mode || 'normal';
     fase = 1; moedas = 0; currentStreak = 0;
     reviveUsed = false;
@@ -2027,20 +2027,15 @@ function checkIncomingChallenge() {
         document.getElementById('ghost-menu-info').textContent = `👻 Você foi desafiado por ${decoded.name}! Recorde a bater: fase ${decoded.streak}. Boa sorte!`;
     }
 }
-checkIncomingChallenge();
+// o desafio de amigo saiu do jogo — agora o botão azul é o 2 JOGADORES
 
-document.getElementById('btn-friend').onclick = () => {
-    document.getElementById('menu').classList.add('hidden');
-    document.getElementById('friend-screen').style.display = 'flex';
-    const info = document.getElementById('friend-ghost-info');
-    if (ghostTarget) {
-        info.style.display = 'block';
-        info.textContent = `Agora mesmo você está no desafio de ${ghostTarget.name} (fase ${ghostTarget.streak})! Jogue em "1 JOGADOR" pra competir.`;
-    } else {
-        info.style.display = 'none';
-    }
-    document.getElementById('friend-link-box').style.display = 'none';
-};
+// 👥 2 JOGADORES no mesmo teclado: um no WASD, o outro nas setas.
+// Por isso o botão só aparece no computador — no celular não tem como.
+const btn2p = document.getElementById('btn-2p');
+if (btn2p) {
+    if (('ontouchstart' in window) || navigator.maxTouchPoints > 0) btn2p.style.display = 'none';
+    else btn2p.onclick = () => startGame(2, 'normal', false);
+}
 document.getElementById('friend-back').onclick = () => {
     document.getElementById('friend-screen').style.display = 'none';
     document.getElementById('menu').classList.remove('hidden');
@@ -2472,5 +2467,10 @@ window.addEventListener('resize', resize);
 <script src="/idiomas.js"></script>
 <script src="/musica.js"></script>
 <script src="/telacheia.js"></script>
+<script src="/coguloja.js"></script>
+<script>
+// trocar Cogu Coins pela moeda desse jogo
+window.cgCoguLoja({ chave:'capivara_run_progress', campo:'coins', nome:'moedas', emoji:'🪙', taxa:40 });
+</script>
 </body>
 </html>
