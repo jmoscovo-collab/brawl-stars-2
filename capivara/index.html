@@ -496,11 +496,13 @@ function generateLevel() {
     }
 
     // Solid ground
-    platforms.push({ x: 0, y: GROUND_Y, w: 800, h: 50, color: '#5d4037', isGround: true });
+    platforms.push({ x: 0, y: GROUND_Y, w: larguraDoMundo(), h: 50, color: '#5d4037', isGround: true });
 
     // Floating platforms — all reachable
-    const numPlats = Math.min(4 + fase, 10);
-    const cols = 4, rows = 2;
+    // mapa 5x maior no online => 5x mais plataformas, espalhadas por tudo
+    const vezes = online ? 5 : 1;
+    const numPlats = Math.min(4 + fase, 10) * vezes;
+    const cols = 4 * vezes, rows = 2;
     const cellW = 180, cellH = 70;
     const startX = 30, startY = 300;
     const usedCells = [];
@@ -551,11 +553,16 @@ function generateLevel() {
     const monsterSpeed = (gameMode === 'hardcore')
         ? Math.min(1.6 + fase * 0.28, 4.8)
         : Math.min(1.0 + fase * 0.2, 3.5);
-    const numMonsters = (gameMode === 'hardcore') ? 4 : 1;
+    // 1 jogador = 1 capivara malvada, 2 jogadores = 2, e assim por diante
+    const quantosOnline = online ? (1 + Object.keys(outros).length) : 0;
+    const numMonsters = online ? Math.max(1, Math.min(quantosOnline, 12))
+                               : ((gameMode === 'hardcore') ? 4 : 1);
+    const larg = larguraDoMundo();
     monsters = [];
     for (let m = 0; m < numMonsters; m++) {
         monsters.push({
-            x: 600 + m * 80, y: GROUND_Y - 40, w: 40, h: 40,
+            x: online ? (300 + (m + 1) * (larg - 600) / (numMonsters + 1)) : (600 + m * 80),
+            y: GROUND_Y - 40, w: 40, h: 40,
             speed: monsterSpeed + m * 0.3, vy: 0, onGround: false,
             jumpCooldown: m * 40, facing: -1
         });
@@ -665,7 +672,7 @@ function update() {
         resolveCollision(pl);
 
         if (pl.x < 0) pl.x = 0;
-        if (pl.x > 800 - pl.w) pl.x = 800 - pl.w;
+        if (pl.x > larguraDoMundo() - pl.w) pl.x = larguraDoMundo() - pl.w;
         // Ceiling barrier (lua mode)
         if (gameMode === 'lua' && pl.y < CEILING_Y) {
             pl.y = CEILING_Y;
@@ -756,7 +763,7 @@ function update() {
         }
 
         if (mon.x < 0) mon.x = 0;
-        if (mon.x > 800 - mon.w) mon.x = 800 - mon.w;
+        if (mon.x > larguraDoMundo() - mon.w) mon.x = larguraDoMundo() - mon.w;
     }
 
     updateHUD();
@@ -841,7 +848,7 @@ function endGame() {
 function updateHUD() {
     document.getElementById('hud-fase').textContent = `Fase ${fase}`;
     document.getElementById('hud-moedas').textContent = `Moedas: ${moedas}/${totalMoedas}`;
-    document.getElementById('hud-vidas').textContent = '❤️'.repeat(Math.max(0, vidas));
+    document.getElementById('hud-vidas').textContent = (vidas === Infinity) ? '❤️ ∞' : '❤️'.repeat(Math.max(0, vidas));
     const ghostHud = document.getElementById('ghost-hud');
     if (false && ghostTarget) {
         ghostHud.classList.remove('hidden');
@@ -1645,6 +1652,11 @@ function draw() {
         ctx.beginPath(); ctx.arc((550+co*0.7)%900-50,80,25,0,Math.PI*2); ctx.arc((580+co*0.7)%900-50,75,20,0,Math.PI*2); ctx.fill();
     }
 
+    // daqui pra baixo é o MUNDO: no online a tela anda junto com você
+    atualizaCamera();
+    ctx.save();
+    if (online) ctx.translate(-Math.round(camX), 0);
+
     // Platforms
     for (const p of platforms) {
         if (p.isGround) {
@@ -1742,6 +1754,8 @@ function draw() {
     for (const mon of monsters) {
         drawCapivara(mon.x + 20, mon.y + 20, mon.facing, frameCount);
     }
+
+    ctx.restore();   // fim do mundo, o resto (HUD) fica parado na tela
 
     // Modo noturno — escuridão com lanterna ao redor do jogador
     if (gameMode === 'noturno' && players.length > 0) {
@@ -1944,7 +1958,7 @@ function startGame(np, mode, bot) {
     gameMode = mode || 'normal';
     fase = 1; moedas = 0; currentStreak = 0;
     reviveUsed = false;
-    vidas = (gameMode === 'hardcore') ? 1 : 3 + ((function(){try{return window.CoguCoins && window.CoguCoins.tem('vida_extra');}catch(e){return false;}})() ? 1 : 0);
+    vidas = online ? Infinity : ((gameMode === 'hardcore') ? 1 : 3 + ((function(){try{return window.CoguCoins && window.CoguCoins.tem('vida_extra');}catch(e){return false;}})() ? 1 : 0));
     generateLevel();
     gameRunning = true;
     document.getElementById('menu').classList.add('hidden');
@@ -2067,6 +2081,15 @@ function checkIncomingChallenge() {
 // "sala" do servidor e fica mandando onde está. Não tem empurrão nem colisão
 // entre jogadores — é uma corrida pra ver quem passa mais fases.
 const WS_URL = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=capivara';
+// no online o mapa é 5x maior (4000 em vez de 800), então a tela acompanha você
+const MUNDO_PADRAO = 800;
+let camX = 0;
+function larguraDoMundo(){ return online ? MUNDO_PADRAO * 5 : MUNDO_PADRAO; }
+function atualizaCamera(){
+    if (!online || !players[0]) { camX = 0; return; }
+    const alvo = players[0].x + players[0].w / 2 - 400;
+    camX += (Math.max(0, Math.min(larguraDoMundo() - 800, alvo)) - camX) * 0.12;
+}
 let online = false, ws = null, enviaTimer = null;
 let outros = {};        // { id: {nome, x, y, facing, fase, quando} }
 
