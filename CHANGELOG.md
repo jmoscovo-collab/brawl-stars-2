@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v472 (2026-10-05)
+- Desenha e Adivinha: quem tá adivinhando pode gastar 🍄15 Cogu Coins numa DICA (revela uma letra da palavra)
+- Desenha e Adivinha: quem tá desenhando pode gastar 🍄40 Cogu Coins na PINTURA MÁGICA — o jogo pinta sozinho um desenho bonitinho da palavra (tem desenho certinho pra várias palavras conhecidas, tipo sol, gato, casa, coração, e um estilo parecido pras outras)
+
 ## v471 (2026-10-05)
 - Chuva de Meteoros: botões de seta ⬅️ ➡️ na tela pra mover no celular (além de encostar do lado)
 

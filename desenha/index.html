@@ -113,6 +113,7 @@ canvas#tela { width:100%; background:#fff; border-radius:14px; touch-action:none
             <div class="card" style="padding:10px;">
                 <b>🏆 Placar</b> <span id="metaHud" style="font-size:12px;color:#ffd93d;float:right;"></span>
                 <div id="placarLista"></div>
+                <div id="dicaBox"></div>
             </div>
             <div id="chat"></div>
             <div id="chatEntrada">
@@ -158,7 +159,11 @@ let mp = { ws:null, sala:'', souHost:false, meuNome:'', jogadores:[], pollConvit
 
 // estado do jogo (autoritativo no host)
 let G = { drawer:'', palavra:'', ordem:[], idx:0, tempoRodada:70, metaPontos:10, num:0, placar:{},
-    tempo:70, tickTimer:null, roundTimer:null, acertaram:[], inicioRodada:0, souDrawer:false, revelou:false, denunciado:false };
+    tempo:70, tickTimer:null, roundTimer:null, acertaram:[], inicioRodada:0, souDrawer:false, revelou:false, denunciado:false,
+    letrasReveladas:new Set(), pintouAuto:false };
+
+// preço em Cogu Coins das ajudas
+const PRECO_DICA = 15, PRECO_PINTURA = 40;
 
 function mpLogado(){ return !!localStorage.getItem('cg_usuario'); }
 
@@ -518,6 +523,8 @@ function aplicaRodada(m){
     G.souDrawer = (m.drawer === mp.meuNome);
     G.revelou = false;
     G.denunciado = false;
+    G.pintouAuto = false;
+    G.letrasReveladas = new Set();
     G.inicioRodada = Date.now();
     limpaCanvas();
     const ov = document.getElementById('denunciaOverlay'); if(ov) ov.style.display='none';
@@ -532,6 +539,7 @@ function aplicaRodada(m){
     document.getElementById('chatInput').placeholder = G.souDrawer ? 'Você está desenhando...' : 'Seu chute...';
     montaFerramentas();
     renderBotaoDenuncia();
+    renderBotaoDica();
     addChat(`🖍️ <span class="sistema">Rodada ${G.num} — ${G.souDrawer?'você está desenhando!':G.drawer+' desenhando'}</span>`);
     iniciaCronometro();
 }
@@ -577,7 +585,8 @@ function montaFerramentas(){
         + ferrs.map(([id,ic])=>`<button class="btn pequeno${ferramenta===id?' amarelo':''}" onclick="pickFerramenta('${id}')">${ic}</button>`).join('')
         + `<button class="btn pequeno" onclick="mudaGrossura()">➖ ${grossuraAtual}px</button>`
         + `<button class="btn pequeno" onclick="desfazer()">↩️ Desfazer</button>`
-        + `<button class="btn pequeno" style="background:#c00" onclick="limparTudo()">🗑️ Limpar</button>`;
+        + `<button class="btn pequeno" style="background:#c00" onclick="limparTudo()">🗑️ Limpar</button>`
+        + `<button class="btn pequeno" style="background:linear-gradient(135deg,#a855f7,#6366f1)" onclick="pintarAutomatico()" ${G.pintouAuto?'disabled':''}>🪄 Pintura mágica (-${PRECO_PINTURA}🍄)</button>`;
 }
 function pickCor(c){ corAtual=c; if(ferramenta==='borracha') ferramenta='pincel'; montaFerramentas(); }
 function pickFerramenta(t){ ferramenta=t; montaFerramentas(); }
@@ -703,6 +712,274 @@ function baldeTinta(sx,sy,corHex){
     }
     ctx.putImageData(img,0,0);
 }
+// ---------- PINTURA AUTOMÁTICA (gasta Cogu Coins, desenha algo meio bonito sozinho) ----------
+const ASPECT = tela.height/tela.width; // pra desenhar círculos redondos de verdade (canvas não é quadrado)
+function redondo(ry){ return ry*ASPECT; }
+function escolha(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function opLinha(pts,cor,gr){ return {t:'linha', pts:pts, cor:cor, gr:gr, first:true, last:true}; }
+function opReta(x0,y0,x1,y1,cor,gr){ return {t:'reta', x0,y0,x1,y1,cor,gr}; }
+function opRetangulo(x0,y0,x1,y1,cor,gr){ return {t:'retangulo', x0,y0,x1,y1,cor,gr}; }
+function opCirculo(cx,cy,rx,ry,cor,gr){ return {t:'circulo', x0:cx-rx, y0:cy-ry, x1:cx+rx, y1:cy+ry, cor, gr}; }
+function opPonto(x,y,cor,gr){ return {t:'ponto', x0:x, y0:y, x1:x, y1:y, cor, gr}; }
+function opBalde(x,y,cor){ return {t:'balde', x0:x, y0:y, x1:x, y1:y, cor, gr:1}; }
+
+// --- desenhos certinhos pra algumas palavras bem conhecidas ---
+function desenhoSol(){
+    const ops=[], r=0.14;
+    ops.push(opCirculo(0.5,0.5,redondo(r),r,'#000',4)); ops.push(opBalde(0.5,0.5,'#facc15'));
+    for(let i=0;i<8;i++){
+        const ang=i*Math.PI/4;
+        ops.push(opReta(0.5+Math.cos(ang)*redondo(r)*1.15, 0.5+Math.sin(ang)*r*1.15,
+                         0.5+Math.cos(ang)*redondo(r)*1.55, 0.5+Math.sin(ang)*r*1.55, '#f97316', 6));
+    }
+    return ops;
+}
+function desenhoLua(){
+    const ops=[], r=0.16;
+    ops.push(opCirculo(0.5,0.5,redondo(r),r,'#000',4)); ops.push(opBalde(0.5,0.5,'#facc15'));
+    ops.push(opCirculo(0.5+redondo(r)*0.55,0.5-r*0.15,redondo(r)*0.9,r*0.9,'#fff',2));
+    ops.push(opBalde(0.5+redondo(r)*0.55,0.5-r*0.15,'#fff'));
+    return ops;
+}
+function desenhoEstrela(){
+    const ops=[], cx=0.5, cy=0.5, rOut=0.18, rIn=0.08, pts=[];
+    for(let i=0;i<10;i++){
+        const r=i%2===0?rOut:rIn, ang=-Math.PI/2+i*Math.PI/5;
+        pts.push([cx+Math.cos(ang)*redondo(r), cy+Math.sin(ang)*r]);
+    }
+    pts.push(pts[0]);
+    ops.push(opLinha(pts,'#000',4)); ops.push(opBalde(cx,cy,'#facc15'));
+    return ops;
+}
+function desenhoCoracao(){
+    const ops=[], pts=[], N=40, sx=0.021*redondo(1), sy=0.016;
+    for(let i=0;i<=N;i++){
+        const t=Math.PI*2*i/N;
+        const x=16*Math.pow(Math.sin(t),3);
+        const y=-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));
+        pts.push([0.5+x*sx, 0.4+y*sy]);
+    }
+    ops.push(opLinha(pts,'#000',4)); ops.push(opBalde(0.5,0.42,'#ef4444'));
+    return ops;
+}
+function desenhoNuvem(){
+    const ops=[], partes=[[0.38,0.5,0.09],[0.5,0.44,0.12],[0.62,0.5,0.09],[0.46,0.54,0.08],[0.56,0.54,0.08]];
+    partes.forEach(([x,y,r])=>ops.push(opCirculo(x,y,redondo(r),r,'#000',3)));
+    partes.forEach(([x,y])=>ops.push(opBalde(x,y,'#e5e7eb')));
+    return ops;
+}
+function desenhoArvore(){
+    const ops=[];
+    ops.push(opRetangulo(0.46,0.55,0.54,0.8,'#000',3)); ops.push(opBalde(0.5,0.68,'#92400e'));
+    ops.push(opCirculo(0.5,0.4,redondo(0.2),0.2,'#000',4)); ops.push(opBalde(0.5,0.4,'#16a34a'));
+    return ops;
+}
+function desenhoFlor(){
+    const ops=[], cx=0.5, cy=0.35, rp=0.07, pontos=[];
+    for(let i=0;i<6;i++){ const ang=i*Math.PI/3; pontos.push([cx+Math.cos(ang)*redondo(0.1), cy+Math.sin(ang)*0.1]); }
+    pontos.forEach(([x,y])=>ops.push(opCirculo(x,y,redondo(rp),rp,'#000',3)));
+    pontos.forEach(([x,y])=>ops.push(opBalde(x,y,'#ec4899')));
+    ops.push(opCirculo(cx,cy,redondo(0.05),0.05,'#000',3)); ops.push(opBalde(cx,cy,'#facc15'));
+    ops.push(opReta(cx,cy+0.1,cx,0.75,'#16a34a',4));
+    return ops;
+}
+function desenhoCasa(){
+    const ops=[];
+    ops.push(opRetangulo(0.32,0.45,0.68,0.78,'#000',4)); ops.push(opBalde(0.5,0.6,'#fde68a'));
+    ops.push(opLinha([[0.28,0.45],[0.5,0.25],[0.72,0.45],[0.28,0.45]],'#000',4)); ops.push(opBalde(0.5,0.37,'#ef4444'));
+    ops.push(opRetangulo(0.46,0.6,0.54,0.78,'#000',3)); ops.push(opBalde(0.5,0.69,'#92400e'));
+    return ops;
+}
+function desenhoPeixe(){
+    const ops=[], ry=0.13, rx=redondo(ry)*1.4;
+    ops.push(opCirculo(0.45,0.5,rx,ry,'#000',4)); ops.push(opBalde(0.45,0.5,'#0ea5e9'));
+    ops.push(opLinha([[0.45+rx,0.5-ry*0.7],[0.45+rx+0.12,0.5],[0.45+rx,0.5+ry*0.7],[0.45+rx,0.5-ry*0.7]],'#000',4));
+    ops.push(opBalde(0.45+rx+0.04,0.5,'#0ea5e9'));
+    ops.push(opPonto(0.45-rx*0.5,0.46,'#000',6));
+    return ops;
+}
+function desenhoBola(){
+    const ops=[], r=0.16, cor=escolha(['#ef4444','#3b82f6','#22c55e','#f97316']);
+    ops.push(opCirculo(0.5,0.5,redondo(r),r,'#000',4)); ops.push(opBalde(0.5,0.5,cor));
+    ops.push(opReta(0.5-redondo(r),0.5,0.5+redondo(r),0.5,'#000',2));
+    ops.push(opReta(0.5,0.5-r,0.5,0.5+r,'#000',2));
+    return ops;
+}
+function desenhoPizza(){
+    const ops=[];
+    ops.push(opLinha([[0.5,0.3],[0.3,0.75],[0.7,0.75],[0.5,0.3]],'#000',4));
+    ops.push(opBalde(0.5,0.6,'#fde68a'));
+    ops.push(opPonto(0.45,0.5,'#b91c1c',10)); ops.push(opPonto(0.55,0.6,'#b91c1c',10)); ops.push(opPonto(0.5,0.68,'#b91c1c',10));
+    return ops;
+}
+function desenhoSorvete(){
+    const ops=[];
+    ops.push(opLinha([[0.44,0.5],[0.56,0.5],[0.5,0.78],[0.44,0.5]],'#000',3)); ops.push(opBalde(0.5,0.6,'#d97706'));
+    ops.push(opCirculo(0.5,0.4,redondo(0.11),0.11,'#000',4)); ops.push(opBalde(0.5,0.4,'#fce7f3'));
+    return ops;
+}
+function desenhoCarro(){
+    const ops=[], cor=escolha(['#ef4444','#3b82f6','#22c55e','#f97316']);
+    ops.push(opRetangulo(0.25,0.5,0.75,0.65,'#000',4)); ops.push(opBalde(0.5,0.57,cor));
+    ops.push(opLinha([[0.35,0.5],[0.4,0.38],[0.6,0.38],[0.65,0.5],[0.35,0.5]],'#000',3)); ops.push(opBalde(0.5,0.45,cor));
+    const ry=0.07, rx=redondo(ry);
+    ops.push(opCirculo(0.35,0.68,rx,ry,'#000',4)); ops.push(opBalde(0.35,0.68,'#1a1a1a'));
+    ops.push(opCirculo(0.65,0.68,rx,ry,'#000',4)); ops.push(opBalde(0.65,0.68,'#1a1a1a'));
+    return ops;
+}
+function desenhoGato(){
+    const ops=[], cor=escolha(['#f97316','#78716c','#facc15']);
+    const rCabY=0.13, rCabX=redondo(rCabY);
+    ops.push(opCirculo(0.5,0.45,rCabX,rCabY,'#000',4)); ops.push(opBalde(0.5,0.45,cor));
+    ops.push(opLinha([[0.5-rCabX*0.8,0.45-rCabY*0.7],[0.5-rCabX*1.1,0.45-rCabY*2],[0.5-rCabX*0.1,0.45-rCabY*1],[0.5-rCabX*0.8,0.45-rCabY*0.7]],'#000',3));
+    ops.push(opBalde(0.5-rCabX*0.6,0.45-rCabY*1.3,cor));
+    ops.push(opLinha([[0.5+rCabX*0.8,0.45-rCabY*0.7],[0.5+rCabX*1.1,0.45-rCabY*2],[0.5+rCabX*0.1,0.45-rCabY*1],[0.5+rCabX*0.8,0.45-rCabY*0.7]],'#000',3));
+    ops.push(opBalde(0.5+rCabX*0.6,0.45-rCabY*1.3,cor));
+    ops.push(opPonto(0.5-rCabX*0.35,0.45,'#000',6)); ops.push(opPonto(0.5+rCabX*0.35,0.45,'#000',6));
+    ops.push(opPonto(0.5,0.5,'#ec4899',5));
+    ops.push(opReta(0.5-rCabX*0.2,0.52,0.5-rCabX*1.3,0.5,'#000',2));
+    ops.push(opReta(0.5+rCabX*0.2,0.52,0.5+rCabX*1.3,0.5,'#000',2));
+    const ry2=0.15, rx2=redondo(ry2)*1.1;
+    ops.push(opCirculo(0.5,0.72,rx2,ry2,'#000',4)); ops.push(opBalde(0.5,0.72,cor));
+    return ops;
+}
+function desenhoBorboleta(){
+    const ops=[], cor=escolha(['#ec4899','#6366f1','#f97316','#22c55e']);
+    const ry=0.14, rx=redondo(ry);
+    ops.push(opCirculo(0.5-rx*0.9,0.42,rx,ry,'#000',3)); ops.push(opBalde(0.5-rx*0.9,0.42,cor));
+    ops.push(opCirculo(0.5+rx*0.9,0.42,rx,ry,'#000',3)); ops.push(opBalde(0.5+rx*0.9,0.42,cor));
+    ops.push(opCirculo(0.5-rx*0.7,0.6,rx*0.75,ry*0.75,'#000',3)); ops.push(opBalde(0.5-rx*0.7,0.6,cor));
+    ops.push(opCirculo(0.5+rx*0.7,0.6,rx*0.75,ry*0.75,'#000',3)); ops.push(opBalde(0.5+rx*0.7,0.6,cor));
+    ops.push(opReta(0.5,0.35,0.5,0.68,'#000',4));
+    return ops;
+}
+const DESENHOS_ESPECIFICOS = {
+    sol:desenhoSol, lua:desenhoLua, estrela:desenhoEstrela, coracao:desenhoCoracao, nuvem:desenhoNuvem,
+    arvore:desenhoArvore, flor:desenhoFlor, casa:desenhoCasa, peixe:desenhoPeixe, bola:desenhoBola,
+    pizza:desenhoPizza, sorvete:desenhoSorvete, carro:desenhoCarro, gato:desenhoGato, borboleta:desenhoBorboleta
+};
+
+// --- categorias (pra desenhar algo parecido quando não tem desenho certinho pra palavra) ---
+const CATEGORIA_ANIMAL = ["cachorro","cavalo","vaca","porco","galinha","pato","tubarão","baleia","leão","tigre",
+    "macaco","elefante","girafa","zebra","urso","coelho","rato","cobra","sapo","tartaruga","abelha","aranha",
+    "formiga","joaninha","pinguim","coruja","papagaio","caranguejo","polvo","cavalo-marinho","dinossauro","estrela do mar"];
+const CATEGORIA_NATUREZA = ["chuva","arco-íris","fogo","montanha","folha","rio","praia","mar","ilha","vulcão",
+    "planeta","foguete","estrela cadente","cometa"];
+const CATEGORIA_COMIDA = ["hambúrguer","cachorro-quente","batata frita","bolo","chocolate","pipoca","queijo","ovo",
+    "pão","biscoito","bala","pirulito","refrigerante","suco","leite","café","macarrão","arroz",
+    "banana","maçã","laranja","uva","morango","melancia","abacaxi","limão","pera","manga","sorvete de casquinha","pote de mel"];
+const CATEGORIA_VEICULO = ["ônibus","caminhão","moto","bicicleta","avião","helicóptero","barco","trem","navio"];
+const CATEGORIA_ROUPA = ["camiseta","calça","sapato","meia","chapéu","óculos","luva","cachecol","vestido","bota"];
+const CATEGORIA_PERSONAGEM = ["palhaço","rei","rainha","pirata","fantasma","bruxa","dragão","robô","super-herói","sereia","unicórnio"];
+const CATEGORIA_CORPO = ["pé","mão","olho","boca","nariz","orelha"];
+const CATEGORIA_BRINQUEDO = ["boneca","pipa","balão","dado","carta","tambor","violão","piano","bola de futebol"];
+
+function desenhoAnimal(){
+    const ops=[], cor=escolha(['#92400e','#f97316','#78716c','#facc15','#a855f7']);
+    const cx=0.5, cyCorpo=0.62, cyCabeca=0.37, rCorpoY=0.15, rCorpoX=redondo(rCorpoY)*1.5, rCabY=0.11, rCabX=redondo(rCabY);
+    ops.push(opCirculo(cx,cyCorpo,rCorpoX,rCorpoY,'#000',4)); ops.push(opBalde(cx,cyCorpo,cor));
+    ops.push(opCirculo(cx,cyCabeca,rCabX,rCabY,'#000',4)); ops.push(opBalde(cx,cyCabeca,cor));
+    ops.push(opLinha([[cx-rCabX*0.7,cyCabeca-rCabY*0.6],[cx-rCabX*0.95,cyCabeca-rCabY*1.8],[cx-rCabX*0.2,cyCabeca-rCabY*0.9],[cx-rCabX*0.7,cyCabeca-rCabY*0.6]],'#000',3));
+    ops.push(opLinha([[cx+rCabX*0.7,cyCabeca-rCabY*0.6],[cx+rCabX*0.95,cyCabeca-rCabY*1.8],[cx+rCabX*0.2,cyCabeca-rCabY*0.9],[cx+rCabX*0.7,cyCabeca-rCabY*0.6]],'#000',3));
+    ops.push(opPonto(cx-rCabX*0.35,cyCabeca,'#000',8)); ops.push(opPonto(cx+rCabX*0.35,cyCabeca,'#000',8));
+    [-rCorpoX*0.6,-rCorpoX*0.2,rCorpoX*0.2,rCorpoX*0.6].forEach(dx=>
+        ops.push(opReta(cx+dx,cyCorpo+rCorpoY*0.9,cx+dx,cyCorpo+rCorpoY*1.6,'#000',5)));
+    ops.push(opLinha([[cx+rCorpoX*0.95,cyCorpo],[cx+rCorpoX*1.25,cyCorpo-0.05],[cx+rCorpoX*1.3,cyCorpo+0.08]],cor,5));
+    return ops;
+}
+function desenhoVeiculo(){
+    const ops=[], cor=escolha(['#e11d48','#0ea5e9','#22c55e','#f97316','#facc15']);
+    ops.push(opRetangulo(0.25,0.45,0.75,0.62,'#000',4)); ops.push(opBalde(0.5,0.53,cor));
+    ops.push(opRetangulo(0.42,0.33,0.62,0.45,'#000',4)); ops.push(opBalde(0.52,0.39,cor));
+    const ry=0.07, rx=redondo(ry);
+    ops.push(opCirculo(0.35,0.66,rx,ry,'#000',4)); ops.push(opBalde(0.35,0.66,'#1a1a1a'));
+    ops.push(opCirculo(0.65,0.66,rx,ry,'#000',4)); ops.push(opBalde(0.65,0.66,'#1a1a1a'));
+    return ops;
+}
+function desenhoComida(){
+    const ops=[], cor=escolha(['#ef4444','#f97316','#facc15','#84cc16','#eab308']), ry=0.16, rx=redondo(ry);
+    ops.push(opCirculo(0.5,0.52,rx,ry,'#000',4)); ops.push(opBalde(0.5,0.52,cor));
+    ops.push(opLinha([[0.5,0.52-ry],[0.46,0.52-ry-0.07],[0.5,0.52-ry-0.03]],'#16a34a',4));
+    return ops;
+}
+function desenhoRoupa(){
+    const ops=[], cor=escolha(['#ef4444','#3b82f6','#22c55e','#f97316','#a855f7']);
+    const pts=[[0.38,0.3],[0.46,0.22],[0.54,0.22],[0.62,0.3],[0.58,0.38],[0.58,0.65],[0.42,0.65],[0.42,0.38],[0.38,0.3]];
+    ops.push(opLinha(pts,'#000',4)); ops.push(opBalde(0.5,0.5,cor));
+    return ops;
+}
+function desenhoPersonagem(){
+    const ops=[], cor=escolha(['#f97316','#3b82f6','#a855f7','#ec4899','#22c55e']);
+    const ry=0.09, rx=redondo(ry);
+    ops.push(opCirculo(0.5,0.28,rx,ry,'#000',4)); ops.push(opBalde(0.5,0.28,'#ffe0bd'));
+    ops.push(opPonto(0.5-rx*0.3,0.28,'#000',6)); ops.push(opPonto(0.5+rx*0.3,0.28,'#000',6));
+    ops.push(opRetangulo(0.4,0.37,0.6,0.62,'#000',4)); ops.push(opBalde(0.5,0.5,cor));
+    ops.push(opReta(0.4,0.42,0.28,0.56,'#000',4)); ops.push(opReta(0.6,0.42,0.72,0.56,'#000',4));
+    ops.push(opReta(0.45,0.62,0.4,0.82,'#000',4)); ops.push(opReta(0.55,0.62,0.6,0.82,'#000',4));
+    return ops;
+}
+function desenhoCorpo(){
+    const ops=[], ry=0.2, rx=redondo(ry);
+    ops.push(opCirculo(0.5,0.5,rx,ry,'#000',4)); ops.push(opBalde(0.5,0.5,'#ffe0bd'));
+    ops.push(opPonto(0.5-rx*0.35,0.42,'#000',10)); ops.push(opPonto(0.5+rx*0.35,0.42,'#000',10));
+    ops.push(opLinha([[0.47,0.52],[0.5,0.58],[0.53,0.52]],'#000',3));
+    ops.push(opLinha([[0.4,0.65],[0.5,0.7],[0.6,0.65]],'#000',4));
+    return ops;
+}
+function desenhoBrinquedo(){
+    const ops=[], cor=escolha(['#ef4444','#3b82f6','#f97316','#a855f7','#22c55e']), ry=0.15, rx=redondo(ry);
+    ops.push(opCirculo(0.5,0.4,rx,ry,'#000',4)); ops.push(opBalde(0.5,0.4,cor));
+    ops.push(opReta(0.5,0.55,0.5,0.8,'#000',2));
+    return ops;
+}
+function desenhoNatureza(){
+    const ops=[];
+    ops.push(opCirculo(0.78,0.22,redondo(0.08),0.08,'#000',3)); ops.push(opBalde(0.78,0.22,'#facc15'));
+    ops.push(opLinha([[0.1,0.9],[0.1,0.75],[0.4,0.35],[0.6,0.6],[0.8,0.3],[0.9,0.75],[0.9,0.9],[0.1,0.9]],'#000',4));
+    // várias sementes na base pra garantir que o verde preenche tudo mesmo com a serrilhada da linha diagonal
+    [0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.48,0.52,0.55,0.6,0.65,0.7,0.75,0.8,0.85].forEach(x=>ops.push(opBalde(x,0.87,'#16a34a')));
+    return ops;
+}
+function desenhoObjeto(){
+    const ops=[], cor=escolha(['#6366f1','#0ea5e9','#a855f7','#f97316','#22c55e']);
+    ops.push(opRetangulo(0.32,0.32,0.68,0.68,'#000',4)); ops.push(opBalde(0.5,0.5,cor));
+    ops.push(opReta(0.5,0.32,0.5,0.68,'#fff',4)); ops.push(opReta(0.32,0.5,0.68,0.5,'#fff',4));
+    return ops;
+}
+const GENERICOS = { animal:desenhoAnimal, veiculo:desenhoVeiculo, comida:desenhoComida, roupa:desenhoRoupa,
+    personagem:desenhoPersonagem, corpo:desenhoCorpo, brinquedo:desenhoBrinquedo, natureza:desenhoNatureza, objeto:desenhoObjeto };
+function categoriaDe(p){
+    if(CATEGORIA_ANIMAL.includes(p)) return 'animal';
+    if(CATEGORIA_VEICULO.includes(p)) return 'veiculo';
+    if(CATEGORIA_COMIDA.includes(p)) return 'comida';
+    if(CATEGORIA_ROUPA.includes(p)) return 'roupa';
+    if(CATEGORIA_PERSONAGEM.includes(p)) return 'personagem';
+    if(CATEGORIA_CORPO.includes(p)) return 'corpo';
+    if(CATEGORIA_BRINQUEDO.includes(p)) return 'brinquedo';
+    if(CATEGORIA_NATUREZA.includes(p)) return 'natureza';
+    return 'objeto';
+}
+function geraDesenhoAutomatico(palavra){
+    const chave = normaliza(palavra);
+    if(DESENHOS_ESPECIFICOS[chave]) return DESENHOS_ESPECIFICOS[chave]();
+    return (GENERICOS[categoriaDe(palavra)]||desenhoObjeto)();
+}
+function pintarAutomatico(){
+    if(!G.souDrawer || G.pintouAuto || !window.CoguCoins) return;
+    if(!CoguCoins.gasta(PRECO_PINTURA)){
+        addChat(`😕 <span class="sistema">Faltam Cogu Coins pra pintura mágica (precisa 🍄${PRECO_PINTURA}).</span>`);
+        return;
+    }
+    G.pintouAuto = true;
+    historico = [];
+    limpaCanvas();
+    const ops = geraDesenhoAutomatico(G.palavra);
+    ops.forEach(op=>{ aplicaOp(op,true); registra(op); });
+    mpEnvia({t:'redraw', ops:historico});
+    montaFerramentas();
+    addChat(`🪄 <span class="sistema">Pintura mágica usada! (-${PRECO_PINTURA}🍄)</span>`);
+}
+
 tela.addEventListener('mousedown', inicioDesenho);
 tela.addEventListener('mousemove', moveDesenho);
 window.addEventListener('mouseup', fimDesenho);
@@ -785,7 +1062,36 @@ function voltarLobby(){ mpFechaWs(); pararTimers(); mp.comecou=false; mp.emJogo=
 
 // ---------- UTIL ----------
 function normaliza(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,''); }
-function mascara(p){ return p.split('').map(c=> c===' '?'  ':(/[a-zA-Zà-ú]/.test(c)?'_':c)).join(' '); }
+function mascara(p){
+    return p.split('').map((c,i)=>{
+        if(c===' ') return '  ';
+        if(!/[a-zA-Zà-ú]/.test(c)) return c;
+        return G.letrasReveladas.has(i) ? c.toUpperCase() : '_';
+    }).join(' ');
+}
+
+// ---------- DICA (gasta Cogu Coins pra revelar uma letra) ----------
+function renderBotaoDica(){
+    const box = document.getElementById('dicaBox'); if(!box) return;
+    if(G.souDrawer || G.revelou){ box.innerHTML=''; return; }
+    box.innerHTML = `<button class="btn pequeno amarelo" style="width:100%;margin-top:6px;" onclick="pedirDica()">💡 Dica (-${PRECO_DICA}🍄)</button>`;
+}
+function pedirDica(){
+    if(G.souDrawer || G.revelou || !window.CoguCoins) return;
+    const faltam = G.palavra.split('').map((c,i)=>({c,i})).filter(o=>/[a-zA-Zà-ú]/.test(o.c) && !G.letrasReveladas.has(o.i));
+    if(faltam.length<=1){
+        addChat('💡 <span class="sistema">Já tem quase tudo revelado, só falta você adivinhar! 😄</span>');
+        return;
+    }
+    if(!CoguCoins.gasta(PRECO_DICA)){
+        addChat(`😕 <span class="sistema">Faltam Cogu Coins pra dica (precisa 🍄${PRECO_DICA}).</span>`);
+        return;
+    }
+    const sorteada = faltam[Math.floor(Math.random()*faltam.length)];
+    G.letrasReveladas.add(sorteada.i);
+    document.getElementById('palavraHud').textContent = mascara(G.palavra);
+    addChat(`💡 <span class="sistema">Dica usada! Uma letra foi revelada. (-${PRECO_DICA}🍄)</span>`);
+}
 
 // ---------- SONS (WebAudio) ----------
 let actx=null;
