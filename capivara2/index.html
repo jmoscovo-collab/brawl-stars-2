@@ -136,10 +136,12 @@ h2{font-size:21px;color:#c08bff;text-align:center}
     <button class="aba on" data-lj="vitrine">🛒 Vitrine</button>
     <button class="aba" data-lj="caixas">📦 Caixas</button>
     <button class="aba" data-lj="skins">🦫 Minhas coisas</button>
+    <button class="aba" data-lj="troca" style="border-color:#ffcc33;color:#ffcc33">🍄 Trocar</button>
   </div>
 
   <div id="boxVitrine" style="width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center;gap:10px">
-    <div class="sub" style="font-size:13px">🕐 A vitrine troca em <b id="relogio">—</b></div>
+    <div class="sub" style="font-size:13px">🕐 A vitrine troca em <b id="relogio">—</b>
+      <br><small style="opacity:.7">só 2 itens entram em promoção por hora 🔥</small></div>
     <div class="grid rolar" id="gridVitrine"></div>
   </div>
 
@@ -160,6 +162,14 @@ h2{font-size:21px;color:#c08bff;text-align:center}
     <div class="sub" style="font-size:12px" id="progresso"></div>
     <div class="grid rolar" id="gridSkins"></div>
   </div>
+  <div id="boxTroca" style="width:100%;max-width:440px;display:none;flex-direction:column;align-items:center;gap:10px">
+    <div class="sub">As <b>Cogu Coins</b> 🍄 valem no site inteiro. Aqui você troca elas por
+    <b>moedas desse jogo</b> 🪙 pra comprar skins e caixas.</div>
+    <div class="chip" style="font-size:15px;border-color:#ffcc33;color:#ffcc33" id="trocaSaldo">🍄 0</div>
+    <div class="lista" id="listaTroca"></div>
+    <div class="sub" style="font-size:12px;opacity:.6">Só vai num sentido — não dá pra trocar de volta.</div>
+  </div>
+
   <button class="bt cinza" id="btLojaOk">Voltar</button>
 </div>
 
@@ -335,6 +345,7 @@ function rngDaSemente(n){
   };
 }
 function horaAtual(){ return Math.floor(Date.now() / 3600000); }
+var QUANTAS_PROMO = 2;    // só 2 das 6 ficam em promoção
 function vitrine(){
   var r = rngDaSemente(horaAtual());
   var todos = SKINS.map(function(sk){ return { tipo:'skin', it:sk }; })
@@ -348,8 +359,20 @@ function vitrine(){
       var e = todos[k];
       var base = RAR_SKIN[e.it.rar].preco;
       if(e.tipo === 'ace') base = Math.round(base * 0.6);
-      var desc = [0, 10, 15, 20, 25, 30, 40][Math.floor(r()*7)];
-      saiu.push({ tipo:e.tipo, it:e.it, cheio:base, preco: Math.max(10, Math.round(base*(100-desc)/100)), desc:desc });
+      saiu.push({ tipo:e.tipo, it:e.it, cheio:base, preco:base, desc:0 });
+      break;
+    }
+  }
+  // agora sim: sorteia só duas pra entrar em promoção, e com desconto bom
+  var quais = [];
+  for(var p=0; p<QUANTAS_PROMO && quais.length<saiu.length; p++){
+    for(var tt=0; tt<40; tt++){
+      var idx = Math.floor(r() * saiu.length);
+      if(quais.indexOf(idx) >= 0) continue;
+      quais.push(idx);
+      var d = [30, 40, 50][Math.floor(r()*3)];
+      saiu[idx].desc = d;
+      saiu[idx].preco = Math.max(10, Math.round(saiu[idx].cheio * (100-d)/100));
       break;
     }
   }
@@ -926,8 +949,12 @@ function pintaVitrine(){
     var pr = document.createElement('span');
     pr.style.color = r.cor;
     if(tem) pr.textContent = '✓ já é sua';
-    else if(e.desc) pr.innerHTML = '<s style="opacity:.55">' + e.cheio.toLocaleString('pt-BR') + '</s> 🪙 ' +
-      e.preco.toLocaleString('pt-BR') + '<br><b style="color:#6cff9f">-' + e.desc + '%</b>';
+    else if(e.desc){
+      d.style.boxShadow = '0 0 16px rgba(108,255,159,.55)';
+      pr.innerHTML = '<b style="color:#6cff9f">🔥 -' + e.desc + '%</b><br>' +
+        '<s style="opacity:.5">' + e.cheio.toLocaleString('pt-BR') + '</s> 🪙 ' +
+        e.preco.toLocaleString('pt-BR');
+    }
     else pr.textContent = '🪙 ' + e.preco.toLocaleString('pt-BR');
     d.append(b, pr);
     d.onclick = function(){
@@ -1088,6 +1115,50 @@ function abre_caixa(cx){
   }, 4350);
 }
 
+// ---------- trocar Cogu Coins por moedas do jogo ----------
+var TROCAS = [
+  { cogu:5,   moedas:150,   ic:'🪙' },
+  { cogu:15,  moedas:520,   ic:'💰' },
+  { cogu:40,  moedas:1600,  ic:'💵' },
+  { cogu:100, moedas:4600,  ic:'💎' },
+  { cogu:250, moedas:14000, ic:'🏆' }
+];
+function pintaTroca(){
+  var CC = window.CoguCoins;
+  el('trocaSaldo').textContent = 'Você tem 🍄 ' + (CC ? CC.texto() : '0');
+  var L = el('listaTroca'); L.textContent = '';
+  if(!CC){
+    var v = document.createElement('div'); v.className = 'sub';
+    v.textContent = 'Não consegui carregar suas Cogu Coins. Tente recarregar a página.';
+    L.appendChild(v); return;
+  }
+  TROCAS.forEach(function(p){
+    var pode = CC.saldo() >= p.cogu;
+    var d = document.createElement('div'); d.className = 'it';
+    var ic = document.createElement('div'); ic.className='ic'; ic.textContent = p.ic;
+    var inf = document.createElement('div'); inf.className='in';
+    var b = document.createElement('b'); b.textContent = p.moedas.toLocaleString('pt-BR') + ' moedas';
+    var s1 = document.createElement('small');
+    s1.textContent = 'Troca ' + p.cogu + ' Cogu Coins por ' + p.moedas.toLocaleString('pt-BR') + ' 🪙.';
+    var s2 = document.createElement('small');
+    s2.textContent = 'Dá ' + Math.round(p.moedas/p.cogu) + ' 🪙 por cada 🍄';
+    inf.append(b, s1, s2);
+    var bt = document.createElement('button');
+    bt.textContent = '🍄 ' + p.cogu;
+    bt.disabled = !pode;
+    bt.onclick = function(){
+      if(!CC.gasta(p.cogu)) return aviso('Faltam 🍄 ' + (p.cogu - CC.saldo()) + ' Cogu Coins!');
+      MOEDAS += p.moedas;
+      salvaLoja();
+      pintaLojaMoedas(); pintaTroca(); pintaVitrine(); pintaCaixas(); pintaMinhas();
+      snd.inter();
+      aviso('🎉 +' + p.moedas.toLocaleString('pt-BR') + ' moedas!');
+    };
+    d.append(ic, inf, bt);
+    L.appendChild(d);
+  });
+}
+
 // ---------- abas ----------
 var abaLoja = 'vitrine', relogioTimer = null;
 function trocaAba(qual){
@@ -1095,6 +1166,8 @@ function trocaAba(qual){
   el('boxVitrine').style.display = qual==='vitrine' ? 'flex' : 'none';
   el('boxCaixas').style.display  = qual==='caixas'  ? 'flex' : 'none';
   el('boxSkins').style.display   = qual==='skins'   ? 'flex' : 'none';
+  el('boxTroca').style.display   = qual==='troca'   ? 'flex' : 'none';
+  if(qual === 'troca') pintaTroca();
 }
 Array.prototype.forEach.call(document.querySelectorAll('.aba[data-lj]'), function(b){
   b.onclick = function(){
@@ -1117,7 +1190,7 @@ Array.prototype.forEach.call(document.querySelectorAll('.aba[data-mn]'), functio
 
 var ultimaHora = horaAtual();
 function abreLoja(){
-  pintaLojaMoedas(); pintaVitrine(); pintaCaixas(); pintaMinhas();
+  pintaLojaMoedas(); pintaVitrine(); pintaCaixas(); pintaMinhas(); pintaTroca();
   trocaAba(abaLoja);
   abre('tLoja');
   clearInterval(relogioTimer);
