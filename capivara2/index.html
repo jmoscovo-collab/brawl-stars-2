@@ -167,6 +167,16 @@ h2{font-size:21px;color:#c08bff;text-align:center}
     <b>moedas desse jogo</b> 🪙 pra comprar skins e caixas.</div>
     <div class="chip" style="font-size:15px;border-color:#ffcc33;color:#ffcc33" id="trocaSaldo">🍄 0</div>
     <div class="lista" id="listaTroca"></div>
+    <div style="width:100%;background:rgba(255,204,51,.09);border:2px solid rgba(255,204,51,.45);
+         border-radius:16px;padding:13px;display:flex;flex-direction:column;gap:9px">
+      <b style="font-size:14px;color:#ffcc33">✏️ Trocar do seu jeito</b>
+      <input id="trocaLivre" type="number" inputmode="numeric" min="1" max="1000000"
+             placeholder="Quantas Cogu Coins? (1 a 1.000.000)" autocomplete="off"
+             style="width:100%;padding:12px 14px;font-size:16px;border-radius:13px;border:2px solid #6a4a2a;
+                    background:rgba(20,12,6,.92);color:#fff;outline:none;font-family:inherit;text-align:center">
+      <div class="sub" id="trocaPreview" style="font-size:13px;margin:0">Escreva quanto você quer trocar.</div>
+      <button class="bt" id="btTrocaLivre" style="min-width:0;width:100%" disabled>Trocar</button>
+    </div>
     <div class="sub" style="font-size:12px;opacity:.6">Só vai num sentido — não dá pra trocar de volta.</div>
   </div>
 
@@ -1123,6 +1133,49 @@ var TROCAS = [
   { cogu:100, moedas:4600,  ic:'💎' },
   { cogu:250, moedas:14000, ic:'🏆' }
 ];
+// quantas moedas valem N Cogu Coins — segue exatamente a mesma escala dos pacotes
+function moedasPor(n){
+  if(!(n > 0)) return 0;
+  var tab = TROCAS;
+  if(n <= tab[0].cogu) return Math.round(n * (tab[0].moedas / tab[0].cogu));
+  var ultimo = tab[tab.length-1];
+  if(n >= ultimo.cogu) return Math.round(n * (ultimo.moedas / ultimo.cogu));
+  for(var i=0;i<tab.length-1;i++){
+    var a = tab[i], b = tab[i+1];
+    if(n >= a.cogu && n <= b.cogu){
+      var ta = a.moedas/a.cogu, tb = b.moedas/b.cogu;
+      var f = (n - a.cogu) / (b.cogu - a.cogu);
+      return Math.round(n * (ta + (tb-ta)*f));
+    }
+  }
+  return Math.round(n * (tab[0].moedas / tab[0].cogu));
+}
+
+var MAX_TROCA = 1000000;
+function atualizaTrocaLivre(){
+  var CC = window.CoguCoins;
+  var inp = el('trocaLivre'), bt = el('btTrocaLivre'), pv = el('trocaPreview');
+  if(!inp) return;
+  var n = Math.floor(Number(inp.value));
+  if(!inp.value.trim()){
+    pv.textContent = 'Escreva quanto você quer trocar.';
+    bt.disabled = true; bt.textContent = 'Trocar';
+    return;
+  }
+  if(!isFinite(n) || n < 1 || n > MAX_TROCA){
+    pv.textContent = 'Escreva um número de 1 até 1.000.000.';
+    bt.disabled = true; bt.textContent = 'Trocar';
+    return;
+  }
+  var m = moedasPor(n);
+  pv.innerHTML = '🍄 ' + n.toLocaleString('pt-BR') + ' vira <b style="color:#ffcc33">🪙 ' +
+    m.toLocaleString('pt-BR') + '</b><br><small style="opacity:.7">' +
+    Math.round(m/n) + ' 🪙 por cada 🍄</small>';
+  var tem = CC && CC.saldo() >= n;
+  bt.disabled = !tem;
+  bt.textContent = tem ? ('Trocar por 🪙 ' + m.toLocaleString('pt-BR')) : 'Você não tem tudo isso 😅';
+}
+
 function pintaTroca(){
   var CC = window.CoguCoins;
   el('trocaSaldo').textContent = 'Você tem 🍄 ' + (CC ? CC.texto() : '0');
@@ -1157,7 +1210,24 @@ function pintaTroca(){
     d.append(ic, inf, bt);
     L.appendChild(d);
   });
+  atualizaTrocaLivre();
 }
+
+el('trocaLivre').addEventListener('input', atualizaTrocaLivre);
+el('btTrocaLivre').onclick = function(){
+  var CC = window.CoguCoins;
+  var inp = el('trocaLivre');
+  var n = Math.floor(Number(inp.value));
+  if(!CC || !isFinite(n) || n < 1 || n > MAX_TROCA) return;
+  var m = moedasPor(n);
+  if(!CC.gasta(n)) return aviso('Faltam 🍄 ' + (n - CC.saldo()).toLocaleString('pt-BR') + ' Cogu Coins!');
+  MOEDAS += m;
+  inp.value = '';
+  salvaLoja();
+  pintaLojaMoedas(); pintaTroca(); pintaVitrine(); pintaCaixas(); pintaMinhas();
+  snd.inter();
+  aviso('🎉 +' + m.toLocaleString('pt-BR') + ' moedas!');
+};
 
 // ---------- abas ----------
 var abaLoja = 'vitrine', relogioTimer = null;
