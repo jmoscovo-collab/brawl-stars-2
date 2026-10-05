@@ -9,7 +9,7 @@
   window.__cgMusica = true;
 
   var LS = 'cg_musica';            // 'on' | 'off'
-  var VOL = 0.055;                 // bem baixinho, é música de fundo
+  var VOL = 0.17;                  // o Davi pediu bem mais alta (era 0.055)
   var ac = null, master = null, timer = null, tocando = false;
 
   // pentatônica maior de Dó, 2 oitavas (sem nota errada)

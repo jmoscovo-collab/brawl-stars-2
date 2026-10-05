@@ -12,7 +12,7 @@
 window.cgMusiquinha = function (op) {
   op = op || {};
   var LS = op.chave || 'cg_musiquinha';
-  var VOL = (typeof op.volume === 'number') ? op.volume : 0.05;
+  var VOL = (typeof op.volume === 'number') ? op.volume : 0.16;   // bem mais alta (era 0.05)
   var intensidade = op.intensidade || function () { return 0; };
   var baixo = op.botaoEmBaixo || 112;
 
