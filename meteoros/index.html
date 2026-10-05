@@ -69,10 +69,9 @@ input:focus{border-color:#ff8a3d}
   <div class="sub">O céu está caindo. Corra pros lados e <b>sobreviva o máximo que conseguir</b>.<br>
   A sombra no chão avisa onde o meteoro vai bater — mas você tem pouco tempo.</div>
 
-  <div class="sub" style="margin-top:4px">Seu nome no top global:</div>
-  <input id="inNome" maxlength="20" placeholder="Digite seu nome..." autocomplete="off">
-
   <button class="bt" id="btJogar">▶ COMEÇAR</button>
+  <button class="bt" id="btSala" style="background:linear-gradient(135deg,#6bd5ff,#1a6fa8)">🌐 SALA ONLINE</button>
+  <button class="bt cinza" id="btLoja">🛒 LOJA</button>
   <button class="bt cinza" id="btComo">❓ Como joga</button>
 
   <h2 style="margin-top:14px">🌍 TOP GLOBAL</h2>
@@ -98,6 +97,32 @@ input:focus{border-color:#ff8a3d}
     vai pro top global automaticamente.
   </div>
   <button class="bt" id="btComoOk">Entendi!</button>
+</div>
+
+<!-- ===================== LOJA ===================== -->
+<div class="tela off" id="tLoja">
+  <h2>🛒 LOJA</h2>
+  <div class="chip" id="lojaMoedas" style="background:rgba(14,10,20,.9);border:2px solid #ffcc33;color:#ffcc33;border-radius:16px;padding:7px 16px;font-weight:bold;font-size:16px">🪙 0</div>
+  <div class="sub" style="font-size:12.5px">Você ganha <b>1 moeda por segundo</b> que fica vivo.</div>
+  <div class="abas">
+    <button class="aba on" data-lj="skins">🧍 Skins</button>
+    <button class="aba" data-lj="hab">⚡ Habilidades</button>
+    <button class="aba" data-lj="troca">🍄 Trocar</button>
+  </div>
+  <div class="top rolar" id="listaLoja"></div>
+  <button class="bt cinza" id="btLojaOk">Voltar</button>
+</div>
+
+<!-- ===================== SALA ONLINE ===================== -->
+<div class="tela off" id="tSala">
+  <div style="font-size:54px">🌐</div>
+  <h2>SALA ONLINE</h2>
+  <div class="sub">Uma rodada nova começa <b>a cada 1 minuto</b> e <b>todo mundo enfrenta exatamente a mesma chuva de meteoros</b>.
+  Quem aguentar mais tempo ganha!</div>
+  <div style="font-size:54px;font-weight:bold;color:#6bd5ff;font-variant-numeric:tabular-nums" id="contagem">--</div>
+  <div class="sub" id="salaStatus">conectando...</div>
+  <div class="top" id="salaGente"></div>
+  <button class="bt cinza" id="btSalaSair">Voltar</button>
 </div>
 
 <!-- ===================== MORREU ===================== -->
@@ -189,6 +214,7 @@ var estrelas = [], predios = [];
 
 var G = 2100;                  // gravidade dos meteoros
 var VEL = 300;                 // velocidade do humano
+var escudoVivo = false;        // 🛡️ aguenta um meteoro na partida
 
 function montaCenario(){
   estrelas = [];
@@ -214,6 +240,7 @@ function comeca(){
   shake = 0; clarao = 0;
   proxMeteoro = 0.9;
   hero = { x: W/2, vx: 0, passo: 0, olhando: 1, vivo: true };
+  escudoVivo = temHab('escudo');
   el('relogio').style.display = 'block';
   el('toque').classList.toggle('on', ehToque);
   pintaRelogio();
@@ -230,9 +257,11 @@ function dificuldade(){
   var d = Math.min(tempoVivo / 75, 1);     // chega no talo com 1min15
   return {
     intervalo: 1.05 - d*0.82,              // de 1,05s até 0,23s entre meteoros
-    aviso: 1.25 - d*0.72,                  // de 1,25s de sombra até 0,53s
+    // 👁️ Olho Treinado: 25% mais tempo de sombra
+    aviso: (1.25 - d*0.72) * (temHab('aviso') ? 1.25 : 1),
     raio: 26 + d*26,
-    velQueda: 1 + d*0.9
+    // ⏳ Câmera Lenta: meteoro cai 15% mais devagar
+    velQueda: (1 + d*0.9) * (temHab('lento') ? 0.85 : 1)
   };
 }
 
@@ -293,7 +322,18 @@ function explode(m){
   }
 
   // pegou em você?
-  if(hero && hero.vivo && Math.abs(hero.x - m.x) < m.raioExplosao + 9) morreu();
+  if(hero && hero.vivo && Math.abs(hero.x - m.x) < m.raioExplosao + 9){
+    if(escudoVivo){
+      escudoVivo = false;              // o escudo some depois de salvar uma vez
+      clarao = Math.max(clarao, 0.7);
+      tom(1200, 0.3, 'triangle', 0.12);
+      for(var e=0;e<28;e++){
+        var ang2 = Math.random()*Math.PI*2;
+        parts.push({ x:hero.x, y:CHAO-24, vx:Math.cos(ang2)*260, vy:Math.sin(ang2)*260,
+          vida:0.7, r:2, cor:'#6bd5ff' });
+      }
+    } else morreu();
+  }
 }
 
 function morreu(){
@@ -313,9 +353,12 @@ function morreu(){
   el('fimEmo').textContent = novo ? '🏆' : '💀';
   el('fimTit').textContent = novo ? 'NOVO RECORDE!' : 'Você foi atingido!';
   el('fimTempo').textContent = tempoTxt(tempoVivo) + 's';
-  el('fimTxt').textContent = novo ? 'Mandando pro top global...' :
-    'Seu recorde continua ' + tempoTxt(RECORDE) + 's. Mandando pro top global...';
+  // 1 moeda por segundo vivo (o dobro com o ímã)
+  var ganhou = Math.floor(tempoVivo) * (temHab('ima') ? 2 : 1);
+  if(ganhou > 0){ MOEDAS += ganhou; salvaLoja(); }
+  el('fimTxt').textContent = '🪙 +' + ganhou + ' moedas! Mandando pro top global...';
   abre('tFim');
+  if(online) el('fimTit').textContent = 'Acabou pra você nessa rodada!';
   mandaPontuacao(tempoVivo, function(pos){
     el('fimTxt').textContent = pos
       ? ('🌍 Você está em ' + pos + 'º lugar no mundo!')
@@ -363,7 +406,7 @@ function passo(dt){
     var dx = toqueX - hero.x;
     if(Math.abs(dx) > 12) dir = dx > 0 ? 1 : -1;
   }
-  hero.vx += (dir*VEL - hero.vx) * Math.min(1, dt*14);
+  hero.vx += (dir*VEL*(temHab('tenis') ? 1.2 : 1) - hero.vx) * Math.min(1, dt*14);
   hero.x = clamp(hero.x + hero.vx*dt, 18, W-18);
   if(dir) hero.olhando = dir;
   hero.passo += Math.abs(hero.vx) * dt * 0.05;
@@ -395,8 +438,11 @@ function passo(dt){
 }
 
 // ====================== DESENHO ======================
-function desenhaHumano(x, y, olhando, passo, vx){
+function desenhaHumano(x, y, olhando, passo, vx, skinForcada, alpha){
+  var sk = skinForcada || achaSkin(SKIN_EQ);
   ctx.save();
+  if(alpha !== undefined) ctx.globalAlpha = alpha;
+  if(sk.brilha){ ctx.shadowColor = sk.brilha; ctx.shadowBlur = 14; }
   ctx.translate(x, y);
   ctx.scale(olhando, 1);
 
@@ -413,7 +459,7 @@ function desenhaHumano(x, y, olhando, passo, vx){
   ctx.restore();
 
   // pernas
-  ctx.strokeStyle = '#2f3a52'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.strokeStyle = sk.calca; ctx.lineWidth = 5; ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(0, -ALT*0.42);
   ctx.lineTo(osc*7, -2);
@@ -429,7 +475,7 @@ function desenhaHumano(x, y, olhando, passo, vx){
 
   // tronco (camiseta)
   var g = ctx.createLinearGradient(-8, -ALT*0.85, 8, -ALT*0.4);
-  g.addColorStop(0, '#4f8fd6'); g.addColorStop(1, '#2f5f9e');
+  g.addColorStop(0, sk.c1); g.addColorStop(1, sk.c2);
   ctx.fillStyle = g;
   ctx.beginPath();
   ctx.moveTo(-8, -ALT*0.42);
@@ -439,25 +485,46 @@ function desenhaHumano(x, y, olhando, passo, vx){
   ctx.closePath(); ctx.fill();
 
   // braços
-  ctx.strokeStyle = '#e8b48c'; ctx.lineWidth = 4.5;
+  ctx.strokeStyle = sk.pele; ctx.lineWidth = 4.5;
   ctx.beginPath();
   ctx.moveTo(-7, -ALT*0.76); ctx.lineTo(-7 - osc*9, -ALT*0.52);
   ctx.moveTo(7, -ALT*0.76);  ctx.lineTo(7 + osc*9, -ALT*0.52);
   ctx.stroke();
 
   // pescoço + cabeça
-  ctx.strokeStyle = '#e8b48c'; ctx.lineWidth = 5;
+  ctx.strokeStyle = sk.pele; ctx.lineWidth = 5;
   ctx.beginPath(); ctx.moveTo(0, -ALT*0.80); ctx.lineTo(0, -ALT*0.86); ctx.stroke();
-  ctx.fillStyle = '#efc19a';
+  ctx.fillStyle = sk.pele;
   ctx.beginPath(); ctx.arc(0, -ALT*0.95, 8, 0, 7); ctx.fill();
   // cabelo
-  ctx.fillStyle = '#3a2a1c';
+  ctx.fillStyle = sk.cabelo;
   ctx.beginPath(); ctx.arc(0, -ALT*0.97, 8, Math.PI*1.04, Math.PI*2.1); ctx.fill();
   // olho
   ctx.fillStyle = '#1a1208';
   ctx.beginPath(); ctx.arc(3.5, -ALT*0.95, 1.4, 0, 7); ctx.fill();
 
+  // enfeites da skin
+  if(sk.capacete){
+    ctx.fillStyle = sk.capacete;
+    ctx.beginPath(); ctx.arc(0, -ALT*0.97, 9.5, Math.PI, 0); ctx.fill();
+  }
+  if(sk.capa){
+    ctx.fillStyle = sk.capa;
+    ctx.beginPath();
+    ctx.moveTo(-8, -ALT*0.80);
+    ctx.quadraticCurveTo(-20 - Math.abs(vx)*0.03, -ALT*0.5, -13, -ALT*0.1);
+    ctx.lineTo(-7, -ALT*0.42);
+    ctx.closePath(); ctx.fill();
+  }
+  if(sk.chapeu){
+    ctx.save(); ctx.scale(olhando, 1);
+    ctx.font = '16px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(sk.chapeu, 0, -ALT*1.07);
+    ctx.restore();
+  }
+  ctx.shadowBlur = 0;
   ctx.restore();
+  ctx.globalAlpha = 1;
 }
 
 function desenhaMeteoro(m){
@@ -578,7 +645,18 @@ function desenha(){
   ctx.globalAlpha = 1;
 
   // ---- humano ----
-  if(hero && hero.vivo) desenhaHumano(hero.x, CHAO, hero.olhando, hero.passo, hero.vx);
+  if(hero && hero.vivo){
+    desenhaHumano(hero.x, CHAO, hero.olhando, hero.passo, hero.vx);
+    if(escudoVivo){
+      ctx.globalAlpha = 0.35 + Math.sin(t*5)*0.15;
+      ctx.strokeStyle = '#6bd5ff'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(hero.x, CHAO-24, 20, 30, 0, 0, 7); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---- os outros da sala online, meio transparentes ----
+  if(online) desenhaOutros();
 
   // ---- meteoros ----
   for(var m=0;m<meteoros.length;m++) desenhaMeteoro(meteoros[m]);
@@ -641,13 +719,159 @@ areaToque.addEventListener('touchmove', pegaToque, {passive:false});
 areaToque.addEventListener('touchend', function(e){ e.preventDefault(); toqueX = null; }, {passive:false});
 areaToque.addEventListener('touchcancel', function(){ toqueX = null; });
 
+
+// ====================== LOJA: SKINS E HABILIDADES ======================
+var SKINS = [
+  { id:'padrao',  nome:'Você mesmo',   preco:0,    pele:'#efc19a', cabelo:'#3a2a1c', c1:'#4f8fd6', c2:'#2f5f9e', calca:'#2f3a52' },
+  { id:'verde',   nome:'Mochileiro',   preco:120,  pele:'#e0b088', cabelo:'#5a3a1c', c1:'#5fbf6a', c2:'#2f7a3a', calca:'#4a3a28' },
+  { id:'rosa',    nome:'Corredora',    preco:180,  pele:'#f2cfae', cabelo:'#8a3a5a', c1:'#ff7ab0', c2:'#c94a84', calca:'#3a2f4a' },
+  { id:'escuro',  nome:'Ninja',        preco:320,  pele:'#c89a76', cabelo:'#15120f', c1:'#2a2a33', c2:'#15151b', calca:'#1a1a22' },
+  { id:'bombeiro',nome:'Bombeiro',     preco:480,  pele:'#e8b48c', cabelo:'#2a1a0c', c1:'#ff5c3d', c2:'#b32a12', calca:'#3a2a22', capacete:'#ffd93d' },
+  { id:'astro',   nome:'Astronauta',   preco:900,  pele:'#efc19a', cabelo:'#2a2a2a', c1:'#e8eef8', c2:'#aab6c8', calca:'#c8d2e0', capacete:'#9fe0ff' },
+  { id:'heroi',   nome:'Super-Herói',  preco:1500, pele:'#efc19a', cabelo:'#2a1a0c', c1:'#2a6fd6', c2:'#1a4a9e', calca:'#c92a2a', capa:'#c92a2a' },
+  { id:'robo',    nome:'Robô',         preco:2600, pele:'#b8c2cc', cabelo:'#8a949e', c1:'#8a949e', c2:'#5a646e', calca:'#5a646e', brilha:'#6bd5ff' },
+  { id:'fogo',    nome:'Homem de Fogo',preco:4500, pele:'#ffb45c', cabelo:'#ff5c1a', c1:'#ff8a3d', c2:'#d2401a', calca:'#8a2a0c', brilha:'#ff8a3d' },
+  { id:'cogu',    nome:'Cogumelo',     preco:7000, pele:'#efc19a', cabelo:'#ff5c5c', c1:'#ff5c5c', c2:'#c03030', calca:'#f0e0d0', chapeu:'🍄' }
+];
+var HABS = [
+  { id:'aviso',   nome:'Olho Treinado', emo:'👁️', preco:400,
+    desc:'A sombra aparece 25% mais cedo — você tem mais tempo pra sair.' },
+  { id:'tenis',   nome:'Tênis de Corrida', emo:'👟', preco:650,
+    desc:'Você corre 20% mais rápido.' },
+  { id:'escudo',  nome:'Escudo', emo:'🛡️', preco:1200,
+    desc:'Aguenta UM meteoro por partida sem morrer.' },
+  { id:'lento',   nome:'Câmera Lenta', emo:'⏳', preco:2000,
+    desc:'Os meteoros caem 15% mais devagar.' },
+  { id:'ima',     nome:'Ímã de Moedas', emo:'🧲', preco:3000,
+    desc:'Você ganha o DOBRO de moedas por segundo.' }
+];
+
+var MOEDAS = 0, SKINS_MINHAS = ['padrao'], SKIN_EQ = 'padrao', HABS_MINHAS = [];
+try {
+  MOEDAS = parseInt(localStorage.getItem('meteoros_moedas')||'0',10) || 0;
+  SKINS_MINHAS = JSON.parse(localStorage.getItem('meteoros_skins')||'["padrao"]') || ['padrao'];
+  SKIN_EQ = localStorage.getItem('meteoros_skin') || 'padrao';
+  HABS_MINHAS = JSON.parse(localStorage.getItem('meteoros_habs')||'[]') || [];
+} catch(e){}
+if(!Array.isArray(SKINS_MINHAS) || !SKINS_MINHAS.length) SKINS_MINHAS = ['padrao'];
+if(!Array.isArray(HABS_MINHAS)) HABS_MINHAS = [];
+function achaSkin(id){ for(var i=0;i<SKINS.length;i++) if(SKINS[i].id===id) return SKINS[i]; return SKINS[0]; }
+if(SKINS_MINHAS.indexOf(SKIN_EQ) < 0) SKIN_EQ = 'padrao';
+function temHab(id){ return HABS_MINHAS.indexOf(id) >= 0; }
+function salvaLoja(){
+  try {
+    localStorage.setItem('meteoros_moedas', String(Math.max(0, Math.round(MOEDAS))));
+    localStorage.setItem('meteoros_skins', JSON.stringify(SKINS_MINHAS));
+    localStorage.setItem('meteoros_skin', SKIN_EQ);
+    localStorage.setItem('meteoros_habs', JSON.stringify(HABS_MINHAS));
+  } catch(e){}
+}
+
+var abaLoja = 'skins';
+function pintaLoja(){
+  el('lojaMoedas').textContent = '🪙 ' + MOEDAS.toLocaleString('pt-BR');
+  var L = el('listaLoja'); L.textContent = '';
+
+  function linha(emo, nome, desc, botao, desativado, aoClicar, classe, cor){
+    var d = document.createElement('div');
+    d.className = 'linha' + (classe ? ' ' + classe : '');
+    if(cor) d.style.borderColor = cor;
+    var e = document.createElement('span');
+    e.style.cssText = 'font-size:26px;width:34px;text-align:center;flex:none';
+    e.textContent = emo;
+    var inf = document.createElement('span');
+    inf.style.cssText = 'flex:1;min-width:0';
+    var b = document.createElement('b'); b.style.display='block'; b.textContent = nome;
+    var sm = document.createElement('small');
+    sm.style.cssText = 'opacity:.75;font-size:11.5px;line-height:1.35;display:block';
+    sm.textContent = desc;
+    inf.append(b, sm);
+    var bt = document.createElement('button');
+    bt.style.cssText = 'border:none;border-radius:11px;padding:9px 13px;font-size:13px;font-weight:bold;'+
+      'font-family:inherit;flex:none;' + (desativado
+        ? 'background:rgba(255,255,255,.12);color:#998;cursor:default'
+        : 'background:linear-gradient(135deg,#ff8a3d,#d2401a);color:#fff;cursor:pointer');
+    bt.textContent = botao; bt.disabled = !!desativado;
+    if(!desativado) bt.onclick = aoClicar;
+    d.append(e, inf, bt);
+    L.appendChild(d);
+  }
+
+  if(abaLoja === 'skins'){
+    SKINS.forEach(function(sk){
+      var tem = SKINS_MINHAS.indexOf(sk.id) >= 0;
+      var usa = SKIN_EQ === sk.id;
+      linha(sk.chapeu || '🧍', sk.nome,
+        usa ? 'Você está usando' : (tem ? 'Já é sua' : 'Deixa seu boneco diferente'),
+        usa ? 'EM USO' : (tem ? 'Vestir' : '🪙 ' + sk.preco.toLocaleString('pt-BR')),
+        usa || (!tem && MOEDAS < sk.preco),
+        function(){
+          if(tem){ SKIN_EQ = sk.id; }
+          else { MOEDAS -= sk.preco; SKINS_MINHAS.push(sk.id); SKIN_EQ = sk.id; tom(900,0.1,'triangle',0.08); }
+          salvaLoja(); pintaLoja();
+        },
+        usa ? 'eu' : '', tem ? '#ff9a4d' : '');
+    });
+  } else if(abaLoja === 'hab'){
+    HABS.forEach(function(h){
+      var tem = temHab(h.id);
+      linha(h.emo, h.nome, h.desc,
+        tem ? '✓ ATIVA' : '🪙 ' + h.preco.toLocaleString('pt-BR'),
+        tem || MOEDAS < h.preco,
+        function(){
+          MOEDAS -= h.preco; HABS_MINHAS.push(h.id); tom(900,0.1,'triangle',0.08);
+          salvaLoja(); pintaLoja();
+        },
+        tem ? 'eu' : '', tem ? '#ff9a4d' : '');
+    });
+  } else {
+    var CC = window.CoguCoins;
+    if(!CC){ L.textContent = ''; return; }
+    [[5,250],[15,900],[40,2800],[100,8000],[250,22000]].forEach(function(p){
+      linha('🍄', p[1].toLocaleString('pt-BR') + ' moedas',
+        'Troca ' + p[0] + ' Cogu Coins por ' + p[1].toLocaleString('pt-BR') + ' 🪙 (' + Math.round(p[1]/p[0]) + ' por 🍄)',
+        '🍄 ' + p[0], CC.saldo() < p[0],
+        function(){
+          if(!CC.gasta(p[0])) return;
+          MOEDAS += p[1]; salvaLoja(); pintaLoja(); tom(900,0.1,'triangle',0.08);
+        }, '', '#ffcc33');
+    });
+  }
+}
+Array.prototype.forEach.call(document.querySelectorAll('.aba[data-lj]'), function(b){
+  b.onclick = function(){
+    abaLoja = b.getAttribute('data-lj');
+    Array.prototype.forEach.call(document.querySelectorAll('.aba[data-lj]'), function(x){
+      x.classList.toggle('on', x===b);
+    });
+    pintaLoja();
+  };
+});
+el('btLoja').onclick = function(){ ac(); pintaLoja(); abre('tLoja'); };
+el('btLojaOk').onclick = function(){ abre('tLobby'); carregaTop(); };
+
 // ====================== TOP GLOBAL ======================
+// o nome vem da sua conta do site. Se você não tem conta, ele pergunta uma
+// vez só — e guarda, pra não ficar enchendo o saco toda partida.
 function nomeEscolhido(){
-  var n = (el('inNome').value || '').trim().slice(0,20);
+  if(MEU_NOME) return MEU_NOME;
+  try {
+    var u = (localStorage.getItem('cg_usuario') || '').trim();
+    if(u){ MEU_NOME = u.slice(0,20); return MEU_NOME; }
+  } catch(e){}
+  return '';
+}
+function pedeNomeUmaVez(){
+  if(nomeEscolhido()) return nomeEscolhido();
+  var n = '';
+  try { n = (prompt('Como você quer aparecer no top global?', '') || '').trim().slice(0,20); } catch(e){}
+  if(n.length < 2) n = 'Jogador' + Math.floor(100 + Math.random()*900);
+  MEU_NOME = n;
+  try { localStorage.setItem('meteoros_nome', n); } catch(e){}
   return n;
 }
 function mandaPontuacao(segundos, aoTerminar){
-  var nome = MEU_NOME || nomeEscolhido();
+  var nome = pedeNomeUmaVez();
   var pontos = Math.round(segundos * 100);        // centésimos, pra ordenar certinho
   if(!nome || nome.length < 2 || pontos <= 0 || !window.fetch) return aoTerminar(null);
   fetch(API, { method:'POST', headers:{'content-type':'application/json'},
@@ -706,8 +930,132 @@ Array.prototype.forEach.call(document.querySelectorAll('.aba[data-ab]'), functio
   };
 });
 
+
+// ====================== 🌐 SALA ONLINE ======================
+// Não existe servidor de sala. O truque é usar o RELÓGIO: a rodada muda a cada
+// 1 minuto e os meteoros são sorteados com a rodada como semente. Assim todo
+// mundo que estiver jogando naquele minuto enfrenta EXATAMENTE a mesma chuva,
+// no mesmo instante, sem precisar combinar nada.
+var WS_URL = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=meteoros';
+var online = false, ws = null, enviaTimer = null, contaTimer = null;
+var outros = {};
+var rodada = 0, semente = 0;
+
+function rodadaAgora(){ return Math.floor(Date.now() / 60000); }
+function faltaPraRodada(){ return 60 - Math.floor((Date.now() % 60000) / 1000); }
+
+function rng(){
+  semente |= 0; semente = (semente + 0x6D2B79F5) | 0;
+  var x = Math.imul(semente ^ (semente >>> 15), 1 | semente);
+  x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+  return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+}
+var randomDeVerdade = Math.random;
+
+function abreSala(){
+  ac();
+  abre('tSala');
+  el('salaStatus').textContent = 'conectando...';
+  el('salaGente').textContent = '';
+  conecta();
+  clearInterval(contaTimer);
+  contaTimer = setInterval(function(){
+    var falta = faltaPraRodada();
+    el('contagem').textContent = falta + 's';
+    el('salaStatus').textContent = 'A próxima chuva começa em ' + falta + ' segundos. ' +
+      (Object.keys(outros).length + 1) + ' na sala.';
+    pintaSala();
+    if(falta >= 59) comecaOnline();      // virou o minuto: todos largam juntos
+  }, 500);
+  el('contagem').textContent = faltaPraRodada() + 's';
+}
+
+function conecta(){
+  if(ws) return;
+  try { ws = new WebSocket(WS_URL); } catch(e){ el('salaStatus').textContent = 'não deu pra conectar 😕'; return; }
+  ws.onopen = function(){
+    enviaTimer = setInterval(mandaOndeEstou, 150);
+    el('salaStatus').textContent = 'conectado!';
+  };
+  ws.onmessage = function(ev){
+    var m; try { m = JSON.parse(ev.data); } catch(e){ return; }
+    if(!m || !m.quem) return;
+    if(m.t === 'meteoro'){
+      outros[m.quem] = { nome: String(m.nome||'???').slice(0,16), x: m.x||0,
+        olhando: m.o||1, vivo: !!m.v, tempo: m.tp||0, skin: m.sk||'padrao',
+        quando: performance.now() };
+    } else if(m.t === 'saiu') delete outros[m.quem];
+  };
+  ws.onclose = function(){ ws = null; };
+  ws.onerror = function(){ try{ ws.close(); }catch(e){} };
+}
+function mandaOndeEstou(){
+  if(!ws || ws.readyState !== 1) return;
+  try {
+    ws.send(JSON.stringify({ acao:'estado', t:'meteoro', nome: pedeNomeUmaVez(),
+      x: hero ? Math.round(hero.x) : 0, o: hero ? hero.olhando : 1,
+      v: !!(hero && hero.vivo), tp: Math.round(tempoVivo*100), sk: SKIN_EQ }));
+  } catch(e){}
+}
+function limpaOutros(){
+  var agora = performance.now();
+  for(var k in outros) if(agora - outros[k].quando > 6000) delete outros[k];
+}
+function pintaSala(){
+  limpaOutros();
+  var box = el('salaGente');
+  if(!box) return;
+  box.textContent = '';
+  var lista = [{ nome: pedeNomeUmaVez(), tempo: Math.round(tempoVivo*100), eu:true }];
+  for(var k in outros) lista.push({ nome: outros[k].nome, tempo: outros[k].tempo, eu:false });
+  lista.sort(function(a,b){ return b.tempo - a.tempo; });
+  lista.slice(0,10).forEach(function(p, i){
+    var d = document.createElement('div');
+    d.className = 'linha' + (p.eu ? ' eu' : '');
+    var pos = document.createElement('span'); pos.className='pos'; pos.textContent = (i+1)+'º';
+    var nm = document.createElement('span'); nm.className='nm'; nm.textContent = p.nome;
+    var tp = document.createElement('span'); tp.className='tp';
+    tp.textContent = tempoTxt(p.tempo/100) + 's';
+    d.append(pos, nm, tp);
+    box.appendChild(d);
+  });
+}
+function comecaOnline(){
+  online = true;
+  rodada = rodadaAgora();
+  semente = 90210 + rodada;
+  Math.random = rng;            // daqui pra frente os meteoros são iguais pra todos
+  comeca();
+  Math.random = randomDeVerdade; // o resto (faísca, fumaça) pode ser aleatório
+  el('salaStatus').textContent = '';
+}
+function saiSala(){
+  online = false;
+  clearInterval(contaTimer); contaTimer = null;
+  clearInterval(enviaTimer); enviaTimer = null;
+  if(ws){ ws.onclose = null; ws.onmessage = null;
+    try{ ws.send(JSON.stringify({acao:'estado', t:'saiu'})); ws.close(); }catch(e){}
+    ws = null; }
+  outros = {};
+}
+function desenhaOutros(){
+  for(var k in outros){
+    var o = outros[k];
+    if(!o.vivo) continue;
+    desenhaHumano(o.x, CHAO, o.olhando, t*6, 0, achaSkin(o.skin), 0.45);
+    ctx.save();
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = '#9fe0ff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center';
+    ctx.fillText(o.nome, o.x, CHAO - 60);
+    ctx.restore();
+  }
+}
+el('btSala').onclick = abreSala;
+el('btSalaSair').onclick = function(){ saiSala(); abre('tLobby'); carregaTop(); };
+window.addEventListener('pagehide', saiSala);
+
 // ====================== TELAS ======================
-var TELAS = ['tLobby','tComo','tFim'];
+var TELAS = ['tLobby','tComo','tFim','tLoja','tSala'];
 function fechaTelas(){ TELAS.forEach(function(x){ el(x).classList.add('off'); }); }
 function abre(id){ fechaTelas(); el(id).classList.remove('off'); }
 function voltaLobby(){
@@ -718,23 +1066,15 @@ function voltaLobby(){
   carregaTop();
 }
 
-el('btJogar').onclick = function(){
-  var n = nomeEscolhido();
-  if(n.length < 2) return alert('Escreve seu nome (pelo menos 2 letras) pra entrar no top global!');
-  MEU_NOME = n;
-  try{ localStorage.setItem('meteoros_nome', n); }catch(e){}
-  comeca();
-};
+el('btJogar').onclick = comeca;
 el('btComo').onclick = function(){ abre('tComo'); };
 el('btComoOk').onclick = function(){ abre('tLobby'); };
 el('btDeNovo').onclick = comeca;
 el('btLobby').onclick = voltaLobby;
-el('inNome').addEventListener('keydown', function(e){ if(e.key==='Enter') el('btJogar').click(); });
 
 // ====================== LIGA ======================
 resize();
 montaCenario();
-el('inNome').value = MEU_NOME;
 el('recorde').textContent = '🏆 recorde ' + tempoTxt(RECORDE) + 's';
 abre('tLobby');
 carregaTop();
