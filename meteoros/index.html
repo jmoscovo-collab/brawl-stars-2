@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>☄️ Chuva de Meteoros</title>
+<meta name="description" content="Chuva de Meteoros: desvie dos meteoros que caem do céu e sobreviva o máximo que conseguir. Top global e recorde. Jogo grátis do Cogumelo Games.">
+<link rel="canonical" href="https://cogumelogames.com.br/meteoros/">
+<link rel="icon" href="/icons/icon-192.png">
+<script src="/letra.js"></script>
+<script src="/cogucoins.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#07080f;font-family:Arial,Helvetica,sans-serif;color:#fff;
+  user-select:none;-webkit-user-select:none;touch-action:none}
+#cv{display:block;width:100%;height:100%}
+
+/* ---- cronômetro ---- */
+#relogio{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:8;text-align:center;
+  pointer-events:none;text-shadow:0 3px 14px #000,0 0 26px rgba(255,140,60,.5)}
+#tempo{font-size:52px;font-weight:bold;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:1px}
+#recorde{font-size:13px;opacity:.85;margin-top:3px}
+@media (max-height:520px){ #tempo{font-size:38px} }
+
+/* ---- telas ---- */
+.tela{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;
+  gap:12px;padding:26px 16px;overflow-y:auto;
+  background:linear-gradient(170deg,#1a1026 0%,#0b0a16 55%,#05050c 100%)}
+.tela.off{display:none}
+h1{font-size:32px;text-align:center;line-height:1.12;text-shadow:0 4px 18px #000}
+h2{font-size:20px;color:#ff9a4d;text-align:center}
+.sub{font-size:14px;opacity:.85;text-align:center;max-width:420px;line-height:1.5}
+.bt{border:none;border-radius:16px;padding:14px 26px;font-size:17px;font-weight:bold;cursor:pointer;
+  font-family:inherit;background:linear-gradient(135deg,#ff8a3d,#d2401a);color:#fff;min-width:215px}
+.bt.cinza{background:rgba(255,255,255,.12);color:#fff;border:2px solid rgba(255,255,255,.25)}
+.bt:disabled{opacity:.5;cursor:default}
+input{width:100%;max-width:320px;padding:12px 15px;font-size:16px;border-radius:14px;border:2px solid #5a3a2a;
+  background:rgba(14,10,20,.92);color:#fff;outline:none;font-family:inherit;text-align:center}
+input:focus{border-color:#ff8a3d}
+.top{width:100%;max-width:400px;display:flex;flex-direction:column;gap:5px}
+.linha{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);
+  border:2px solid rgba(255,255,255,.12);border-radius:13px;padding:9px 13px;font-size:14px}
+.linha.eu{border-color:#ff9a4d;background:rgba(255,154,77,.14)}
+.linha .pos{width:30px;font-weight:bold;opacity:.8;flex:none}
+.linha .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:bold}
+.linha .tp{font-variant-numeric:tabular-nums;font-weight:bold;color:#ff9a4d}
+.rolar{max-height:46vh;overflow-y:auto;width:100%;max-width:400px}
+.abas{display:flex;gap:7px}
+.aba{border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;border-radius:13px;
+  padding:7px 15px;font-size:13px;font-weight:bold;cursor:pointer;font-family:inherit}
+.aba.on{background:#ff8a3d;color:#2a1000;border-color:#ff8a3d}
+#toque{position:fixed;inset:0;z-index:5;display:none}
+#toque.on{display:block}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="toque"></div>
+
+<div id="relogio" style="display:none">
+  <div id="tempo">0,00</div>
+  <div id="recorde">🏆 recorde 0,00s</div>
+</div>
+
+<!-- ===================== LOBBY ===================== -->
+<div class="tela" id="tLobby">
+  <div style="font-size:66px;line-height:1">☄️</div>
+  <h1>CHUVA DE METEOROS</h1>
+  <div class="sub">O céu está caindo. Corra pros lados e <b>sobreviva o máximo que conseguir</b>.<br>
+  A sombra no chão avisa onde o meteoro vai bater — mas você tem pouco tempo.</div>
+
+  <div class="sub" style="margin-top:4px">Seu nome no top global:</div>
+  <input id="inNome" maxlength="20" placeholder="Digite seu nome..." autocomplete="off">
+
+  <button class="bt" id="btJogar">▶ COMEÇAR</button>
+  <button class="bt cinza" id="btComo">❓ Como joga</button>
+
+  <h2 style="margin-top:14px">🌍 TOP GLOBAL</h2>
+  <div class="abas">
+    <button class="aba on" data-ab="global">🌍 Mundo</button>
+    <button class="aba" data-ab="meu">🏆 Meu recorde</button>
+  </div>
+  <div class="top rolar" id="listaTop"></div>
+  <div class="sub" style="font-size:12px;opacity:.6" id="statusTop">carregando...</div>
+
+  <a class="bt cinza" href="/" style="text-decoration:none;text-align:center;line-height:1.3;margin-top:6px">🏠 Voltar pro site</a>
+</div>
+
+<!-- ===================== COMO JOGA ===================== -->
+<div class="tela off" id="tComo">
+  <h2>Como joga</h2>
+  <div class="sub" style="text-align:left">
+    <b>Mexer</b> — setas ⬅️ ➡️ ou A/D. No celular, <b>encoste do lado</b> pra onde quer correr.<br><br>
+    <b>⭕ A sombra</b> — antes de cair, aparece um círculo vermelho no chão. É ali que o meteoro vai bater.
+    Quanto mais o tempo passa, <b>menos aviso você tem</b>.<br><br>
+    <b>💥 A explosão</b> — o estrago é maior que a sombra! Saia bem de perto, não encoste na borda.<br><br>
+    <b>⏱️ O cronômetro</b> — seus pontos são os <b>segundos que você fica vivo</b>. Quando morrer, seu tempo
+    vai pro top global automaticamente.
+  </div>
+  <button class="bt" id="btComoOk">Entendi!</button>
+</div>
+
+<!-- ===================== MORREU ===================== -->
+<div class="tela off" id="tFim">
+  <div style="font-size:64px" id="fimEmo">💀</div>
+  <h2 id="fimTit">Você foi atingido!</h2>
+  <div style="font-size:46px;font-weight:bold;color:#ff9a4d;font-variant-numeric:tabular-nums" id="fimTempo">0,00s</div>
+  <div class="sub" id="fimTxt"></div>
+  <button class="bt" id="btDeNovo">🔄 De novo!</button>
+  <button class="bt cinza" id="btLobby">🏠 Lobby</button>
+</div>
+
+<script>
+(function(){
+'use strict';
+// ====================== TELA ======================
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+var W = 0, H = 0, CHAO = 0;
+function resize(){
+  var d = Math.min(window.devicePixelRatio || 1, 2);
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = Math.round(W*d); cv.height = Math.round(H*d);
+  ctx.setTransform(d,0,0,d,0,0);
+  CHAO = H * 0.80;
+}
+window.addEventListener('resize', resize);
+function el(id){ return document.getElementById(id); }
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function tempoTxt(s){ return s.toFixed(2).replace('.', ','); }
+
+// ====================== SOM ======================
+var AC = null;
+function ac(){ try{ if(!AC) AC = new (window.AudioContext||window.webkitAudioContext)();
+  if(AC.state==='suspended') AC.resume(); }catch(e){} return AC; }
+function ruido(dur, vol, corte){
+  var a = ac(); if(!a) return;
+  try{
+    var n = Math.floor(a.sampleRate * dur);
+    var buf = a.createBuffer(1, n, a.sampleRate);
+    var d = buf.getChannelData(0);
+    for(var i=0;i<n;i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/n, 2);
+    var src = a.createBufferSource(); src.buffer = buf;
+    var fl = a.createBiquadFilter(); fl.type='lowpass';
+    fl.frequency.setValueAtTime(corte||900, a.currentTime);
+    fl.frequency.exponentialRampToValueAtTime(90, a.currentTime + dur);
+    var g = a.createGain();
+    g.gain.setValueAtTime(vol||0.25, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+    src.connect(fl); fl.connect(g); g.connect(a.destination);
+    src.start();
+  }catch(e){}
+}
+function tom(f, dur, tipo, vol){
+  var a = ac(); if(!a) return;
+  try{
+    var o = a.createOscillator(), g = a.createGain();
+    o.type = tipo||'sine'; o.frequency.setValueAtTime(f, a.currentTime);
+    g.gain.setValueAtTime(vol||0.06, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(); o.stop(a.currentTime + dur);
+  }catch(e){}
+}
+var snd = {
+  explode: function(forte){ ruido(forte?0.85:0.5, forte?0.38:0.22, forte?1400:800);
+                            tom(forte?55:80, 0.4, 'sine', 0.2); },
+  assobio: function(){ tom(1500, 0.5, 'sawtooth', 0.02); },
+  morreu:  function(){ ruido(1.2, 0.4, 1800);
+                       [300,230,170,120].forEach(function(f,i){ setTimeout(function(){ tom(f,0.3,'sawtooth',0.1); }, i*160); }); },
+  passos:  function(){ ruido(0.06, 0.03, 500); }
+};
+
+// ====================== ESTADO ======================
+var API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+var JOGO = 'meteoros';
+var RECORDE = 0, MEU_NOME = '';
+try {
+  RECORDE = parseFloat(localStorage.getItem('meteoros_recorde') || '0') || 0;
+  MEU_NOME = localStorage.getItem('meteoros_nome') || localStorage.getItem('cg_usuario') || '';
+} catch(e){}
+
+var jogando = false, t = 0, vivoDesde = 0, tempoVivo = 0;
+var hero = null;
+var meteoros = [], avisos = [], parts = [], destrocos = [], fumaca = [];
+var teclas = {}, toqueX = null;
+var shake = 0, clarao = 0;
+var proxMeteoro = 0;
+var estrelas = [], predios = [];
+
+var G = 2100;                  // gravidade dos meteoros
+var VEL = 300;                 // velocidade do humano
+
+function montaCenario(){
+  estrelas = [];
+  for(var i=0;i<90;i++) estrelas.push({ x:Math.random(), y:Math.random()*0.78,
+    r:0.4+Math.random()*1.3, b:0.25+Math.random()*0.75, f:Math.random()*6 });
+  predios = [];
+  var x = -40;
+  while(x < 1400){
+    var w = 46 + Math.random()*72;
+    predios.push({ x:x, w:w, h:70 + Math.random()*190, janelas:Math.random() });
+    x += w + 5 + Math.random()*16;
+  }
+}
+
+// ====================== PARTIDA ======================
+function comeca(){
+  ac();
+  fechaTelas();
+  montaCenario();
+  jogando = true;
+  t = 0; tempoVivo = 0; vivoDesde = performance.now();
+  meteoros = []; avisos = []; parts = []; destrocos = []; fumaca = [];
+  shake = 0; clarao = 0;
+  proxMeteoro = 0.9;
+  hero = { x: W/2, vx: 0, passo: 0, olhando: 1, vivo: true };
+  el('relogio').style.display = 'block';
+  el('toque').classList.toggle('on', ehToque);
+  pintaRelogio();
+  try { if(window.CoguCoins) window.CoguCoins.novaPartida(); } catch(e){}
+}
+
+function pintaRelogio(){
+  el('tempo').textContent = tempoTxt(tempoVivo);
+  el('recorde').textContent = '🏆 recorde ' + tempoTxt(RECORDE) + 's';
+}
+
+// a dificuldade sobe com o tempo: mais meteoros, menos aviso, mais rápido
+function dificuldade(){
+  var d = Math.min(tempoVivo / 75, 1);     // chega no talo com 1min15
+  return {
+    intervalo: 1.05 - d*0.82,              // de 1,05s até 0,23s entre meteoros
+    aviso: 1.25 - d*0.72,                  // de 1,25s de sombra até 0,53s
+    raio: 26 + d*26,
+    velQueda: 1 + d*0.9
+  };
+}
+
+function criaAviso(){
+  var dif = dificuldade();
+  var raio = dif.raio * (0.75 + Math.random()*0.7);
+  // de vez em quando mira em você, pra não ficar fácil demais parado
+  var mira = (Math.random() < 0.42 && hero) ? hero.x + (Math.random()-0.5)*110
+                                            : 40 + Math.random()*(W-80);
+  avisos.push({
+    x: clamp(mira, raio, W - raio),
+    raio: raio,
+    tempo: dif.aviso,
+    total: dif.aviso,
+    vel: dif.velQueda
+  });
+  snd.assobio();
+}
+
+function soltaMeteoro(av){
+  meteoros.push({
+    x: av.x + (Math.random()-0.5)*8,
+    y: -60,
+    vy: 400 * av.vel,
+    raio: av.raio * 0.55,
+    alvoY: CHAO,
+    giro: Math.random()*6,
+    vgiro: (Math.random()-0.5)*7,
+    raioExplosao: av.raio,
+    trilha: []
+  });
+}
+
+function explode(m){
+  var forte = m.raioExplosao > 40;
+  snd.explode(forte);
+  shake = Math.max(shake, forte ? 1 : 0.65);
+  clarao = Math.max(clarao, forte ? 0.55 : 0.3);
+  if(navigator.vibrate){ try{ navigator.vibrate(forte?70:40); }catch(e){} }
+
+  // faísca
+  for(var i=0;i<(forte?46:30);i++){
+    var ang = -Math.PI + Math.random()*Math.PI;
+    var v = 120 + Math.random()*420;
+    parts.push({ x:m.x, y:CHAO, vx:Math.cos(ang)*v, vy:Math.sin(ang)*v*0.75,
+      vida:0.5+Math.random()*0.7, r:1+Math.random()*3,
+      cor: Math.random()<0.5 ? '#ffd27a' : (Math.random()<0.6 ? '#ff8a3d' : '#ff4d2a') });
+  }
+  // pedras voando
+  for(var j=0;j<(forte?9:6);j++){
+    destrocos.push({ x:m.x, y:CHAO-6, vx:(Math.random()-0.5)*460, vy:-(140+Math.random()*330),
+      r:2.5+Math.random()*5, giro:Math.random()*6, vgiro:(Math.random()-0.5)*14, vida:1.6 });
+  }
+  // fumaça subindo
+  for(var k=0;k<(forte?14:9);k++){
+    fumaca.push({ x:m.x+(Math.random()-0.5)*m.raioExplosao, y:CHAO-Math.random()*16,
+      r:10+Math.random()*22, vy:-(14+Math.random()*26), vx:(Math.random()-0.5)*26, vida:1.6+Math.random() });
+  }
+
+  // pegou em você?
+  if(hero && hero.vivo && Math.abs(hero.x - m.x) < m.raioExplosao + 9) morreu();
+}
+
+function morreu(){
+  if(!hero.vivo) return;
+  hero.vivo = false;
+  jogando = false;
+  snd.morreu();
+  shake = 1.2;
+  el('relogio').style.display = 'none';
+  el('toque').classList.remove('on');
+
+  var novo = tempoVivo > RECORDE;
+  if(novo){
+    RECORDE = tempoVivo;
+    try{ localStorage.setItem('meteoros_recorde', String(RECORDE)); }catch(e){}
+  }
+  el('fimEmo').textContent = novo ? '🏆' : '💀';
+  el('fimTit').textContent = novo ? 'NOVO RECORDE!' : 'Você foi atingido!';
+  el('fimTempo').textContent = tempoTxt(tempoVivo) + 's';
+  el('fimTxt').textContent = novo ? 'Mandando pro top global...' :
+    'Seu recorde continua ' + tempoTxt(RECORDE) + 's. Mandando pro top global...';
+  abre('tFim');
+  mandaPontuacao(tempoVivo, function(pos){
+    el('fimTxt').textContent = pos
+      ? ('🌍 Você está em ' + pos + 'º lugar no mundo!')
+      : 'Não consegui falar com o servidor agora 😕';
+    carregaTop();
+  });
+}
+
+// ====================== PASSO ======================
+function passo(dt){
+  t += dt;
+  shake = Math.max(0, shake - dt*2.2);
+  clarao = Math.max(0, clarao - dt*2.6);
+
+  // partículas sempre andam (mesmo depois de morrer, fica bonito)
+  for(var i=parts.length-1;i>=0;i--){
+    var p = parts[i];
+    p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 900*dt;
+    p.vida -= dt*1.25;
+    if(p.y > CHAO){ p.y = CHAO; p.vy *= -0.35; p.vx *= 0.6; }
+    if(p.vida <= 0) parts.splice(i,1);
+  }
+  for(var d=destrocos.length-1;d>=0;d--){
+    var o = destrocos[d];
+    o.x += o.vx*dt; o.y += o.vy*dt; o.vy += 1100*dt; o.giro += o.vgiro*dt;
+    o.vida -= dt*0.7;
+    if(o.y > CHAO){ o.y = CHAO; o.vy *= -0.4; o.vx *= 0.55; o.vgiro *= 0.5; }
+    if(o.vida <= 0) destrocos.splice(d,1);
+  }
+  for(var f=fumaca.length-1;f>=0;f--){
+    var s = fumaca[f];
+    s.x += s.vx*dt; s.y += s.vy*dt; s.r += dt*16; s.vida -= dt*0.55;
+    if(s.vida <= 0) fumaca.splice(f,1);
+  }
+
+  if(!jogando) return;
+  tempoVivo = (performance.now() - vivoDesde) / 1000;
+  pintaRelogio();
+
+  // ---- mexer ----
+  var dir = 0;
+  if(teclas.esq) dir -= 1;
+  if(teclas.dir) dir += 1;
+  if(toqueX !== null){
+    var dx = toqueX - hero.x;
+    if(Math.abs(dx) > 12) dir = dx > 0 ? 1 : -1;
+  }
+  hero.vx += (dir*VEL - hero.vx) * Math.min(1, dt*14);
+  hero.x = clamp(hero.x + hero.vx*dt, 18, W-18);
+  if(dir) hero.olhando = dir;
+  hero.passo += Math.abs(hero.vx) * dt * 0.05;
+  if(Math.abs(hero.vx) > 60 && Math.random() < dt*9) snd.passos();
+
+  // ---- nascer meteoros ----
+  proxMeteoro -= dt;
+  if(proxMeteoro <= 0){
+    criaAviso();
+    proxMeteoro = dificuldade().intervalo * (0.7 + Math.random()*0.65);
+  }
+
+  // ---- sombras viram meteoro ----
+  for(var a=avisos.length-1;a>=0;a--){
+    avisos[a].tempo -= dt;
+    if(avisos[a].tempo <= 0){ soltaMeteoro(avisos[a]); avisos.splice(a,1); }
+  }
+
+  // ---- meteoros caindo ----
+  for(var m=meteoros.length-1;m>=0;m--){
+    var me = meteoros[m];
+    me.vy += G*dt;
+    me.y += me.vy*dt;
+    me.giro += me.vgiro*dt;
+    me.trilha.push({x:me.x, y:me.y});
+    if(me.trilha.length > 9) me.trilha.shift();
+    if(me.y >= me.alvoY){ explode(me); meteoros.splice(m,1); }
+  }
+}
+
+// ====================== DESENHO ======================
+function desenhaHumano(x, y, olhando, passo, vx){
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(olhando, 1);
+
+  var correndo = Math.abs(vx) > 40;
+  var osc = correndo ? Math.sin(passo*2) : 0;
+  var inclina = clamp(vx/900, -0.2, 0.2) * olhando;
+  ctx.rotate(inclina);
+
+  var ALT = 48;
+  // sombra no chão
+  ctx.save(); ctx.rotate(-inclina);
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.beginPath(); ctx.ellipse(0, 2, 13, 4, 0, 0, 7); ctx.fill();
+  ctx.restore();
+
+  // pernas
+  ctx.strokeStyle = '#2f3a52'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, -ALT*0.42);
+  ctx.lineTo(osc*7, -2);
+  ctx.moveTo(0, -ALT*0.42);
+  ctx.lineTo(-osc*7, -2);
+  ctx.stroke();
+  // tênis
+  ctx.strokeStyle = '#d8dde8'; ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(osc*7, -2); ctx.lineTo(osc*7 + 4, -1);
+  ctx.moveTo(-osc*7, -2); ctx.lineTo(-osc*7 + 4, -1);
+  ctx.stroke();
+
+  // tronco (camiseta)
+  var g = ctx.createLinearGradient(-8, -ALT*0.85, 8, -ALT*0.4);
+  g.addColorStop(0, '#4f8fd6'); g.addColorStop(1, '#2f5f9e');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(-8, -ALT*0.42);
+  ctx.lineTo(-9, -ALT*0.80);
+  ctx.quadraticCurveTo(0, -ALT*0.86, 9, -ALT*0.80);
+  ctx.lineTo(8, -ALT*0.42);
+  ctx.closePath(); ctx.fill();
+
+  // braços
+  ctx.strokeStyle = '#e8b48c'; ctx.lineWidth = 4.5;
+  ctx.beginPath();
+  ctx.moveTo(-7, -ALT*0.76); ctx.lineTo(-7 - osc*9, -ALT*0.52);
+  ctx.moveTo(7, -ALT*0.76);  ctx.lineTo(7 + osc*9, -ALT*0.52);
+  ctx.stroke();
+
+  // pescoço + cabeça
+  ctx.strokeStyle = '#e8b48c'; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(0, -ALT*0.80); ctx.lineTo(0, -ALT*0.86); ctx.stroke();
+  ctx.fillStyle = '#efc19a';
+  ctx.beginPath(); ctx.arc(0, -ALT*0.95, 8, 0, 7); ctx.fill();
+  // cabelo
+  ctx.fillStyle = '#3a2a1c';
+  ctx.beginPath(); ctx.arc(0, -ALT*0.97, 8, Math.PI*1.04, Math.PI*2.1); ctx.fill();
+  // olho
+  ctx.fillStyle = '#1a1208';
+  ctx.beginPath(); ctx.arc(3.5, -ALT*0.95, 1.4, 0, 7); ctx.fill();
+
+  ctx.restore();
+}
+
+function desenhaMeteoro(m){
+  // rastro de fogo
+  for(var i=0;i<m.trilha.length;i++){
+    var p = m.trilha[i], f = i/m.trilha.length;
+    ctx.globalAlpha = f*0.55;
+    ctx.fillStyle = i > m.trilha.length*0.6 ? '#ffd27a' : '#ff6a2a';
+    ctx.beginPath(); ctx.arc(p.x, p.y, m.raio*f*0.9, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.save();
+  ctx.translate(m.x, m.y);
+  ctx.rotate(m.giro);
+  // brilho em volta
+  var br = ctx.createRadialGradient(0,0,m.raio*0.4, 0,0,m.raio*2.2);
+  br.addColorStop(0, 'rgba(255,170,70,.55)');
+  br.addColorStop(1, 'rgba(255,90,20,0)');
+  ctx.fillStyle = br;
+  ctx.beginPath(); ctx.arc(0,0,m.raio*2.2,0,7); ctx.fill();
+  // a pedra
+  var pe = ctx.createRadialGradient(-m.raio*0.35,-m.raio*0.35,m.raio*0.2, 0,0,m.raio);
+  pe.addColorStop(0, '#6b5a4e'); pe.addColorStop(1, '#2b2320');
+  ctx.fillStyle = pe;
+  ctx.beginPath();
+  for(var k=0;k<9;k++){
+    var ang = k/9*Math.PI*2;
+    var r = m.raio * (0.82 + ((k*37)%10)/42);
+    if(k===0) ctx.moveTo(Math.cos(ang)*r, Math.sin(ang)*r);
+    else ctx.lineTo(Math.cos(ang)*r, Math.sin(ang)*r);
+  }
+  ctx.closePath(); ctx.fill();
+  // crateras
+  ctx.fillStyle = 'rgba(0,0,0,.3)';
+  ctx.beginPath(); ctx.arc(m.raio*0.25, -m.raio*0.1, m.raio*0.2, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(-m.raio*0.2, m.raio*0.3, m.raio*0.14, 0, 7); ctx.fill();
+  // beirada quente
+  ctx.strokeStyle = 'rgba(255,140,50,.7)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(0,0,m.raio*0.96,Math.PI*0.15,Math.PI*0.95); ctx.stroke();
+  ctx.restore();
+}
+
+function desenha(){
+  ctx.save();
+  if(shake > 0) ctx.translate((Math.random()-0.5)*16*shake, (Math.random()-0.5)*16*shake);
+
+  // ---- céu ----
+  var ceu = ctx.createLinearGradient(0,0,0,CHAO);
+  ceu.addColorStop(0, '#0b0a1e');
+  ceu.addColorStop(0.55, '#2a1840');
+  ceu.addColorStop(1, '#6b2a3a');
+  ctx.fillStyle = ceu; ctx.fillRect(-20,-20,W+40,CHAO+20);
+
+  // estrelas piscando
+  for(var i=0;i<estrelas.length;i++){
+    var e = estrelas[i];
+    ctx.globalAlpha = e.b * (0.55 + Math.sin(t*1.8 + e.f)*0.45);
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(e.x*W, e.y*CHAO, e.r, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // ---- cidade ao fundo ----
+  ctx.fillStyle = '#12101f';
+  for(var b=0;b<predios.length;b++){
+    var pr = predios[b];
+    if(pr.x > W+60) break;
+    ctx.fillRect(pr.x, CHAO - pr.h, pr.w, pr.h);
+  }
+  // janelinhas acesas
+  ctx.fillStyle = 'rgba(255,200,120,.5)';
+  for(var b2=0;b2<predios.length;b2++){
+    var p2 = predios[b2];
+    if(p2.x > W+60) break;
+    for(var jy = CHAO - p2.h + 10; jy < CHAO - 12; jy += 16){
+      for(var jx = p2.x + 7; jx < p2.x + p2.w - 9; jx += 14){
+        if(((jx*7 + jy*3 + b2*13) % 10) < 4) ctx.fillRect(jx, jy, 5, 7);
+      }
+    }
+  }
+
+  // ---- chão ----
+  var ch = ctx.createLinearGradient(0,CHAO,0,H);
+  ch.addColorStop(0, '#3b2f28'); ch.addColorStop(1, '#171210');
+  ctx.fillStyle = ch; ctx.fillRect(-20, CHAO, W+40, H-CHAO+20);
+  ctx.strokeStyle = 'rgba(255,170,90,.22)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-20, CHAO); ctx.lineTo(W+20, CHAO); ctx.stroke();
+
+  // ---- sombras de aviso ----
+  for(var a=0;a<avisos.length;a++){
+    var av = avisos[a];
+    var f = 1 - (av.tempo / av.total);              // 0 → 1 conforme chega a hora
+    var pulso = 0.45 + Math.sin(t*18)*0.25;
+    ctx.save();
+    ctx.translate(av.x, CHAO);
+    ctx.scale(1, 0.3);
+    ctx.globalAlpha = 0.18 + f*0.3;
+    ctx.fillStyle = '#ff2a2a';
+    ctx.beginPath(); ctx.arc(0,0, av.raio, 0, 7); ctx.fill();
+    ctx.globalAlpha = pulso * (0.5 + f*0.5);
+    ctx.strokeStyle = '#ff5050'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(0,0, av.raio, 0, 7); ctx.stroke();
+    // círculo que fecha, mostrando quanto falta
+    ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(0,0, av.raio*(1 - f*0.75), 0, 7); ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  // ---- fumaça ----
+  for(var s=0;s<fumaca.length;s++){
+    var fu = fumaca[s];
+    ctx.globalAlpha = clamp(fu.vida,0,1) * 0.26;
+    ctx.fillStyle = '#6b6158';
+    ctx.beginPath(); ctx.arc(fu.x, fu.y, fu.r, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // ---- humano ----
+  if(hero && hero.vivo) desenhaHumano(hero.x, CHAO, hero.olhando, hero.passo, hero.vx);
+
+  // ---- meteoros ----
+  for(var m=0;m<meteoros.length;m++) desenhaMeteoro(meteoros[m]);
+
+  // ---- destroços e faíscas ----
+  for(var d=0;d<destrocos.length;d++){
+    var o = destrocos[d];
+    ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.giro);
+    ctx.globalAlpha = clamp(o.vida,0,1);
+    ctx.fillStyle = '#4a3f38';
+    ctx.fillRect(-o.r, -o.r*0.8, o.r*2, o.r*1.6);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  for(var p=0;p<parts.length;p++){
+    var pa = parts[p];
+    ctx.globalAlpha = clamp(pa.vida,0,1);
+    ctx.fillStyle = pa.cor;
+    ctx.beginPath(); ctx.arc(pa.x, pa.y, pa.r, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // clarão da explosão por cima de tudo
+  if(clarao > 0){
+    ctx.fillStyle = 'rgba(255,180,110,' + (clarao*0.5) + ')';
+    ctx.fillRect(0,0,W,H);
+  }
+}
+
+// ====================== LOOP ======================
+var ultimo = 0;
+function loop(ts){
+  var dt = Math.min((ts - ultimo)/1000, 0.045);
+  ultimo = ts;
+  if(dt > 0) passo(dt);
+  desenha();
+  requestAnimationFrame(loop);
+}
+
+// ====================== CONTROLES ======================
+var MAPA = { ArrowLeft:'esq', KeyA:'esq', ArrowRight:'dir', KeyD:'dir' };
+window.addEventListener('keydown', function(e){
+  var k = MAPA[e.code]; if(!k) return;
+  e.preventDefault(); ac(); teclas[k] = true;
+});
+window.addEventListener('keyup', function(e){
+  var k = MAPA[e.code]; if(k) teclas[k] = false;
+});
+
+var ehToque = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+var areaToque = el('toque');
+function pegaToque(e){
+  if(!e.touches || !e.touches.length) return;
+  e.preventDefault();
+  toqueX = e.touches[0].clientX;
+}
+areaToque.addEventListener('touchstart', pegaToque, {passive:false});
+areaToque.addEventListener('touchmove', pegaToque, {passive:false});
+areaToque.addEventListener('touchend', function(e){ e.preventDefault(); toqueX = null; }, {passive:false});
+areaToque.addEventListener('touchcancel', function(){ toqueX = null; });
+
+// ====================== TOP GLOBAL ======================
+function nomeEscolhido(){
+  var n = (el('inNome').value || '').trim().slice(0,20);
+  return n;
+}
+function mandaPontuacao(segundos, aoTerminar){
+  var nome = MEU_NOME || nomeEscolhido();
+  var pontos = Math.round(segundos * 100);        // centésimos, pra ordenar certinho
+  if(!nome || nome.length < 2 || pontos <= 0 || !window.fetch) return aoTerminar(null);
+  fetch(API, { method:'POST', headers:{'content-type':'application/json'},
+    body: JSON.stringify({ acao:'ranking_enviar', jogo:JOGO, nome:nome, pontos:pontos }) })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){ aoTerminar(j && j.posicao ? j.posicao : null); })
+    .catch(function(){ aoTerminar(null); });
+}
+
+var abaTop = 'global';
+function carregaTop(){
+  var lista = el('listaTop'), status = el('statusTop');
+  if(!window.fetch){ status.textContent = 'seu navegador não consegue carregar o top 😕'; return; }
+  status.textContent = 'carregando...';
+  fetch(API, { method:'POST', headers:{'content-type':'application/json'},
+    body: JSON.stringify({ acao:'ranking_top', jogo:JOGO }) })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){
+      lista.textContent = '';
+      var top = (j && j.top) ? j.top : [];
+      var meu = (MEU_NOME || nomeEscolhido()).toLowerCase();
+      if(abaTop === 'meu'){
+        top = top.filter(function(x){ return String(x.nome||'').toLowerCase() === meu; });
+        if(!top.length){
+          status.textContent = RECORDE > 0
+            ? ('Seu recorde aqui no aparelho é ' + tempoTxt(RECORDE) + 's — jogue pra entrar no mundo!')
+            : 'Você ainda não jogou. Bora!';
+          return;
+        }
+      }
+      if(!top.length){ status.textContent = 'Ninguém jogou ainda. Seja o primeiro! 🥇'; return; }
+      top.slice(0,50).forEach(function(x, i){
+        var d = document.createElement('div');
+        var souEu = String(x.nome||'').toLowerCase() === meu;
+        d.className = 'linha' + (souEu ? ' eu' : '');
+        var pos = document.createElement('span'); pos.className='pos';
+        pos.textContent = (i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'º');
+        var nm = document.createElement('span'); nm.className='nm'; nm.textContent = x.nome;
+        var tp = document.createElement('span'); tp.className='tp';
+        tp.textContent = tempoTxt((Number(x.pontos)||0)/100) + 's';
+        d.append(pos, nm, tp);
+        lista.appendChild(d);
+      });
+      status.textContent = (j.top.length) + ' jogadores no mundo';
+    })
+    .catch(function(){ status.textContent = 'não consegui carregar agora 😕'; });
+}
+
+Array.prototype.forEach.call(document.querySelectorAll('.aba[data-ab]'), function(b){
+  b.onclick = function(){
+    abaTop = b.getAttribute('data-ab');
+    Array.prototype.forEach.call(document.querySelectorAll('.aba[data-ab]'), function(x){
+      x.classList.toggle('on', x===b);
+    });
+    carregaTop();
+  };
+});
+
+// ====================== TELAS ======================
+var TELAS = ['tLobby','tComo','tFim'];
+function fechaTelas(){ TELAS.forEach(function(x){ el(x).classList.add('off'); }); }
+function abre(id){ fechaTelas(); el(id).classList.remove('off'); }
+function voltaLobby(){
+  jogando = false;
+  el('relogio').style.display = 'none';
+  el('toque').classList.remove('on');
+  abre('tLobby');
+  carregaTop();
+}
+
+el('btJogar').onclick = function(){
+  var n = nomeEscolhido();
+  if(n.length < 2) return alert('Escreve seu nome (pelo menos 2 letras) pra entrar no top global!');
+  MEU_NOME = n;
+  try{ localStorage.setItem('meteoros_nome', n); }catch(e){}
+  comeca();
+};
+el('btComo').onclick = function(){ abre('tComo'); };
+el('btComoOk').onclick = function(){ abre('tLobby'); };
+el('btDeNovo').onclick = comeca;
+el('btLobby').onclick = voltaLobby;
+el('inNome').addEventListener('keydown', function(e){ if(e.key==='Enter') el('btJogar').click(); });
+
+// ====================== LIGA ======================
+resize();
+montaCenario();
+el('inNome').value = MEU_NOME;
+el('recorde').textContent = '🏆 recorde ' + tempoTxt(RECORDE) + 's';
+abre('tLobby');
+carregaTop();
+requestAnimationFrame(function(ts){ ultimo = ts; requestAnimationFrame(loop); });
+})();
+</script>
+<script src="/stats.js?v=358"></script>
+<script>if (window.initStats) initStats('meteoros');</script>
+<script src="/avisos.js?v=6"></script>
+<script src="/musiquinha.js"></script>
+<script>
+// musiquinha tensa de fundo, apertando conforme o tempo passa
+window.cgMusiquinha({ chave:'meteoros_musica', clima:'misterio', botaoEmBaixo:112 });
+</script>
+<script src="/telacheia.js"></script>
+</body>
+</html>
