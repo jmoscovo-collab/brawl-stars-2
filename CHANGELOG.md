@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v485 (2026-10-08)
+- Musica de fundo removida de TODOS os jogos (21 jogos usavam musica.js ou musiquinha.js); os efeitos sonoros continuam
+
 ## v484 (2026-10-08)
 - Salsicha Comilao: musica de fundo removida (ficam so os sons de comer e bater)
 
