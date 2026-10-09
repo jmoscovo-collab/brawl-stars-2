@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>🪢 Cabo de Guerra</title>
+<meta name="description" content="Cabo de Guerra: aperte as teclas que aparecem mais rápido que o adversário e puxe a corda. 2 jogadores no mesmo teclado, contra o PC ou times online. Jogo grátis do Cogumelo Games.">
+<link rel="canonical" href="https://cogumelogames.com.br/caboguerra/">
+<link rel="icon" href="/icons/icon-192.png">
+<script src="/letra.js"></script>
+<script src="/cogucoins.js?v=490"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#6fb7e8;font-family:Arial,Helvetica,sans-serif;color:#fff;user-select:none;-webkit-user-select:none;touch-action:none}
+#cv{display:block;width:100%;height:100%}
+.tela{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:12px;padding:26px 16px;overflow-y:auto;
+  background:linear-gradient(170deg,#1b3a5c 0%,#0d2238 55%,#070f1c 100%)}
+.tela.off{display:none}
+.tela>*{max-width:100%}
+h1{font-size:34px;text-align:center;line-height:1.12;text-shadow:0 4px 18px #000}
+h2{font-size:20px;color:#ffd166;text-align:center}
+.sub{font-size:14px;opacity:.88;text-align:center;width:440px;line-height:1.5}
+.bt{border:none;border-radius:16px;padding:14px 26px;font-size:17px;font-weight:bold;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#ff6b6b,#c0392b);color:#fff;min-width:230px}
+.bt.azul{background:linear-gradient(135deg,#4facfe,#1f5fbf)}
+.bt.verde{background:linear-gradient(135deg,#43e97b,#1e8f4e)}
+.bt.cinza{background:rgba(255,255,255,.12);color:#fff;border:2px solid rgba(255,255,255,.25)}
+.bt:disabled{opacity:.5}
+.vel{display:flex;gap:7px;flex-wrap:wrap;justify-content:center}
+.aba{border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;border-radius:13px;padding:7px 15px;font-size:13px;font-weight:bold;cursor:pointer;font-family:inherit}
+.aba.on{background:#ffd166;color:#3a2a00;border-color:#ffd166}
+/* HUD do jogo */
+#hud{position:fixed;inset:0;z-index:8;pointer-events:none}
+.tecla{position:absolute;top:12%;width:120px;height:120px;border-radius:26px;background:#fff;color:#222;font-size:64px;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(0,0,0,.4);transition:transform .08s}
+.tecla.erro{background:#ff6b6b;color:#fff}
+.tecla.ok{transform:scale(.88)}
+#t1{left:12%}#t2{right:12%}
+.nome{position:absolute;top:6%;font-weight:bold;font-size:18px;text-shadow:0 2px 8px #000;width:40%;text-align:center}
+#n1{left:0;color:#ff8a80}#n2{right:0;color:#82b1ff}
+#placar{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:34px;font-weight:bold;text-shadow:0 3px 10px #000;font-variant-numeric:tabular-nums}
+#msg{position:absolute;top:38%;left:50%;transform:translateX(-50%);font-size:46px;font-weight:bold;text-shadow:0 4px 16px #000;text-align:center;white-space:nowrap}
+#dica{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-size:13px;opacity:.85;text-shadow:0 2px 6px #000;text-align:center;width:95%}
+#toque{position:fixed;inset:0;z-index:7;display:none}
+#toque.on{display:block}
+.lado{position:absolute;top:0;bottom:0;width:50%}
+#lado1{left:0}#lado2{right:0}
+.top{width:100%;max-width:400px;display:flex;flex-direction:column;gap:5px}
+.linha{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.12);border-radius:13px;padding:9px 13px;font-size:14px}
+.linha.eu{border-color:#ffd166;background:rgba(255,209,102,.16)}
+.linha .pos{width:30px;font-weight:bold;opacity:.8;flex:none}.linha .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:bold}.linha .tp{font-weight:bold;color:#ffd166}
+.rolar{max-height:42vh;overflow-y:auto;width:100%;max-width:400px}
+#btSairJogo{position:fixed;top:10px;left:10px;z-index:9;pointer-events:auto;background:rgba(0,0,0,.45);color:#fff;border:2px solid rgba(255,255,255,.3);border-radius:12px;padding:6px 12px;font-weight:bold;font-family:inherit;cursor:pointer}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="toque"><div class="lado" id="lado1"></div><div class="lado" id="lado2"></div></div>
+<div id="hud" style="display:none">
+  <button id="btSairJogo">✖ Sair</button>
+  <div class="nome" id="n1">Vermelho</div><div class="nome" id="n2">Azul</div>
+  <div id="placar">0 × 0</div>
+  <div class="tecla" id="t1">A</div><div class="tecla" id="t2">L</div>
+  <div id="msg"></div>
+  <div id="dica"></div>
+</div>
+
+<div class="tela" id="tInicio">
+  <canvas id="logo" width="320" height="120"></canvas>
+  <h1>🪢 Cabo de Guerra</h1>
+  <div class="sub">Aperte a <b>tecla que aparece</b> do seu lado o mais rápido que puder pra puxar a corda. Errou a tecla? <b>Escorrega</b> e o outro puxa!<br>No celular é só <b>bater no seu lado da tela</b>.</div>
+  <h2>Modo</h2>
+  <div class="vel" id="modos">
+    <button class="aba on" data-m="cpu">🤖 Contra o PC</button>
+    <button class="aba" data-m="2p">👥 2 Jogadores</button>
+    <button class="aba" data-m="online">🌐 Times online</button>
+  </div>
+  <div id="boxCpu">
+    <h2>Força do PC</h2>
+    <div class="vel" id="nivel">
+      <button class="aba" data-n="0">🐣 Fraquinho</button>
+      <button class="aba on" data-n="1">💪 Normal</button>
+      <button class="aba" data-n="2">🦍 Gorila</button>
+    </div>
+  </div>
+  <button class="bt verde" id="btJogar">▶ PUXAR!</button>
+  <button class="bt cinza" id="btTop">🏆 Top global (vs PC)</button>
+  <a class="bt cinza" href="/" style="text-decoration:none;text-align:center;line-height:1.3">🏠 Voltar pro site</a>
+</div>
+
+<div class="tela off" id="tTime">
+  <h1>🌐 Times online</h1>
+  <div class="sub">Todo mundo que está no site agora puxa junto. Escolha seu time! Quem puxar mais rápido ganha a rodada.</div>
+  <button class="bt" id="btTimeV">🔴 Time Vermelho</button>
+  <button class="bt azul" id="btTimeA">🔵 Time Azul</button>
+  <button class="bt cinza" id="btTimeVoltar">Voltar</button>
+</div>
+
+<div class="tela off" id="tFim">
+  <h1 id="fimTitulo">🏆</h1>
+  <h2 id="fimSub"></h2>
+  <div class="sub" id="fimMsg"></div>
+  <button class="bt verde" id="btDeNovo">🔁 De novo</button>
+  <button class="bt cinza" id="btLobby">🪢 Voltar pro lobby</button>
+  <a class="bt cinza" href="/" style="text-decoration:none;text-align:center;line-height:1.3">🏠 Voltar pro site</a>
+</div>
+
+<div class="tela off" id="tTop">
+  <h1>🏆 Top global</h1>
+  <div class="sub">Vitórias seguidas contra o PC no modo 🦍 Gorila</div>
+  <div class="sub" id="statusTop"></div>
+  <div class="rolar"><div class="top" id="listaTop"></div></div>
+  <button class="bt cinza" id="btTopVoltar">Voltar</button>
+</div>
+
+<script>
+(function(){
+var API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+var WS_URL = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=caboguerra';
+function el(id){ return document.getElementById(id); }
+var cv = el('cv'), cx = cv.getContext('2d'), W = 0, H = 0;
+function redim(){ W = innerWidth; H = innerHeight; var d = Math.min(devicePixelRatio||1, 2); cv.width = W*d; cv.height = H*d; cx.setTransform(d,0,0,d,0,0); }
+addEventListener('resize', redim); redim();
+var touch = matchMedia('(hover:none)').matches;
+
+var modo = 'cpu', nivel = 1;
+try { var nv = localStorage.getItem('cabo_nivel'); if (nv !== null){ nivel = Number(nv); if (!(nivel>=0&&nivel<=2)) nivel = 1; } } catch(e){}
+var TECLAS1 = 'QWEASD', TECLAS2 = 'IOPJKL';
+var corda = 0, vivo = false, placar = [0,0], rodadaAtiva = false, msgT = 0;
+var p1 = {f:0, tecla:'A', escorrega:0, puxa:0}, p2 = {f:0, tecla:'L', escorrega:0, puxa:0};
+var cpuAcc = 0, seguidas = 0, ultimo = 0, t = 0, parts = [], tremor = 0;
+var CPU = [ {taxa:2.2, erro:.18}, {taxa:3.6, erro:.1}, {taxa:5.2, erro:.05} ];
+try { seguidas = Number(localStorage.getItem('cabo_seguidas_'+nivel)) || 0; } catch(e){}
+
+function novaTecla(p){ var s = p===p1 ? TECLAS1 : TECLAS2; var k; do { k = s[Math.floor(Math.random()*s.length)]; } while (k === p.tecla); p.tecla = k; }
+function pinta(){
+  el('t1').textContent = touch ? '👆' : p1.tecla;
+  el('t2').textContent = modo==='cpu' ? '🤖' : (modo==='online' ? '🌐' : (touch ? '👆' : p2.tecla));
+  el('placar').textContent = placar[0] + ' × ' + placar[1];
+}
+function puxa(p, forca){
+  if (!rodadaAtiva) return;
+  p.f += forca; p.puxa = 1; somPuxa();
+  for (var i=0;i<4;i++) parts.push({x:W/2 + (p===p1?-1:1)*W*0.18 + Math.random()*40-20, y:H*0.68, vx:(Math.random()-.5)*3, vy:-2-Math.random()*3, vida:1, c:'#8d6e63'});
+}
+function erra(p){ if (!rodadaAtiva) return; p.escorrega = 1; somErro(); var o = p===p1?p2:p1; o.f += 2.5; }
+function apertou(p, teclaOk){
+  if (!vivo || !rodadaAtiva) return;
+  if (teclaOk){ puxa(p, 1); novaTecla(p); pinta(); var tt = el(p===p1?'t1':'t2'); tt.classList.add('ok'); setTimeout(function(){ tt.classList.remove('ok'); }, 80); }
+  else { erra(p); var te = el(p===p1?'t1':'t2'); te.classList.add('erro'); setTimeout(function(){ te.classList.remove('erro'); }, 250); }
+}
+document.addEventListener('keydown', function(e){
+  if (!vivo || e.repeat) return;
+  var k = (e.key||'').toUpperCase(); if (k.length !== 1) return;
+  e.preventDefault();
+  if (TECLAS1.indexOf(k) >= 0) apertou(p1, k === p1.tecla);
+  else if (TECLAS2.indexOf(k) >= 0){ if (modo === '2p') apertou(p2, k === p2.tecla); else apertou(p1, false); }
+});
+function toque(lado){ return function(e){ e.preventDefault(); if (!vivo) return;
+  if (modo === 'cpu' || modo === 'online') apertou(p1, true);
+  else apertou(lado===1 ? p1 : p2, true); }; }
+el('lado1').addEventListener('touchstart', toque(1), {passive:false});
+el('lado2').addEventListener('touchstart', toque(2), {passive:false});
+el('lado1').addEventListener('mousedown', toque(1)); el('lado2').addEventListener('mousedown', toque(2));
+
+function comeca(){
+  vivo = true; placar = [0,0]; corda = 0; parts = [];
+  el('tInicio').classList.add('off'); el('tFim').classList.add('off'); el('tTime').classList.add('off');
+  el('hud').style.display = ''; el('toque').classList.add('on');
+  el('n1').textContent = modo==='online' ? '🔴 Vermelho' : (modo==='2p' ? '🔴 Jogador 1' : '🔴 Você');
+  el('n2').textContent = modo==='online' ? '🔵 Azul' : (modo==='2p' ? '🔵 Jogador 2' : '🤖 PC ' + ['fraquinho','normal','gorila'][nivel]);
+  el('dica').textContent = modo==='online' ? (touch ? 'Bata na tela pra puxar pelo seu time!' : 'Aperte a tecla que aparece (Q W E A S D) pra puxar pelo seu time!') :
+    (touch ? (modo==='2p' ? 'Cada um bate no seu lado da tela!' : 'Bata na tela o mais rápido que puder!') :
+    (modo==='2p' ? 'Jogador 1: Q W E A S D  •  Jogador 2: I O P J K L' : 'Aperte a tecla que aparece (Q W E A S D)'));
+  el('t2').style.display = (modo==='cpu' && touch) ? 'none' : '';
+  novaRodada();
+  ultimo = 0; requestAnimationFrame(loop);
+}
+function novaRodada(){
+  corda = 0; p1.f = p2.f = 0; novaTecla(p1); novaTecla(p2); pinta();
+  rodadaAtiva = false; mostraMsg('3'); 
+  var n = 3; var iv = setInterval(function(){ n--; if (n > 0) mostraMsg(String(n)); else { clearInterval(iv); mostraMsg('PUXA!'); rodadaAtiva = true; setTimeout(function(){ if (el('msg').textContent==='PUXA!') mostraMsg(''); }, 700); } }, 700);
+}
+function mostraMsg(s){ el('msg').textContent = s; }
+function fimRodada(quem){
+  rodadaAtiva = false; placar[quem]++; pinta(); tremor = 16; somVitoria();
+  mostraMsg(quem===0 ? (modo==='online'?'🔴 VERMELHO!':'🔴 PONTO!') : (modo==='online'?'🔵 AZUL!':'🔵 PONTO!'));
+  if (modo === 'online'){ mandaEstado(); setTimeout(function(){ if (vivo) novaRodada(); }, 2200); return; }
+  if (placar[quem] >= 2) setTimeout(function(){ fimJogo(quem); }, 1500);
+  else setTimeout(function(){ if (vivo) novaRodada(); }, 1800);
+}
+function fimJogo(quem){
+  vivo = false; el('hud').style.display = 'none'; el('toque').classList.remove('on');
+  var ganhei = (modo === 'cpu' && quem === 0);
+  if (modo === 'cpu'){
+    if (ganhei){ seguidas++; try { localStorage.setItem('cabo_seguidas_'+nivel, seguidas); } catch(e){} }
+    else { seguidas = 0; try { localStorage.setItem('cabo_seguidas_'+nivel, 0); } catch(e){} }
+  }
+  el('fimTitulo').textContent = modo==='2p' ? (quem===0 ? '🔴 Jogador 1 venceu!' : '🔵 Jogador 2 venceu!') : (ganhei ? '🏆 Você venceu!' : '🤖 O PC venceu...');
+  el('fimSub').textContent = placar[0] + ' × ' + placar[1];
+  el('fimMsg').textContent = modo==='cpu' ? (ganhei ? 'Vitórias seguidas: ' + seguidas + (nivel===2 ? ' (vale pro top global!)' : '') : 'Sequência zerada. Tenta de novo!') : 'Revanche?';
+  el('tFim').classList.remove('off');
+  if (modo === 'cpu' && ganhei && nivel === 2) mandaPontuacao(seguidas, function(pos){ if (pos) el('fimMsg').textContent += ' Você está em ' + pos + 'º no mundo! 🌍'; });
+}
+el('btSairJogo').onclick = function(){ vivo = false; rodadaAtiva = false; saiSala(); el('hud').style.display='none'; el('toque').classList.remove('on'); el('tInicio').classList.remove('off'); };
+
+function loop(ts){
+  if (!vivo) return;
+  if (!ultimo) ultimo = ts; var dt = Math.min(0.05, (ts - ultimo)/1000); ultimo = ts; t += dt;
+  if (rodadaAtiva){
+    if (modo === 'cpu'){
+      cpuAcc += dt * CPU[nivel].taxa * (0.8 + Math.random()*0.4);
+      while (cpuAcc >= 1){ cpuAcc--; if (Math.random() < CPU[nivel].erro) erra(p2); else puxa(p2, 1); }
+    }
+    if (modo === 'online') aplicaOnline(dt);
+    var dif = (p1.f - p2.f); corda += dif * 0.045; p1.f *= 0.0; p2.f *= 0.0;
+    corda -= corda * dt * 0.15;   // a corda "volta" bem devagar pro meio
+    if (corda >= 1) fimRodada(0); else if (corda <= -1) fimRodada(1);
+  }
+  p1.puxa *= 0.85; p2.puxa *= 0.85; p1.escorrega = Math.max(0, p1.escorrega - dt*2); p2.escorrega = Math.max(0, p2.escorrega - dt*2);
+  desenha();
+  requestAnimationFrame(loop);
+}
+
+// ---------------- desenho ----------------
+function desenha(){
+  cx.save();
+  if (tremor > 0){ cx.translate((Math.random()-.5)*tremor, (Math.random()-.5)*tremor); tremor *= 0.85; if (tremor < .5) tremor = 0; }
+  var ceu = cx.createLinearGradient(0,0,0,H); ceu.addColorStop(0,'#5aa9e6'); ceu.addColorStop(1,'#bfe6ff'); cx.fillStyle = ceu; cx.fillRect(-20,-20,W+40,H+40);
+  // nuvens
+  for (var i=0;i<4;i++){ var nx = ((t*12 + i*W/4) % (W+200)) - 100, ny = H*0.12 + i*H*0.06; cx.fillStyle='rgba(255,255,255,.85)'; cx.beginPath(); cx.arc(nx,ny,28,0,7); cx.arc(nx+30,ny-10,34,0,7); cx.arc(nx+62,ny,26,0,7); cx.fill(); }
+  // sol
+  cx.fillStyle='#ffe066'; cx.beginPath(); cx.arc(W*0.85, H*0.14, 40, 0, 7); cx.fill();
+  // grama e lama
+  var chao = H*0.70;
+  cx.fillStyle='#5cb85c'; cx.fillRect(0, chao, W, H-chao);
+  cx.fillStyle='#4a9d4a'; cx.fillRect(0, chao, W, 8);
+  var lamaW = W*0.22;
+  cx.fillStyle='#6d4c41'; cx.beginPath(); cx.ellipse(W/2, chao+34, lamaW/2, 30, 0, 0, 7); cx.fill();
+  cx.fillStyle='#8d6e63'; cx.beginPath(); cx.ellipse(W/2-10, chao+28, lamaW/2-18, 16, 0, 0, 7); cx.fill();
+  // corda
+  var desloc = corda * W*0.22;
+  var yC = chao - 60;
+  cx.strokeStyle='#c8a165'; cx.lineWidth=10; cx.lineCap='round'; cx.beginPath(); cx.moveTo(W*0.12+desloc, yC); cx.lineTo(W*0.88+desloc, yC); cx.stroke();
+  cx.strokeStyle='#a67c43'; cx.lineWidth=3; cx.setLineDash([12,10]); cx.beginPath(); cx.moveTo(W*0.12+desloc, yC); cx.lineTo(W*0.88+desloc, yC); cx.stroke(); cx.setLineDash([]);
+  // bandeira no meio da corda
+  var fx = W/2 + desloc;
+  cx.strokeStyle='#333'; cx.lineWidth=3; cx.beginPath(); cx.moveTo(fx, yC); cx.lineTo(fx, yC-44); cx.stroke();
+  cx.fillStyle='#ffd166'; cx.beginPath(); cx.moveTo(fx, yC-44); cx.lineTo(fx+30+Math.sin(t*8)*4, yC-34); cx.lineTo(fx, yC-24); cx.closePath(); cx.fill();
+  // linha do meio
+  cx.strokeStyle='rgba(255,255,255,.7)'; cx.lineWidth=4; cx.setLineDash([8,8]); cx.beginPath(); cx.moveTo(W/2, chao-110); cx.lineTo(W/2, chao+8); cx.stroke(); cx.setLineDash([]);
+  // times de capivaras
+  var n = (modo==='online') ? 3 : 2;
+  for (i=0;i<n;i++){
+    capivara(W*0.30 + desloc - i*70, chao-6, 1, '#c62828', p1.puxa, p1.escorrega, i);
+    capivara(W*0.70 + desloc + i*70, chao-6, -1, modo==='cpu' ? '#555' : '#1565c0', p2.puxa, p2.escorrega, i);
+  }
+  // barra de força
+  var bw = Math.min(W*0.6, 420), bx = W/2 - bw/2, by = H*0.30;
+  cx.fillStyle='rgba(0,0,0,.35)'; rr(bx-4, by-4, bw+8, 26, 13); cx.fill();
+  cx.fillStyle='#e53935'; rr(bx, by, bw/2 - corda*bw/2, 18, 9); cx.fill();
+  cx.fillStyle='#1e88e5'; rr(bx + bw/2 - corda*bw/2, by, bw/2 + corda*bw/2, 18, 9); cx.fill();
+  // partículas
+  for (i=parts.length-1;i>=0;i--){ var q=parts[i]; q.x+=q.vx; q.y+=q.vy; q.vy+=.15; q.vida-=.03; if(q.vida<=0){parts.splice(i,1);continue;} cx.globalAlpha=q.vida; cx.fillStyle=q.c; cx.beginPath(); cx.arc(q.x,q.y,3,0,7); cx.fill(); }
+  cx.globalAlpha=1;
+  if (modo==='online') desenhaGenteOnline();
+  cx.restore();
+}
+function rr(x,y,w,h,r){ cx.beginPath(); cx.moveTo(x+r,y); cx.arcTo(x+w,y,x+w,y+h,r); cx.arcTo(x+w,y+h,x,y+h,r); cx.arcTo(x,y+h,x,y,r); cx.arcTo(x,y,x+w,y,r); cx.closePath(); }
+function capivara(x, y, dir, corCamisa, puxa, escorrega, i){
+  cx.save(); cx.translate(x, y); cx.scale(dir, 1);
+  var incl = -0.35 - puxa*0.35 + escorrega*0.9;   // inclinada pra trás puxando; escorrega = cai pra frente
+  cx.rotate(incl);
+  var marrom='#a0522d', esc='#7a3b1a';
+  // pernas
+  cx.strokeStyle=esc; cx.lineWidth=9; cx.lineCap='round';
+  cx.beginPath(); cx.moveTo(-10,-20); cx.lineTo(-18+Math.sin(t*14+i)*4*puxa, 0); cx.moveTo(8,-20); cx.lineTo(14-Math.sin(t*14+i)*4*puxa, 0); cx.stroke();
+  // corpo
+  cx.fillStyle=marrom; cx.beginPath(); cx.ellipse(0,-38,30,24,0,0,7); cx.fill();
+  // camisa do time
+  cx.fillStyle=corCamisa; cx.beginPath(); cx.ellipse(0,-36,28,18,0,0,7); cx.fill();
+  cx.fillStyle='rgba(255,255,255,.25)'; cx.beginPath(); cx.ellipse(-6,-42,10,6,0,0,7); cx.fill();
+  // cabeça
+  cx.fillStyle=marrom; cx.beginPath(); cx.ellipse(26,-56,18,15,0.2,0,7); cx.fill();
+  cx.fillStyle='#b8744a'; cx.beginPath(); cx.ellipse(40,-52,9,7,0.2,0,7); cx.fill();   // focinho
+  cx.fillStyle='#222'; cx.beginPath(); cx.arc(44,-54,2.5,0,7); cx.fill();                // nariz
+  cx.fillStyle=esc; cx.beginPath(); cx.ellipse(18,-68,5,6,0,0,7); cx.fill();              // orelha
+  cx.fillStyle='#fff'; cx.beginPath(); cx.arc(30,-60,4,0,7); cx.fill(); cx.fillStyle='#111'; cx.beginPath(); cx.arc(31,-60,2,0,7); cx.fill();
+  if (escorrega > 0.2){ cx.fillStyle='#111'; cx.beginPath(); cx.ellipse(38,-46,3,4,0,0,7); cx.fill(); }   // boca aberta de susto
+  // braços na corda
+  cx.strokeStyle=marrom; cx.lineWidth=8; cx.beginPath(); cx.moveTo(14,-40); cx.lineTo(44,-30+puxa*6); cx.moveTo(6,-30); cx.lineTo(42,-24+puxa*6); cx.stroke();
+  cx.restore();
+}
+// logo
+(function(){ var lc = el('logo'), g = lc.getContext('2d'); var save = cx; cx = g; var sw = W, sh = H; W = 320; H = 160; corda = 0.1; capivara(80, 150, 1, '#c62828', 0.5, 0, 0); capivara(240, 150, -1, '#1565c0', 0.3, 0, 0);
+  cx.strokeStyle='#c8a165'; cx.lineWidth=8; cx.lineCap='round'; cx.beginPath(); cx.moveTo(110,118); cx.lineTo(210,118); cx.stroke(); cx = save; W = sw; H = sh; corda = 0; })();
+
+// ---------------- som ----------------
+var ac = null;
+function ctxA(){ try { if (!ac) ac = new (window.AudioContext||window.webkitAudioContext)(); return ac; } catch(e){ return null; } }
+function bip(tipo, f0, f1, dur, vol){ var a = ctxA(); if (!a) return; var o=a.createOscillator(), g=a.createGain(), t0=a.currentTime; o.type=tipo; o.frequency.setValueAtTime(f0,t0); o.frequency.exponentialRampToValueAtTime(f1,t0+dur); g.gain.setValueAtTime(vol,t0); g.gain.exponentialRampToValueAtTime(0.001,t0+dur); o.connect(g); g.connect(a.destination); o.start(t0); o.stop(t0+dur); }
+function somPuxa(){ bip('triangle', 180+Math.random()*60, 120, 0.08, 0.08); }
+function somErro(){ bip('sawtooth', 300, 80, 0.3, 0.12); }
+function somVitoria(){ bip('square', 440, 880, 0.25, 0.1); setTimeout(function(){ bip('square', 660, 1320, 0.3, 0.1); }, 150); }
+
+// ---------------- online (times) ----------------
+var ws = null, meuTime = 'v', outros = {}, enviaTimer = null, pendentes = 0;
+function mandaEstado(){ if (!ws || ws.readyState !== 1) return; try { ws.send(JSON.stringify({ acao:'estado', t:'cabo', nome: nomeEscolhido()||'Jogador', time: meuTime, f: pendentes, c: Math.round(corda*1000) })); } catch(e){} pendentes = 0; }
+function conecta(){
+  if (ws) return;
+  try { ws = new WebSocket(WS_URL); } catch(e){ return; }
+  ws.onopen = function(){ enviaTimer = setInterval(mandaEstado, 200); };
+  ws.onmessage = function(ev){ var m; try { m = JSON.parse(ev.data); } catch(e){ return; } if (!m || !m.quem) return;
+    if (m.t === 'cabo'){ var o = outros[m.quem] || (outros[m.quem] = {f:0}); o.nome = String(m.nome||'???').slice(0,14); o.time = m.time==='a'?'a':'v'; o.f += Number(m.f)||0; o.quando = performance.now(); }
+    else if (m.t === 'saiu') delete outros[m.quem]; };
+  ws.onclose = function(){ ws = null; }; ws.onerror = function(){ try { ws.close(); } catch(e){} };
+}
+function saiSala(){ clearInterval(enviaTimer); enviaTimer = null; if (ws){ ws.onclose=null; ws.onmessage=null; try { ws.send(JSON.stringify({acao:'estado', t:'saiu'})); ws.close(); } catch(e){} ws = null; } outros = {}; }
+var puxaOrig = puxa;
+puxa = function(p, forca){ puxaOrig(p, forca); if (modo === 'online' && p === p1) pendentes += forca; };
+function aplicaOnline(dt){
+  // minha força vai pro meu time; a dos outros pro time deles
+  var minha = p1.f; p1.f = 0; p2.f = 0;
+  var fv = 0, fa = 0; if (meuTime==='v') fv += minha; else fa += minha;
+  var agora = performance.now();
+  for (var k in outros){ var o = outros[k]; if (agora - o.quando > 8000){ delete outros[k]; continue; } if (o.time==='a') fa += o.f; else fv += o.f; o.f = 0; }
+  p1.f = fv; p2.f = fa;
+  // bots pra ninguém puxar sozinho
+  if (Object.keys(outros).length === 0){ cpuAcc += dt * 2.6; while (cpuAcc >= 1){ cpuAcc--; if (meuTime==='v') p2.f += 1; else p1.f += 1; } }
+}
+function desenhaGenteOnline(){
+  var vs = [], as = []; for (var k in outros) (outros[k].time==='a' ? as : vs).push(outros[k].nome);
+  (meuTime==='a' ? as : vs).unshift((nomeEscolhido()||'Você') + ' (você)');
+  cx.fillStyle='rgba(0,0,0,.35)'; cx.font='bold 13px Arial'; cx.textAlign='left';
+  var y = H*0.42; cx.fillStyle='#ffb3ab'; vs.slice(0,6).forEach(function(n,i){ cx.fillText('🔴 '+n, 14, y+i*17); });
+  cx.textAlign='right'; cx.fillStyle='#b3d1ff'; as.slice(0,6).forEach(function(n,i){ cx.fillText(n+' 🔵', W-14, y+i*17); });
+}
+
+// ---------------- ranking ----------------
+var JOGO = 'caboguerra', MEU_NOME = '';
+function nomeEscolhido(){ try { return localStorage.getItem('cg_usuario') || localStorage.getItem('cabo_nome') || ''; } catch(e){ return ''; } }
+function pedeNomeUmaVez(){ if (MEU_NOME) return MEU_NOME; var n = nomeEscolhido(); if (!n){ n = (prompt('Seu nome pro top global (2 a 14 letras):','')||'').trim().slice(0,14); if (n) try { localStorage.setItem('cabo_nome', n); } catch(e){} } MEU_NOME = n; return n; }
+function mandaPontuacao(pontos, cb){ var nome = pedeNomeUmaVez(); if (!nome || nome.length<2 || pontos<=0 || !window.fetch) return cb(null);
+  fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({acao:'ranking_enviar',jogo:JOGO,nome:nome,pontos:pontos})}).then(function(r){return r.ok?r.json():null;}).then(function(j){cb(j&&j.posicao?j.posicao:null);}).catch(function(){cb(null);}); }
+function carregaTop(){ var lista = el('listaTop'), status = el('statusTop'); lista.textContent=''; status.textContent='carregando...';
+  fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({acao:'ranking_top',jogo:JOGO})}).then(function(r){return r.ok?r.json():null;}).then(function(j){
+    var top=(j&&j.top)?j.top:[]; var meu=nomeEscolhido().toLowerCase(); if(!top.length){status.textContent='Ninguém venceu o Gorila ainda — seja o primeiro! 🦍';return;}
+    status.textContent='os '+top.length+' mais fortes do mundo';
+    top.forEach(function(x,i){ var d=document.createElement('div'); d.className='linha'+(String(x.nome||'').toLowerCase()===meu?' eu':''); var p=document.createElement('span'); p.className='pos'; p.textContent=(i+1)+'º'; var nm=document.createElement('span'); nm.className='nm'; nm.textContent=x.nome; var tp=document.createElement('span'); tp.className='tp'; tp.textContent=x.pontos+' 🏆'; d.appendChild(p); d.appendChild(nm); d.appendChild(tp); lista.appendChild(d); });
+  }).catch(function(){ status.textContent='não deu pra carregar o top 😕'; }); }
+
+// ---------------- botões ----------------
+function abas(sel, attr, cb){ Array.prototype.forEach.call(document.querySelectorAll(sel), function(b){ b.onclick = function(){ Array.prototype.forEach.call(document.querySelectorAll(sel), function(x){ x.classList.remove('on'); }); b.classList.add('on'); cb(b.getAttribute(attr)); }; }); }
+abas('#modos .aba', 'data-m', function(m){ modo = m; el('boxCpu').style.display = m==='cpu' ? '' : 'none'; });
+abas('#nivel .aba', 'data-n', function(n){ nivel = Number(n); try { localStorage.setItem('cabo_nivel', nivel); seguidas = Number(localStorage.getItem('cabo_seguidas_'+nivel))||0; } catch(e){} });
+Array.prototype.forEach.call(document.querySelectorAll('#nivel .aba'), function(b){ b.classList.toggle('on', Number(b.getAttribute('data-n'))===nivel); });
+el('btJogar').onclick = function(){ ctxA(); if (modo === 'online'){ el('tInicio').classList.add('off'); el('tTime').classList.remove('off'); return; } comeca(); };
+el('btTimeV').onclick = function(){ meuTime='v'; pedeNomeUmaVez(); conecta(); comeca(); };
+el('btTimeA').onclick = function(){ meuTime='a'; pedeNomeUmaVez(); conecta(); comeca(); };
+el('btTimeVoltar').onclick = function(){ el('tTime').classList.add('off'); el('tInicio').classList.remove('off'); };
+el('btDeNovo').onclick = function(){ if (modo==='online') conecta(); comeca(); };
+el('btLobby').onclick = function(){ saiSala(); el('tFim').classList.add('off'); el('tInicio').classList.remove('off'); };
+el('btTop').onclick = function(){ el('tInicio').classList.add('off'); el('tTop').classList.remove('off'); carregaTop(); };
+el('btTopVoltar').onclick = function(){ el('tTop').classList.add('off'); el('tInicio').classList.remove('off'); };
+addEventListener('pagehide', saiSala);
+if (/auto=1/.test(location.search)) setTimeout(comeca, 50);
+})();
+</script>
+<script src="/stats.js?v=490"></script>
+<script>if (window.initStats) initStats('caboguerra');</script>
+<script src="/avisos.js?v=6"></script>
+<script src="/telacheia.js"></script>
+</body>
+</html>

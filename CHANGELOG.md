@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v491 (2026-10-08)
+- JOGO NOVO: Cabo de Guerra - a tecla vai mudando (Q W E A S D) e quem aperta mais rapido puxa a corda; errar a tecla escorrega e da forca pro outro. Contra o PC (Fraquinho / Normal / Gorila), 2 jogadores no mesmo teclado (I O P J K L) ou TIMES ONLINE (vermelho x azul, todo mundo puxando junto); no celular bate na tela. Melhor de 3, capivaras de camisa puxando, top global de vitorias seguidas contra o Gorila
+
 ## v487 (2026-10-08)
 - Conta na nuvem: na primeira vez em cada aparelho JUNTA o que esta no aparelho com o que esta na nuvem (nada se perde; Cogu Coins = o maior saldo dos dois) e manda tudo pra nuvem; cogucoins.js passa a ter versao na URL pra o navegador nao usar o arquivo velho
 
