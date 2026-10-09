@@ -82,6 +82,11 @@ h2{font-size:20px;color:#ffd166;text-align:center}
 
 <div class="tela off" id="tTop">
   <h1>🏆 Top global</h1>
+  <div class="vel" id="abasTop">
+    <button class="aba" data-t="0">🐢 Devagar</button>
+    <button class="aba on" data-t="1">🐕 Normal</button>
+    <button class="aba" data-t="2">⚡ Rápido</button>
+  </div>
   <div class="sub" id="statusTop"></div>
   <div class="rolar"><div class="top" id="listaTop"></div></div>
   <button class="bt cinza" id="btTopVoltar">Voltar</button>
@@ -89,7 +94,9 @@ h2{font-size:20px;color:#ffd166;text-align:center}
 
 <script>
 (function(){
-var JOGO = 'salsicha';
+var JOGOS = ['salsicha_devagar','salsicha','salsicha_rapido'];
+var NOMES_VEL = ['🐢 Devagar','🐕 Normal','⚡ Rápido'];
+var abaTop = 1;
 var API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
 function el(id){ return document.getElementById(id); }
 var cv = el('cv'), cx = cv.getContext('2d');
@@ -195,7 +202,7 @@ function morre(msg){
   el('fimMsg').textContent = msg + ' O salsicha ficou com ' + corpo.length + ' pedaços de comprido.';
   el('tFim').classList.remove('off');
   if (pontos > 0) mandaPontuacao(pontos, function(pos){
-    if (pos) el('fimMsg').textContent += ' Você está em ' + pos + 'º no mundo! 🌍';
+    if (pos) el('fimMsg').textContent += ' Você está em ' + pos + 'º no mundo (' + NOMES_VEL[vel] + ')! 🌍';
   });
 }
 function loop(ts){
@@ -394,7 +401,7 @@ function mandaPontuacao(pontos, aoTerminar){
   var nome = pedeNomeUmaVez();
   if (!nome || nome.length < 2 || pontos <= 0 || !window.fetch) return aoTerminar(null);
   fetch(API, { method:'POST', headers:{'content-type':'application/json'},
-    body: JSON.stringify({ acao:'ranking_enviar', jogo:JOGO, nome:nome, pontos:pontos }) })
+    body: JSON.stringify({ acao:'ranking_enviar', jogo:JOGOS[vel], nome:nome, pontos:pontos }) })
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(j){ aoTerminar(j && j.posicao ? j.posicao : null); })
     .catch(function(){ aoTerminar(null); });
@@ -404,13 +411,13 @@ function carregaTop(){
   lista.textContent = ''; status.textContent = 'carregando...';
   if (!window.fetch){ status.textContent = 'seu navegador não consegue carregar o top 😕'; return; }
   fetch(API, { method:'POST', headers:{'content-type':'application/json'},
-    body: JSON.stringify({ acao:'ranking_top', jogo:JOGO }) })
+    body: JSON.stringify({ acao:'ranking_top', jogo:JOGOS[abaTop] }) })
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(j){
       var top = (j && j.top) ? j.top : [];
       var meu = nomeEscolhido().toLowerCase();
-      if (!top.length){ status.textContent = 'Ninguém no top ainda — seja o primeiro! 🐕'; return; }
-      status.textContent = 'os ' + top.length + ' maiores comilões do mundo';
+      if (!top.length){ status.textContent = 'Ninguém no top ' + NOMES_VEL[abaTop] + ' ainda — seja o primeiro!'; return; }
+      status.textContent = 'os ' + top.length + ' maiores comilões do mundo no ' + NOMES_VEL[abaTop];
       top.forEach(function(x, i){
         var d = document.createElement('div'); d.className = 'linha' + (String(x.nome||'').toLowerCase()===meu ? ' eu' : '');
         var p = document.createElement('span'); p.className='pos'; p.textContent = (i+1)+'º';
@@ -421,7 +428,9 @@ function carregaTop(){
     })
     .catch(function(){ status.textContent = 'não deu pra carregar o top 😕'; });
 }
-function abreTop(){ el('tInicio').classList.add('off'); el('tFim').classList.add('off'); el('tTop').classList.remove('off'); carregaTop(); }
+function pintaAbasTop(){ Array.prototype.forEach.call(document.querySelectorAll('#abasTop .aba'), function(x){ x.classList.toggle('on', Number(x.getAttribute('data-t'))===abaTop); }); }
+Array.prototype.forEach.call(document.querySelectorAll('#abasTop .aba'), function(b){ b.onclick = function(){ abaTop = Number(b.getAttribute('data-t')); pintaAbasTop(); carregaTop(); }; });
+function abreTop(){ abaTop = vel; pintaAbasTop(); el('tInicio').classList.add('off'); el('tFim').classList.add('off'); el('tTop').classList.remove('off'); carregaTop(); }
 var voltaPara = 'tInicio';
 el('btTop').onclick = function(){ voltaPara='tInicio'; abreTop(); };
 el('btTop2').onclick = function(){ voltaPara='tFim'; abreTop(); };

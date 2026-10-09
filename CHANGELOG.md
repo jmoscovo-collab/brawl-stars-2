@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v479 (2026-10-08)
+- Salsicha Comilao: top global separado por velocidade (Devagar / Normal / Rapido), com abas na tela do top; a pontuacao vai pro top da velocidade que voce jogou
+
 ## v478 (2026-10-08)
 - Salsicha Comilao com arte melhor: corpo em curva suave com sombra, pelo com brilho e barriga clara, cabeca com focinho comprido, orelhas caidas, olhos que piscam, lingua e coleira com plaquinha; patinhas que andam, rabo abanando; movimento deslizando entre as casas; maca com brilho; quintal com florzinhas e cerca de madeira; explosao de pedacinhos ao comer e tela treme ao bater; desenho do salsicha na tela inicial
 
