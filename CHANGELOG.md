@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v494 (2026-10-08)
+- JOGO NOVO: Capivara Caindo - queda infinita de paraquedas: moedas, passaros e baloes, ima que puxa moedas, vento que muda de lado e fica louco, 3 vidas, 6 paraquedas pra comprar com as moedas, top global por metros; setas/A D ou arrastar o dedo
+
 ## v493 (2026-10-08)
 - Cabo de Guerra: no celular mostra "Esse jogo AINDA nao esta disponivel para celular" com botao de voltar (so computador por enquanto)
 
