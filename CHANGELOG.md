@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v484 (2026-10-08)
+- Salsicha Comilao: musica de fundo removida (ficam so os sons de comer e bater)
+
 ## v483 (2026-10-08)
 - Salsicha Comilao: recorde separado por velocidade - o recorde mostrado durante a partida e o da velocidade que voce esta jogando
 
