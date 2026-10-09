@@ -285,6 +285,7 @@
         if (!total) return;
         CC.ganhaSilencioso(total);
         CC.guardaNoHistorico(novas);
+        if (window.cgNuvem) window.cgNuvem.salva(true);
         CC.oferece({
           emoji: '🎁',
           titulo: 'Você ganhou um presente!',
@@ -306,4 +307,117 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', coleta);
   else coleta();
+})();
+
+/* === NUVEM: a conta vale em QUALQUER aparelho ===
+   Tudo que o jogador tem (progresso dos jogos, Cogu Coins, histórico,
+   favoritos) sobe pra conta na nuvem sozinho e desce quando ele entra
+   em outro aparelho. Quem joga SEM conta perde tudo depois de 15 min. */
+(function () {
+  var API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+  var EXTRAS = ['cg_cogucoins', 'cg_cogu_hist', 'cg_favoritos'];   // chaves cg_ que também viajam
+  var TS = 'cg_nuvem_ts';
+  function ls(k){ try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+  function cred(){ var u = ls('cg_usuario'), s = ls('cg_senhaHash'); return (u && s) ? { nome: u, senhaHash: s } : null; }
+  function entra(k){ return k.indexOf('cg_') !== 0 || EXTRAS.indexOf(k) >= 0; }
+  function snapshot(){
+    var d = {};
+    try { for (var i = 0; i < localStorage.length; i++){ var k = localStorage.key(i); if (entra(k)) d[k] = localStorage.getItem(k); } } catch (e) {}
+    return d;
+  }
+  function aplica(dados){
+    var tirar = [];
+    try { for (var i = 0; i < localStorage.length; i++){ var k = localStorage.key(i); if (entra(k)) tirar.push(k); } } catch (e) {}
+    tirar.forEach(function (k){ try { localStorage.removeItem(k); } catch (e) {} });
+    Object.keys(dados || {}).forEach(function (k){ if (entra(k)) set(k, dados[k]); });
+  }
+  function assina(d){ var s = JSON.stringify(d), h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return s.length + ':' + h; }
+
+  var ultimaAssinatura = null, salvando = false;
+  function salva(forca, keepalive){
+    var c = cred(); if (!c || !window.fetch) return;
+    var d = snapshot(), a = assina(d);
+    if (!forca && a === ultimaAssinatura) return;
+    if (salvando && !keepalive) return;
+    salvando = true; ultimaAssinatura = a;
+    var corpo = JSON.stringify({ acao: 'salvar', nome: c.nome, senhaHash: c.senhaHash, dados: d });
+    try {
+      fetch(API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: corpo, keepalive: !!keepalive })
+        .then(function (r){
+          salvando = false;
+          if (r.status === 401){ try { localStorage.removeItem('cg_usuario'); localStorage.removeItem('cg_senhaHash'); } catch (e) {} return null; }
+          return r.ok ? r.json() : null;
+        })
+        .then(function (j){ if (j && j.atualizado) set(TS, String(j.atualizado)); })
+        .catch(function (){ salvando = false; ultimaAssinatura = null; });
+    } catch (e) { salvando = false; }
+  }
+  // puxa da nuvem se lá estiver mais novo do que a última vez que ESTE aparelho sincronizou
+  function puxa(){
+    var c = cred(); if (!c || !window.fetch) return;
+    fetch(API, { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ acao: 'entrar', nome: c.nome, senhaHash: c.senhaHash }) })
+      .then(function (r){ return r.ok ? r.json() : null; })
+      .then(function (j){
+        if (!j || !j.ok) return;
+        var nuvemTs = Number(j.atualizado) || 0, meuTs = Number(ls(TS)) || 0;
+        if (nuvemTs > meuTs){
+          var iguais = assina(j.dados || {}) === assina(snapshot());
+          set(TS, String(nuvemTs));
+          if (!iguais){
+            aplica(j.dados);
+            ultimaAssinatura = assina(snapshot());
+            var g = 'cg_recarregou_' + nuvemTs;
+            try { if (!sessionStorage.getItem(g)){ sessionStorage.setItem(g, '1'); location.reload(); return; } } catch (e) {}
+          }
+        } else if (nuvemTs < meuTs || !nuvemTs) salva(true);   // nuvem está atrás: manda o meu
+        ultimaAssinatura = ultimaAssinatura || assina(snapshot());
+      })
+      .catch(function (){});
+  }
+  window.cgNuvem = { snapshot: snapshot, aplica: aplica, salva: salva, puxa: puxa, EXTRAS: EXTRAS };
+
+  if (cred()){
+    puxa();
+    setInterval(function (){ salva(false); }, 15000);
+    document.addEventListener('visibilitychange', function (){ if (document.visibilityState === 'hidden') salva(false, true); });
+    window.addEventListener('pagehide', function (){ salva(false, true); });
+  }
+
+  // ---- sem conta: 15 minutos e perde tudo ----
+  var SC = 'cg_semconta_ms', LIMITE = 15 * 60 * 1000, AVISO = 12 * 60 * 1000, avisou = false;
+  function apagaTudoSemConta(){
+    var tirar = [];
+    try { for (var i = 0; i < localStorage.length; i++){ var k = localStorage.key(i); if (entra(k)) tirar.push(k); } } catch (e) {}
+    tirar.forEach(function (k){ try { localStorage.removeItem(k); } catch (e) {} });
+    set(SC, '0');
+  }
+  function faixa(txt, cor){
+    var f = document.createElement('a'); f.href = '/conta/';
+    f.style.cssText = 'position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:99999;max-width:92vw;background:' + cor +
+      ';color:#fff;font:bold 14px Arial;padding:10px 16px;border-radius:14px;text-decoration:none;box-shadow:0 6px 24px rgba(0,0,0,.5);text-align:center;line-height:1.35';
+    f.textContent = txt;
+    (document.body || document.documentElement).appendChild(f);
+    setTimeout(function (){ try { f.remove(); } catch (e) {} }, 12000);
+  }
+  function tiqueSemConta(){
+    if (cred()) return;
+    if (document.visibilityState === 'hidden') return;
+    var t = (Number(ls(SC)) || 0) + 5000;
+    set(SC, String(t));
+    if (t >= LIMITE){
+      apagaTudoSemConta();
+      alert('⏳ Você jogou 15 minutos SEM CONTA e o progresso foi apagado!\n\nCrie uma conta grátis em cogumelogames.com.br/conta/ pra guardar tudo pra sempre, em qualquer aparelho.');
+      location.reload();
+    } else if (t >= AVISO && !avisou){
+      avisou = true;
+      faixa('⏳ Sem conta, seu progresso SOME em ' + Math.ceil((LIMITE - t) / 60000) + ' min! Toque aqui pra criar uma conta 🍄', '#c0392b');
+    }
+  }
+  if (!cred()){
+    var mostra = function (){ var t = Number(ls(SC)) || 0; if (t < AVISO && t > 0) faixa('👤 Jogando sem conta: o progresso some em ' + Math.ceil((LIMITE - t) / 60000) + ' min. Toque pra criar conta!', '#2d6a4f'); };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mostra); else mostra();
+    setInterval(tiqueSemConta, 5000);
+  }
 })();

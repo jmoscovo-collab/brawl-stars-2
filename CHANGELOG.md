@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v486 (2026-10-08)
+- CONTA VALE EM QUALQUER APARELHO: progresso dos jogos, Cogu Coins, historico e favoritos sobem pra nuvem sozinhos (a cada 15s quando muda, e ao sair da pagina) e descem ao abrir o site em outro aparelho (se a nuvem estiver mais nova, aplica e recarrega). Antes, Cogu Coins nunca iam pra nuvem e o progresso so subia a cada 60s dentro de jogo
+- Doacao de Cogu Coins recebida ja salva na nuvem na hora
+- SEM CONTA = 15 MINUTOS: quem joga sem conta ve um aviso e, depois de 15 min jogando, perde todo o progresso (faixa vermelha aos 12 min com link pra criar conta)
+
 ## v485 (2026-10-08)
 - Musica de fundo removida de TODOS os jogos (21 jogos usavam musica.js ou musiquinha.js); os efeitos sonoros continuam
 

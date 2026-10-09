@@ -129,15 +129,12 @@ function cgAutoSave() {
         if (!u) return;
         const contas = JSON.parse(localStorage.getItem('cg_contas') || '{}');
         if (!contas[u]) contas[u] = { senha: localStorage.getItem('cg_senhaHash') || '' };
-        const dados = {};
-        for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            if (!k.startsWith('cg_')) dados[k] = localStorage.getItem(k);
-        }
+        const dados = window.cgNuvem ? window.cgNuvem.snapshot() : (function(){ const d = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (!k.startsWith('cg_')) d[k] = localStorage.getItem(k); } return d; })();
         contas[u].dados = dados;
         contas[u].atualizado = Date.now();
         localStorage.setItem('cg_contas', JSON.stringify(contas));
         // ☁️ sincroniza com a nuvem no máximo a cada 60s
+        if (window.cgNuvem) { window.cgNuvem.salva(false); return; }
         const h = localStorage.getItem('cg_senhaHash');
         const agora = Date.now();
         const ultimo = parseInt(localStorage.getItem('cg_sync_last') || '0');

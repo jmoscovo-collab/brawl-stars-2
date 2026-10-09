@@ -212,24 +212,9 @@ function aviso(txt, ok){
 }
 
 // snapshot de progresso = todas as chaves dos jogos (menos as cg_*)
-function pegaProgresso(){
-    const dados={};
-    for(let i=0;i<localStorage.length;i++){
-        const k=localStorage.key(i);
-        if(!k.startsWith('cg_')) dados[k]=localStorage.getItem(k);
-    }
-    return dados;
-}
-function aplicaProgresso(dados){
-    // limpa progresso atual (menos contas) e aplica o da conta
-    const remover=[];
-    for(let i=0;i<localStorage.length;i++){
-        const k=localStorage.key(i);
-        if(!k.startsWith('cg_')) remover.push(k);
-    }
-    remover.forEach(k=>localStorage.removeItem(k));
-    Object.entries(dados||{}).forEach(([k,v])=>localStorage.setItem(k,v));
-}
+// (progresso dos jogos + Cogu Coins + histórico + favoritos — regra única em cogucoins.js)
+function pegaProgresso(){ return window.cgNuvem.snapshot(); }
+function aplicaProgresso(dados){ window.cgNuvem.aplica(dados); }
 
 function salvarProgresso(mostra){
     const u=usuario(); if(!u) return;
@@ -243,7 +228,7 @@ function salvarProgresso(mostra){
     // nuvem
     if(h){
         chamaAPI({ acao:'salvar', nome:u, senhaHash:h, dados: pegaProgresso() })
-            .then(()=>{ if(mostra) aviso('☁️ Progresso salvo NA NUVEM!', true); })
+            .then((r)=>{ if(r && r.atualizado) localStorage.setItem('cg_nuvem_ts', String(r.atualizado)); if(mostra) aviso('☁️ Progresso salvo NA NUVEM!', true); })
             .catch(e=>{ if(mostra) aviso('💾 Salvo só neste aparelho ('+e.message+')'); });
     } else if(mostra) aviso('💾 Progresso salvo neste aparelho!', true);
 }
@@ -263,6 +248,7 @@ async function criar(){
     }
     localStorage.setItem('cg_usuario', nome);
     localStorage.setItem('cg_senhaHash', h);
+    localStorage.setItem('cg_semconta_ms','0');
     aviso('🎉 Conta criada NA NUVEM! Agora dá pra entrar em qualquer aparelho!', true);
     mostraEstado();
 }
@@ -278,6 +264,8 @@ async function entrar(){
         localStorage.setItem('cg_senhaHash', h);
         guardaSocial(r);
         aplicaProgresso(r.dados);
+        localStorage.setItem('cg_nuvem_ts', String(r.atualizado||0));
+        localStorage.setItem('cg_semconta_ms','0');
         aviso('✅ Bem-vindo de volta, '+nome+'! Progresso da nuvem carregado.', true);
         mostraAmigos();
         return mostraEstado();
