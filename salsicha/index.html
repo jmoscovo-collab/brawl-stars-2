@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
 <title>🌭 Salsicha Comilão</title>
-<meta name="description" content="Salsicha Comilão: o cachorro salsicha come maçãs e vai ficando cada vez mais comprido. Não bata na parede nem no próprio corpo! Jogo grátis do Cogumelo Games.">
+<meta name="description" content="Salsicha Comilão: o cachorro salsicha come salsichas e hot dogs e vai ficando cada vez mais comprido. Não bata na parede nem no próprio corpo! Jogo grátis do Cogumelo Games.">
 <link rel="canonical" href="https://cogumelogames.com.br/salsicha/">
 <link rel="icon" href="/icons/icon-192.png">
 <script src="/letra.js"></script>
@@ -59,7 +59,7 @@ h2{font-size:20px;color:#ffd166;text-align:center}
 <div class="tela" id="tInicio">
   <canvas id="logo" width="300" height="130"></canvas>
   <h1>🌭 Salsicha Comilão</h1>
-  <div class="sub">O cachorro salsicha <b>adora maçã</b> 🍎 — e a cada uma que come fica <b>mais comprido</b>!<br>
+  <div class="sub">O cachorro salsicha <b>adora salsicha</b> — e a cada uma que come fica <b>mais comprido</b>!<br>De vez em quando aparece um <b>🌭 hot dog</b> que vale <b>3 pontos</b> (e cresce 3)!<br>
   Não bata na cerca nem no próprio rabo.<br><small>Setas / WASD no computador • deslize o dedo ou use o joystick no celular</small></div>
   <div class="vel">
     <button class="aba" data-v="0">🐢 Devagar</button>
@@ -121,7 +121,7 @@ try { var vs = localStorage.getItem('salsicha_vel'); if (vs !== null) { vel = Nu
 var RECORDE = 0;
 try { RECORDE = Number(localStorage.getItem('salsicha_recorde')) || 0; } catch(e){}
 
-var corpo, dir, proxDir, fila, maca, pontos, vivo, timer, acc, ultimo, mordida, rabo;
+var corpo, dir, proxDir, fila, maca, pontos, vivo, timer, acc, ultimo, mordida, rabo, crescer;
 var MOEDA_KEY = 'salsicha_biscoitos';
 
 function novaMaca(){
@@ -132,11 +132,13 @@ function novaMaca(){
     if (ok) livres.push({x:x,y:y});
   }
   if (!livres.length) return null;
-  return livres[Math.floor(Math.random()*livres.length)];
+  var c = livres[Math.floor(Math.random()*livres.length)];
+  c.hot = Math.random() < 0.18;   // de vez em quando: hot dog (3 pontos)
+  return c;
 }
 function comeca(){
   corpo = [{x:7,y:10},{x:6,y:10},{x:5,y:10},{x:4,y:10}];
-  dir = {x:1,y:0}; proxDir = []; pontos = 0; vivo = true; acc = 0; ultimo = 0; mordida = 0; rabo = 0; prevCorpo = null; parts = [];
+  dir = {x:1,y:0}; proxDir = []; pontos = 0; vivo = true; acc = 0; ultimo = 0; mordida = 0; rabo = 0; prevCorpo = null; parts = []; crescer = 0;
   maca = novaMaca();
   el('tInicio').classList.add('off'); el('tFim').classList.add('off'); el('tTop').classList.add('off');
   el('hud').style.display = ''; el('dpad').style.display = '';
@@ -145,7 +147,7 @@ function comeca(){
 }
 function atualizaHud(){
   el('pts').textContent = pontos;
-  el('rec').textContent = RECORDE > 0 ? ('recorde: ' + RECORDE + ' 🍎') : 'coma maçãs!';
+  el('rec').textContent = RECORDE > 0 ? ('recorde: ' + RECORDE + ' 🌭') : 'coma salsichas!';
 }
 function empurra(d){
   var ref = proxDir.length ? proxDir[proxDir.length-1] : dir;
@@ -187,19 +189,22 @@ function passo(){
   for (var i=0;i<fim;i++) if (corpo[i].x===cab.x && corpo[i].y===cab.y) return morre('Mordeu o próprio rabo! 🐾');
   corpo.unshift(cab);
   if (comeu){
-    pontos++; mordida = 1; som(1); particulas(ox+cab.x*cel+cel/2, oy+cab.y*cel+cel/2);
+    var ganho = maca.hot ? 3 : 1;
+    pontos += ganho; mordida = 1; som(1); particulas(ox+cab.x*cel+cel/2, oy+cab.y*cel+cel/2, maca.hot);
+    crescer += ganho - 1;
     if (pontos > RECORDE){ RECORDE = pontos; try{ localStorage.setItem('salsicha_recorde', RECORDE); }catch(e){} }
-    try { var b = Number(localStorage.getItem(MOEDA_KEY))||0; localStorage.setItem(MOEDA_KEY, b+1); } catch(e){}
+    try { var b = Number(localStorage.getItem(MOEDA_KEY))||0; localStorage.setItem(MOEDA_KEY, b+ganho); } catch(e){}
     maca = novaMaca();
     if (!maca) return morre('Você encheu o quintal inteiro! 👑');
     atualizaHud();
-  } else corpo.pop();
+  } else if (crescer > 0) crescer--;
+  else corpo.pop();
 }
 function morre(msg){
   vivo = false; som(0); tremor = 14;
   var tt=0; (function anim(){ if (tt++<30){ desenha(1); requestAnimationFrame(anim);} })();
   el('hud').style.display = 'none'; el('dpad').style.display = 'none';
-  el('fimPontos').textContent = pontos + ' 🍎' + (pontos>=RECORDE && pontos>0 ? ' — RECORDE!' : '');
+  el('fimPontos').textContent = pontos + ' 🌭' + (pontos>=RECORDE && pontos>0 ? ' — RECORDE!' : '');
   el('fimMsg').textContent = msg + ' O salsicha ficou com ' + corpo.length + ' pedaços de comprido.';
   el('tFim').classList.remove('off');
   if (pontos > 0) mandaPontuacao(pontos, function(pos){
@@ -221,9 +226,10 @@ function loop(ts){
 // ---------- desenho ----------
 var flores = [], parts = [], tremor = 0, prevCorpo = null;
 (function(){ for (var i=0;i<26;i++) flores.push({x:Math.random(),y:Math.random(),t:Math.random()<0.5?0:1,c:['#ffd54f','#f48fb1','#fff','#b388ff'][i%4],r:Math.random()}); })();
-function particulas(px,py){
-  for (var i=0;i<14;i++){ var a=Math.random()*Math.PI*2, v=1.5+Math.random()*3;
-    parts.push({x:px,y:py,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1.5,vida:1,c:i%3?'#e53935':'#fff59d',r:2+Math.random()*3}); }
+function particulas(px,py,hot){
+  for (var i=0;i<(hot?26:14);i++){ var a=Math.random()*Math.PI*2, v=1.5+Math.random()*3;
+    parts.push({x:px,y:py,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1.5,vida:1,c:hot?(i%3?'#ffca28':'#ef6c00'):(i%3?'#c0392b':'#f5c38a'),r:2+Math.random()*3}); }
+  if (hot) parts.push({x:px,y:py-cel*0.3,vx:0,vy:-1.2,vida:1.6,c:'#fff',r:0,txt:'+3'});
 }
 function desenha(frac){
   cx.save();
@@ -255,22 +261,40 @@ function desenha(frac){
   // partículas
   for (i=parts.length-1;i>=0;i--){ var q=parts[i]; q.x+=q.vx; q.y+=q.vy; q.vy+=0.18; q.vida-=0.035;
     if (q.vida<=0){ parts.splice(i,1); continue; }
-    cx.globalAlpha=q.vida; cx.fillStyle=q.c; cx.beginPath(); cx.arc(q.x,q.y,q.r,0,Math.PI*2); cx.fill(); }
+    cx.globalAlpha=Math.min(1,q.vida); cx.fillStyle=q.c;
+    if (q.txt){ cx.font='bold '+Math.round(cel*0.9)+'px Arial'; cx.textAlign='center'; cx.strokeStyle='#000'; cx.lineWidth=3; cx.strokeText(q.txt,q.x,q.y); cx.fillText(q.txt,q.x,q.y); q.vy=-1.2; }
+    else { cx.beginPath(); cx.arc(q.x,q.y,q.r,0,Math.PI*2); cx.fill(); } }
   cx.globalAlpha=1; cx.restore();
 }
 function desenhaMaca(px, py, s){
-  var r = s*0.38, pulso = 1+Math.sin(rabo*2)*0.04; r*=pulso;
-  cx.fillStyle='rgba(0,0,0,.22)'; cx.beginPath(); cx.ellipse(px, py+r*0.95, r*0.9, r*0.3, 0,0,Math.PI*2); cx.fill();
-  var gr = cx.createRadialGradient(px-r*0.4, py-r*0.3, r*0.1, px, py, r*1.3);
-  gr.addColorStop(0,'#ff7961'); gr.addColorStop(0.6,'#e53935'); gr.addColorStop(1,'#9c1c1c');
-  cx.fillStyle = gr;
-  cx.beginPath(); cx.arc(px-r*0.38, py+r*0.1, r*0.8, 0, Math.PI*2); cx.arc(px+r*0.38, py+r*0.1, r*0.8, 0, Math.PI*2); cx.fill();
-  cx.beginPath(); cx.arc(px, py+r*0.3, r*0.72, 0, Math.PI*2); cx.fill();
-  cx.fillStyle='rgba(255,255,255,.55)'; cx.beginPath(); cx.ellipse(px-r*0.5, py-r*0.3, r*0.18, r*0.3, -0.6, 0, Math.PI*2); cx.fill();
-  cx.strokeStyle='#5d4037'; cx.lineWidth=Math.max(2,s*0.09); cx.lineCap='round'; cx.beginPath(); cx.moveTo(px, py-r*0.55); cx.quadraticCurveTo(px+r*0.05, py-r*1, px+r*0.25, py-r*1.2); cx.stroke();
-  cx.fillStyle='#43a047'; cx.beginPath(); cx.ellipse(px+r*0.5, py-r*0.95, r*0.5, r*0.24, -0.5, 0, Math.PI*2); cx.fill();
-  cx.strokeStyle='#2e7d32'; cx.lineWidth=1; cx.beginPath(); cx.moveTo(px+r*0.15,py-r*0.75); cx.lineTo(px+r*0.85,py-r*1.15); cx.stroke();
+  var pulso = 1+Math.sin(rabo*2)*0.05;
+  cx.save(); cx.translate(px,py); cx.scale(pulso,pulso);
+  if (maca && maca.hot){
+    // HOT DOG: pão + salsicha + mostarda
+    var w = s*0.46, h = s*0.2;
+    cx.fillStyle='rgba(0,0,0,.22)'; cx.beginPath(); cx.ellipse(0, h*1.6, w*1.05, h*0.8, 0,0,Math.PI*2); cx.fill();
+    var pg = cx.createLinearGradient(0,-h*1.3,0,h*1.3); pg.addColorStop(0,'#f4c27a'); pg.addColorStop(1,'#c98a3e');
+    cx.fillStyle=pg; rr(-w, -h*1.1, w*2, h*2.4, h*1.1); cx.fill();
+    cx.fillStyle='#8a5a22'; cx.globalAlpha=.25; rr(-w*0.95, -h*0.15, w*1.9, h*0.9, h*0.4); cx.fill(); cx.globalAlpha=1;
+    var sg = cx.createLinearGradient(0,-h*0.9,0,h*0.5); sg.addColorStop(0,'#e0634a'); sg.addColorStop(1,'#a8321f');
+    cx.fillStyle=sg; rr(-w*1.08, -h*0.95, w*2.16, h*1.3, h*0.65); cx.fill();
+    cx.strokeStyle='#ffd600'; cx.lineWidth=Math.max(1.5,s*0.07); cx.lineCap='round'; cx.beginPath();
+    for (var i=-4;i<=4;i++){ var zx=i*w/4.2, zy=(i%2?-1:1)*h*0.3-h*0.3; i===-4?cx.moveTo(zx,zy):cx.lineTo(zx,zy); } cx.stroke();
+    cx.fillStyle='rgba(255,255,255,.4)'; cx.beginPath(); cx.ellipse(-w*0.4, -h*0.8, w*0.3, h*0.18, 0,0,Math.PI*2); cx.fill();
+  } else {
+    // SALSICHA
+    var L = s*0.42, R = s*0.17;
+    cx.fillStyle='rgba(0,0,0,.22)'; cx.beginPath(); cx.ellipse(s*0.05, R*1.9, L*1.1, R*0.8, 0,0,Math.PI*2); cx.fill();
+    cx.rotate(-0.35);
+    var g2 = cx.createLinearGradient(0,-R,0,R); g2.addColorStop(0,'#e8705a'); g2.addColorStop(0.55,'#c7442c'); g2.addColorStop(1,'#8c2a18');
+    cx.strokeStyle='#7a2213'; cx.lineWidth=R*2+3; cx.lineCap='round'; cx.beginPath(); cx.moveTo(-L,0); cx.lineTo(L,0); cx.stroke();
+    cx.strokeStyle=g2; cx.lineWidth=R*2; cx.beginPath(); cx.moveTo(-L,0); cx.lineTo(L,0); cx.stroke();
+    cx.strokeStyle='rgba(255,255,255,.45)'; cx.lineWidth=R*0.45; cx.beginPath(); cx.moveTo(-L*0.7,-R*0.45); cx.lineTo(L*0.5,-R*0.45); cx.stroke();
+    cx.strokeStyle='#6d1d10'; cx.lineWidth=1.5; cx.beginPath(); cx.moveTo(-L*1.15,0); cx.lineTo(-L*1.3,-R*0.3); cx.moveTo(L*1.15,0); cx.lineTo(L*1.3,R*0.3); cx.stroke();
+  }
+  cx.restore();
 }
+function rr(x,y,w,h,r){ cx.beginPath(); cx.moveTo(x+r,y); cx.arcTo(x+w,y,x+w,y+h,r); cx.arcTo(x+w,y+h,x,y+h,r); cx.arcTo(x,y+h,x,y,r); cx.arcTo(x,y,x+w,y,r); cx.closePath(); }
 function centro(seg){ return { x: ox+seg.x*cel+cel/2, y: oy+seg.y*cel+cel/2 }; }
 function caminho(pts){
   // curva suave passando pelos centros (Catmull-Rom → bezier)
@@ -423,7 +447,7 @@ function carregaTop(){
         var d = document.createElement('div'); d.className = 'linha' + (String(x.nome||'').toLowerCase()===meu ? ' eu' : '');
         var p = document.createElement('span'); p.className='pos'; p.textContent = (i+1)+'º';
         var nm = document.createElement('span'); nm.className='nm'; nm.textContent = x.nome;
-        var tp = document.createElement('span'); tp.className='tp'; tp.textContent = x.pontos + ' 🍎';
+        var tp = document.createElement('span'); tp.className='tp'; tp.textContent = x.pontos + ' 🌭';
         d.appendChild(p); d.appendChild(nm); d.appendChild(tp); lista.appendChild(d);
       });
     })
