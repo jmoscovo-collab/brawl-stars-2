@@ -349,7 +349,14 @@
           if (r.status === 401){ try { localStorage.removeItem('cg_usuario'); localStorage.removeItem('cg_senhaHash'); } catch (e) {} return null; }
           return r.ok ? r.json() : null;
         })
-        .then(function (j){ if (j && j.atualizado) set(TS, String(j.atualizado)); })
+        .then(function (j){
+          if (j && j.atualizado) set(TS, String(j.atualizado));
+          if (j && j.forcar){   // o servidor mandou valores que vencem os do aparelho (presente do admin)
+            Object.keys(j.forcar).forEach(function (k){ if (entra(k)) set(k, String(j.forcar[k])); });
+            ultimaAssinatura = assina(snapshot());
+            try { location.reload(); } catch (e) {}
+          }
+        })
         .catch(function (){ salvando = false; ultimaAssinatura = null; });
     } catch (e) { salvando = false; }
   }
