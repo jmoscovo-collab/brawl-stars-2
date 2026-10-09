@@ -35,11 +35,18 @@ h2{font-size:20px;color:#ffd166;text-align:center}
 .skin.on{border-color:#ffd166;background:rgba(255,209,102,.18)}
 .skin canvas{display:block;margin:0 auto 3px}
 #toque{position:fixed;inset:0;z-index:7;display:none}#toque.on{display:block}
+#setas{position:fixed;left:0;right:0;bottom:22px;z-index:9;display:flex;justify-content:space-between;padding:0 18px;pointer-events:none}
+#setas button{pointer-events:auto;width:96px;height:96px;border-radius:26px;border:none;background:rgba(255,255,255,.28);color:#fff;font-size:44px;font-weight:bold;backdrop-filter:blur(3px);touch-action:manipulation}
+#setas button:active{background:rgba(255,255,255,.55)}
+@media (hover:hover) and (pointer:fine){ #setas{display:none !important} }
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
 <div id="toque"></div>
+<div id="setas" style="display:none">
+  <button id="sEsq">◀</button><button id="sDir">▶</button>
+</div>
 <div id="hud" style="display:none"><div id="metros">0 m</div><div id="sub"></div></div>
 <div id="vento"></div>
 <div id="vidas" style="display:none"></div>
@@ -47,7 +54,7 @@ h2{font-size:20px;color:#ffd166;text-align:center}
 <div class="tela" id="tInicio">
   <canvas id="logo" width="200" height="170"></canvas>
   <h1>🪂 Capivara Caindo</h1>
-  <div class="sub">Pule do avião e caia por entre as nuvens! Pegue 🪙 moedas, desvie dos pássaros e dos balões — e segure firme quando o <b>vento</b> empurrar. O chão nunca chega... mas o vento fica cada vez mais louco.<br><small>Setas / A D no computador • arraste o dedo no celular</small></div>
+  <div class="sub">Pule do avião e caia por entre as nuvens! Pegue 🪙 moedas, desvie dos pássaros e dos balões — e segure firme quando o <b>vento</b> empurrar. Chegue a <b>100.000 metros</b> pra pousar no chão... e o vento fica cada vez mais louco.<br><small>Setas / A D no computador • setinhas ◀ ▶ no celular</small></div>
   <h2>Paraquedas</h2>
   <div class="sub">Quanto melhor o paraquedas, <b>mais fácil de virar</b> (🎮 vira). Os de graça são ruins!</div>
   <div class="skins" id="skins"></div>
@@ -96,9 +103,10 @@ var SKINS = [
   {id:'dragao',   nome:'Dragão',       preco:2500, vira:2.3,  cores:['#b71c1c','#ff6f00','#b71c1c','#ff6f00']},
   {id:'lenda',    nome:'Lendário',     preco:5000, vira:2.8,  cores:['#e040fb','#18ffff','#ffff00','#e040fb']}
 ];
-var moedas = 0, skinsTem = ['laranja'], skinEq = 'laranja', RECORDE = 0;
-try { moedas = Number(localStorage.getItem('caindo_moedas'))||0; skinsTem = JSON.parse(localStorage.getItem('caindo_skins')||'["laranja"]'); ['saco','furado','laranja'].forEach(function(k){ if (skinsTem.indexOf(k)<0) skinsTem.push(k); }); skinEq = localStorage.getItem('caindo_skin')||'laranja'; RECORDE = Number(localStorage.getItem('caindo_recorde'))||0; } catch(e){}
-function salvaLoja(){ try { localStorage.setItem('caindo_moedas', moedas); localStorage.setItem('caindo_skins', JSON.stringify(skinsTem)); localStorage.setItem('caindo_skin', skinEq); } catch(e){} }
+var moedas = 0, skinsTem = ['laranja'], skinEq = 'laranja', RECORDE = 0, lenda = false, META = 100000, NOVE = '9999999999999999999999999999999999999999999999999';
+try { moedas = Number(localStorage.getItem('caindo_moedas'))||0; skinsTem = JSON.parse(localStorage.getItem('caindo_skins')||'["laranja"]'); ['saco','furado','laranja'].forEach(function(k){ if (skinsTem.indexOf(k)<0) skinsTem.push(k); }); skinEq = localStorage.getItem('caindo_skin')||'laranja'; RECORDE = Number(localStorage.getItem('caindo_recorde'))||0; lenda = localStorage.getItem('caindo_lenda')==='1'; } catch(e){}
+function moedasTxt(){ return lenda ? NOVE : String(moedas); }
+function salvaLoja(){ try { localStorage.setItem('caindo_lenda', lenda?'1':'0'); localStorage.setItem('caindo_moedas', lenda ? NOVE : moedas); localStorage.setItem('caindo_skins', JSON.stringify(skinsTem)); localStorage.setItem('caindo_skin', skinEq); } catch(e){} }
 function skinAtual(){ for (var i=0;i<SKINS.length;i++) if (SKINS[i].id===skinEq) return SKINS[i]; return SKINS[0]; }
 function pintaSkins(){
   var box = el('skins'); box.textContent = '';
@@ -111,12 +119,12 @@ function pintaSkins(){
     b.appendChild(document.createTextNode(tem ? s.nome : ('🪙 ' + s.preco)));
     var st = document.createElement('div'); st.style.cssText='font-size:10px;opacity:.85;margin-top:2px;color:'+(s.vira<1?'#ff8a80':s.vira>1?'#b9f6ca':'#fff'); st.textContent = '🎮 vira ' + Math.round(s.vira*100) + '%'; b.appendChild(st);
     b.onclick = function(){
-      if (!tem){ if (moedas < s.preco){ b.textContent=''; b.appendChild(c); b.appendChild(document.createTextNode('faltam ' + (s.preco-moedas))); return; } moedas -= s.preco; skinsTem.push(s.id); }
+      if (!tem){ if (!lenda && moedas < s.preco){ b.textContent=''; b.appendChild(c); b.appendChild(document.createTextNode('faltam ' + (s.preco-moedas))); return; } if (!lenda) moedas -= s.preco; skinsTem.push(s.id); }
       skinEq = s.id; salvaLoja(); pintaSkins();
     };
     box.appendChild(b);
   });
-  var m = document.createElement('div'); m.className='sub'; m.textContent = '🪙 ' + moedas + ' moedas • recorde: ' + RECORDE + ' m'; box.appendChild(m);
+  var m = document.createElement('div'); m.className='sub'; m.textContent = '🪙 ' + moedasTxt() + ' moedas • recorde: ' + RECORDE + ' m' + (lenda ? ' • 👑 VOCÊ É O MELHOR' : ''); if (lenda) m.style.wordBreak='break-all'; box.appendChild(m);
 }
 
 // ---- estado ----
@@ -126,7 +134,7 @@ function comeca(){
   vivo = true; t = 0; ultimo = 0; px = W/2; vx = 0; incl = 0; metros = 0; velQueda = 160; vento = 0; ventoAlvo = 0; ventoTimer = 3; vidas = 3; invul = 0; objs = []; parts = []; moedasRodada = 0; rajada = 0; alvoX = null;
   nuvens = []; for (var i=0;i<10;i++) nuvens.push({x:Math.random()*W, y:Math.random()*H, s:0.5+Math.random()*1.2, z:0.3+Math.random()*0.7});
   el('tInicio').classList.add('off'); el('tFim').classList.add('off'); el('tTop').classList.add('off');
-  el('hud').style.display=''; el('vidas').style.display=''; el('toque').classList.add('on');
+  el('hud').style.display=''; el('vidas').style.display=''; el('toque').classList.add('on'); el('setas').style.display='flex';
   pintaVidas(); requestAnimationFrame(loop);
 }
 function pintaVidas(){ el('vidas').textContent = '❤️'.repeat(vidas) + '🖤'.repeat(3-vidas); }
@@ -136,6 +144,9 @@ function toque(e){ var tt = e.touches ? e.touches[0] : e; alvoX = tt.clientX; }
 el('toque').addEventListener('touchstart', function(e){ e.preventDefault(); toque(e); }, {passive:false});
 el('toque').addEventListener('touchmove', function(e){ e.preventDefault(); toque(e); }, {passive:false});
 el('toque').addEventListener('touchend', function(){ alvoX = null; });
+var setaDir = 0;
+[['sEsq',-1],['sDir',1]].forEach(function(par){ var b = el(par[0]); var on = function(e){ e.preventDefault(); setaDir = par[1]; }, off = function(e){ e.preventDefault(); if (setaDir===par[1]) setaDir = 0; };
+  b.addEventListener('touchstart', on, {passive:false}); b.addEventListener('touchend', off, {passive:false}); b.addEventListener('touchcancel', off, {passive:false}); b.addEventListener('mousedown', on); b.addEventListener('mouseup', off); b.addEventListener('mouseleave', off); });
 el('toque').addEventListener('mousedown', function(e){ toque(e); }); el('toque').addEventListener('mousemove', function(e){ if (e.buttons) toque(e); }); el('toque').addEventListener('mouseup', function(){ alvoX = null; });
 
 function spawn(){
@@ -148,7 +159,7 @@ function spawn(){
   else objs.push({t:'ima', x:x, y:H+30, r:16, v:0});
   if (objs.length && objs[objs.length-1].t==='passaro'){ var o = objs[objs.length-1]; o.x = o.v>0 ? -60 : W+60; }
 }
-var spawnAcc = 0, ima = 0;
+var spawnAcc = 0, ima = 0, pousando = false, festaT = 0, familia = [], confete = [];
 function loop(ts){
   if (!vivo) return;
   if (!ultimo) ultimo = ts; var dt = Math.min(0.05,(ts-ultimo)/1000); ultimo = ts; t += dt;
@@ -160,7 +171,8 @@ function loop(ts){
   // controle
   var ctrl = 0;
   if (teclas.ArrowLeft || teclas.a || teclas.A) ctrl = -1; if (teclas.ArrowRight || teclas.d || teclas.D) ctrl = 1;
-  if (alvoX !== null){ var dx = alvoX - px; ctrl = Math.max(-1, Math.min(1, dx/60)); }
+  if (setaDir) ctrl = setaDir;
+  else if (alvoX !== null){ var dx = alvoX - px; ctrl = Math.max(-1, Math.min(1, dx/60)); }
   var vira = skinAtual().vira || 1;
   vx += (ctrl*420*vira + vento - vx*(1.6 + 0.8*vira)) * dt;
   px += vx * dt;
@@ -169,7 +181,8 @@ function loop(ts){
   // queda
   velQueda = 160 + Math.min(340, metros/12);
   metros += velQueda * dt / 10;
-  el('metros').textContent = Math.floor(metros) + ' m';
+  if (metros >= META && !pousando) return pousa();
+  el('metros').textContent = Math.floor(metros) + ' m / ' + META;
   el('sub').textContent = '🪙 ' + moedasRodada + (metros > RECORDE && RECORDE>0 ? '  •  NOVO RECORDE!' : '  •  recorde ' + Math.floor(RECORDE) + ' m');
   // nuvens
   nuvens.forEach(function(n){ n.y -= velQueda*n.z*dt; n.x -= vento*0.15*n.z*dt; if (n.y < -120){ n.y = H+120; n.x = Math.random()*W; } });
@@ -193,13 +206,73 @@ function loop(ts){
   desenha();
   requestAnimationFrame(loop);
 }
+function pousa(){
+  pousando = true; metros = META; objs = []; festaT = 0; vivo = false; som(2);
+  el('hud').style.display='none'; el('vidas').style.display='none'; el('toque').classList.remove('on'); el('setas').style.display='none';
+  familia = []; for (var i=0;i<7;i++) familia.push({x: W/2 + (i-3)*Math.min(70, W/9), esc: i===3?0:(0.6+Math.random()*0.5), pulo: Math.random()*7, chapeu: ['#e53935','#1e88e5','#fdd835','#8e24aa','#43a047','#ff7043','#00acc1'][i]});
+  confete = []; for (i=0;i<160;i++) confete.push({x:Math.random()*W, y:-Math.random()*H, vx:(Math.random()-.5)*60, vy:60+Math.random()*120, c:['#ff5252','#ffd740','#69f0ae','#40c4ff','#e040fb','#fff'][i%6], r:Math.random()*7, w:4+Math.random()*6});
+  var u = 0; (function anim(ts){ if (!u) u = ts; var dt = Math.min(0.05,(ts-u)/1000); u = ts; festaT += dt; t += dt; desenhaFesta(dt); if (festaT < 7) requestAnimationFrame(anim); else fimLenda(); })(performance.now());
+}
+function desenhaFesta(dt){
+  var chao = H*0.78, pos = Math.min(1, festaT/2.2), py = H*0.45 + (chao-70-H*0.45)*pos;
+  var g = cx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#8ed0ff'); g.addColorStop(1,'#d8f1ff'); cx.fillStyle=g; cx.fillRect(0,0,W,H);
+  cx.fillStyle='rgba(255,240,150,.9)'; cx.beginPath(); cx.arc(W*0.82,90,46,0,7); cx.fill();
+  cx.fillStyle='#5cb85c'; cx.fillRect(0,chao,W,H-chao); cx.fillStyle='#4a9d4a'; cx.fillRect(0,chao,W,8);
+  // casa
+  cx.fillStyle='#ffcc80'; cx.fillRect(W*0.08, chao-120, 120, 120); cx.fillStyle='#d84315'; cx.beginPath(); cx.moveTo(W*0.08-14,chao-120); cx.lineTo(W*0.08+60,chao-180); cx.lineTo(W*0.08+134,chao-120); cx.closePath(); cx.fill();
+  cx.fillStyle='#6d4c41'; cx.fillRect(W*0.08+45, chao-50, 30, 50); cx.fillStyle='#81d4fa'; cx.fillRect(W*0.08+12, chao-95, 26, 26); cx.fillRect(W*0.08+82, chao-95, 26, 26);
+  // mesa de festa
+  cx.fillStyle='#8d6e63'; cx.fillRect(W*0.68, chao-40, 110, 10); cx.fillRect(W*0.68+10, chao-30, 8, 30); cx.fillRect(W*0.68+92, chao-30, 8, 30);
+  cx.fillStyle='#f48fb1'; cx.fillRect(W*0.68+30, chao-70, 50, 30); cx.fillStyle='#fff'; cx.fillRect(W*0.68+30, chao-72, 50, 6); cx.fillStyle='#ffd740'; cx.fillRect(W*0.68+52, chao-84, 4, 12); cx.fillStyle='#ff7043'; cx.beginPath(); cx.arc(W*0.68+54, chao-86, 4, 0, 7); cx.fill();
+  // faixa
+  cx.strokeStyle='#e53935'; cx.lineWidth=3; cx.beginPath(); cx.moveTo(W*0.1, chao-200); cx.quadraticCurveTo(W/2, chao-160, W*0.9, chao-200); cx.stroke();
+  for (var i=0;i<12;i++){ var fx = W*0.1 + (W*0.8)*i/11, fy = chao-200 + 40*Math.sin(Math.PI*i/11); cx.fillStyle=['#ff5252','#ffd740','#69f0ae','#40c4ff'][i%4]; cx.beginPath(); cx.moveTo(fx-10,fy); cx.lineTo(fx+10,fy); cx.lineTo(fx,fy+18); cx.closePath(); cx.fill(); }
+  // família pulando
+  familia.forEach(function(f, i){ if (i===3) return; f.pulo += dt*6; var py2 = chao - 6 - Math.abs(Math.sin(f.pulo))*30*(pos>=1?1:0); capivaraFesta(f.x, py2, f.esc, f.chapeu, pos>=1); });
+  // balões
+  for (i=0;i<6;i++){ var bx = W*0.15 + i*W*0.14, by = chao-260 + Math.sin(t*2+i)*12; cx.fillStyle=['#e53935','#1e88e5','#fdd835','#8e24aa','#43a047','#ff7043'][i]; cx.beginPath(); cx.ellipse(bx,by,18,24,0,0,7); cx.fill(); cx.strokeStyle='#555'; cx.lineWidth=1; cx.beginPath(); cx.moveTo(bx,by+24); cx.lineTo(bx+4,by+70); cx.stroke(); }
+  // eu pousando
+  cx.save(); cx.translate(W/2, py); paraquedas(0, 0, skinAtual(), 0, pos>=1 ? 0.0001 : 1); cx.restore();
+  if (pos >= 1) capivaraFesta(W/2, chao-6 - Math.abs(Math.sin(festaT*7))*36, 1.15, '#ffd700', true);
+  // confete
+  confete.forEach(function(c){ c.y += c.vy*dt; c.x += c.vx*dt + Math.sin(t*5+c.r)*1.5; if (c.y > H) c.y = -20; cx.save(); cx.translate(c.x,c.y); cx.rotate(t*4+c.r); cx.fillStyle=c.c; cx.fillRect(-c.w/2,-2,c.w,4); cx.restore(); });
+  // texto
+  if (festaT > 2.4){ var k = Math.min(1,(festaT-2.4)/0.6); cx.save(); cx.globalAlpha=k; cx.translate(W/2, H*0.22); cx.scale(0.6+0.4*k,0.6+0.4*k); cx.textAlign='center';
+    cx.font='bold '+Math.min(52, W/9)+'px Arial'; cx.lineWidth=8; cx.strokeStyle='#5d2a00'; cx.fillStyle='#ffd740'; cx.strokeText('PARABÉNS!',0,0); cx.fillText('PARABÉNS!',0,0);
+    cx.font='bold '+Math.min(30, W/15)+'px Arial'; cx.lineWidth=6; cx.fillStyle='#fff'; cx.strokeText('VOCÊ É O MELHOR!',0,44); cx.fillText('VOCÊ É O MELHOR!',0,44);
+    cx.font='bold 16px Arial'; cx.lineWidth=4; cx.fillStyle='#fff'; cx.strokeText('100.000 metros • chegou no chão • a família toda veio!',0,76); cx.fillText('100.000 metros • chegou no chão • a família toda veio!',0,76); cx.restore(); }
+}
+function capivaraFesta(x, y, esc, chapeu, bracos){
+  cx.save(); cx.translate(x,y); cx.scale(esc,esc);
+  var marrom='#a0522d', esc2='#7a3b1a';
+  cx.strokeStyle=esc2; cx.lineWidth=7; cx.lineCap='round'; cx.beginPath(); cx.moveTo(-10,-14); cx.lineTo(-12,0); cx.moveTo(10,-14); cx.lineTo(12,0); cx.stroke();
+  cx.fillStyle=marrom; cx.beginPath(); cx.ellipse(0,-26,22,18,0,0,7); cx.fill();
+  cx.fillStyle='#c98a5a'; cx.beginPath(); cx.ellipse(0,-22,13,10,0,0,7); cx.fill();
+  cx.strokeStyle=marrom; cx.lineWidth=7; if (bracos){ cx.beginPath(); cx.moveTo(-16,-34); cx.lineTo(-30,-62); cx.moveTo(16,-34); cx.lineTo(30,-62); cx.stroke(); }
+  cx.fillStyle=marrom; cx.beginPath(); cx.ellipse(0,-50,17,14,0,0,7); cx.fill();
+  cx.fillStyle='#b8744a'; cx.beginPath(); cx.ellipse(0,-43,10,6,0,0,7); cx.fill();
+  cx.fillStyle='#222'; cx.beginPath(); cx.arc(-3,-45,1.8,0,7); cx.arc(3,-45,1.8,0,7); cx.fill();
+  cx.fillStyle='#fff'; cx.beginPath(); cx.arc(-6,-53,4,0,7); cx.arc(6,-53,4,0,7); cx.fill(); cx.fillStyle='#111'; cx.beginPath(); cx.arc(-5,-53,2,0,7); cx.arc(7,-53,2,0,7); cx.fill();
+  cx.fillStyle='#111'; cx.beginPath(); cx.ellipse(0,-38,5,2.5,0,0,7); cx.fill();   // sorriso
+  cx.fillStyle=chapeu; cx.beginPath(); cx.moveTo(-12,-60); cx.lineTo(12,-60); cx.lineTo(0,-86); cx.closePath(); cx.fill(); cx.fillStyle='#fff'; cx.beginPath(); cx.arc(0,-86,4,0,7); cx.fill();
+  cx.restore();
+}
+function fimLenda(){
+  lenda = true; RECORDE = META; try { localStorage.setItem('caindo_recorde', META); } catch(e){} salvaLoja();
+  el('fimTitulo').textContent = '👑 PARABÉNS, VOCÊ É O MELHOR!';
+  el('fimPontos').textContent = '100.000 metros — chegou no chão!';
+  el('fimMsg').textContent = 'A família inteira fez uma festa pra você. Você ganhou 🪙 ' + NOVE + ' moedas. O jogo recomeça do zero, mas as moedas ficam pra sempre!';
+  el('fimMsg').style.wordBreak = 'break-all';
+  el('tFim').classList.remove('off'); pousando = false;
+  mandaPontuacao(META, function(){});
+}
 function burst(x,y,c,n){ for (var i=0;i<n;i++){ var a=Math.random()*7, v=2+Math.random()*4; parts.push({x:x,y:y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,vida:1,c:c}); } }
 function morre(msg){
-  vivo = false; el('hud').style.display='none'; el('vidas').style.display='none'; el('toque').classList.remove('on');
+  vivo = false; el('hud').style.display='none'; el('vidas').style.display='none'; el('toque').classList.remove('on'); el('setas').style.display='none';
   var m = Math.floor(metros); moedas += moedasRodada; var novo = m > RECORDE; if (novo){ RECORDE = m; try { localStorage.setItem('caindo_recorde', m); } catch(e){} } salvaLoja();
   el('fimTitulo').textContent = novo ? '🏆 NOVO RECORDE!' : '💥 Cabum!';
   el('fimPontos').textContent = m + ' metros  •  🪙 ' + moedasRodada;
-  el('fimMsg').textContent = msg + ' Agora você tem 🪙 ' + moedas + ' moedas pra trocar de paraquedas.';
+  el('fimMsg').textContent = msg + ' Agora você tem 🪙 ' + moedasTxt() + ' moedas pra trocar de paraquedas.'; el('fimMsg').style.wordBreak = lenda ? 'break-all' : '';
   el('tFim').classList.remove('off');
   if (m > 0) mandaPontuacao(m, function(pos){ if (pos) el('fimMsg').textContent += ' Você está em ' + pos + 'º no mundo! 🌍'; });
 }

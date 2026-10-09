@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v497 (2026-10-08)
+- Capivara Caindo: chegou em 100.000 metros = POUSA NO CHAO e a familia inteira faz festa (casa, bolo, baloes, confete, capivaras pulando de chapeu) com "PARABENS, VOCE E O MELHOR!"; no lobby fica com 9999999999999999999999999999999999999999999999999 moedas pra sempre (compra qualquer paraquedas) e o jogo recomeca
+- Capivara Caindo: setinhas grandes no celular pra virar (alem de arrastar o dedo)
+
 ## v496 (2026-10-08)
 - Capivara Caindo: 12 paraquedas (eram 6), cada um com "vira" diferente - quanto melhor, mais facil e rapido de virar. Ruins de graca (Saco de Lixo 55%, Furado 70%) ate o Lendario (280%, 5000 moedas)
 
