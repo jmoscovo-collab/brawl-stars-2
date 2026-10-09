@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v492 (2026-10-08)
+- Cabo de Guerra: a tecla nao muda a cada clique - ela dura de 10 a 30 cliques e ai troca (com um bipezinho avisando)
+
 ## v491 (2026-10-08)
 - JOGO NOVO: Cabo de Guerra - a tecla vai mudando (Q W E A S D) e quem aperta mais rapido puxa a corda; errar a tecla escorrega e da forca pro outro. Contra o PC (Fraquinho / Normal / Gorila), 2 jogadores no mesmo teclado (I O P J K L) ou TIMES ONLINE (vermelho x azul, todo mundo puxando junto); no celular bate na tela. Melhor de 3, capivaras de camisa puxando, top global de vitorias seguidas contra o Gorila
 

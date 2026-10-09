@@ -66,7 +66,7 @@ h2{font-size:20px;color:#ffd166;text-align:center}
 <div class="tela" id="tInicio">
   <canvas id="logo" width="320" height="120"></canvas>
   <h1>🪢 Cabo de Guerra</h1>
-  <div class="sub">Aperte a <b>tecla que aparece</b> do seu lado o mais rápido que puder pra puxar a corda. Errou a tecla? <b>Escorrega</b> e o outro puxa!<br>No celular é só <b>bater no seu lado da tela</b>.</div>
+  <div class="sub">Aperte a <b>tecla que aparece</b> do seu lado o mais rápido que puder pra puxar a corda. De vez em quando (a cada 10 a 30 cliques) <b>a tecla muda</b> — fica ligado! Errou a tecla? <b>Escorrega</b> e o outro puxa!<br>No celular é só <b>bater no seu lado da tela</b>.</div>
   <h2>Modo</h2>
   <div class="vel" id="modos">
     <button class="aba on" data-m="cpu">🤖 Contra o PC</button>
@@ -130,7 +130,7 @@ var cpuAcc = 0, seguidas = 0, ultimo = 0, t = 0, parts = [], tremor = 0;
 var CPU = [ {taxa:2.2, erro:.18}, {taxa:3.6, erro:.1}, {taxa:5.2, erro:.05} ];
 try { seguidas = Number(localStorage.getItem('cabo_seguidas_'+nivel)) || 0; } catch(e){}
 
-function novaTecla(p){ var s = p===p1 ? TECLAS1 : TECLAS2; var k; do { k = s[Math.floor(Math.random()*s.length)]; } while (k === p.tecla); p.tecla = k; }
+function novaTecla(p){ var s = p===p1 ? TECLAS1 : TECLAS2; var k; do { k = s[Math.floor(Math.random()*s.length)]; } while (k === p.tecla); p.tecla = k; p.restam = 10 + Math.floor(Math.random()*21); }   // a tecla dura de 10 a 30 cliques
 function pinta(){
   el('t1').textContent = touch ? '👆' : p1.tecla;
   el('t2').textContent = modo==='cpu' ? '🤖' : (modo==='online' ? '🌐' : (touch ? '👆' : p2.tecla));
@@ -144,7 +144,7 @@ function puxa(p, forca){
 function erra(p){ if (!rodadaAtiva) return; p.escorrega = 1; somErro(); var o = p===p1?p2:p1; o.f += 2.5; }
 function apertou(p, teclaOk){
   if (!vivo || !rodadaAtiva) return;
-  if (teclaOk){ puxa(p, 1); novaTecla(p); pinta(); var tt = el(p===p1?'t1':'t2'); tt.classList.add('ok'); setTimeout(function(){ tt.classList.remove('ok'); }, 80); }
+  if (teclaOk){ puxa(p, 1); if (--p.restam <= 0){ novaTecla(p); somTroca(); } pinta(); var tt = el(p===p1?'t1':'t2'); tt.classList.add('ok'); setTimeout(function(){ tt.classList.remove('ok'); }, 80); }
   else { erra(p); var te = el(p===p1?'t1':'t2'); te.classList.add('erro'); setTimeout(function(){ te.classList.remove('erro'); }, 250); }
 }
 document.addEventListener('keydown', function(e){
@@ -298,6 +298,7 @@ var ac = null;
 function ctxA(){ try { if (!ac) ac = new (window.AudioContext||window.webkitAudioContext)(); return ac; } catch(e){ return null; } }
 function bip(tipo, f0, f1, dur, vol){ var a = ctxA(); if (!a) return; var o=a.createOscillator(), g=a.createGain(), t0=a.currentTime; o.type=tipo; o.frequency.setValueAtTime(f0,t0); o.frequency.exponentialRampToValueAtTime(f1,t0+dur); g.gain.setValueAtTime(vol,t0); g.gain.exponentialRampToValueAtTime(0.001,t0+dur); o.connect(g); g.connect(a.destination); o.start(t0); o.stop(t0+dur); }
 function somPuxa(){ bip('triangle', 180+Math.random()*60, 120, 0.08, 0.08); }
+function somTroca(){ bip('sine', 880, 1320, 0.12, 0.08); }
 function somErro(){ bip('sawtooth', 300, 80, 0.3, 0.12); }
 function somVitoria(){ bip('square', 440, 880, 0.25, 0.1); setTimeout(function(){ bip('square', 660, 1320, 0.3, 0.1); }, 150); }
 
