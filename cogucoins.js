@@ -327,6 +327,9 @@
     return d;
   }
   function aplica(dados){
+    dados = dados || {};
+    // nuvem sem Cogu Coins (salva por um site velho em cache)? mantém as do aparelho
+    EXTRAS.forEach(function (k){ if (!(k in dados) && ls(k) !== null) dados[k] = ls(k); });
     var tirar = [];
     try { for (var i = 0; i < localStorage.length; i++){ var k = localStorage.key(i); if (entra(k)) tirar.push(k); } } catch (e) {}
     tirar.forEach(function (k){ try { localStorage.removeItem(k); } catch (e) {} });

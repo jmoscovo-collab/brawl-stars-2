@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v495 (2026-10-08)
+- Cogu Coins nunca mais somem: se a nuvem vier sem as coins (salva por um aparelho com site velho em cache), o aparelho mantem as dele; e o servidor tambem nunca apaga as coins guardadas quando um save chega sem elas
+
 ## v494 (2026-10-08)
 - JOGO NOVO: Capivara Caindo - queda infinita de paraquedas: moedas, passaros e baloes, ima que puxa moedas, vento que muda de lado e fica louco, 3 vidas, 6 paraquedas pra comprar com as moedas, top global por metros; setas/A D ou arrastar o dedo
 
