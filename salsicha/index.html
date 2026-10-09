@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>🌭 Salsicha Comilão</title>
+<meta name="description" content="Salsicha Comilão: o cachorro salsicha come maçãs e vai ficando cada vez mais comprido. Não bata na parede nem no próprio corpo! Jogo grátis do Cogumelo Games.">
+<link rel="canonical" href="https://cogumelogames.com.br/salsicha/">
+<link rel="icon" href="/icons/icon-192.png">
+<script src="/letra.js"></script>
+<script src="/cogucoins.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#1d3b1a;font-family:Arial,Helvetica,sans-serif;color:#fff;
+  user-select:none;-webkit-user-select:none;touch-action:none}
+#cv{display:block;width:100%;height:100%}
+#hud{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:8;text-align:center;pointer-events:none;
+  text-shadow:0 3px 12px #000}
+#pts{font-size:44px;font-weight:bold;line-height:1;font-variant-numeric:tabular-nums}
+#rec{font-size:13px;opacity:.85;margin-top:3px}
+.tela{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;padding:26px 16px;overflow-y:auto;background:linear-gradient(170deg,#2e5a2a 0%,#173617 55%,#0b1f0b 100%)}
+.tela.off{display:none}
+h1{font-size:34px;text-align:center;line-height:1.12;text-shadow:0 4px 18px #000}
+h2{font-size:20px;color:#ffd166;text-align:center}
+.sub{font-size:14px;opacity:.88;text-align:center;max-width:420px;line-height:1.5}
+.bt{border:none;border-radius:16px;padding:14px 26px;font-size:17px;font-weight:bold;cursor:pointer;
+  font-family:inherit;background:linear-gradient(135deg,#ff6b6b,#c0392b);color:#fff;min-width:215px}
+.bt.cinza{background:rgba(255,255,255,.12);color:#fff;border:2px solid rgba(255,255,255,.25)}
+.top{width:100%;max-width:400px;display:flex;flex-direction:column;gap:5px}
+.linha{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);
+  border:2px solid rgba(255,255,255,.12);border-radius:13px;padding:9px 13px;font-size:14px}
+.linha.eu{border-color:#ffd166;background:rgba(255,209,102,.16)}
+.linha .pos{width:30px;font-weight:bold;opacity:.8;flex:none}
+.linha .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:bold}
+.linha .tp{font-variant-numeric:tabular-nums;font-weight:bold;color:#ffd166}
+.rolar{max-height:42vh;overflow-y:auto;width:100%;max-width:400px}
+.vel{display:flex;gap:7px}
+.aba{border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;border-radius:13px;
+  padding:7px 15px;font-size:13px;font-weight:bold;cursor:pointer;font-family:inherit}
+.aba.on{background:#ffd166;color:#3a2a00;border-color:#ffd166}
+#dpad{position:fixed;right:14px;bottom:18px;z-index:9;display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(3,58px);gap:4px}
+#dpad button{border:none;border-radius:14px;background:rgba(255,255,255,.18);color:#fff;font-size:26px;font-weight:bold;
+  backdrop-filter:blur(3px);cursor:pointer;touch-action:manipulation}
+#dpad button:active{background:rgba(255,255,255,.4)}
+@media (hover:hover) and (pointer:fine){ #dpad{display:none} }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="hud" style="display:none"><div id="pts">0</div><div id="rec"></div></div>
+<div id="dpad" style="display:none">
+  <span></span><button data-d="up">▲</button><span></span>
+  <button data-d="left">◀</button><span></span><button data-d="right">▶</button>
+  <span></span><button data-d="down">▼</button><span></span>
+</div>
+
+<div class="tela" id="tInicio">
+  <canvas id="logo" width="260" height="120"></canvas>
+  <h1>🌭 Salsicha Comilão</h1>
+  <div class="sub">O cachorro salsicha <b>adora maçã</b> 🍎 — e a cada uma que come fica <b>mais comprido</b>!<br>
+  Não bata na cerca nem no próprio rabo.<br><small>Setas / WASD no computador • deslize o dedo ou use o joystick no celular</small></div>
+  <div class="vel">
+    <button class="aba" data-v="0">🐢 Devagar</button>
+    <button class="aba on" data-v="1">🐕 Normal</button>
+    <button class="aba" data-v="2">⚡ Rápido</button>
+  </div>
+  <button class="bt" id="btJogar">▶ JOGAR</button>
+  <button class="bt cinza" id="btTop">🏆 Top global</button>
+  <a class="bt cinza" href="/" style="text-decoration:none;text-align:center;line-height:1.3">🏠 Voltar pro site</a>
+</div>
+
+<div class="tela off" id="tFim">
+  <h1 id="fimTitulo">Au au... 😵</h1>
+  <h2 id="fimPontos"></h2>
+  <div class="sub" id="fimMsg"></div>
+  <button class="bt" id="btDeNovo">🔁 Jogar de novo</button>
+  <button class="bt cinza" id="btTop2">🏆 Top global</button>
+  <a class="bt cinza" href="/" style="text-decoration:none;text-align:center;line-height:1.3">🏠 Voltar pro site</a>
+</div>
+
+<div class="tela off" id="tTop">
+  <h1>🏆 Top global</h1>
+  <div class="sub" id="statusTop"></div>
+  <div class="rolar"><div class="top" id="listaTop"></div></div>
+  <button class="bt cinza" id="btTopVoltar">Voltar</button>
+</div>
+
+<script>
+(function(){
+var JOGO = 'salsicha';
+var API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+function el(id){ return document.getElementById(id); }
+var cv = el('cv'), cx = cv.getContext('2d');
+var COLS = 20, LINS = 20, cel = 20, ox = 0, oy = 0;
+var W = 0, H = 0;
+function redimensiona(){
+  W = window.innerWidth; H = window.innerHeight;
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = W * dpr; cv.height = H * dpr; cx.setTransform(dpr,0,0,dpr,0,0);
+  var espTopo = 80, espBaixo = (window.matchMedia('(hover:hover) and (pointer:fine)').matches ? 20 : 200);
+  cel = Math.floor(Math.min((W - 24) / COLS, (H - espTopo - espBaixo) / LINS));
+  if (cel < 10) cel = Math.floor(Math.min((W-16)/COLS, (H-90)/LINS));
+  ox = Math.floor((W - COLS*cel)/2); oy = espTopo + Math.floor((H - espTopo - espBaixo - LINS*cel)/2);
+  if (oy < 70) oy = 70;
+}
+window.addEventListener('resize', redimensiona); redimensiona();
+
+var VELS = [260, 170, 105];
+var vel = 1;
+try { vel = Number(localStorage.getItem('salsicha_vel')); if(!(vel>=0&&vel<=2)) vel = 1; } catch(e){ vel = 1; }
+var RECORDE = 0;
+try { RECORDE = Number(localStorage.getItem('salsicha_recorde')) || 0; } catch(e){}
+
+var corpo, dir, proxDir, fila, maca, pontos, vivo, timer, acc, ultimo, mordida, rabo;
+var MOEDA_KEY = 'salsicha_biscoitos';
+
+function novaMaca(){
+  var livres = [];
+  for (var y=0;y<LINS;y++) for (var x=0;x<COLS;x++){
+    var ok = true;
+    for (var i=0;i<corpo.length;i++) if (corpo[i].x===x && corpo[i].y===y){ ok=false; break; }
+    if (ok) livres.push({x:x,y:y});
+  }
+  if (!livres.length) return null;
+  return livres[Math.floor(Math.random()*livres.length)];
+}
+function comeca(){
+  corpo = [{x:7,y:10},{x:6,y:10},{x:5,y:10},{x:4,y:10}];
+  dir = {x:1,y:0}; proxDir = []; pontos = 0; vivo = true; acc = 0; ultimo = 0; mordida = 0; rabo = 0;
+  maca = novaMaca();
+  el('tInicio').classList.add('off'); el('tFim').classList.add('off'); el('tTop').classList.add('off');
+  el('hud').style.display = ''; el('dpad').style.display = '';
+  atualizaHud();
+  requestAnimationFrame(loop);
+}
+function atualizaHud(){
+  el('pts').textContent = pontos;
+  el('rec').textContent = RECORDE > 0 ? ('recorde: ' + RECORDE + ' 🍎') : 'coma maçãs!';
+}
+function empurra(d){
+  var ref = proxDir.length ? proxDir[proxDir.length-1] : dir;
+  if (d.x === -ref.x && d.y === -ref.y) return;   // não dá meia-volta
+  if (d.x === ref.x && d.y === ref.y) return;
+  if (proxDir.length < 2) proxDir.push(d);
+}
+var DIRS = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
+document.addEventListener('keydown', function(e){
+  var k = e.key;
+  var m = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right',
+            w:'up', s:'down', a:'left', d:'right', W:'up', S:'down', A:'left', D:'right' }[k];
+  if (!m) return;
+  e.preventDefault();
+  if (!vivo){ if (!el('tInicio').classList.contains('off') || !el('tFim').classList.contains('off')) return; }
+  empurra(DIRS[m]);
+});
+Array.prototype.forEach.call(document.querySelectorAll('#dpad button'), function(b){
+  var f = function(e){ e.preventDefault(); empurra(DIRS[b.getAttribute('data-d')]); };
+  b.addEventListener('touchstart', f, {passive:false}); b.addEventListener('mousedown', f);
+});
+// deslizar o dedo
+var t0 = null;
+cv.addEventListener('touchstart', function(e){ var t=e.touches[0]; t0={x:t.clientX,y:t.clientY}; }, {passive:true});
+cv.addEventListener('touchmove', function(e){
+  if (!t0) return; var t=e.touches[0]; var dx=t.clientX-t0.x, dy=t.clientY-t0.y;
+  if (Math.abs(dx)<24 && Math.abs(dy)<24) return;
+  empurra(Math.abs(dx)>Math.abs(dy) ? (dx>0?DIRS.right:DIRS.left) : (dy>0?DIRS.down:DIRS.up));
+  t0 = {x:t.clientX,y:t.clientY};
+}, {passive:true});
+
+function passo(){
+  if (proxDir.length) dir = proxDir.shift();
+  var cab = { x: corpo[0].x + dir.x, y: corpo[0].y + dir.y };
+  if (cab.x<0 || cab.y<0 || cab.x>=COLS || cab.y>=LINS) return morre('Bateu na cerca! 🪵');
+  var comeu = maca && cab.x===maca.x && cab.y===maca.y;
+  var fim = comeu ? corpo.length : corpo.length-1;
+  for (var i=0;i<fim;i++) if (corpo[i].x===cab.x && corpo[i].y===cab.y) return morre('Mordeu o próprio rabo! 🐾');
+  corpo.unshift(cab);
+  if (comeu){
+    pontos++; mordida = 1; som(1);
+    if (pontos > RECORDE){ RECORDE = pontos; try{ localStorage.setItem('salsicha_recorde', RECORDE); }catch(e){} }
+    try { var b = Number(localStorage.getItem(MOEDA_KEY))||0; localStorage.setItem(MOEDA_KEY, b+1); } catch(e){}
+    maca = novaMaca();
+    if (!maca) return morre('Você encheu o quintal inteiro! 👑');
+    atualizaHud();
+  } else corpo.pop();
+}
+function morre(msg){
+  vivo = false; som(0);
+  el('hud').style.display = 'none'; el('dpad').style.display = 'none';
+  el('fimPontos').textContent = pontos + ' 🍎' + (pontos>=RECORDE && pontos>0 ? ' — RECORDE!' : '');
+  el('fimMsg').textContent = msg + ' O salsicha ficou com ' + corpo.length + ' pedaços de comprido.';
+  el('tFim').classList.remove('off');
+  if (pontos > 0) mandaPontuacao(pontos, function(pos){
+    if (pos) el('fimMsg').textContent += ' Você está em ' + pos + 'º no mundo! 🌍';
+  });
+}
+function loop(ts){
+  if (!vivo) return;
+  if (!ultimo) ultimo = ts;
+  acc += ts - ultimo; ultimo = ts;
+  var passoMs = Math.max(55, VELS[vel] - pontos*3);
+  while (acc >= passoMs && vivo){ acc -= passoMs; passo(); }
+  if (mordida > 0) mordida -= 0.08;
+  rabo += 0.15;
+  desenha(acc / passoMs);
+  requestAnimationFrame(loop);
+}
+
+// ---------- desenho ----------
+function desenha(frac){
+  cx.fillStyle = '#2f6b2b'; cx.fillRect(0,0,W,H);
+  // grama quadriculada
+  for (var y=0;y<LINS;y++) for (var x=0;x<COLS;x++){
+    cx.fillStyle = (x+y)%2 ? '#3d8a37' : '#449a3d';
+    cx.fillRect(ox+x*cel, oy+y*cel, cel, cel);
+  }
+  // cerca
+  cx.strokeStyle = '#8b5a2b'; cx.lineWidth = Math.max(4, cel*0.3);
+  cx.strokeRect(ox-cx.lineWidth/2, oy-cx.lineWidth/2, COLS*cel+cx.lineWidth, LINS*cel+cx.lineWidth);
+  if (maca) desenhaMaca(ox+maca.x*cel+cel/2, oy+maca.y*cel+cel/2, cel);
+  desenhaCachorro(frac);
+}
+function desenhaMaca(px, py, s){
+  var r = s*0.36;
+  cx.fillStyle = '#e53935'; cx.beginPath(); cx.arc(px-r*0.35, py+r*0.1, r*0.85, 0, Math.PI*2); cx.fill();
+  cx.beginPath(); cx.arc(px+r*0.35, py+r*0.1, r*0.85, 0, Math.PI*2); cx.fill();
+  cx.fillStyle = '#c62828'; cx.beginPath(); cx.arc(px, py+r*0.25, r*0.75, 0, Math.PI*2); cx.fill();
+  cx.fillStyle = '#ff8a80'; cx.beginPath(); cx.arc(px-r*0.45, py-r*0.25, r*0.25, 0, Math.PI*2); cx.fill();
+  cx.strokeStyle = '#5d4037'; cx.lineWidth = Math.max(2, s*0.08); cx.beginPath(); cx.moveTo(px, py-r*0.6); cx.lineTo(px+r*0.15, py-r*1.15); cx.stroke();
+  cx.fillStyle = '#43a047'; cx.beginPath(); cx.ellipse(px+r*0.5, py-r*0.95, r*0.45, r*0.22, -0.5, 0, Math.PI*2); cx.fill();
+}
+function centro(seg){ return { x: ox+seg.x*cel+cel/2, y: oy+seg.y*cel+cel/2 }; }
+function desenhaCachorro(frac){
+  var n = corpo.length;
+  var pts = corpo.map(centro);
+  // interpola a cabeça deslizando (só visual)
+  var cab = { x: pts[0].x + dir.x*cel*frac*0.0, y: pts[0].y + dir.y*cel*frac*0.0 };
+  var esp = cel*0.78;
+  var marrom = '#b5651d', marromEsc = '#8e4a12', barriga = '#e0a86a';
+  // corpo: linha grossa arredondada seguindo os segmentos
+  cx.lineCap = 'round'; cx.lineJoin = 'round';
+  cx.strokeStyle = marromEsc; cx.lineWidth = esp;
+  cx.beginPath(); cx.moveTo(pts[0].x, pts[0].y);
+  for (var i=1;i<n;i++) cx.lineTo(pts[i].x, pts[i].y);
+  cx.stroke();
+  cx.strokeStyle = marrom; cx.lineWidth = esp*0.82;
+  cx.beginPath(); cx.moveTo(pts[0].x, pts[0].y);
+  for (i=1;i<n;i++) cx.lineTo(pts[i].x, pts[i].y);
+  cx.stroke();
+  // barriga clara (listra)
+  cx.strokeStyle = barriga; cx.lineWidth = esp*0.3;
+  cx.beginPath(); cx.moveTo(pts[0].x, pts[0].y);
+  for (i=1;i<n;i++) cx.lineTo(pts[i].x, pts[i].y);
+  cx.stroke();
+  // patinhas: a cada 2 segmentos, 2 patinhas pra fora
+  cx.fillStyle = marromEsc;
+  for (i=1;i<n-1;i+=2){
+    var a = pts[i-1], b = pts[i+1];
+    var vx = b.x-a.x, vy = b.y-a.y, l = Math.hypot(vx,vy)||1; vx/=l; vy/=l;
+    var nx = -vy, ny = vx;
+    var p = pts[i], w = esp*0.22, h = esp*0.42;
+    cx.beginPath(); cx.ellipse(p.x+nx*esp*0.5, p.y+ny*esp*0.5, w, h, Math.atan2(ny,nx)+Math.PI/2, 0, Math.PI*2); cx.fill();
+    cx.beginPath(); cx.ellipse(p.x-nx*esp*0.5, p.y-ny*esp*0.5, w, h, Math.atan2(ny,nx)+Math.PI/2, 0, Math.PI*2); cx.fill();
+  }
+  // rabo abanando
+  var ult = pts[n-1], pen = pts[n-2] || pts[0];
+  var tx = ult.x-pen.x, ty = ult.y-pen.y, tl = Math.hypot(tx,ty)||1; tx/=tl; ty/=tl;
+  var ang = Math.atan2(ty,tx) + Math.sin(rabo)*0.7;
+  cx.strokeStyle = marromEsc; cx.lineWidth = esp*0.3;
+  cx.beginPath(); cx.moveTo(ult.x, ult.y); cx.lineTo(ult.x+Math.cos(ang)*esp*0.9, ult.y+Math.sin(ang)*esp*0.9); cx.stroke();
+  // cabeça
+  var hx = cab.x, hy = cab.y, r = esp*0.62;
+  var fx = dir.x, fy = dir.y, lx = -fy, ly = fx;   // frente e lado
+  // orelhas (caídas, pra trás)
+  cx.fillStyle = marromEsc;
+  cx.beginPath(); cx.ellipse(hx - fx*r*0.3 + lx*r*0.85, hy - fy*r*0.3 + ly*r*0.85, r*0.35, r*0.7, Math.atan2(fy,fx), 0, Math.PI*2); cx.fill();
+  cx.beginPath(); cx.ellipse(hx - fx*r*0.3 - lx*r*0.85, hy - fy*r*0.3 - ly*r*0.85, r*0.35, r*0.7, Math.atan2(fy,fx), 0, Math.PI*2); cx.fill();
+  // crânio
+  cx.fillStyle = marrom; cx.beginPath(); cx.arc(hx, hy, r, 0, Math.PI*2); cx.fill();
+  // focinho comprido pra frente
+  var fcx = hx + fx*r*0.75, fcy = hy + fy*r*0.75;
+  cx.fillStyle = '#c9803a'; cx.beginPath(); cx.ellipse(fcx, fcy, r*0.75, r*0.5, Math.atan2(fy,fx), 0, Math.PI*2); cx.fill();
+  // boca (abre quando come)
+  if (mordida > 0){
+    cx.fillStyle = '#7a1f1f'; cx.beginPath();
+    cx.ellipse(hx + fx*r*1.1, hy + fy*r*1.1, r*0.3, r*0.3*mordida+r*0.1, 0, 0, Math.PI*2); cx.fill();
+  }
+  // nariz
+  cx.fillStyle = '#222'; cx.beginPath(); cx.arc(hx + fx*r*1.4, hy + fy*r*1.4, r*0.22, 0, Math.PI*2); cx.fill();
+  // olhos
+  var ex1 = hx + fx*r*0.25 + lx*r*0.42, ey1 = hy + fy*r*0.25 + ly*r*0.42;
+  var ex2 = hx + fx*r*0.25 - lx*r*0.42, ey2 = hy + fy*r*0.25 - ly*r*0.42;
+  cx.fillStyle = '#fff'; cx.beginPath(); cx.arc(ex1,ey1,r*0.22,0,Math.PI*2); cx.arc(ex2,ey2,r*0.22,0,Math.PI*2); cx.fill();
+  cx.fillStyle = '#111'; cx.beginPath(); cx.arc(ex1+fx*r*0.07,ey1+fy*r*0.07,r*0.11,0,Math.PI*2); cx.arc(ex2+fx*r*0.07,ey2+fy*r*0.07,r*0.11,0,Math.PI*2); cx.fill();
+  // língua de vez em quando
+  if (Math.floor(rabo/4)%3===0){
+    cx.fillStyle = '#ff6b8a'; cx.beginPath();
+    cx.ellipse(hx + fx*r*1.1 + lx*r*0.2, hy + fy*r*1.1 + ly*r*0.2, r*0.14, r*0.3, Math.atan2(fy,fx), 0, Math.PI*2); cx.fill();
+  }
+  // coleira vermelha no pescoço
+  if (n > 1){
+    cx.strokeStyle = '#e53935'; cx.lineWidth = esp*0.18;
+    cx.beginPath(); cx.moveTo(hx - fx*r*0.95 + lx*esp*0.45, hy - fy*r*0.95 + ly*esp*0.45);
+    cx.lineTo(hx - fx*r*0.95 - lx*esp*0.45, hy - fy*r*0.95 - ly*esp*0.45); cx.stroke();
+  }
+}
+// logo na tela inicial: salsicha parado
+(function(){
+  var lc = el('logo'), g = lc.getContext('2d');
+  var save = cx; cx = g;
+  var saveCorpo = corpo, saveDir = dir, saveOx = ox, saveOy = oy, saveCel = cel, saveM = mordida, saveR = rabo;
+  corpo = [{x:5,y:1},{x:4,y:1},{x:3,y:1},{x:2,y:1},{x:1,y:1},{x:0,y:1}]; dir = {x:1,y:0};
+  ox = 20; oy = 20; cel = 36; mordida = 0; rabo = 1;
+  desenhaCachorro(0);
+  cx = save; corpo = saveCorpo; dir = saveDir; ox = saveOx; oy = saveOy; cel = saveCel; mordida = saveM; rabo = saveR;
+})();
+
+// ---------- som ----------
+var ac = null;
+function som(tipo){
+  try {
+    if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    var o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+    o.connect(g); g.connect(ac.destination);
+    if (tipo === 1){ o.type='square'; o.frequency.setValueAtTime(520,t); o.frequency.exponentialRampToValueAtTime(880,t+0.08);
+      g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.15); o.start(t); o.stop(t+0.16); }
+    else { o.type='sawtooth'; o.frequency.setValueAtTime(220,t); o.frequency.exponentialRampToValueAtTime(60,t+0.45);
+      g.gain.setValueAtTime(0.18,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.5); o.start(t); o.stop(t+0.5); }
+  } catch(e){}
+}
+
+// ---------- ranking global (Lambda cogumelo-contas) ----------
+var MEU_NOME = '';
+function nomeEscolhido(){
+  try { return localStorage.getItem('cg_usuario') || localStorage.getItem('salsicha_nome') || ''; } catch(e){ return ''; }
+}
+function pedeNomeUmaVez(){
+  if (MEU_NOME) return MEU_NOME;
+  var n = nomeEscolhido();
+  if (!n){
+    n = (window.prompt('Seu nome pro top global (2 a 14 letras):','') || '').trim().slice(0,14);
+    if (n) try { localStorage.setItem('salsicha_nome', n); } catch(e){}
+  }
+  MEU_NOME = n; return n;
+}
+function mandaPontuacao(pontos, aoTerminar){
+  var nome = pedeNomeUmaVez();
+  if (!nome || nome.length < 2 || pontos <= 0 || !window.fetch) return aoTerminar(null);
+  fetch(API, { method:'POST', headers:{'content-type':'application/json'},
+    body: JSON.stringify({ acao:'ranking_enviar', jogo:JOGO, nome:nome, pontos:pontos }) })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){ aoTerminar(j && j.posicao ? j.posicao : null); })
+    .catch(function(){ aoTerminar(null); });
+}
+function carregaTop(){
+  var lista = el('listaTop'), status = el('statusTop');
+  lista.textContent = ''; status.textContent = 'carregando...';
+  if (!window.fetch){ status.textContent = 'seu navegador não consegue carregar o top 😕'; return; }
+  fetch(API, { method:'POST', headers:{'content-type':'application/json'},
+    body: JSON.stringify({ acao:'ranking_top', jogo:JOGO }) })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){
+      var top = (j && j.top) ? j.top : [];
+      var meu = nomeEscolhido().toLowerCase();
+      if (!top.length){ status.textContent = 'Ninguém no top ainda — seja o primeiro! 🐕'; return; }
+      status.textContent = 'os ' + top.length + ' maiores comilões do mundo';
+      top.forEach(function(x, i){
+        var d = document.createElement('div'); d.className = 'linha' + (String(x.nome||'').toLowerCase()===meu ? ' eu' : '');
+        var p = document.createElement('span'); p.className='pos'; p.textContent = (i+1)+'º';
+        var nm = document.createElement('span'); nm.className='nm'; nm.textContent = x.nome;
+        var tp = document.createElement('span'); tp.className='tp'; tp.textContent = x.pontos + ' 🍎';
+        d.appendChild(p); d.appendChild(nm); d.appendChild(tp); lista.appendChild(d);
+      });
+    })
+    .catch(function(){ status.textContent = 'não deu pra carregar o top 😕'; });
+}
+function abreTop(){ el('tInicio').classList.add('off'); el('tFim').classList.add('off'); el('tTop').classList.remove('off'); carregaTop(); }
+var voltaPara = 'tInicio';
+el('btTop').onclick = function(){ voltaPara='tInicio'; abreTop(); };
+el('btTop2').onclick = function(){ voltaPara='tFim'; abreTop(); };
+el('btTopVoltar').onclick = function(){ el('tTop').classList.add('off'); el(voltaPara).classList.remove('off'); };
+el('btJogar').onclick = comeca; el('btDeNovo').onclick = comeca;
+Array.prototype.forEach.call(document.querySelectorAll('.vel .aba'), function(b){
+  if (Number(b.getAttribute('data-v')) === vel) { Array.prototype.forEach.call(document.querySelectorAll('.vel .aba'), function(x){ x.classList.remove('on'); }); b.classList.add('on'); }
+  b.onclick = function(){
+    vel = Number(b.getAttribute('data-v'));
+    try { localStorage.setItem('salsicha_vel', vel); } catch(e){}
+    Array.prototype.forEach.call(document.querySelectorAll('.vel .aba'), function(x){ x.classList.remove('on'); }); b.classList.add('on');
+  };
+});
+})();
+</script>
+<script src="/stats.js?v=358"></script>
+<script>if (window.initStats) initStats('salsicha');</script>
+<script src="/avisos.js?v=6"></script>
+<script src="/musiquinha.js"></script>
+<script>window.cgMusiquinha({ chave:'salsicha_musica', clima:'calmo', botaoEmBaixo:112 });</script>
+<script src="/telacheia.js"></script>
+</body>
+</html>

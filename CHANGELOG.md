@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v477 (2026-10-08)
+- JOGO NOVO: Salsicha Comilao - cobrinha em que o cachorro salsicha (desenhado no canvas, sem emoji) come macas e vai ficando mais comprido; patinhas, rabo abanando, lingua e coleira; 3 velocidades, setas/WASD, deslizar o dedo ou joystick no celular; top global na Lambda
+
 ## v473 (2026-10-05)
 - Desenha e Adivinha: a PINTURA MÁGICA desenhava praticamente toda palavra de comida como uma "fruta redonda" genérica (tipo uma laranja) - agora banana, maçã, laranja, uva, morango, melancia, abacaxi, limão, pera, manga, hambúrguer, pizza, cachorro-quente, batata frita, bolo, chocolate, pipoca, queijo, ovo, pão, biscoito, bala, pirulito, refrigerante, suco, leite, café, macarrão, arroz, sorvete de casquinha e pote de mel têm cada um o seu desenho certinho
 
