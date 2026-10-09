@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v496 (2026-10-08)
+- Capivara Caindo: 12 paraquedas (eram 6), cada um com "vira" diferente - quanto melhor, mais facil e rapido de virar. Ruins de graca (Saco de Lixo 55%, Furado 70%) ate o Lendario (280%, 5000 moedas)
+
 ## v495 (2026-10-08)
 - Cogu Coins nunca mais somem: se a nuvem vier sem as coins (salva por um aparelho com site velho em cache), o aparelho mantem as dele; e o servidor tambem nunca apaga as coins guardadas quando um save chega sem elas
 

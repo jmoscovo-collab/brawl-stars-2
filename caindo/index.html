@@ -49,6 +49,7 @@ h2{font-size:20px;color:#ffd166;text-align:center}
   <h1>🪂 Capivara Caindo</h1>
   <div class="sub">Pule do avião e caia por entre as nuvens! Pegue 🪙 moedas, desvie dos pássaros e dos balões — e segure firme quando o <b>vento</b> empurrar. O chão nunca chega... mas o vento fica cada vez mais louco.<br><small>Setas / A D no computador • arraste o dedo no celular</small></div>
   <h2>Paraquedas</h2>
+  <div class="sub">Quanto melhor o paraquedas, <b>mais fácil de virar</b> (🎮 vira). Os de graça são ruins!</div>
   <div class="skins" id="skins"></div>
   <button class="bt" id="btJogar">▶ PULAR!</button>
   <button class="bt cinza" id="btTop">🏆 Top global</button>
@@ -82,15 +83,21 @@ addEventListener('resize', redim); redim();
 
 // ---- paraquedas (skins) — moedas do jogo compram ----
 var SKINS = [
-  {id:'laranja', nome:'Laranja', preco:0, cores:['#ff9f43','#ffd166']},
-  {id:'arco', nome:'Arco-íris', preco:150, cores:['#ff5252','#ffb300','#4caf50','#2196f3','#9c27b0']},
-  {id:'capi', nome:'Capivara', preco:300, cores:['#a0522d','#d2a06d']},
-  {id:'noite', nome:'Noite', preco:500, cores:['#1a237e','#7c4dff']},
-  {id:'melancia', nome:'Melancia', preco:800, cores:['#2e7d32','#e53935']},
-  {id:'ouro', nome:'Ouro', preco:1500, cores:['#ffd700','#ffecb3']}
+  {id:'saco',     nome:'Saco de Lixo', preco:0,    vira:0.55, cores:['#424242','#616161']},
+  {id:'furado',   nome:'Furado',       preco:0,    vira:0.7,  cores:['#9e9e9e','#bdbdbd','#757575']},
+  {id:'laranja',  nome:'Laranja',      preco:0,    vira:1.0,  cores:['#ff9f43','#ffd166']},
+  {id:'guarda',   nome:'Guarda-chuva', preco:60,   vira:0.85, cores:['#1e88e5','#90caf9']},
+  {id:'arco',     nome:'Arco-íris',    preco:150,  vira:1.15, cores:['#ff5252','#ffb300','#4caf50','#2196f3','#9c27b0']},
+  {id:'capi',     nome:'Capivara',     preco:300,  vira:1.3,  cores:['#a0522d','#d2a06d']},
+  {id:'noite',    nome:'Noite',        preco:500,  vira:1.45, cores:['#1a237e','#7c4dff']},
+  {id:'melancia', nome:'Melancia',     preco:800,  vira:1.6,  cores:['#2e7d32','#e53935']},
+  {id:'jato',     nome:'Jato',         preco:1200, vira:1.8,  cores:['#00bcd4','#006064','#00bcd4']},
+  {id:'ouro',     nome:'Ouro',         preco:1500, vira:2.0,  cores:['#ffd700','#ffecb3']},
+  {id:'dragao',   nome:'Dragão',       preco:2500, vira:2.3,  cores:['#b71c1c','#ff6f00','#b71c1c','#ff6f00']},
+  {id:'lenda',    nome:'Lendário',     preco:5000, vira:2.8,  cores:['#e040fb','#18ffff','#ffff00','#e040fb']}
 ];
 var moedas = 0, skinsTem = ['laranja'], skinEq = 'laranja', RECORDE = 0;
-try { moedas = Number(localStorage.getItem('caindo_moedas'))||0; skinsTem = JSON.parse(localStorage.getItem('caindo_skins')||'["laranja"]'); skinEq = localStorage.getItem('caindo_skin')||'laranja'; RECORDE = Number(localStorage.getItem('caindo_recorde'))||0; } catch(e){}
+try { moedas = Number(localStorage.getItem('caindo_moedas'))||0; skinsTem = JSON.parse(localStorage.getItem('caindo_skins')||'["laranja"]'); ['saco','furado','laranja'].forEach(function(k){ if (skinsTem.indexOf(k)<0) skinsTem.push(k); }); skinEq = localStorage.getItem('caindo_skin')||'laranja'; RECORDE = Number(localStorage.getItem('caindo_recorde'))||0; } catch(e){}
 function salvaLoja(){ try { localStorage.setItem('caindo_moedas', moedas); localStorage.setItem('caindo_skins', JSON.stringify(skinsTem)); localStorage.setItem('caindo_skin', skinEq); } catch(e){} }
 function skinAtual(){ for (var i=0;i<SKINS.length;i++) if (SKINS[i].id===skinEq) return SKINS[i]; return SKINS[0]; }
 function pintaSkins(){
@@ -102,6 +109,7 @@ function pintaSkins(){
     b.appendChild(c);
     var tem = skinsTem.indexOf(s.id) >= 0;
     b.appendChild(document.createTextNode(tem ? s.nome : ('🪙 ' + s.preco)));
+    var st = document.createElement('div'); st.style.cssText='font-size:10px;opacity:.85;margin-top:2px;color:'+(s.vira<1?'#ff8a80':s.vira>1?'#b9f6ca':'#fff'); st.textContent = '🎮 vira ' + Math.round(s.vira*100) + '%'; b.appendChild(st);
     b.onclick = function(){
       if (!tem){ if (moedas < s.preco){ b.textContent=''; b.appendChild(c); b.appendChild(document.createTextNode('faltam ' + (s.preco-moedas))); return; } moedas -= s.preco; skinsTem.push(s.id); }
       skinEq = s.id; salvaLoja(); pintaSkins();
@@ -153,7 +161,8 @@ function loop(ts){
   var ctrl = 0;
   if (teclas.ArrowLeft || teclas.a || teclas.A) ctrl = -1; if (teclas.ArrowRight || teclas.d || teclas.D) ctrl = 1;
   if (alvoX !== null){ var dx = alvoX - px; ctrl = Math.max(-1, Math.min(1, dx/60)); }
-  vx += (ctrl*420 + vento - vx*2.2) * dt;
+  var vira = skinAtual().vira || 1;
+  vx += (ctrl*420*vira + vento - vx*(1.6 + 0.8*vira)) * dt;
   px += vx * dt;
   if (px < 30){ px = 30; vx = Math.abs(vx)*0.3; } if (px > W-30){ px = W-30; vx = -Math.abs(vx)*0.3; }
   incl += ((vx/400) - incl) * Math.min(1, dt*6);
