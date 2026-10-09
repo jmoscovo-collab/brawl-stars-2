@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v498 (2026-10-09)
+- Troca de Cogu Coins pela moeda do jogo agora em mais 10 jogos que ainda não tinham: Corrida no Céu, Arena Cogumelo, Capivara Run 2 — Sombras, Estacionamento Maluco, Álbum de Figurinhas, Furacão.io, Polícia VS Ladrão, Chuva de Meteoros, Cogumelo Ninja e Parkour do Cogumelo 3D
+
 ## v497 (2026-10-08)
 - Capivara Caindo: chegou em 100.000 metros = POUSA NO CHAO e a familia inteira faz festa (casa, bolo, baloes, confete, capivaras pulando de chapeu) com "PARABENS, VOCE E O MELHOR!"; no lobby fica com 9999999999999999999999999999999999999999999999999 moedas pra sempre (compra qualquer paraquedas) e o jogo recomeca
 - Capivara Caindo: setinhas grandes no celular pra virar (alem de arrastar o dedo)
