@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v493 (2026-10-08)
+- Cabo de Guerra: no celular mostra "Esse jogo AINDA nao esta disponivel para celular" com botao de voltar (so computador por enquanto)
+
 ## v492 (2026-10-08)
 - Cabo de Guerra: a tecla nao muda a cada clique - ela dura de 10 a 30 cliques e ai troca (com um bipezinho avisando)
 
