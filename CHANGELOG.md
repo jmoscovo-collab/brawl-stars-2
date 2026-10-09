@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v480 (2026-10-08)
+- Salsicha Comilao: botao "Voltar pro lobby" na tela de fim de jogo (pra trocar a velocidade sem sair do jogo)
+
 ## v479 (2026-10-08)
 - Salsicha Comilao: top global separado por velocidade (Devagar / Normal / Rapido), com abas na tela do top; a pontuacao vai pro top da velocidade que voce jogou
 
