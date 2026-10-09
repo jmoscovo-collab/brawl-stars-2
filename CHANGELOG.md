@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v478 (2026-10-08)
+- Salsicha Comilao com arte melhor: corpo em curva suave com sombra, pelo com brilho e barriga clara, cabeca com focinho comprido, orelhas caidas, olhos que piscam, lingua e coleira com plaquinha; patinhas que andam, rabo abanando; movimento deslizando entre as casas; maca com brilho; quintal com florzinhas e cerca de madeira; explosao de pedacinhos ao comer e tela treme ao bater; desenho do salsicha na tela inicial
+
 ## v477 (2026-10-08)
 - JOGO NOVO: Salsicha Comilao - cobrinha em que o cachorro salsicha (desenhado no canvas, sem emoji) come macas e vai ficando mais comprido; patinhas, rabo abanando, lingua e coleira; 3 velocidades, setas/WASD, deslizar o dedo ou joystick no celular; top global na Lambda
 
