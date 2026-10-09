@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v487 (2026-10-08)
+- Conta na nuvem: na primeira vez em cada aparelho JUNTA o que esta no aparelho com o que esta na nuvem (nada se perde; Cogu Coins = o maior saldo dos dois) e manda tudo pra nuvem; cogucoins.js passa a ter versao na URL pra o navegador nao usar o arquivo velho
+
 ## v486 (2026-10-08)
 - CONTA VALE EM QUALQUER APARELHO: progresso dos jogos, Cogu Coins, historico e favoritos sobem pra nuvem sozinhos (a cada 15s quando muda, e ao sair da pagina) e descem ao abrir o site em outro aparelho (se a nuvem estiver mais nova, aplica e recarrega). Antes, Cogu Coins nunca iam pra nuvem e o progresso so subia a cada 60s dentro de jogo
 - Doacao de Cogu Coins recebida ja salva na nuvem na hora

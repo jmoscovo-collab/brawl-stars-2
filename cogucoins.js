@@ -362,11 +362,25 @@
       .then(function (j){
         if (!j || !j.ok) return;
         var nuvemTs = Number(j.atualizado) || 0, meuTs = Number(ls(TS)) || 0;
-        if (nuvemTs > meuTs){
-          var iguais = assina(j.dados || {}) === assina(snapshot());
+        var local = snapshot(), nuvem = j.dados || {};
+        if (!meuTs){
+          // 1ª vez neste aparelho: JUNTA (nada se perde) — Cogu Coins = o maior saldo dos dois
+          var junto = {};
+          Object.keys(local).forEach(function (k){ junto[k] = local[k]; });
+          Object.keys(nuvem).forEach(function (k){ if (entra(k)) junto[k] = nuvem[k]; });
+          var a = Number(local.cg_cogucoins) || 0, b = Number(nuvem.cg_cogucoins) || 0;
+          if (a || b) junto.cg_cogucoins = String(Math.max(a, b));
+          if ((local.cg_cogu_hist || '').length > (nuvem.cg_cogu_hist || '').length) junto.cg_cogu_hist = local.cg_cogu_hist;
+          var mudou = assina(junto) !== assina(local);
+          aplica(junto);
+          set(TS, String(nuvemTs || 1));
+          ultimaAssinatura = null; salva(true);
+          if (mudou){ var g0 = 'cg_recarregou_junto'; try { if (!sessionStorage.getItem(g0)){ sessionStorage.setItem(g0, '1'); location.reload(); return; } } catch (e) {} }
+        } else if (nuvemTs > meuTs){
+          var iguais = assina(nuvem) === assina(local);
           set(TS, String(nuvemTs));
           if (!iguais){
-            aplica(j.dados);
+            aplica(nuvem);
             ultimaAssinatura = assina(snapshot());
             var g = 'cg_recarregou_' + nuvemTs;
             try { if (!sessionStorage.getItem(g)){ sessionStorage.setItem(g, '1'); location.reload(); return; } } catch (e) {}
