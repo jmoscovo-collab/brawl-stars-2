@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v483 (2026-10-08)
+- Salsicha Comilao: recorde separado por velocidade - o recorde mostrado durante a partida e o da velocidade que voce esta jogando
+
 ## v482 (2026-10-08)
 - Salsicha Comilao: agora ele come SALSICHAS (desenhadas) em vez de macas; de vez em quando aparece um HOT DOG (pao, salsicha e mostarda) que vale 3 pontos e faz crescer 3 pedacos, com "+3" e chuva de pedacinhos
 

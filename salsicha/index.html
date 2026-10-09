@@ -119,7 +119,15 @@ var VELS = [260, 170, 105];
 var vel = 1;
 try { var vs = localStorage.getItem('salsicha_vel'); if (vs !== null) { vel = Number(vs); if(!(vel>=0&&vel<=2)) vel = 1; } } catch(e){ vel = 1; }
 var RECORDE = 0;
-try { RECORDE = Number(localStorage.getItem('salsicha_recorde')) || 0; } catch(e){}
+function chaveRec(){ return 'salsicha_recorde_' + vel; }
+function leRecorde(){
+  try {
+    var r = localStorage.getItem(chaveRec());
+    if (r === null && vel === 1) r = localStorage.getItem('salsicha_recorde');   // recorde antigo era do Normal
+    RECORDE = Number(r) || 0;
+  } catch(e){ RECORDE = 0; }
+}
+leRecorde();
 
 var corpo, dir, proxDir, fila, maca, pontos, vivo, timer, acc, ultimo, mordida, rabo, crescer;
 var MOEDA_KEY = 'salsicha_biscoitos';
@@ -138,7 +146,7 @@ function novaMaca(){
 }
 function comeca(){
   corpo = [{x:7,y:10},{x:6,y:10},{x:5,y:10},{x:4,y:10}];
-  dir = {x:1,y:0}; proxDir = []; pontos = 0; vivo = true; acc = 0; ultimo = 0; mordida = 0; rabo = 0; prevCorpo = null; parts = []; crescer = 0;
+  dir = {x:1,y:0}; proxDir = []; pontos = 0; vivo = true; acc = 0; ultimo = 0; mordida = 0; rabo = 0; prevCorpo = null; parts = []; crescer = 0; leRecorde();
   maca = novaMaca();
   el('tInicio').classList.add('off'); el('tFim').classList.add('off'); el('tTop').classList.add('off');
   el('hud').style.display = ''; el('dpad').style.display = '';
@@ -147,7 +155,7 @@ function comeca(){
 }
 function atualizaHud(){
   el('pts').textContent = pontos;
-  el('rec').textContent = RECORDE > 0 ? ('recorde: ' + RECORDE + ' 🌭') : 'coma salsichas!';
+  el('rec').textContent = RECORDE > 0 ? ('recorde no ' + NOMES_VEL[vel] + ': ' + RECORDE + ' 🌭') : 'coma salsichas!';
 }
 function empurra(d){
   var ref = proxDir.length ? proxDir[proxDir.length-1] : dir;
@@ -192,7 +200,7 @@ function passo(){
     var ganho = maca.hot ? 3 : 1;
     pontos += ganho; mordida = 1; som(1); particulas(ox+cab.x*cel+cel/2, oy+cab.y*cel+cel/2, maca.hot);
     crescer += ganho - 1;
-    if (pontos > RECORDE){ RECORDE = pontos; try{ localStorage.setItem('salsicha_recorde', RECORDE); }catch(e){} }
+    if (pontos > RECORDE){ RECORDE = pontos; try{ localStorage.setItem(chaveRec(), RECORDE); }catch(e){} }
     try { var b = Number(localStorage.getItem(MOEDA_KEY))||0; localStorage.setItem(MOEDA_KEY, b+ganho); } catch(e){}
     maca = novaMaca();
     if (!maca) return morre('Você encheu o quintal inteiro! 👑');
