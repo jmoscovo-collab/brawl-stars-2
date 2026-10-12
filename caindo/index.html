@@ -229,16 +229,20 @@ function loop(ts){
     if (o.t==='balao'){ o.x += Math.sin(t*2+o.y*0.01)*20*dt; o.y += 30*dt; }
     if (ima > 0 && (o.t==='moeda')){ var ddx = px-o.x, ddy = (H*0.45)-o.y, dd = Math.hypot(ddx,ddy); if (dd < 260){ o.x += ddx/dd*500*dt; o.y += ddy/dd*500*dt; } }
     if (o.y < -80 || o.x < -120 || o.x > W+120){ objs.splice(i,1); continue; }
+    if (o.t==='passaro'){
+      var dCanopy = Math.hypot(o.x-px, o.y-(H*0.45-70));
+      if (dCanopy < o.r + 58 && invul <= 0){
+        if (furado){ tremor = 24; som(0); burst(px,H*0.45,'#fff',24); objs.splice(i,1); return morre('Caiu em outro pássaro com o paraquedas furado e despencou! 💥🐦'); }
+        furado = true; invul = 1.0; tremor = 14; som(0); burst(px,H*0.45-70,'#ff7043',16); vx += (px<o.x?-1:1)*300; objs.splice(i,1);
+        var v = el('vento'); v.textContent = '🪂💥 PARAQUEDAS FURADO! Caindo rápido!'; v.style.opacity = 1; setTimeout(function(){ v.style.opacity = 0; }, 1500);
+      }
+      continue;
+    }
     var d = Math.hypot(o.x-px, o.y-H*0.45);
     if (d < o.r + 20){
       if (o.t==='moeda'){ moedasRodada++; som(1); burst(o.x,o.y,'#ffd700',8); objs.splice(i,1); }
       else if (o.t==='ima'){ ima = 6; som(2); burst(o.x,o.y,'#9c27b0',14); objs.splice(i,1); }
       else if (o.t==='vida'){ if (vidas < MAX_VIDAS) vidas++; pintaVidas(); som(2); burst(o.x,o.y,'#ff4081',14); objs.splice(i,1); }
-      else if (o.t==='passaro' && invul <= 0){
-        if (furado){ tremor = 24; som(0); burst(px,H*0.45,'#fff',24); objs.splice(i,1); return morre('Caiu em outro pássaro com o paraquedas furado e despencou! 💥🐦'); }
-        furado = true; invul = 1.0; tremor = 14; som(0); burst(px,H*0.45,'#ff7043',16); vx += (px<o.x?-1:1)*300; objs.splice(i,1);
-        var v = el('vento'); v.textContent = '🪂💥 PARAQUEDAS FURADO! Caindo rápido!'; v.style.opacity = 1; setTimeout(function(){ v.style.opacity = 0; }, 1500);
-      }
       else if (invul <= 0){ vidas--; pintaVidas(); invul = 1.6; tremor = 14; som(0); burst(px,H*0.45,'#fff',16); vx += (px<o.x?-1:1)*300; objs.splice(i,1);
         if (vidas <= 0) return morre('Bateu no balão! 🎈'); }
     }
