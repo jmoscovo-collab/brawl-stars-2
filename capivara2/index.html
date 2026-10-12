@@ -137,6 +137,7 @@ h2{font-size:21px;color:#c08bff;text-align:center}
     <button class="aba on" data-lj="vitrine">🛒 Vitrine</button>
     <button class="aba" data-lj="caixas">📦 Caixas</button>
     <button class="aba" data-lj="skins">🦫 Minhas coisas</button>
+    <button class="aba" data-lj="fundir" style="border-color:#6cff9f;color:#6cff9f">🔄 Fundir</button>
     <button class="aba" data-lj="troca" style="border-color:#ffcc33;color:#ffcc33">🍄 Trocar</button>
   </div>
 
@@ -163,6 +164,16 @@ h2{font-size:21px;color:#c08bff;text-align:center}
     <div class="sub" style="font-size:12px" id="progresso"></div>
     <div class="grid rolar" id="gridSkins"></div>
   </div>
+  <div id="boxFundir" style="width:100%;max-width:440px;display:none;flex-direction:column;align-items:center;gap:11px">
+    <div class="sub" style="font-size:13px">Repetiu um item numa caixa ou na vitrine? Ele vira uma <b>🔁 cópia extra</b> aqui.
+      Junte <b>3 cópias do mesmo item</b> pra virar um <b>novo item da mesma raridade</b>. Ou junte
+      <b>5 itens diferentes</b> (mas da <b>mesma raridade</b>, com cópia) pra subir pra <b>próxima raridade</b>!</div>
+    <div style="width:100%"><b style="font-size:14px;color:#6cff9f">🔁 Trocar 3 repetidos</b></div>
+    <div class="lista" id="listaFundir"></div>
+    <div style="width:100%"><b style="font-size:14px;color:#6cff9f">✨ Trocar 5 diferentes por raridade seguinte</b></div>
+    <div class="lista" id="listaFundirRaridade"></div>
+  </div>
+
   <div id="boxTroca" style="width:100%;max-width:440px;display:none;flex-direction:column;align-items:center;gap:10px">
     <div class="sub">As <b>Cogu Coins</b> 🍄 valem no site inteiro. Aqui você troca elas por
     <b>moedas desse jogo</b> 🪙 pra comprar skins e caixas.</div>
@@ -252,25 +263,31 @@ var RAR_SKIN = {
 };
 var ORDEM_RAR = ['comum','incomum','raro','epico','lendario','mistico'];
 
-// 100 skins. O nome é fixo e a cor sai do próprio índice, então todo mundo
+// 160 skins. O nome é fixo e a cor sai do próprio índice, então todo mundo
 // vê exatamente a mesma skin — nada é sorteado na hora de carregar.
 var NOMES_SKIN = (
  'Capivara,Neve,Pedrinha,Chocolate,Areia,Carvão,Leite,Caramelo,Bege,Terra,Cinza,Barro,Palha,Nuvem,Fumaça,'+
  'Canela,Café,Trigo,Nevoeiro,Papel,'+
+ 'Marrom,Creme,Avelã,Castanho,Cacau,Amendoim,Poeira,Granito,Seixo,Argila,Feno,Cevada,'+
  'Algodão,Oceano,Mato,Limão,Céu,Uva,Pêssego,Menta,Lavanda,Coral,'+
  'Jade,Âmbar,Turquesa,Rosa,Oliva,Índigo,Salmão,Musgo,Vinho,Mostarda,'+
+ 'Violeta,Girassol,Framboesa,Pistache,Safira,Esmeralda,Ametista,Canário,Tangerina,Glicínia,Orvalho,Bambu,'+
  'Fogo,Gelo,Trovão,Veneno,Sombra,Espuma,Floresta,Deserto,Tempestade,Aurora,'+
  'Magma,Geada,Relâmpago,Pântano,Eclipse,Maré,Selva,Duna,Ciclone,Brisa,'+
+ 'Furacão,Terremoto,Avalanche,Vulcânico,Nevasca,Maremoto,Tornado,Granizo,Vendaval,Tsunami,Erupção,Monção,'+
  'Mística,Neon,Zumbi,Pirata,Robô,Ninja,Cowboy,Astronauta,Fantasma,Vampiro,'+
  'Mago,Dragão,Esqueleto,Alienígena,Sereia,Lobisomem,Cyborg,Samurai,Bruxa,Múmia,'+
+ 'Viking,Gladiador,Cavaleiro,Feiticeiro,Xamã,Caçador,Templário,Faraó,Centauro,Minotauro,Górgona,Quimera,'+
  'Ouro,Galáxia,Cogumelo,Diamante,Arco-Íris,Prisma,Platina,Cristal,'+
  'Estrela,Cometa,'+
  'Vazio,Infinito,Tempo,Sonho,Caos,'+
- 'A Sombra Original,Capivara Dourada Suprema,O Sem Nome,Capivara Zero,Lenda Viva'
+ 'Supernova,Nebulosa,Meteoro,Fênix,Titã,Quasar,Multiverso,Singularidade,Big Bang,'+
+ 'A Sombra Original,Capivara Dourada Suprema,O Sem Nome,Capivara Zero,Lenda Viva,'+
+ 'Capivara Eterna,A Última Capivara,Capivara do Fim dos Tempos'
 ).split(',');
 
 // quantas de cada raridade, na ordem acima
-var FAIXAS = [[0,20,'comum'],[20,40,'incomum'],[40,60,'raro'],[60,80,'epico'],[80,95,'lendario'],[95,100,'mistico']];
+var FAIXAS = [[0,32,'comum'],[32,64,'incomum'],[64,96,'raro'],[96,128,'epico'],[128,152,'lendario'],[152,160,'mistico']];
 function rarDoIndice(i){
   for(var k=0;k<FAIXAS.length;k++) if(i >= FAIXAS[k][0] && i < FAIXAS[k][1]) return FAIXAS[k][2];
   return 'comum';
@@ -296,13 +313,22 @@ var SKINS = NOMES_SKIN.map(function(nome, i){
 var ACES = (
  '🎀 Lacinho|comum,🧢 Boné|comum,👓 Óculos|comum,🧣 Cachecol|comum,🎒 Mochila|comum,'+
  '🍃 Folhinha|comum,🩹 Band-aid|comum,🔔 Sininho|comum,'+
+ '🎽 Camiseta|comum,🧦 Meião|comum,⌚ Relógio|comum,🎗️ Fitinha|comum,'+
+ '🧸 Ursinho|comum,🪁 Pipa|comum,🫧 Bolha|comum,🧵 Linha|comum,'+
  '🕶️ Óculos Escuros|incomum,👒 Chapéu de Palha|incomum,🎧 Fone|incomum,🧤 Luvinhas|incomum,'+
  '🪄 Varinha|incomum,🎈 Balão|incomum,🍭 Pirulito|incomum,'+
+ '🥽 Óculos de Mergulho|incomum,🪖 Capacete Militar|incomum,🎷 Saxofone|incomum,'+
+ '🥁 Tamborzinho|incomum,🪀 Ioiô|incomum,🎻 Violino|incomum,🧨 Bombinha|incomum,'+
  '🎩 Cartola|raro,⛑️ Capacete|raro,🏅 Medalha|raro,🛹 Skate|raro,🎸 Guitarra|raro,'+
  '🧙 Chapéu de Bruxo|raro,🦺 Colete|raro,'+
+ '🏹 Arco e Flecha|raro,🥋 Faixa de Luta|raro,🎯 Alvo|raro,🛶 Caiaque|raro,'+
+ '🪘 Tambor Grande|raro,🧭 Bússola|raro,🗡️ Adaga|raro,'+
  '👑 Coroa|epico,🦸 Capa de Herói|epico,🔮 Bola de Cristal|epico,⚔️ Espada|epico,🛡️ Escudo|epico,'+
+ '🏆 Troféu|epico,🦾 Braço Biônico|epico,🧿 Olho Grego|epico,🪬 Amuleto|epico,🔱 Tridente|epico,'+
  '🧚 Asinhas|lendario,🔥 Chamas|lendario,❄️ Nevasca|lendario,🌌 Galáxia|lendario,'+
- '🍄 Cogumelão|mistico,🌀 Portal|mistico,👁️ Olho que Tudo Vê|mistico'
+ '🌠 Estrela Cadente|lendario,🦄 Chifre de Unicórnio|lendario,🪽 Asa Solta|lendario,🌋 Vulcão|lendario,'+
+ '🍄 Cogumelão|mistico,🌀 Portal|mistico,👁️ Olho que Tudo Vê|mistico,'+
+ '🕳️ Buraco Negro|mistico,⏳ Ampulheta do Tempo|mistico,🌈 Arco-Íris Total|mistico'
 ).split(',').map(function(txt, i){
   var p = txt.split('|');
   var sp = p[0].indexOf(' ');
@@ -312,28 +338,40 @@ var ACES = (
 // ====================== CAIXAS ======================
 // cada caixa mexe nos pesos: a cara aumenta muito a chance das raridades altas
 var CAIXAS = [
+  { id:'mini',    nome:'Caixa Mini',     emo:'🪹', preco:15,  mult:[1.4,0.8,0.3,0.1,0.02,0.01],
+    desc:'Baratinha! Quase só vem coisa comum, mas é ótima pra começar.' },
   { id:'basica',  nome:'Caixa Básica',   emo:'📦', preco:40,  mult:[1,1,1,1,1,1],
     desc:'Barata. Quase sempre vem skin comum — mas de vez em quando surpreende.' },
   { id:'legal',   nome:'Caixa Legal',    emo:'🎁', preco:150,  mult:[0.6,1.6,2.4,2.6,2.2,2],
     desc:'Bem mais chance de Raro e Épico.' },
   { id:'epica',   nome:'Caixa Épica',    emo:'💎', preco:500, mult:[0.18,0.9,2.6,6,6,5],
     desc:'Feita pra Épico e Lendário. Comum quase não aparece.' },
+  { id:'dourada', nome:'Caixa Dourada',  emo:'🏆', preco:1000, mult:[0.08,0.5,2,7,10,8],
+    desc:'Cara e rara — foco total em Épico, Lendário e um toque de Místico.' },
   { id:'lendaria',nome:'Caixa Lendária', emo:'🌟', preco:1800, mult:[0,0.2,1.2,6,16,18],
-    desc:'Só vem coisa boa. A melhor chance de Místico do jogo.' }
+    desc:'Só vem coisa boa. Ótima chance de Místico.' },
+  { id:'mistica', nome:'Caixa Mística',  emo:'🔮', preco:5000, mult:[0,0,0.3,2,10,30],
+    desc:'A mais absurda do jogo: quase garante Lendário ou Místico!' }
 ];
 
-var MOEDAS = 0, SKINS_MINHAS = ['sk0'], SKIN_EQ = 'sk0', ACES_MEUS = [], ACE_EQ = null;
+var MOEDAS = 0, SKINS_MINHAS = ['sk0'], SKIN_EQ = 'sk0', ACES_MEUS = [], ACE_EQ = null, DUPES = {};
 try {
   MOEDAS = parseInt(localStorage.getItem('capivara2_moedas')||'0',10) || 0;
   SKINS_MINHAS = JSON.parse(localStorage.getItem('capivara2_skins')||'["sk0"]') || ['sk0'];
   SKIN_EQ = localStorage.getItem('capivara2_skin') || 'sk0';
   ACES_MEUS = JSON.parse(localStorage.getItem('capivara2_aces')||'[]') || [];
   ACE_EQ = localStorage.getItem('capivara2_ace') || null;
+  DUPES = JSON.parse(localStorage.getItem('capivara2_dupes')||'{}') || {};
 } catch(e){}
 if(!Array.isArray(SKINS_MINHAS) || !SKINS_MINHAS.length) SKINS_MINHAS = ['sk0'];
 if(!Array.isArray(ACES_MEUS)) ACES_MEUS = [];
+if(!DUPES || typeof DUPES !== 'object') DUPES = {};
 function achaSkin(id){ for(var i=0;i<SKINS.length;i++) if(SKINS[i].id===id) return SKINS[i]; return SKINS[0]; }
 function achaAce(id){ for(var i=0;i<ACES.length;i++) if(ACES[i].id===id) return ACES[i]; return null; }
+function todosItens(){
+  return SKINS.map(function(sk){ return { tipo:'skin', it:sk }; })
+    .concat(ACES.map(function(a){ return { tipo:'ace', it:a }; }));
+}
 if(SKINS_MINHAS.indexOf(SKIN_EQ) < 0) SKIN_EQ = 'sk0';
 if(ACE_EQ && ACES_MEUS.indexOf(ACE_EQ) < 0) ACE_EQ = null;
 function salvaLoja(){
@@ -344,6 +382,7 @@ function salvaLoja(){
     localStorage.setItem('capivara2_aces', JSON.stringify(ACES_MEUS));
     if(ACE_EQ) localStorage.setItem('capivara2_ace', ACE_EQ);
     else localStorage.removeItem('capivara2_ace');
+    localStorage.setItem('capivara2_dupes', JSON.stringify(DUPES));
   } catch(e){}
 }
 
@@ -360,10 +399,10 @@ function rngDaSemente(n){
 }
 function horaAtual(){ return Math.floor(Date.now() / 3600000); }
 var QUANTAS_PROMO = 2;    // só 2 das 6 ficam em promoção
+var CHANCE_GRATIS = 0.05;   // raramente (5%) um item da vitrine vem de graça
 function vitrine(){
   var r = rngDaSemente(horaAtual());
-  var todos = SKINS.map(function(sk){ return { tipo:'skin', it:sk }; })
-        .concat(ACES.map(function(a){ return { tipo:'ace', it:a }; }));
+  var todos = todosItens();
   var saiu = [], usados = {};
   for(var i=0;i<6 && saiu.length<6;i++){
     for(var tent=0; tent<80; tent++){
@@ -390,6 +429,13 @@ function vitrine(){
       break;
     }
   }
+  // raramente (5%) um dos itens da vitrine vem de graça
+  if(r() < CHANCE_GRATIS){
+    var idxG = Math.floor(r() * saiu.length);
+    saiu[idxG].desc = 100;
+    saiu[idxG].preco = 0;
+    saiu[idxG].gratis = true;
+  }
   return saiu;
 }
 function faltaPraTrocar(){
@@ -397,25 +443,6 @@ function faltaPraTrocar(){
   var m = Math.floor(ms/60000), sg = Math.floor(ms/1000) % 60;
   return m + 'min ' + (sg<10?'0':'') + sg + 's';
 }
-var GIRO = 100;    // (continua valendo pra caixa básica)
-
-var MOEDAS = 0, SKINS_MINHAS = ['normal'], SKIN_EQ = 'normal';
-try {
-  MOEDAS = parseInt(localStorage.getItem('capivara2_moedas')||'0',10) || 0;
-  SKINS_MINHAS = JSON.parse(localStorage.getItem('capivara2_skins')||'["normal"]') || ['normal'];
-  SKIN_EQ = localStorage.getItem('capivara2_skin') || 'normal';
-} catch(e){}
-if(!Array.isArray(SKINS_MINHAS) || !SKINS_MINHAS.length) SKINS_MINHAS = ['normal'];
-function achaSkin(id){ for(var i=0;i<SKINS.length;i++) if(SKINS[i].id===id) return SKINS[i]; return SKINS[0]; }
-if(!achaSkin(SKIN_EQ) || SKINS_MINHAS.indexOf(SKIN_EQ) < 0) SKIN_EQ = 'normal';
-function salvaLoja(){
-  try {
-    localStorage.setItem('capivara2_moedas', String(Math.max(0, Math.round(MOEDAS))));
-    localStorage.setItem('capivara2_skins', JSON.stringify(SKINS_MINHAS));
-    localStorage.setItem('capivara2_skin', SKIN_EQ);
-  } catch(e){}
-}
-
 var RECORDE = 0;
 try { RECORDE = parseInt(localStorage.getItem('capivara2_recorde')||'0',10) || 0; } catch(e){}
 
@@ -963,7 +990,11 @@ function pintaVitrine(){
     var b = document.createElement('b'); b.textContent = e.it.nome;
     var pr = document.createElement('span');
     pr.style.color = r.cor;
-    if(tem) pr.textContent = '✓ já é sua';
+    if(e.gratis && !tem){
+      d.style.boxShadow = '0 0 20px rgba(255,217,61,.85)';
+      pr.innerHTML = '<b style="color:#ffd93d">🎁 GRÁTIS!</b>';
+    }
+    else if(tem) pr.textContent = '✓ já é sua';
     else if(e.desc){
       d.style.boxShadow = '0 0 16px rgba(108,255,159,.55)';
       pr.innerHTML = '<b style="color:#6cff9f">🔥 -' + e.desc + '%</b><br>' +
@@ -973,13 +1004,18 @@ function pintaVitrine(){
     else pr.textContent = '🪙 ' + e.preco.toLocaleString('pt-BR');
     d.append(b, pr);
     d.onclick = function(){
-      if(tem) return aviso('Você já tem <b>' + e.it.nome + '</b>!');
+      if(tem){
+        if(!e.gratis) return aviso('Você já tem <b>' + e.it.nome + '</b>!');
+        DUPES[e.it.id] = (DUPES[e.it.id]||0) + 1;
+        salvaLoja(); pintaVitrine();
+        return aviso('🎁 Já era sua, mas virou uma <b>cópia extra</b>! Dá pra trocar na aba 🔄 Fundir.');
+      }
       if(MOEDAS < e.preco) return aviso('Faltam 🪙 ' + (e.preco - MOEDAS).toLocaleString('pt-BR'));
       MOEDAS -= e.preco;
       daItem(e.tipo, e.it, true);
       pintaLojaMoedas(); pintaVitrine(); pintaMinhas();
       snd.inter();
-      aviso('🎉 Comprou <b>' + e.it.nome + '</b>!');
+      aviso(e.gratis ? '🎁 De graça! Pegou <b>' + e.it.nome + '</b>!' : ('🎉 Comprou <b>' + e.it.nome + '</b>!'));
     };
     g.appendChild(d);
   });
@@ -1036,11 +1072,111 @@ function pintaMinhas(){
   }
 }
 
+// ---------- fundir (trocar itens repetidos) ----------
+function achaItemGeral(id){
+  var sk = SKINS.filter(function(s){ return s.id === id; })[0];
+  if(sk) return { tipo:'skin', it:sk };
+  var a = ACES.filter(function(x){ return x.id === id; })[0];
+  if(a) return { tipo:'ace', it:a };
+  return null;
+}
+function sorteiaDaRaridade(rar, excluirId){
+  var pool = todosItens().filter(function(e){ return e.it.rar === rar && e.it.id !== excluirId; });
+  if(!pool.length) pool = todosItens().filter(function(e){ return e.it.rar === rar; });
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function darResultadoTroca(e){
+  var r = RAR_SKIN[e.it.rar];
+  if(temItem(e)){
+    MOEDAS += r.volta;
+    DUPES[e.it.id] = (DUPES[e.it.id]||0) + 1;
+    return 'Veio <b style="color:' + r.cor + '">' + e.it.nome + '</b> repetido de novo! 🪙 +' + r.volta.toLocaleString('pt-BR') + '.';
+  }
+  daItem(e.tipo, e.it, true);
+  return '🎉 Virou <b style="color:' + r.cor + '">' + e.it.nome + '</b> (' + r.nome + ')! Já está usando.';
+}
+function atualizaFundir(){
+  pintaLojaMoedas(); pintaMinhas(); pintaVitrine(); pintaCaixas(); pintaFundir();
+}
+function trocar3(id){
+  if((DUPES[id]||0) < 3) return;
+  var alvo = achaItemGeral(id);
+  if(!alvo) return;
+  DUPES[id] -= 3;
+  var premio = sorteiaDaRaridade(alvo.it.rar, id);
+  var texto = darResultadoTroca(premio);
+  salvaLoja(); atualizaFundir();
+  snd.inter();
+  aviso('🔁 Trocou 3x <b>' + alvo.it.nome + '</b>!<br><small style="font-size:14px;opacity:.8">' + texto + '</small>');
+}
+function trocar5(rar){
+  var i = ORDEM_RAR.indexOf(rar);
+  if(i < 0 || i >= ORDEM_RAR.length - 1) return;
+  var prox = ORDEM_RAR[i+1];
+  var candidatos = todosItens()
+    .filter(function(e){ return e.it.rar === rar && (DUPES[e.it.id]||0) >= 1; })
+    .map(function(e){ return e.it.id; });
+  if(candidatos.length < 5) return;
+  candidatos.slice(0,5).forEach(function(id){ DUPES[id] -= 1; });
+  var premio = sorteiaDaRaridade(prox, null);
+  var texto = darResultadoTroca(premio);
+  salvaLoja(); atualizaFundir();
+  snd.inter();
+  aviso('✨ Trocou 5 itens de <b>' + RAR_SKIN[rar].nome + '</b> por um de <b style="color:' +
+    RAR_SKIN[prox].cor + '">' + RAR_SKIN[prox].nome + '</b>!<br><small style="font-size:14px;opacity:.8">' + texto + '</small>');
+}
+function pintaFundir(){
+  var L = el('listaFundir'); L.textContent = '';
+  var todos = todosItens();
+  var temAlgum = false;
+  todos.forEach(function(e){
+    var q = DUPES[e.it.id] || 0;
+    if(q <= 0) return;
+    temAlgum = true;
+    var r = RAR_SKIN[e.it.rar];
+    var d = document.createElement('div'); d.className = 'it';
+    var ic = document.createElement('div'); ic.className = 'ic';
+    ic.appendChild(e.tipo === 'skin' ? miniCapivara(e.it, 40) : caixinhaAce(e.it, 40));
+    var inf = document.createElement('div'); inf.className = 'in';
+    var b = document.createElement('b'); b.textContent = e.it.nome + ' (' + Math.min(q,3) + '/3)';
+    var s1 = document.createElement('small'); s1.style.color = r.cor; s1.textContent = r.nome;
+    inf.append(b, s1);
+    var bt = document.createElement('button');
+    bt.textContent = '🔁 Trocar 3x';
+    bt.disabled = q < 3;
+    bt.onclick = function(){ trocar3(e.it.id); };
+    d.append(ic, inf, bt);
+    L.appendChild(d);
+  });
+  if(!temAlgum){
+    var v = document.createElement('div'); v.className = 'sub';
+    v.textContent = 'Você ainda não tem itens repetidos. Abra caixas 📦 — se vier repetido, ele vira uma cópia extra aqui!';
+    L.appendChild(v);
+  }
+  var R = el('listaFundirRaridade'); R.textContent = '';
+  ORDEM_RAR.slice(0, ORDEM_RAR.length - 1).forEach(function(rar, i){
+    var prox = ORDEM_RAR[i+1];
+    var qtd = todos.filter(function(e){ return e.it.rar === rar && (DUPES[e.it.id]||0) >= 1; }).length;
+    var r = RAR_SKIN[rar], rp = RAR_SKIN[prox];
+    var d = document.createElement('div'); d.className = 'it';
+    var ic = document.createElement('div'); ic.className = 'ic'; ic.textContent = '✨';
+    var inf = document.createElement('div'); inf.className = 'in';
+    var b = document.createElement('b'); b.style.color = r.cor; b.textContent = r.nome + ' → ' + rp.nome;
+    var s1 = document.createElement('small'); s1.textContent = qtd + '/5 itens diferentes com cópia extra';
+    inf.append(b, s1);
+    var bt = document.createElement('button');
+    bt.textContent = '✨ Trocar 5x';
+    bt.disabled = qtd < 5;
+    bt.onclick = function(){ trocar5(rar); };
+    d.append(ic, inf, bt);
+    R.appendChild(d);
+  });
+}
+
 // ---------- caixas ----------
 var girando = false;
 function sorteiaDaCaixa(cx){
-  var todos = SKINS.map(function(sk){ return { tipo:'skin', it:sk }; })
-        .concat(ACES.map(function(a){ return { tipo:'ace', it:a }; }));
+  var todos = todosItens();
   var pesos = todos.map(function(e){
     var i = ORDEM_RAR.indexOf(e.it.rar);
     return RAR_SKIN[e.it.rar].peso * cx.mult[i];
@@ -1117,8 +1253,10 @@ function abre_caixa(cx){
     var r = RAR_SKIN[premio.it.rar];
     if(temItem(premio)){
       MOEDAS += r.volta;
+      DUPES[premio.it.id] = (DUPES[premio.it.id]||0) + 1;
       el('roletaMsg').innerHTML = 'Veio <b style="color:' + r.cor + '">' + premio.it.nome +
-        '</b> repetido! 🪙 +' + r.volta.toLocaleString('pt-BR') + ' de volta.';
+        '</b> repetido! 🪙 +' + r.volta.toLocaleString('pt-BR') + ' de volta, e virou uma 🔁 cópia extra ' +
+        '(dá pra trocar na aba Fundir!).';
       bip(380, 0.2, 'sawtooth', 0.05);
     } else {
       daItem(premio.tipo, premio.it, true);
@@ -1126,7 +1264,7 @@ function abre_caixa(cx){
         '</b> (' + r.nome + ')! Já está usando.';
       snd.inter();
     }
-    salvaLoja(); pintaLojaMoedas(); pintaCaixas(); pintaMinhas(); pintaVitrine();
+    salvaLoja(); pintaLojaMoedas(); pintaCaixas(); pintaMinhas(); pintaVitrine(); pintaFundir();
   }, 4350);
 }
 
@@ -1241,8 +1379,10 @@ function trocaAba(qual){
   el('boxVitrine').style.display = qual==='vitrine' ? 'flex' : 'none';
   el('boxCaixas').style.display  = qual==='caixas'  ? 'flex' : 'none';
   el('boxSkins').style.display   = qual==='skins'   ? 'flex' : 'none';
+  el('boxFundir').style.display  = qual==='fundir'  ? 'flex' : 'none';
   el('boxTroca').style.display   = qual==='troca'   ? 'flex' : 'none';
   if(qual === 'troca') pintaTroca();
+  if(qual === 'fundir') pintaFundir();
 }
 Array.prototype.forEach.call(document.querySelectorAll('.aba[data-lj]'), function(b){
   b.onclick = function(){
@@ -1265,7 +1405,7 @@ Array.prototype.forEach.call(document.querySelectorAll('.aba[data-mn]'), functio
 
 var ultimaHora = horaAtual();
 function abreLoja(){
-  pintaLojaMoedas(); pintaVitrine(); pintaCaixas(); pintaMinhas(); pintaTroca();
+  pintaLojaMoedas(); pintaVitrine(); pintaCaixas(); pintaMinhas(); pintaTroca(); pintaFundir();
   trocaAba(abaLoja);
   abre('tLoja');
   clearInterval(relogioTimer);
