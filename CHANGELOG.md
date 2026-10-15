@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v512 (2026-10-15)
+- Cogumelo Armas: mapas bem mais abertos (arena quase 2x maior) e com muito mais inimigos por rodada; os 8 mapas agora têm cenário de verdade do Catálogo 3D combinando com o tema (cactos e pedras no Deserto, rochas no Vulcão, árvores de neve no Gelo Eterno, barris/meteoros na Base Espacial, coqueiros na Praia, cristais na Caverna, prédios na Cidade)
+
 ## v511 (2026-10-15)
 - Novo código secreto no perfil (🔑 Códigos secretos): digitar ":assets.m.cofu" abre o Catálogo 3D
 
