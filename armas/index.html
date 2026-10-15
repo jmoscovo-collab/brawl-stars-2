@@ -158,6 +158,8 @@ a.home{position:fixed;top:8px;left:10px;z-index:9999;text-decoration:none;color:
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
 <script>
 'use strict';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -273,6 +275,62 @@ const BOUND=40;
 let obstacles=[]; // {x,z,r}
 let arenaGroup=null;
 
+/* ---- modelos 3D da Floresta ---- */
+const glbLoader=(typeof THREE.GLTFLoader==='function')?new THREE.GLTFLoader():null;
+if(glbLoader && typeof THREE.DRACOLoader==='function'){
+  const dracoLoader=new THREE.DRACOLoader();
+  dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+  glbLoader.setDRACOLoader(dracoLoader);
+}
+const FOREST_PROPS=[
+  {url:'/assets/models/survival/tree.glb', min:3.5,max:6.0, solid:true},
+  {url:'/assets/models/survival/rock-flat-grass.glb', min:1.0,max:1.8, solid:true},
+  {url:'/assets/models/survival/rock-sand-b.glb', min:0.9,max:1.6, solid:true},
+  {url:'/assets/models/survival/barrel.glb', min:0.9,max:1.3, solid:true},
+  {url:'/assets/models/survival/grass-large.glb', min:1.0,max:1.7, solid:false},
+];
+let forestModels=null; // cache dos .glb já carregados
+function carregaGLB(url){
+  return new Promise(res=>{
+    if(!glbLoader) return res(null);
+    try{
+      glbLoader.load(url, g=>{
+        try{
+          const o=g.scene;
+          const s=new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3());
+          if(!(s.x>0 && s.y>0 && s.z>0)) return res(null);
+          o.traverse(n=>{ if(n.isMesh){ n.castShadow=false; n.receiveShadow=false; } });
+          res({obj:o, w:s.x, h:s.y, d:s.z});
+        }catch(e){ res(null); }
+      }, undefined, ()=>res(null));
+    }catch(e){ res(null); }
+  });
+}
+function scatterForestProps(){
+  if(!forestModels){
+    forestModels=Promise.all(FOREST_PROPS.map(p=>carregaGLB(p.url)));
+  }
+  const myArena=arenaGroup;
+  forestModels.then(mods=>{
+    if(!myArena || myArena!==arenaGroup) return; // mapa trocou antes de carregar
+    const n=40;
+    for(let i=0;i<n;i++){
+      const idx=randInt(0,mods.length-1);
+      const mod=mods[idx], def=FOREST_PROPS[idx];
+      if(!mod) continue;
+      const ang=rand(0,Math.PI*2), radius=rand(4,BOUND-3);
+      const x=Math.sin(ang)*radius, z=Math.cos(ang)*radius;
+      const scale=rand(def.min,def.max)/Math.max(mod.w,mod.h,mod.d,0.0001);
+      const o=mod.obj.clone(true);
+      o.scale.setScalar(scale);
+      o.rotation.y=rand(0,Math.PI*2);
+      o.position.set(x,0,z);
+      arenaGroup.add(o);
+      if(def.solid) obstacles.push({x,z,r:Math.max(mod.w,mod.d)*scale*0.5});
+    }
+  });
+}
+
 function clearArena(){
   if(arenaGroup){ scene.remove(arenaGroup); arenaGroup=null; }
   if(ambient){ scene.remove(ambient); ambient=null; }
@@ -312,6 +370,8 @@ function buildArena(map){
     obstacles.push({x,z,r:Math.max(w,d)*0.55});
   }
   scene.add(arenaGroup);
+
+  if(map.name==='Floresta Cogumelo') scatterForestProps();
 }
 function resolveObstacles(pos,radius){
   for(const o of obstacles){
