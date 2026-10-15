@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v515 (2026-10-15)
+- Cogumelo Kart: tirei os sons (bipes e motor), que pareciam de robô
+
 ## v514 (2026-10-15)
 - Cogumelo Kart: pistas um pouco maiores; quando pega a caixa ❓ agora aparece uma ROLETA de poderes girando até parar num poder; poder novo ⭐ Estrela (fica invencível e mais rápido, e quem encostar sai rodando); e modo 👥 JOGAR COM AMIGO: crie uma sala, mande o código (ou o link) pro amigo e corram juntos, até 6 pilotos, com ou sem bots
 
