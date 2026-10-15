@@ -1,5 +1,11 @@
 # Changelog - Cogumelo Games (site)
 
+## v519 (2026-10-15)
+- 🏴‍☠️ LANÇADO: Batalha Pirata agora aparece na página inicial!
+- Os navios inimigos agora PERSEGUEM você de verdade: correm atrás, grudam do lado e não te largam (e não ficam mais presos nas ilhas)
+- MUUUITA evolução no novo ⚓ ESTALEIRO (fica salva, e vai pra nuvem se tiver conta): 10 navios (do Bote Pirata até o lendário Cogumelo Supremo 🍄), 10 melhorias com até 25 níveis cada (casco, pólvora, recarga, canhões extras, velas, leme, alcance, auto-conserto, saque e ímã de tesouro), 8 tipos de bala (fogo 🔥, gelo ❄️, explosiva 💥, corrente ⛓️, elétrica ⚡, teleguiada 🎯 e a lendária Bala Cogumelo 🍄) e níveis de capitão com 12 títulos (de Grumete até Imperador Pirata)
+- Depois da onda 10 (Rei dos Mares 👑) o jogo continua no MODO INFINITO
+
 ## v518 (2026-10-15)
 - JOGO NOVO (ainda escondido, só pelo link /piratas/): Batalha Pirata! Pilote um navio pirata 3D e afunde navios inimigos com os canhões (Q esquerda, E direita, F os dois lados). São 10 ondas com navios piratas, da marinha, fantasmas e CHEFÕES nas ondas 5 e 10. Tem ouro dos navios afundados, baús de tesouro nas ilhas, loja entre as ondas (consertar, mais canhões, velocidade, casco) e sala pra jogar com amigo no mesmo time
 
