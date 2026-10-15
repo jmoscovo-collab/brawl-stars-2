@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>🔫 Cogumelo Armas</title>
+<meta name="description" content="Cogumelo Armas: jogo de tiro 3D! Vote no mapa, ganhe dinheiro do jogo matando bots e compre entre 50 armas — da faca até a lendária. Tiro na cabeça vale 2x mais dano!">
+<link rel="canonical" href="https://cogumelogames.com.br/armas/">
+<link rel="icon" href="/icons/icon-192.png">
+<script src="/letra.js"></script>
+<script src="/cogucoins.js?v=495"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#000;font-family:Arial,Helvetica,sans-serif;color:#fff;user-select:none;-webkit-user-select:none;touch-action:none}
+#game3d{position:fixed;inset:0;width:100vw;height:100vh;display:block;cursor:crosshair}
+a.home{position:fixed;top:8px;left:10px;z-index:9999;text-decoration:none;color:#fff;font-size:13px;font-weight:bold;background:rgba(10,10,30,.75);border:1px solid #556;border-radius:12px;padding:6px 12px}
+
+/* ---------- telas cheias ---------- */
+.screen{position:fixed;inset:0;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 20%,#2a1030 0%,#0a0612 75%);padding:16px;text-align:center;overflow-y:auto}
+.screen h1{font-size:40px;color:#ffcc33;text-shadow:3px 3px 0 #502a00,0 0 20px rgba(255,150,0,.6);letter-spacing:2px;margin-bottom:6px}
+.screen h2{font-size:15px;color:#9fd8ff;letter-spacing:2px;margin-bottom:18px}
+.bigbtn{font-family:inherit;font-size:20px;font-weight:bold;padding:14px 40px;border:3px solid #ffcc33;
+  background:linear-gradient(135deg,#ff9500,#cc3300);color:#fff;border-radius:14px;cursor:pointer;letter-spacing:2px;margin-top:10px;box-shadow:0 6px 0 #7a1c00}
+.bigbtn:active{transform:translateY(4px);box-shadow:0 2px 0 #7a1c00}
+.bigbtn.g{background:linear-gradient(135deg,#2ecc71,#1a8f4d);border-color:#7bffb0;box-shadow:0 6px 0 #0d5c30}
+.bigbtn.g:active{box-shadow:0 2px 0 #0d5c30}
+.bigbtn:disabled{opacity:.4;cursor:default;box-shadow:none;transform:none}
+.rules{max-width:560px;background:rgba(0,0,0,.45);border:2px solid #443;border-radius:14px;padding:14px 20px;font-size:13px;line-height:1.7;color:#ddd;text-align:left}
+.rules b{color:#ffcc33}
+
+/* ---------- votação de mapas ---------- */
+#voteGrid{display:grid;grid-template-columns:repeat(4,110px);gap:12px;margin:14px 0 18px;max-width:94vw}
+@media (max-width:620px){#voteGrid{grid-template-columns:repeat(2,120px)}}
+.mapcard{background:rgba(255,255,255,.06);border:3px solid #556;border-radius:14px;padding:12px 6px;cursor:pointer;transition:.12s}
+.mapcard .ic{font-size:34px}
+.mapcard .nm{font-size:11px;font-weight:bold;margin-top:6px;color:#ddd;line-height:1.2}
+.mapcard.sel{border-color:#ffcc33;background:rgba(255,204,51,.18);box-shadow:0 0 16px rgba(255,204,51,.5)}
+.votebars{display:flex;flex-direction:column;gap:6px;width:280px;max-width:88vw;margin-bottom:14px}
+.vbar{background:rgba(255,255,255,.08);border-radius:8px;overflow:hidden;height:22px;position:relative;font-size:11px}
+.vbar .fill{height:100%;background:linear-gradient(90deg,#ff9500,#ffcc33);transition:width .6s ease}
+.vbar span{position:absolute;left:8px;top:3px;color:#fff;text-shadow:1px 1px 2px #000}
+
+/* ---------- loja de armas ---------- */
+#buyTop{display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:center;margin-bottom:10px}
+#buyTop .stat{background:rgba(0,0,0,.5);border:2px solid #556;border-radius:12px;padding:8px 16px;font-size:15px;font-weight:bold}
+#buyTop .stat b{color:#ffd24a}
+#weaponGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:9px;max-width:980px;width:94vw;
+  max-height:50vh;overflow-y:auto;padding:10px;background:rgba(0,0,0,.35);border-radius:14px;border:2px solid #333}
+.wcard{background:rgba(255,255,255,.055);border:2px solid #444;border-radius:11px;padding:8px 6px;cursor:pointer;transition:.1s;position:relative}
+.wcard .we{font-size:28px}
+.wcard .wn{font-size:10.5px;font-weight:bold;color:#eee;margin:4px 0 2px;line-height:1.15;min-height:26px}
+.wcard .wd{font-size:10px;color:#ff8a65}
+.wcard .wp{font-size:11px;font-weight:bold;color:#ffd24a;margin-top:3px}
+.wcard.equipped{border-color:#2ecc71;background:rgba(46,204,113,.15)}
+.wcard.owned:not(.equipped){border-color:#6aa0ff}
+.wcard.locked{opacity:.55}
+.wcard .tag{position:absolute;top:3px;right:5px;font-size:8px;background:#222;border-radius:5px;padding:1px 4px;color:#9fd8ff}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:50;font-family:Arial,Helvetica,sans-serif}
+#crosshair{position:fixed;top:50%;left:50%;width:22px;height:22px;transform:translate(-50%,-50%);z-index:60}
+#crosshair:before,#crosshair:after{content:'';position:absolute;background:#fff;box-shadow:0 0 3px #000}
+#crosshair:before{width:2px;height:100%;left:50%;transform:translateX(-50%)}
+#crosshair:after{height:2px;width:100%;top:50%;transform:translateY(-50%)}
+#crosshair.hot:before,#crosshair.hot:after{background:#ff3030}
+#healthWrap{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);width:280px;text-align:center}
+#healthBar{height:20px;background:rgba(0,0,0,.6);border:2px solid #333;border-radius:10px;overflow:hidden}
+#healthFill{height:100%;width:100%;background:linear-gradient(90deg,#00cc44,#44ff44);transition:width .25s}
+#healthTxt{font-size:12px;margin-top:3px;text-shadow:1px 1px 2px #000}
+#moneyHud{position:fixed;top:14px;right:14px;background:rgba(0,0,0,.55);border:2px solid #ffcc33;border-radius:12px;
+  padding:6px 14px;font-weight:bold;font-size:16px;color:#ffd24a}
+#roundHud{position:fixed;top:14px;left:50%;transform:translateX(-50%);text-align:center}
+#roundHud .r1{font-size:20px;font-weight:bold;color:#ff8844;text-shadow:2px 2px 0 #000}
+#roundHud .r2{font-size:12px;color:#ccc}
+#weaponHud{position:fixed;bottom:22px;right:18px;text-align:right;background:rgba(0,0,0,.5);border:2px solid #555;
+  border-radius:12px;padding:8px 14px}
+#weaponHud .wn{font-size:15px;font-weight:bold;color:#ffd24a}
+#weaponHud .wd{font-size:11px;color:#ccc}
+#toast{position:fixed;top:18%;left:50%;transform:translate(-50%,-10px);font-size:24px;font-weight:bold;color:#ffcc33;
+  text-shadow:2px 2px 0 #000;opacity:0;transition:.35s;z-index:70;text-align:center;white-space:pre-line}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#flash{position:fixed;inset:0;background:#f00;opacity:0;pointer-events:none;transition:opacity .12s;z-index:40}
+.dmgnum{position:fixed;z-index:65;font-weight:bold;font-size:15px;pointer-events:none;text-shadow:1px 1px 2px #000;transition:transform .7s ease-out,opacity .7s ease-out}
+
+/* ---------- controles mobile ---------- */
+.tbtn{position:fixed;display:flex;align-items:center;justify-content:center;border-radius:50%;
+  background:rgba(255,255,255,.1);border:3px solid rgba(255,204,51,.5);color:#fff;z-index:55;touch-action:none;user-select:none}
+.tbtn:active{background:rgba(255,204,51,.35)}
+</style>
+</head>
+<body>
+<a class="home" href="/">🏠 Início</a>
+<canvas id="game3d"></canvas>
+
+<!-- ============ TELA INICIAL ============ -->
+<div id="startScreen" class="screen">
+  <h1>🔫 COGUMELO ARMAS</h1>
+  <h2>TIRO 3D · VOTE NO MAPA · COMPRE SUAS ARMAS</h2>
+  <div class="rules">
+    Todo mundo tem <b>400 de vida</b>. Tiro na cabeça dá <b>2x mais dano</b>!<br>
+    Você começa com <b>Faca</b> (10 de dano) e <b>Pistola</b> (25 de dano), de graça.<br>
+    Mate os inimigos pra ganhar <b>dinheiro do jogo</b> e comprar entre <b>50 armas</b> na loja — a mais fraca custa pouco, a mais forte é lendária!<br>
+    <b>WASD</b> anda · <b>MOUSE</b> mira · <b>CLIQUE</b> atira · <b>1</b> faca · <b>2</b> arma equipada
+  </div>
+  <button class="bigbtn" id="btnPlay">▶ JOGAR</button>
+</div>
+
+<!-- ============ VOTAÇÃO DE MAPA ============ -->
+<div id="voteScreen" class="screen" style="display:none">
+  <h1 style="font-size:28px">🗳️ VOTAÇÃO DE MAPA</h1>
+  <h2>Escolha onde vai rolar a batalha</h2>
+  <div id="voteGrid"></div>
+  <button class="bigbtn" id="btnVoteConfirm">CONFIRMAR VOTO</button>
+  <div id="voteResult" style="display:none">
+    <h2 style="margin-top:18px">Contando os votos...</h2>
+    <div class="votebars" id="voteBars"></div>
+  </div>
+</div>
+
+<!-- ============ LOJA / COMPRAR ARMAS ============ -->
+<div id="buyScreen" class="screen" style="display:none">
+  <h1 style="font-size:26px" id="buyTitle">🛒 LOJA DE ARMAS</h1>
+  <div id="buyTop">
+    <div class="stat">💰 <b id="buyMoney">0</b></div>
+    <div class="stat">🏆 Recorde: <b id="buyRecorde">0</b></div>
+  </div>
+  <div id="weaponGrid"></div>
+  <button class="bigbtn g" id="btnStartRound">▶ COMEÇAR RODADA</button>
+</div>
+
+<!-- ============ FIM DE JOGO ============ -->
+<div id="deadScreen" class="screen" style="display:none">
+  <h1 style="color:#ff4444">💀 VOCÊ MORREU</h1>
+  <div class="rules" id="deadStats"></div>
+  <button class="bigbtn" id="btnRestart">🔄 JOGAR DE NOVO</button>
+</div>
+
+<!-- ============ HUD ============ -->
+<div id="hud" style="display:none">
+  <div id="crosshair"></div>
+  <div id="moneyHud">💰 <span id="hudMoney">0</span></div>
+  <div id="roundHud"><div class="r1" id="hudRound">RODADA 1</div><div class="r2" id="hudEnemies">0 inimigos restantes</div></div>
+  <div id="healthWrap"><div id="healthBar"><div id="healthFill"></div></div><div id="healthTxt">400 / 400</div></div>
+  <div id="weaponHud"><div class="wn" id="hudWeaponName">🔫 Pistola</div><div class="wd" id="hudWeaponDmg">25 de dano</div></div>
+  <div id="toast"></div>
+</div>
+<div id="flash"></div>
+
+<!-- ============ CONTROLES MOBILE ============ -->
+<div id="touch" style="display:none">
+  <div id="joy" style="left:22px;bottom:90px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08);
+    border:3px solid rgba(255,204,51,.5);position:fixed;z-index:55;touch-action:none">
+    <div id="joyNub" style="position:absolute;left:30px;top:30px;width:60px;height:60px;border-radius:50%;background:rgba(255,204,51,.5)"></div>
+  </div>
+  <div id="btnFire" class="tbtn" style="right:26px;bottom:110px;width:96px;height:96px;font-size:34px;background:rgba(220,40,20,.35);border-color:#ff3020">🔫</div>
+  <div id="btnSwitch" class="tbtn" style="right:140px;bottom:170px;width:60px;height:60px;font-size:22px">🔪</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rand=(a,b)=>a+Math.random()*(b-a);
+const randInt=(a,b)=>Math.floor(rand(a,b+1));
+const IS_MOBILE=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||('ontouchstart' in window && innerWidth<1100);
+
+/* ================= ÁUDIO ================= */
+let AC=null;
+function audio(){ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); return AC; }
+function noiseBuf(ac,dur){ const b=ac.createBuffer(1,ac.sampleRate*dur,ac.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; return b; }
+function sfx(type,extra){
+  if(!AC) return;
+  const ac=AC,t=ac.currentTime,g=ac.createGain(); g.connect(ac.destination);
+  if(type==='shoot'){
+    const n=ac.createBufferSource(); n.buffer=noiseBuf(ac,.12);
+    const f=ac.createBiquadFilter(); f.type='lowpass';
+    f.frequency.setValueAtTime(2400+(extra||0)*4,t); f.frequency.exponentialRampToValueAtTime(300,t+.1);
+    n.connect(f); f.connect(g); g.gain.setValueAtTime(.35,t); g.gain.exponentialRampToValueAtTime(.001,t+.12); n.start(t);
+  } else if(type==='knife'){
+    const o=ac.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(500,t); o.frequency.exponentialRampToValueAtTime(120,t+.15);
+    g.gain.setValueAtTime(.3,t); g.gain.exponentialRampToValueAtTime(.001,t+.15); o.connect(g); o.start(t); o.stop(t+.15);
+  } else if(type==='hit'){
+    const o=ac.createOscillator(); o.type='square'; o.frequency.setValueAtTime(220,t);
+    g.gain.setValueAtTime(.25,t); g.gain.exponentialRampToValueAtTime(.001,t+.08); o.connect(g); o.start(t); o.stop(t+.08);
+  } else if(type==='headshot'){
+    const o=ac.createOscillator(); o.type='square'; o.frequency.setValueAtTime(880,t); o.frequency.setValueAtTime(1320,t+.06);
+    g.gain.setValueAtTime(.3,t); g.gain.exponentialRampToValueAtTime(.001,t+.16); o.connect(g); o.start(t); o.stop(t+.16);
+  } else if(type==='hurt'){
+    const o=ac.createOscillator(); o.type='sawtooth'; o.frequency.setValueAtTime(140,t); o.frequency.linearRampToValueAtTime(60,t+.2);
+    g.gain.setValueAtTime(.28,t); g.gain.exponentialRampToValueAtTime(.001,t+.2); o.connect(g); o.start(t); o.stop(t+.2);
+  } else if(type==='buy'){
+    const o=ac.createOscillator(); o.type='square'; o.frequency.setValueAtTime(520,t); o.frequency.setValueAtTime(780,t+.08);
+    g.gain.setValueAtTime(.3,t); g.gain.exponentialRampToValueAtTime(.001,t+.2); o.connect(g); o.start(t); o.stop(t+.2);
+  } else if(type==='win'){
+    [523,659,784,1046].forEach((f,i)=>{ const o=ac.createOscillator(),og=ac.createGain();
+      o.type='square'; o.frequency.value=f; og.gain.setValueAtTime(.22,t+i*.1); og.gain.exponentialRampToValueAtTime(.001,t+i*.1+.25);
+      o.connect(og); og.connect(ac.destination); o.start(t+i*.1); o.stop(t+i*.1+.25); });
+  } else if(type==='die'){
+    const o=ac.createOscillator(); o.type='sawtooth'; o.frequency.setValueAtTime(260,t); o.frequency.exponentialRampToValueAtTime(40,t+.8);
+    g.gain.setValueAtTime(.3,t); g.gain.exponentialRampToValueAtTime(.001,t+.8); o.connect(g); o.start(t); o.stop(t+.8);
+  }
+}
+
+/* ================= ARMAS (50 no total) ================= */
+const WEAPONS=[];
+WEAPONS[0]={id:0,name:'Faca',emoji:'🔪',dmg:10,price:0,melee:true,range:4,cooldown:420,auto:false,desc:'Corpo a corpo'};
+WEAPONS[1]={id:1,name:'Pistola',emoji:'🔫',dmg:25,price:0,melee:false,range:260,cooldown:300,auto:false,desc:'Arma inicial'};
+
+const NOUNS=['Pistola','Metralhadora','Rifle','Escopeta','Sniper','Canhão','Lança-Chamas','Bazuca','Raio','Trovão','Lançador','Fuzil'];
+const ADJS=['de Lata','Dourada','Capivara','de Esporos','Venenosa','de Lama','da Floresta','Congelante','Solar','Roxa','Cuspidora',
+  'do Pântano','de Cristal','Sônica','de Ouro','Elétrica','de Fogo','Estelar','Fungo','de Gelo','Caveira','Vulcânica','Cósmica','Radioativa'];
+const EMOJIS=['🔫','💥','🎯','🧨','⚡','🔥','❄️','☄️','🛸','💫','🌪️','🍄'];
+
+for(let i=0;i<48;i++){
+  const id=i+2;
+  let price, dmg;
+  if(i===0){ price=50; dmg=75; }                         // Arma 2: 3x o dano da pistola, 50 do dinheiro do jogo
+  else if(i===1){ price=100; dmg=95; }                    // Arma 3: 2x mais cara que a Arma 2
+  else if(i<=18){ const t=(i-1)/17; price=Math.round(100*Math.pow(100,t)/10)*10; dmg=Math.round(95+(100-95)*t); }
+  else if(i<=32){ const t=(i-18)/14; price=Math.round(10000*Math.pow(2,t)/50)*50; dmg=Math.round(100+(250-100)*t); }
+  else { const t=(i-32)/15; price=Math.round(20000*Math.pow(2.5,t)/100)*100; dmg=Math.round(250+(390-250)*t); }
+  const name=NOUNS[i%NOUNS.length]+' '+ADJS[(i*3+1)%ADJS.length];
+  const emoji=EMOJIS[(i*5+2)%EMOJIS.length];
+  WEAPONS[id]={id,name,emoji,dmg,price,melee:false,range:260,cooldown:clamp(300-i*4,60,300),auto:i>=3,desc:i>=3?'Automática':'Semiautomática'};
+}
+// armas especiais pedidas pelo Davi
+Object.assign(WEAPONS[20],{name:'Canhão de Titânio',emoji:'🎯',dmg:100,price:10000});
+Object.assign(WEAPONS[34],{name:'Cogumelo com Cachorro',emoji:'🍄🐕',dmg:250,price:20000,desc:'Rara! Automática'});
+Object.assign(WEAPONS[49],{name:'Fúria Suprema — Edição Lendária',emoji:'👑',dmg:390,price:50000,desc:'A melhor arma do jogo!'});
+// obs: no site NÃO dá pra comprar nada com dinheiro de verdade, então essa arma lendária
+// custa bastante do dinheiro QUE SE GANHA JOGANDO, igual todas as outras.
+
+/* ================= MAPAS (8) ================= */
+const MAPS=[
+  {name:'Deserto de Esporos',emoji:'🏜️',sky:0xe8b23a,fog:0xd9a85f,ground:0xc9a35c,accent:0x8a6a3a},
+  {name:'Floresta Cogumelo',emoji:'🌲',sky:0x3a6b4a,fog:0x274a35,ground:0x2e5c32,accent:0x6b3f1f},
+  {name:'Vulcão em Fúria',emoji:'🌋',sky:0x2a0808,fog:0x240606,ground:0x2a1414,accent:0xff5522},
+  {name:'Gelo Eterno',emoji:'❄️',sky:0xbfe8ff,fog:0xd8f3ff,ground:0xe8f7ff,accent:0x6fb6e0},
+  {name:'Base Espacial',emoji:'🛸',sky:0x05021a,fog:0x0a0630,ground:0x30324a,accent:0x8a5cff},
+  {name:'Praia Capivara',emoji:'🏖️',sky:0xffd98a,fog:0xffe8b8,ground:0xe8d2a0,accent:0x3aa0cc},
+  {name:'Caverna de Cristal',emoji:'💎',sky:0x1a0033,fog:0x15002a,ground:0x241233,accent:0x9f5cff},
+  {name:'Cidade Cogumelo',emoji:'🏙️',sky:0x202840,fog:0x1c2235,ground:0x3a3f4e,accent:0xff8833},
+];
+
+/* ================= ESTADO / SAVE ================= */
+const K_MONEY='cg_armas_dinheiro', K_OWNED='cg_armas_armas', K_EQUIP='cg_armas_equipada', K_RECORDE='cg_armas_recorde';
+function loadInt(k,def){ try{ const v=parseInt(localStorage.getItem(k),10); return isNaN(v)?def:v; }catch(e){ return def; } }
+function loadJSON(k,def){ try{ return JSON.parse(localStorage.getItem(k))||def; }catch(e){ return def; } }
+const game={
+  money:loadInt(K_MONEY,800),
+  owned:loadJSON(K_OWNED,[0,1]),
+  equipped:loadInt(K_EQUIP,1),
+  recorde:loadInt(K_RECORDE,0),
+  round:1, kills:0, mapIdx:0, state:'start'
+};
+function saveMoney(){ localStorage.setItem(K_MONEY,String(game.money)); }
+function saveOwned(){ localStorage.setItem(K_OWNED,JSON.stringify(game.owned)); }
+function saveEquip(){ localStorage.setItem(K_EQUIP,String(game.equipped)); }
+function saveRecorde(){ localStorage.setItem(K_RECORDE,String(game.recorde)); }
+
+/* ================= THREE.JS ================= */
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,500);
+const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('game3d'),antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+
+let ambient=null, sun=null;
+const BOUND=40;
+let obstacles=[]; // {x,z,r}
+let arenaGroup=null;
+
+function clearArena(){
+  if(arenaGroup){ scene.remove(arenaGroup); arenaGroup=null; }
+  if(ambient){ scene.remove(ambient); ambient=null; }
+  if(sun){ scene.remove(sun); sun=null; }
+  scene.fog=null;
+  obstacles=[];
+}
+function buildArena(map){
+  clearArena();
+  arenaGroup=new THREE.Group();
+  scene.fog=new THREE.Fog(map.fog,25,150);
+  renderer.setClearColor(map.sky);
+
+  ambient=new THREE.AmbientLight(0xffffff,0.65); scene.add(ambient);
+  sun=new THREE.DirectionalLight(0xffffff,0.75); sun.position.set(30,50,20); scene.add(sun);
+
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(BOUND*2+4,BOUND*2+4),new THREE.MeshLambertMaterial({color:map.ground}));
+  ground.rotation.x=-Math.PI/2; arenaGroup.add(ground);
+
+  const wallMat=new THREE.MeshLambertMaterial({color:map.accent});
+  const wallH=6, wallT=2;
+  [[0,BOUND+wallT/2,BOUND*2+4,wallT],[0,-BOUND-wallT/2,BOUND*2+4,wallT],
+   [BOUND+wallT/2,0,wallT,BOUND*2+4],[-BOUND-wallT/2,0,wallT,BOUND*2+4]].forEach(([x,z,w,d])=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,wallH,d),wallMat);
+    m.position.set(x,wallH/2,z); arenaGroup.add(m);
+  });
+
+  const obsMat=new THREE.MeshLambertMaterial({color:map.accent});
+  const n=14;
+  for(let i=0;i<n;i++){
+    const ang=(i/n)*Math.PI*2+rand(-.2,.2);
+    const radius=rand(10,34);
+    const x=Math.sin(ang)*radius, z=Math.cos(ang)*radius;
+    const w=rand(3,6), d=rand(3,6), h=rand(2.2,4.2);
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),obsMat);
+    m.position.set(x,h/2,z); arenaGroup.add(m);
+    obstacles.push({x,z,r:Math.max(w,d)*0.55});
+  }
+  scene.add(arenaGroup);
+}
+function resolveObstacles(pos,radius){
+  for(const o of obstacles){
+    const dx=pos.x-o.x, dz=pos.z-o.z, minD=o.r+radius, d=Math.hypot(dx,dz);
+    if(d<minD && d>0.0001){ const push=(minD-d); pos.x+=dx/d*push; pos.z+=dz/d*push; }
+  }
+  pos.x=clamp(pos.x,-BOUND+1,BOUND-1); pos.z=clamp(pos.z,-BOUND+1,BOUND-1);
+}
+
+/* ================= JOGADOR ================= */
+const EYE=1.7;
+const player={x:0,z:0,yaw:0,pitch:0,hp:400};
+function moveVectors(yaw){ return {fx:-Math.sin(yaw),fz:-Math.cos(yaw),rx:Math.cos(yaw),rz:-Math.sin(yaw)}; }
+
+/* ================= BOTS ================= */
+let bots=[];
+let hitMeshes=[]; // {mesh, isHead, bot}
+function clearBots(){
+  bots.forEach(b=>arenaGroup && arenaGroup.remove(b.mesh));
+  bots=[]; hitMeshes=[];
+}
+function spawnWave(count){
+  clearBots();
+  const hp=400+(game.round-1)*25;
+  const speed=clamp(2.3+game.round*0.06,2.3,4.3);
+  for(let i=0;i<count;i++){
+    const ang=(i/count)*Math.PI*2+rand(-.15,.15);
+    const radius=BOUND-2;
+    const x=Math.sin(ang)*radius, z=Math.cos(ang)*radius;
+    const group=new THREE.Group();
+    const body=new THREE.Mesh(new THREE.BoxGeometry(1.1,1.6,0.7),new THREE.MeshLambertMaterial({color:0x8a4b2f}));
+    body.position.y=0.8; group.add(body);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(0.4,14,10),new THREE.MeshLambertMaterial({color:0xd49a6a}));
+    head.position.y=2.0; group.add(head);
+    group.position.set(x,0,z);
+    arenaGroup.add(group);
+    const bot={x,z,speed,hp,maxHp:hp,mesh:group,lastAttack:0,
+      atkCooldown:rand(850,1250),dmgMin:14+game.round,dmgMax:26+game.round*2,alive:true};
+    body.userData={isHead:false,bot}; head.userData={isHead:true,bot};
+    bots.push(bot);
+    hitMeshes.push({mesh:body,isHead:false,bot},{mesh:head,isHead:true,bot});
+  }
+  updateHUDEnemies();
+}
+function aliveCount(){ return bots.filter(b=>b.alive).length; }
+function killBot(bot){
+  bot.alive=false;
+  arenaGroup.remove(bot.mesh);
+  hitMeshes=hitMeshes.filter(h=>h.bot!==bot);
+  game.kills++;
+  const reward=80+game.round*10;
+  game.money+=reward; saveMoney(); updateHUDTop();
+  if(aliveCount()<=0) roundClear();
+}
+
+/* ================= TIRO ================= */
+const raycaster=new THREE.Raycaster();
+let lastShot=0, firing=false;
+function currentWeapon(){ return activeSlot===1?WEAPONS[0]:WEAPONS[game.equipped]; }
+let activeSlot=2;
+function worldToScreen(v3){ const v=v3.clone().project(camera); return {x:(v.x*0.5+0.5)*innerWidth,y:(-v.y*0.5+0.5)*innerHeight}; }
+function spawnDmgNum(worldPos,text,color){
+  const p=worldToScreen(worldPos);
+  const d=document.createElement('div'); d.className='dmgnum'; d.textContent=text; d.style.color=color;
+  d.style.left=p.x+'px'; d.style.top=p.y+'px'; document.body.appendChild(d);
+  requestAnimationFrame(()=>{ d.style.transform='translateY(-40px)'; d.style.opacity='0'; });
+  setTimeout(()=>d.remove(),720);
+}
+function flashHit(){ const f=document.getElementById('flash'); f.style.background='#f00'; f.style.opacity=.28; setTimeout(()=>f.style.opacity=0,120); }
+function doFire(){
+  const w=currentWeapon();
+  const now=performance.now();
+  if(now-lastShot<w.cooldown) return;
+  lastShot=now;
+  sfx(w.melee?'knife':'shoot',w.dmg);
+  const dir=new THREE.Vector3(); camera.getWorldDirection(dir);
+  raycaster.set(camera.position,dir); raycaster.far=w.range;
+  const hits=raycaster.intersectObjects(hitMeshes.map(h=>h.mesh));
+  if(hits.length){
+    const hitEntry=hitMeshes.find(h=>h.mesh===hits[0].object);
+    if(hitEntry && hitEntry.bot.alive){
+      const isHead=hitEntry.isHead;
+      const dmg=w.dmg*(isHead?2:1);
+      hitEntry.bot.hp-=dmg;
+      spawnDmgNum(hits[0].point,(isHead?'HEADSHOT! ':'')+dmg,isHead?'#ff3030':'#ffd24a');
+      sfx(isHead?'headshot':'hit');
+      if(hitEntry.bot.hp<=0) killBot(hitEntry.bot);
+    }
+  }
+}
+
+/* ================= DANO NO JOGADOR ================= */
+function playerTakeDamage(dmg){
+  player.hp=Math.max(0,player.hp-dmg);
+  sfx('hurt'); flashHit();
+  updateHUDHealth();
+  if(player.hp<=0) onPlayerDeath();
+}
+
+/* ================= HUD ================= */
+function updateHUDTop(){
+  document.getElementById('hudMoney').textContent=game.money.toLocaleString('pt-BR');
+  document.getElementById('hudRound').textContent='RODADA '+game.round;
+}
+function updateHUDEnemies(){
+  document.getElementById('hudEnemies').textContent=aliveCount()+' inimigo'+(aliveCount()===1?'':'s')+' restante'+(aliveCount()===1?'':'s');
+}
+function updateHUDHealth(){
+  const pct=clamp(player.hp/400*100,0,100);
+  document.getElementById('healthFill').style.width=pct+'%';
+  document.getElementById('healthFill').style.background=pct>60?'linear-gradient(90deg,#00cc44,#44ff44)':pct>30?'linear-gradient(90deg,#ccaa00,#ffcc00)':'linear-gradient(90deg,#cc0000,#ff3333)';
+  document.getElementById('healthTxt').textContent=Math.ceil(player.hp)+' / 400';
+}
+function updateHUDWeapon(){
+  const w=currentWeapon();
+  document.getElementById('hudWeaponName').textContent=w.emoji+' '+w.name;
+  document.getElementById('hudWeaponDmg').textContent=w.dmg+' de dano'+(w.melee?' (corpo a corpo)':'');
+}
+function toast(text,ms){
+  const t=document.getElementById('toast'); t.textContent=text; t.classList.add('show');
+  clearTimeout(toast.tm); toast.tm=setTimeout(()=>t.classList.remove('show'),ms||2200);
+}
+
+/* ================= FLUXO DE TELAS ================= */
+function showOnly(id){
+  ['startScreen','voteScreen','buyScreen','deadScreen'].forEach(s=>document.getElementById(s).style.display=(s===id?'flex':'none'));
+  document.getElementById('hud').style.display=(id?'none':'block');
+}
+
+/* ---- votação de mapa ---- */
+let votedMap=0;
+function buildVoteGrid(){
+  const grid=document.getElementById('voteGrid'); grid.innerHTML='';
+  MAPS.forEach((m,i)=>{
+    const c=document.createElement('div'); c.className='mapcard'+(i===votedMap?' sel':'');
+    c.innerHTML='<div class="ic">'+m.emoji+'</div><div class="nm">'+m.name+'</div>';
+    c.onclick=()=>{ votedMap=i; buildVoteGrid(); };
+    grid.appendChild(c);
+  });
+}
+document.getElementById('btnVoteConfirm').onclick=()=>{
+  document.getElementById('voteResult').style.display='block';
+  document.getElementById('btnVoteConfirm').style.display='none';
+  const bars=document.getElementById('voteBars'); bars.innerHTML='';
+  const votes=MAPS.map((m,i)=> i===votedMap? randInt(5,9) : randInt(0,4));
+  votes[votedMap]=Math.max(...votes)+randInt(1,3);
+  const max=Math.max(...votes);
+  MAPS.forEach((m,i)=>{
+    const row=document.createElement('div'); row.className='vbar';
+    row.innerHTML='<div class="fill" style="width:0%"></div><span>'+m.emoji+' '+m.name+' — '+votes[i]+' votos</span>';
+    bars.appendChild(row);
+    setTimeout(()=>{ row.querySelector('.fill').style.width=(votes[i]/max*100)+'%'; },60);
+  });
+  setTimeout(()=>{
+    game.mapIdx=votedMap;
+    document.getElementById('voteResult').style.display='none';
+    document.getElementById('btnVoteConfirm').style.display='inline-block';
+    openBuyMenu(true);
+  },1800);
+};
+
+/* ---- loja ---- */
+function buildWeaponGrid(){
+  const grid=document.getElementById('weaponGrid'); grid.innerHTML='';
+  WEAPONS.forEach(w=>{
+    const owned=game.owned.indexOf(w.id)>=0;
+    const equipped=(w.id===0)|| (w.id===game.equipped);
+    const afford=game.money>=w.price;
+    const c=document.createElement('div');
+    c.className='wcard'+(owned?' owned':'')+(equipped&&w.id!==0?' equipped':'')+(!owned&&!afford?' locked':'');
+    c.innerHTML='<div class="we">'+w.emoji+'</div><div class="wn">'+w.name+'</div>'+
+      '<div class="wd">'+w.dmg+' dano</div>'+
+      '<div class="wp">'+(w.id===0?'sempre com você':owned?(w.id===game.equipped?'EQUIPADA':'equipar'):('💰 '+w.price.toLocaleString('pt-BR')))+'</div>'+
+      (w.id===0?'':'<div class="tag">'+w.desc+'</div>');
+    if(w.id!==0){
+      c.onclick=()=>{
+        if(owned){ game.equipped=w.id; saveEquip(); buildWeaponGrid(); updateHUDWeapon(); }
+        else if(afford){ game.money-=w.price; game.owned.push(w.id); game.equipped=w.id; saveMoney(); saveOwned(); saveEquip(); sfx('buy'); buildWeaponGrid(); updateHUDTop(); updateHUDWeapon(); }
+      };
+    }
+    grid.appendChild(c);
+  });
+  document.getElementById('buyMoney').textContent=game.money.toLocaleString('pt-BR');
+  document.getElementById('buyRecorde').textContent=game.recorde;
+}
+function openBuyMenu(first){
+  document.getElementById('buyTitle').textContent=first?'🛒 ESCOLHA SUAS ARMAS':'🛒 RODADA '+game.round+' — COMPRAR ARMAS';
+  document.getElementById('btnStartRound').textContent=first?'▶ COMEÇAR RODADA 1':'▶ PRÓXIMA RODADA';
+  buildWeaponGrid();
+  showOnly('buyScreen');
+}
+document.getElementById('btnStartRound').onclick=()=>startRound();
+
+/* ---- início da partida ---- */
+document.getElementById('btnPlay').onclick=()=>{
+  audio();
+  votedMap=randInt(0,7);
+  buildVoteGrid();
+  showOnly('voteScreen');
+};
+
+function startRound(){
+  buildArena(MAPS[game.mapIdx]);
+  player.x=0; player.z=0; player.yaw=0; player.pitch=0; player.hp=400;
+  activeSlot=2;
+  updateHUDHealth(); updateHUDWeapon(); updateHUDTop();
+  spawnWave(3+game.round);
+  showOnly(null);
+  if(!IS_MOBILE){ document.getElementById('game3d').requestPointerLock(); }
+  gameRunning=true;
+  toast('🗺️ '+MAPS[game.mapIdx].emoji+' '+MAPS[game.mapIdx].name+'\nRODADA '+game.round,2600);
+}
+function roundClear(){
+  gameRunning=false;
+  const bonus=300+game.round*50;
+  game.money+=bonus; saveMoney();
+  if(game.round>game.recorde){ game.recorde=game.round; saveRecorde(); }
+  sfx('win');
+  toast('✅ RODADA '+game.round+' CONCLUÍDA!\n+💰 '+bonus,2400);
+  setTimeout(()=>{ game.round++; openBuyMenu(false); },2200);
+}
+function onPlayerDeath(){
+  gameRunning=false;
+  sfx('die');
+  document.exitPointerLock && document.exitPointerLock();
+  if(game.round-1>game.recorde){ game.recorde=game.round-1; saveRecorde(); }
+  document.getElementById('deadStats').innerHTML=
+    'Chegou até a <b>Rodada '+game.round+'</b><br>Inimigos eliminados: <b>'+game.kills+'</b><br>Dinheiro total: <b>💰 '+game.money.toLocaleString('pt-BR')+'</b><br>Recorde: <b>🏆 '+game.recorde+'</b>';
+  showOnly('deadScreen');
+}
+document.getElementById('btnRestart').onclick=()=>{
+  game.round=1; game.kills=0;
+  votedMap=randInt(0,7);
+  buildVoteGrid();
+  showOnly('voteScreen');
+};
+
+/* ================= INPUT (desktop) ================= */
+const keys={};
+addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if(e.code==='Digit1') activeSlot=1;
+  if(e.code==='Digit2') activeSlot=2;
+  if(e.code==='Digit1'||e.code==='Digit2') updateHUDWeapon();
+});
+addEventListener('keyup',e=>keys[e.code]=false);
+addEventListener('mousemove',e=>{
+  if(!document.pointerLockElement) return;
+  player.yaw-=e.movementX*0.0022;
+  player.pitch=clamp(player.pitch-e.movementY*0.0022,-1.3,1.3);
+});
+addEventListener('mousedown',()=>{
+  if(!gameRunning) return;
+  if(!document.pointerLockElement && !IS_MOBILE){ document.getElementById('game3d').requestPointerLock(); return; }
+  firing=true; doFire();
+});
+addEventListener('mouseup',()=>firing=false);
+document.getElementById('game3d').addEventListener('click',()=>{
+  if(gameRunning && !document.pointerLockElement && !IS_MOBILE) document.getElementById('game3d').requestPointerLock();
+});
+
+/* ================= INPUT (mobile) ================= */
+const mob={moveX:0,moveZ:0,lookId:null,lookLX:0,lookLY:0};
+if(IS_MOBILE){
+  document.getElementById('touch').style.display='block';
+  const joy=document.getElementById('joy'), nub=document.getElementById('joyNub');
+  let joyId=null, joyCx=0, joyCy=0;
+  joy.addEventListener('touchstart',e=>{ e.preventDefault(); const t=e.changedTouches[0]; joyId=t.identifier;
+    const r=joy.getBoundingClientRect(); joyCx=r.left+r.width/2; joyCy=r.top+r.height/2; },{passive:false});
+  joy.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){ if(t.identifier!==joyId) continue;
+      let dx=t.clientX-joyCx, dy=t.clientY-joyCy; const d=Math.hypot(dx,dy), max=50;
+      if(d>max){ dx=dx/d*max; dy=dy/d*max; }
+      nub.style.left=(30+dx)+'px'; nub.style.top=(30+dy)+'px';
+      mob.moveX=dx/max; mob.moveZ=dy/max;
+    }
+  },{passive:false});
+  const joyEnd=e=>{ for(const t of e.changedTouches){ if(t.identifier===joyId){ joyId=null; mob.moveX=0; mob.moveZ=0;
+    nub.style.left='30px'; nub.style.top='30px'; } } };
+  joy.addEventListener('touchend',joyEnd); joy.addEventListener('touchcancel',joyEnd);
+
+  const g3d=document.getElementById('game3d');
+  g3d.addEventListener('touchstart',e=>{ for(const t of e.changedTouches){
+    if(mob.lookId===null){ mob.lookId=t.identifier; mob.lookLX=t.clientX; mob.lookLY=t.clientY; } } },{passive:false});
+  g3d.addEventListener('touchmove',e=>{
+    for(const t of e.changedTouches){ if(t.identifier!==mob.lookId) continue;
+      player.yaw-=(t.clientX-mob.lookLX)*0.005;
+      player.pitch=clamp(player.pitch-(t.clientY-mob.lookLY)*0.005,-1.3,1.3);
+      mob.lookLX=t.clientX; mob.lookLY=t.clientY; }
+  },{passive:false});
+  const lookEnd=e=>{ for(const t of e.changedTouches){ if(t.identifier===mob.lookId) mob.lookId=null; } };
+  g3d.addEventListener('touchend',lookEnd); g3d.addEventListener('touchcancel',lookEnd);
+
+  const fireBtn=document.getElementById('btnFire');
+  fireBtn.addEventListener('touchstart',e=>{ e.preventDefault(); if(gameRunning){ firing=true; doFire(); audio(); } },{passive:false});
+  fireBtn.addEventListener('touchend',e=>{ e.preventDefault(); firing=false; },{passive:false});
+  const switchBtn=document.getElementById('btnSwitch');
+  switchBtn.addEventListener('touchstart',e=>{ e.preventDefault();
+    activeSlot=activeSlot===1?2:1; switchBtn.textContent=activeSlot===1?'🔫':'🔪'; updateHUDWeapon(); },{passive:false});
+}
+
+/* ================= LOOP PRINCIPAL ================= */
+let gameRunning=false, lastT=performance.now();
+function update(dt){
+  const {fx,fz,rx,rz}=moveVectors(player.yaw);
+  let dx=0, dz=0;
+  const speed=9*dt;
+  if(IS_MOBILE){
+    dx+=rx*mob.moveX*speed*1.3; dz+=rz*mob.moveX*speed*1.3;
+    dx-=fx*mob.moveZ*speed*1.3; dz-=fz*mob.moveZ*speed*1.3;
+  } else {
+    if(keys['KeyW']){ dx-=fx*speed; dz-=fz*speed; }
+    if(keys['KeyS']){ dx+=fx*speed; dz+=fz*speed; }
+    if(keys['KeyA']){ dx-=rx*speed; dz-=rz*speed; }
+    if(keys['KeyD']){ dx+=rx*speed; dz+=rz*speed; }
+  }
+  const pos={x:player.x+dx,z:player.z+dz};
+  resolveObstacles(pos,0.6);
+  player.x=pos.x; player.z=pos.z;
+
+  camera.position.set(player.x,EYE,player.z);
+  camera.rotation.order='YXZ';
+  camera.rotation.y=player.yaw;
+  camera.rotation.x=player.pitch;
+
+  // crosshair quente quando mirando na cabeça
+  const dir=new THREE.Vector3(); camera.getWorldDirection(dir);
+  raycaster.set(camera.position,dir); raycaster.far=currentWeapon().range;
+  const hv=raycaster.intersectObjects(hitMeshes.map(h=>h.mesh));
+  document.getElementById('crosshair').classList.toggle('hot', hv.length>0 && hitMeshes.find(h=>h.mesh===hv[0].object)?.isHead);
+
+  if(firing && (currentWeapon().auto || IS_MOBILE)) doFire();
+
+  const now=performance.now();
+  bots.forEach(bot=>{
+    if(!bot.alive) return;
+    const bdx=player.x-bot.x, bdz=player.z-bot.z, dist=Math.hypot(bdx,bdz);
+    const ATTACK_RANGE=3.0;
+    if(dist>ATTACK_RANGE && dist>0.01){
+      const mx=bdx/dist, mz=bdz/dist;
+      const np={x:bot.x+mx*bot.speed*dt,z:bot.z+mz*bot.speed*dt};
+      resolveObstacles(np,0.6);
+      bot.x=np.x; bot.z=np.z;
+    }
+    bot.mesh.position.set(bot.x,0,bot.z);
+    bot.mesh.rotation.y=Math.atan2(bdx,bdz);
+    if(dist<=ATTACK_RANGE+0.4 && now-bot.lastAttack>=bot.atkCooldown){
+      bot.lastAttack=now;
+      playerTakeDamage(randInt(bot.dmgMin,bot.dmgMax));
+    }
+  });
+}
+function loop(){
+  requestAnimationFrame(loop);
+  const now=performance.now();
+  const dt=Math.min((now-lastT)/1000,0.08);
+  lastT=now;
+  if(gameRunning) update(dt);
+  renderer.render(scene,camera);
+}
+loop();
+</script>
+</body>
+</html>
