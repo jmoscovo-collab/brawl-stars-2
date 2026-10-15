@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v513 (2026-10-15)
+- JOGO NOVO (ainda escondido, só pelo link /kart/): Cogumelo Kart! Corrida de kart 3D com a câmera atrás do carro, 5 karts pra escolher, 3 pistas (Campo do Cogumelo, Deserto Quente e Montanha Gelada), 6 pilotos e 3 voltas. Tem caixas ❓ com 🍄 turbo, 🍌 banana e 🚀 foguete, placas de turbo no chão, minimapa, recorde por pista e Cogu Coins no final. Funciona no teclado, no celular e no controle do PS5
+
 ## v512 (2026-10-15)
 - Cogumelo Armas: mapas bem mais abertos (arena quase 2x maior) e com muito mais inimigos por rodada; os 8 mapas agora têm cenário de verdade do Catálogo 3D combinando com o tema (cactos e pedras no Deserto, rochas no Vulcão, árvores de neve no Gelo Eterno, barris/meteoros na Base Espacial, coqueiros na Praia, cristais na Caverna, prédios na Cidade)
 
