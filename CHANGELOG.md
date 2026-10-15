@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v517 (2026-10-15)
+- 🏁 LANÇADO: Cogumelo Kart agora aparece na página inicial! Corrida de kart 3D com 3 pistas, roleta de poderes e sala pra jogar com amigo
+
 ## v516 (2026-10-15)
 - Cogumelo Kart: agora a tecla F também usa o poder
 
