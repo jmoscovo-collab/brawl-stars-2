@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>🏴‍☠️ Batalha Pirata</title>
+<meta name="description" content="Batalha Pirata: pilote um navio pirata 3D, afunde navios inimigos com seus canhões, ache baús de tesouro e jogue com amigos!">
+<link rel="canonical" href="https://cogumelogames.com.br/piratas/">
+<link rel="icon" href="/icons/icon-192.png">
+<script src="/letra.js"></script>
+<script src="/cogucoins.js?v=495"></script>
+<script src="/gamepad.js?v=358"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#06203a;font-family:'Segoe UI',Arial,sans-serif;color:#fff;user-select:none;-webkit-user-select:none;touch-action:none}
+#c{position:fixed;inset:0;display:block}
+.hud{position:fixed;pointer-events:none;text-shadow:0 2px 0 #000,0 0 6px #000;font-weight:900;display:none}
+.jogando .hud{display:block}
+#hVida{top:12px;left:12px;width:200px}
+#barra{height:18px;border-radius:9px;background:rgba(0,0,0,.5);border:2px solid #fff;overflow:hidden;margin-top:3px}
+#barraIn{height:100%;width:100%;background:linear-gradient(90deg,#ff3344,#ffaa33)}
+#hOuro{top:58px;left:12px;font-size:22px;color:#ffd84a}
+#hOnda{top:12px;left:50%;transform:translateX(-50%);font-size:22px;text-align:center;white-space:nowrap}
+#hOnda small{display:block;font-size:15px;color:#ffb3b3}
+#radar{position:fixed;top:10px;right:10px;width:130px;height:130px;border-radius:50%;background:rgba(0,40,80,.55);border:2px solid rgba(255,255,255,.6);pointer-events:none;display:none}
+.jogando #radar{display:block}
+#msg{top:34%;left:50%;transform:translate(-50%,-50%);font-size:58px;color:#ffd84a;text-align:center;white-space:nowrap}
+#aviso{top:22%;left:50%;transform:translateX(-50%);font-size:24px;white-space:nowrap}
+#recarga{bottom:16px;left:50%;transform:translateX(-50%);font-size:20px;white-space:nowrap}
+#recarga span{display:inline-block;padding:4px 10px;border-radius:10px;background:rgba(0,0,0,.45);margin:0 4px}
+#recarga span.ok{background:rgba(255,140,0,.75)}
+#sair{position:fixed;top:12px;right:150px;width:44px;height:44px;border-radius:12px;border:2px solid rgba(255,255,255,.5);background:rgba(0,0,0,.4);font-size:22px;color:#fff;display:none;cursor:pointer}
+.jogando #sair{display:block}
+.tb{position:fixed;bottom:18px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.18);border:3px solid rgba(255,255,255,.55);font-size:30px;display:none;align-items:center;justify-content:center;color:#fff;text-align:center;line-height:1}
+.tb.on{background:rgba(255,216,74,.45)}
+#bEsq{left:14px}#bDir{left:104px}#bFogoE{right:104px}#bFogoD{right:14px}#bFreio{right:59px;bottom:108px;width:64px;height:64px;font-size:26px}
+.touch.jogando .tb{display:flex}
+.touch #recarga{bottom:112px}
+#loja{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);display:none;flex-wrap:wrap;gap:6px;justify-content:center;max-width:96vw;background:rgba(20,10,0,.7);border:2px solid #ffd84a;border-radius:16px;padding:8px}
+.touch #loja{bottom:110px}
+#loja.on{display:flex}
+#loja button{padding:8px 10px;border-radius:10px;border:2px solid rgba(255,255,255,.4);background:rgba(0,0,0,.45);color:#fff;font-weight:800;font-size:15px;font-family:inherit;cursor:pointer}
+#loja button small{display:block;font-size:12px;color:#ffd84a}
+#loja button:disabled{opacity:.45}
+#loja .tit{width:100%;text-align:center;font-weight:900;color:#ffd84a}
+.tela{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:safe center;gap:10px;padding:16px;overflow-y:auto;background:linear-gradient(180deg,rgba(4,20,40,.25) 0%,rgba(4,20,40,.7) 45%,rgba(4,20,40,.92) 100%)}
+.tela.on{display:flex}
+h1{font-size:46px;color:#ffd84a;text-shadow:0 4px 0 #7a3b00,0 0 20px rgba(255,170,0,.5);text-align:center}
+.sub{font-size:16px;opacity:.92;text-align:center;max-width:560px}
+.rot{font-size:15px;font-weight:800;color:#9fd8ff;margin-top:4px}
+.big{padding:14px 40px;font-size:26px;font-weight:900;border:3px solid #fff3a0;background:linear-gradient(135deg,#ff9500,#cc3300);color:#fff;border-radius:16px;cursor:pointer;letter-spacing:1px;box-shadow:0 6px 0 #7a1c00;font-family:inherit;margin-top:6px}
+.big.g{background:linear-gradient(135deg,#2ecc71,#1a8f4d);box-shadow:0 6px 0 #0d5c30;border-color:#b0ffd0}
+.op{padding:10px 14px;border-radius:12px;border:3px solid rgba(255,255,255,.3);background:rgba(0,0,0,.45);font-size:17px;font-weight:800;cursor:pointer;color:#fff;font-family:inherit}
+.op.sel{border-color:#ffd84a;background:rgba(255,216,74,.25)}
+.link{color:#9fd8ff;font-size:15px;text-decoration:none;margin-top:4px}
+.dica{font-size:13px;opacity:.8;text-align:center;max-width:540px}
+.codigo{font-size:52px;font-weight:900;letter-spacing:8px;color:#ffd84a;text-shadow:0 4px 0 #7a3b00}
+.linha{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+#cod{width:190px;padding:12px;font-size:28px;font-weight:900;text-align:center;letter-spacing:5px;text-transform:uppercase;border-radius:12px;border:3px solid #ffd84a;background:rgba(0,0,0,.5);color:#fff;font-family:inherit}
+#salaLista{background:rgba(0,0,0,.4);border-radius:12px;padding:6px 16px;min-width:240px;font-size:18px;font-weight:700;line-height:1.7}
+#salaCorpo{display:flex;flex-direction:column;align-items:center;gap:8px;max-width:640px}
+#fimInfo{font-size:20px;text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hVida" class="hud">❤️ <span id="vidaTxt">100/100</span><div id="barra"><div id="barraIn"></div></div></div>
+<div id="hOuro" class="hud">💰 0</div>
+<div id="hOnda" class="hud">🌊 Onda 1<small>☠️ 2 inimigos</small></div>
+<div id="msg" class="hud"></div>
+<div id="aviso" class="hud"></div>
+<div id="recarga" class="hud"><span id="rE">💣 Q</span><span id="rD">E 💣</span></div>
+<canvas id="radar" width="130" height="130"></canvas>
+<button id="sair" title="Sair">🏠</button>
+<div class="tb" id="bEsq">◀</div>
+<div class="tb" id="bDir">▶</div>
+<div class="tb" id="bFreio">⚓</div>
+<div class="tb" id="bFogoE">💣<br>◀</div>
+<div class="tb" id="bFogoD">💣<br>▶</div>
+<div id="loja"></div>
+
+<div id="menu" class="tela on" style="justify-content:flex-end">
+  <h1>🏴‍☠️ BATALHA PIRATA ⚓</h1>
+  <div class="sub">Pilote seu navio, afunde os navios inimigos com os canhões, pegue o ouro e os baús de tesouro! Aguente até a <b>onda 10</b> pra ser o Rei dos Mares 👑</div>
+  <button class="big" id="bJogar">⛵ ZARPAR!</button>
+  <button class="big g" id="bAmigo" style="font-size:21px;padding:10px 26px">👥 JOGAR COM AMIGO</button>
+  <div class="dica" id="dicaCtl"></div>
+  <div class="dica" id="recorde"></div>
+  <a class="link" href="/">🏠 Voltar pro Cogumelo Games</a>
+</div>
+
+<div id="fim" class="tela">
+  <h1 id="fimTit">☠️ AFUNDOU!</h1>
+  <div id="fimInfo"></div>
+  <button class="big g" id="bDenovo">🔁 JOGAR DE NOVO</button>
+  <button class="op" id="bMenu">🏠 Menu</button>
+</div>
+
+<div id="sala" class="tela" style="background:rgba(4,20,40,.88)">
+  <h1>👥 JOGAR COM AMIGO</h1>
+  <div class="sub">Vocês jogam no MESMO TIME contra os navios inimigos! 🤝</div>
+  <div id="salaCorpo"></div>
+  <button class="op" id="bSalaVoltar">⬅ Voltar</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const TOUCH=('ontouchstart' in window)||(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
+if(TOUCH)document.body.classList.add('touch');
+
+// ================= CONFIG =================
+const MUNDO=560, NAVIO_ROT=0, G=20, ONDAS=10;
+const TIPOS={
+  jogador:{arq:'ship-pirate-medium',esc:1.3,hp:100,vel:20,can:3,raio:6},
+  pequeno:{arq:'ship-pirate-small',esc:1.2,hp:40,vel:17,can:2,raio:5,ouro:30,nome:'Pirata'},
+  marinha:{arq:'ship-medium',esc:1.3,hp:70,vel:15,can:3,raio:6,ouro:50,nome:'Marinha'},
+  fantasma:{arq:'ship-ghost',esc:1.3,hp:90,vel:19,can:3,raio:6,ouro:70,nome:'Fantasma'},
+  chefe:{arq:'ship-pirate-large',esc:1.6,hp:320,vel:13,can:5,raio:8,ouro:250,nome:'CHEFÃO'}
+};
+function ondaLista(w){
+  if(w===5)return ['chefe','pequeno','pequeno'];
+  if(w===10)return ['chefe','chefe','fantasma','marinha'];
+  const l=[],n=Math.min(6,1+w);
+  for(let i=0;i<n;i++){const r=(i*7+w*3)%10;l.push(w<3?(r<7?'pequeno':'marinha'):w<6?(r<4?'pequeno':r<8?'marinha':'fantasma'):(r<3?'pequeno':r<6?'marinha':'fantasma'));}
+  return l;
+}
+
+// ================= RENDER =================
+const renderer=new THREE.WebGLRenderer({canvas:$('c'),antialias:!TOUCH});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+renderer.setSize(innerWidth,innerHeight);
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x8ccfff);
+scene.fog=new THREE.Fog(0x8ccfff,180,650);
+const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,0.5,1800);
+scene.add(new THREE.HemisphereLight(0xffffff,0x336688,0.85));
+const sol=new THREE.DirectionalLight(0xffffff,0.85);sol.position.set(120,200,80);scene.add(sol);
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();});
+
+let estado='menu';
+let ultimo=performance.now(),ultQuadro=0,acHud=0,acRadar=0;
+requestAnimationFrame(loop); // rAF começa antes de montar o mundo
+
+// ================= MODELOS =================
+const loader=new THREE.GLTFLoader();
+try{const d=new THREE.DRACOLoader();d.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');loader.setDRACOLoader(d);}catch(e){}
+const cache={},esperando={};
+function modelo(arq,cb){
+  if(cache[arq]){cb(cache[arq].clone());return;}
+  if(esperando[arq]){esperando[arq].push(cb);return;}
+  esperando[arq]=[cb];
+  loader.load('/assets/models/pirate/'+arq+'.glb',gl=>{cache[arq]=gl.scene;esperando[arq].forEach(f=>f(gl.scene.clone()));esperando[arq]=null;},undefined,()=>{esperando[arq]=null;});
+}
+
+// ================= MAR E ILHAS =================
+const texMar=(()=>{const cv=document.createElement('canvas');cv.width=cv.height=256;const g=cv.getContext('2d');
+  g.fillStyle='#1f7fc4';g.fillRect(0,0,256,256);
+  for(let i=0;i<70;i++){g.strokeStyle='rgba(255,255,255,'+(0.08+Math.random()*0.18)+')';g.lineWidth=2+Math.random()*2;
+    const x=Math.random()*256,y=Math.random()*256,w=10+Math.random()*26;g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+w/2,y-5,x+w,y);g.stroke();}
+  const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(70,70);return t;})();
+const mar=new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),new THREE.MeshLambertMaterial({map:texMar,color:0xbfe6ff}));
+mar.rotation.x=-Math.PI/2;scene.add(mar);
+// borda do mapa: anel de pedras longe
+const borda=new THREE.Mesh(new THREE.TorusGeometry(MUNDO+40,6,6,64),new THREE.MeshLambertMaterial({color:0x6b6b6b}));
+borda.rotation.x=Math.PI/2;borda.position.y=-2;scene.add(borda);
+
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const ilhas=[];
+(function criaIlhas(){
+  const r=rng(1234);let tent=0;
+  while(ilhas.length<11&&tent<500){tent++;
+    const a=r()*Math.PI*2,d=110+r()*(MUNDO-150),x=Math.cos(a)*d,z=Math.sin(a)*d,rad=22+r()*24;
+    if(ilhas.some(i=>Math.hypot(i.x-x,i.z-z)<i.r+rad+45))continue;
+    ilhas.push({x,z,r:rad});
+  }
+  const areia=new THREE.MeshLambertMaterial({color:0xf0d58c}),grama=new THREE.MeshLambertMaterial({color:0x5cbf4a});
+  const palmas=['palm-straight','palm-bend','palm-detailed-straight','palm-detailed-bend'],pedras=['rocks-a','rocks-b','rocks-c','rocks-sand-a'];
+  ilhas.forEach((il,k)=>{
+    const a=new THREE.Mesh(new THREE.CylinderGeometry(il.r,il.r*1.2,5,24),areia);a.position.set(il.x,-1.6,il.z);scene.add(a);
+    const gr=new THREE.Mesh(new THREE.CylinderGeometry(il.r*0.68,il.r*0.75,2,20),grama);gr.position.set(il.x,1.2,il.z);scene.add(gr);
+    const np=3+Math.floor(r()*4);
+    for(let i=0;i<np;i++){const aa=r()*Math.PI*2,dd=r()*il.r*0.6,px=il.x+Math.cos(aa)*dd,pz=il.z+Math.sin(aa)*dd,e=2.2+r()*1.2,ry=r()*6.28;
+      modelo(palmas[Math.floor(r()*4)],m=>{m.scale.setScalar(e);m.position.set(px,2,pz);m.rotation.y=ry;scene.add(m);});}
+    const nr=1+Math.floor(r()*2);
+    for(let i=0;i<nr;i++){const aa=r()*Math.PI*2,dd=il.r*(0.75+r()*0.3),px=il.x+Math.cos(aa)*dd,pz=il.z+Math.sin(aa)*dd,e=1.5+r(),ry=r()*6.28;
+      modelo(pedras[Math.floor(r()*4)],m=>{m.scale.setScalar(e);m.position.set(px,0,pz);m.rotation.y=ry;scene.add(m);});}
+    if(k%4===0){const ex=il.x,ez=il.z;modelo('tower-complete-small',m=>{m.scale.setScalar(2);m.position.set(ex,2,ez);scene.add(m);});}
+  });
+})();
+
+// ================= NAVIOS =================
+function rotulo(txt,cor){
+  const cv=document.createElement('canvas');cv.width=256;cv.height=64;const g=cv.getContext('2d');
+  g.font='bold 34px Arial';g.textAlign='center';g.textBaseline='middle';g.lineWidth=6;g.strokeStyle='#000';g.strokeText(txt,128,32);g.fillStyle=cor||'#fff';g.fillText(txt,128,32);
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),depthTest:false,transparent:true}));
+  s.scale.set(16,4,1);return s;
+}
+function barraVida(){
+  const g=new THREE.Group();
+  const fundo=new THREE.Sprite(new THREE.SpriteMaterial({color:0x000000,depthTest:false}));fundo.scale.set(10.4,1.1,1);g.add(fundo);
+  const fr=new THREE.Sprite(new THREE.SpriteMaterial({color:0xff3344,depthTest:false}));fr.scale.set(10,0.8,1);fr.center.set(0,0.5);fr.position.x=-5;g.add(fr);
+  g.userData.fr=fr;return g;
+}
+// o: {id,tipo,nome,remoto,inimigo}
+function novoNavio(o){
+  const tp=TIPOS[o.tipo],g=new THREE.Group(),casco=new THREE.Group();g.add(casco);
+  // navio provisório enquanto o modelo carrega
+  const prov=new THREE.Mesh(new THREE.BoxGeometry(5,3,12),new THREE.MeshLambertMaterial({color:0x8b5a2b}));prov.position.y=1;casco.add(prov);
+  modelo(tp.arq,m=>{casco.remove(prov);m.scale.setScalar(tp.esc);m.rotation.y=NAVIO_ROT;m.position.y=-1.4;casco.add(m);});
+  const n={id:o.id,tipo:o.tipo,g,casco,x:0,z:0,h:0,v:0,hp:tp.hp,max:tp.hp,vivo:true,afund:0,recE:0,recD:0,
+    can:tp.can,vmax:tp.vel,raio:tp.raio,remoto:!!o.remoto,inimigo:!!o.inimigo,nome:o.nome||'',tx:0,tz:0,th:0,
+    giro:0,mira:0,lado:1,trocaT:0,morteT:0,flash:0};
+  if(o.nome){const r=rotulo(o.nome,o.inimigo?'#ff8888':o.eu?'#ffd84a':'#7bff9e');r.position.y=17*tp.esc/1.3;g.add(r);n.rot=r;}
+  if(o.inimigo){const b=barraVida();b.position.y=14.5*tp.esc/1.3;g.add(b);n.barra=b;}
+  scene.add(g);
+  return n;
+}
+function tiraNavio(n){scene.remove(n.g);}
+
+let jogador=null, outros={}, inimigos=[];
+function navios(){const l=[];if(jogador)l.push(jogador);for(const k in outros)l.push(outros[k]);return l;}
+
+// ================= FÍSICA =================
+function fwd(h){return [Math.sin(h),Math.cos(h)];}
+function dir(h){return [-Math.cos(h),Math.sin(h)];} // lado direito do navio
+function movimenta(n,dt,acel,freio,giro){
+  const max=n.vmax;
+  if(acel)n.v+=7*dt;else if(freio)n.v-=10*dt;else n.v-=1.5*dt*Math.sign(n.v);
+  n.v=Math.max(-4,Math.min(max,n.v));
+  if(Math.abs(n.v)<0.05&&!acel)n.v=0;
+  const fator=0.35+0.65*Math.min(1,Math.abs(n.v)/8);
+  n.giro+=(giro-n.giro)*Math.min(1,dt*4);
+  n.h+=n.giro*0.85*fator*dt;
+  const f=fwd(n.h);n.x+=f[0]*n.v*dt;n.z+=f[1]*n.v*dt;
+  colideIlhas(n);
+  const d=Math.hypot(n.x,n.z);
+  if(d>MUNDO){n.x*=MUNDO/d;n.z*=MUNDO/d;n.v*=0.9;if(n===jogador&&!avisoT)avisa('🌀 Fim do mar! Volte!');}
+}
+function colideIlhas(n){
+  for(const il of ilhas){const dx=n.x-il.x,dz=n.z-il.z,d=Math.hypot(dx,dz),min=il.r+n.raio*0.7;
+    if(d<min&&d>0.01){n.x=il.x+dx/d*min;n.z=il.z+dz/d*min;n.v*=0.92;}}
+}
+function colideNavios(){
+  const l=navios().concat(inimigos).filter(n=>n.vivo);
+  for(let i=0;i<l.length;i++)for(let j=i+1;j<l.length;j++){
+    const a=l[i],b=l[j];if(a.remoto&&b.remoto)continue;
+    const dx=b.x-a.x,dz=b.z-a.z,d=Math.hypot(dx,dz),min=(a.raio+b.raio)*0.8;
+    if(d<min&&d>0.01){const em=min-d,nx=dx/d,nz=dz/d,wa=a.remoto?0:b.remoto?1:0.5;
+      a.x-=nx*em*wa;a.z-=nz*em*wa;b.x+=nx*em*(1-wa);b.z+=nz*em*(1-wa);}
+  }
+}
+function remotoPasso(n,dt){
+  n.tx+=Math.sin(n.th)*n.v*dt;n.tz+=Math.cos(n.th)*n.v*dt;
+  const dx=n.tx-n.x,dz=n.tz-n.z;if(dx*dx+dz*dz>1600){n.x=n.tx;n.z=n.tz;n.h=n.th;}
+  const k=Math.min(1,dt*6);n.x+=dx*k;n.z+=dz*k;
+  let d=n.th-n.h;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;n.h+=d*k;n.giro=d;
+}
+function posGrafico(n,t){
+  let y=Math.sin(t*1.3+n.x*0.05)*0.35,rz=Math.sin(t*0.9+n.z*0.05)*0.04-n.giro*0.08,rx=0;
+  if(!n.vivo){n.afund+=1/60;y-=n.afund*3.2;rz+=Math.min(0.6,n.afund*0.35);rx=Math.min(0.3,n.afund*0.15);}
+  n.g.position.set(n.x,y,n.z);n.g.rotation.set(0,n.h,0);n.casco.rotation.set(rx,0,rz);
+  if(n.barra){n.barra.visible=n.vivo;n.barra.userData.fr.scale.x=10*Math.max(0,n.hp/n.max);}
+  if(n.rot)n.rot.visible=n.vivo;
+}
+
+// ================= TIROS =================
+const balaG=new THREE.SphereGeometry(0.6,8,6),balaM=new THREE.MeshLambertMaterial({color:0x222222});
+let balas=[],efeitos=[],barris=[],baus=[];
+function atira(n,lado){ // lado: 1 direita, -1 esquerda
+  if(!n.vivo)return false;
+  const k=lado>0?'recD':'recE';if(n[k]>0)return false;
+  n[k]=n.inimigo?3.2:2.2;
+  const f=fwd(n.h),d=dir(n.h),lista=[],q=n.can,esp=Math.min(3.2,(n.raio*1.6)/Math.max(1,q-1));
+  for(let i=0;i<q;i++){
+    const off=(i-(q-1)/2)*esp,sp=n.inimigo?42:48,erro=n.inimigo?(Math.random()-0.5)*6:(Math.random()-0.5)*2;
+    const x=n.x+f[0]*off+d[0]*lado*3,z=n.z+f[1]*off+d[1]*lado*3;
+    lista.push([r1(x),3,r1(z),r1(d[0]*lado*sp+f[0]*(n.v+erro)),r1(9+Math.random()*1.5),r1(d[1]*lado*sp+f[1]*(n.v+erro))]);
+  }
+  const dano=n.inimigo?(n.tipo==='chefe'?12:8):10;
+  lista.forEach(b=>criaBala(b,n.id,n.inimigo,dano));
+  mpEnvia({t:'tiro',b:lista,dono:n.id,ini:n.inimigo?1:0,dano});
+  fumaca(n.x+d[0]*lado*4,4,n.z+d[1]*lado*4,0xdddddd,q);
+  return true;
+}
+function criaBala(b,dono,inimigo,dano){
+  const m=new THREE.Mesh(balaG,balaM);m.position.set(b[0],b[1],b[2]);scene.add(m);
+  balas.push({m,x:b[0],y:b[1],z:b[2],vx:b[3],vy:b[4],vz:b[5],dono,inimigo,dano,vida:4});
+}
+function fumaca(x,y,z,cor,n){
+  for(let i=0;i<n&&efeitos.length<70;i++){
+    const m=new THREE.Mesh(new THREE.SphereGeometry(1,6,5),new THREE.MeshBasicMaterial({color:cor,transparent:true,opacity:0.8,depthWrite:false}));
+    m.position.set(x+(Math.random()-0.5)*4,y+Math.random()*2,z+(Math.random()-0.5)*4);scene.add(m);
+    efeitos.push({m,t:0,dur:0.7+Math.random()*0.4,sobe:2+Math.random()*3,cresce:1+Math.random()*1.5});
+  }
+}
+function splash(x,z){fumaca(x,0.5,z,0xffffff,4);}
+function explosao(x,y,z){fumaca(x,y,z,0xff8822,5);fumaca(x,y+1,z,0x555555,3);}
+function atualizaBalas(dt){
+  for(let i=balas.length-1;i>=0;i--){
+    const b=balas[i];b.vida-=dt;b.vy-=G*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;b.z+=b.vz*dt;b.m.position.set(b.x,b.y,b.z);
+    let fim=false;
+    if(b.y<0.2){splash(b.x,b.z);fim=true;}
+    else{
+      for(const il of ilhas)if(Math.hypot(b.x-il.x,b.z-il.z)<il.r&&b.y<3){fumaca(b.x,b.y,b.z,0xf0d58c,3);fim=true;break;}
+      if(!fim){
+        const alvos=b.inimigo?navios():inimigos;
+        for(const n of alvos){
+          if(!n.vivo||n.id===b.dono||b.y>10)continue;
+          // dentro do casco? (retângulo girado)
+          const dx=b.x-n.x,dz=b.z-n.z,f=fwd(n.h),d=dir(n.h);
+          const ao=dx*f[0]+dz*f[1],la=dx*d[0]+dz*d[1];
+          if(Math.abs(ao)<n.raio*1.15&&Math.abs(la)<n.raio*0.55){
+            explosao(b.x,b.y,b.z);fim=true;
+            if(b.inimigo){if(n===jogador)levaDano(b.dano);}
+            else if(souDono())danoInimigo(n,b.dano,b.dono);
+            else n.flash=0.15;
+            break;
+          }
+        }
+      }
+    }
+    if(fim||b.vida<=0){scene.remove(b.m);balas.splice(i,1);}
+  }
+  for(let i=efeitos.length-1;i>=0;i--){const e=efeitos[i];e.t+=dt;const p=e.t/e.dur;
+    e.m.position.y+=e.sobe*dt;e.m.scale.setScalar(1+p*e.cresce);e.m.material.opacity=0.8*(1-p);
+    if(p>=1){scene.remove(e.m);e.m.geometry.dispose();e.m.material.dispose();efeitos.splice(i,1);}}
+}
+function levaDano(d){
+  if(!jogador.vivo)return;
+  jogador.hp-=d;jogador.flash=0.25;tremor=0.3;
+  if(jogador.hp<=0){jogador.hp=0;jogador.vivo=false;jogador.afund=0;morri();}
+}
+function danoInimigo(n,d,quem){
+  if(!n.vivo)return;
+  n.hp-=d;n.flash=0.15;
+  if(n.hp<=0){n.hp=0;n.vivo=false;n.afund=0;afundou(n);}
+}
+
+// ================= OURO, BARRIS E BAÚS =================
+let ouro=0,afundados=0,baúsPegos=0;
+function afundou(n){
+  afundados++;
+  const tp=TIPOS[n.tipo],qt=n.tipo==='chefe'?6:2;
+  for(let i=0;i<qt;i++)criaBarril(n.x+(Math.random()-0.5)*14,n.z+(Math.random()-0.5)*14,Math.round(tp.ouro/qt));
+  if(jogador&&Math.hypot(n.x-jogador.x,n.z-jogador.z)<200)avisa(n.tipo==='chefe'?'👑 CHEFÃO AFUNDADO!':'☠️ Navio afundado! Pegue o ouro 💰');
+}
+function criaBarril(x,z,val){
+  const g=new THREE.Group();
+  const corpo=new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.9,1.8,10),new THREE.MeshLambertMaterial({color:0xa0662b}));corpo.rotation.z=Math.PI/2;g.add(corpo);
+  const brilho=new THREE.Mesh(new THREE.SphereGeometry(0.5,8,6),new THREE.MeshBasicMaterial({color:0xffd84a}));brilho.position.y=1.2;g.add(brilho);
+  g.position.set(x,0.3,z);scene.add(g);barris.push({g,x,z,val,t:Math.random()*6,vida:60});
+}
+const feixeM=new THREE.MeshBasicMaterial({color:0xffe066,transparent:true,opacity:0.35,depthWrite:false});
+function criaBau(){
+  const livres=ilhas.filter(il=>!baus.some(b=>b.il===il));if(!livres.length)return;
+  const il=livres[Math.floor(Math.random()*livres.length)],a=Math.random()*Math.PI*2,x=il.x+Math.cos(a)*(il.r+1.5),z=il.z+Math.sin(a)*(il.r+1.5);
+  const g=new THREE.Group();
+  modelo('chest',m=>{m.scale.setScalar(2.4);m.position.y=0.6;m.rotation.y=-a+Math.PI/2;g.add(m);});
+  const feixe=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,60,8,1,true),feixeM);feixe.position.y=30;g.add(feixe);
+  g.position.set(x,0,z);scene.add(g);baus.push({g,x,z,il,val:60});
+}
+function atualizaTesouros(dt,t){
+  for(let i=barris.length-1;i>=0;i--){const b=barris[i];b.vida-=dt;b.g.position.y=0.3+Math.sin(t*2+b.t)*0.3;b.g.rotation.y+=dt;
+    if(jogador&&jogador.vivo&&Math.hypot(jogador.x-b.x,jogador.z-b.z)<jogador.raio+3){ouro+=b.val;avisa('💰 +'+b.val+' de ouro!');scene.remove(b.g);barris.splice(i,1);continue;}
+    if(b.vida<=0){scene.remove(b.g);barris.splice(i,1);}}
+  for(let i=baus.length-1;i>=0;i--){const b=baus[i];
+    if(jogador&&jogador.vivo&&Math.hypot(jogador.x-b.x,jogador.z-b.z)<jogador.raio+5){
+      ouro+=b.val;baúsPegos++;avisa('🎁 BAÚ DE TESOURO! +'+b.val+' 💰');scene.remove(b.g);baus.splice(i,1);
+      setTimeout(()=>{if(estado==='jogo')criaBau();},25000);}}
+}
+
+// ================= ONDAS (quem controla os inimigos é o dono da sala, ou você sozinho) =================
+let onda=0,fase='intervalo',faseT=0,contIni=0,venceu=false,tremor=0;
+function souDono(){return !mp.online||mp.host;}
+function centroJogadores(){const l=navios().filter(n=>n.vivo);if(!l.length)return {x:0,z:0};let x=0,z=0;l.forEach(n=>{x+=n.x;z+=n.z;});return {x:x/l.length,z:z/l.length};}
+function comecaOnda(){
+  onda++;fase='luta';
+  const c=centroJogadores(),lista=ondaLista(onda),extra=mp.online?Math.max(0,Object.keys(outros).length):0;
+  for(let e=0;e<extra&&onda!==5&&onda!==10;e++)lista.push(onda<4?'pequeno':'marinha');
+  lista.forEach((tp,i)=>{
+    let x,z,tent=0;
+    do{const a=Math.random()*Math.PI*2,d=170+Math.random()*90;x=c.x+Math.cos(a)*d;z=c.z+Math.sin(a)*d;
+      const dd=Math.hypot(x,z);if(dd>MUNDO-20){x*=(MUNDO-20)/dd;z*=(MUNDO-20)/dd;}tent++;}
+    while(tent<30&&ilhas.some(il=>Math.hypot(il.x-x,il.z-z)<il.r+15));
+    const n=novoNavio({id:'e'+(contIni++),tipo:tp,inimigo:true,nome:(tp==='chefe'?'👑 ':'☠️ ')+TIPOS[tp].nome});
+    if(tp==='chefe'&&onda===10){n.hp=n.max=450;}
+    n.x=x;n.z=z;n.h=Math.atan2(c.x-x,c.z-z);n.v=6;n.lado=Math.random()<0.5?1:-1;n.recE=1+Math.random()*2;n.recD=1+Math.random()*2;
+    inimigos.push(n);
+  });
+  avisoGrande(onda===5||onda===10?'👑 ONDA '+onda+': CHEFÃO!':'🌊 ONDA '+onda+'!');
+}
+function iaInimigo(n,dt){
+  if(!n.vivo){n.v*=0.98;return;}
+  n.recE-=dt;n.recD-=dt;
+  // alvo: jogador vivo mais perto
+  let alvo=null,md=1e9;
+  navios().forEach(p=>{if(!p.vivo)return;const d=Math.hypot(p.x-n.x,p.z-n.z);if(d<md){md=d;alvo=p;}});
+  if(!alvo){movimenta(n,dt,false,false,0);return;}
+  const dx=alvo.x-n.x,dz=alvo.z-n.z,angAlvo=Math.atan2(dx,dz);
+  let desejado;
+  if(md>75)desejado=angAlvo;
+  else{
+    n.trocaT-=dt;if(n.trocaT<=0){n.trocaT=6+Math.random()*6;if(Math.random()<0.3)n.lado*=-1;}
+    desejado=angAlvo+n.lado*Math.PI/2+(md<35?-n.lado*0.5:0);
+  }
+  // desvia de ilha na frente
+  const f=fwd(n.h);
+  for(const il of ilhas){const ax=n.x+f[0]*30,az=n.z+f[1]*30;if(Math.hypot(ax-il.x,az-il.z)<il.r+12){
+    const lado=((il.x-n.x)*f[1]-(il.z-n.z)*f[0])>0?1:-1;desejado=n.h+lado*1.2;break;}}
+  let d=desejado-n.h;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;
+  movimenta(n,dt,true,md<30,Math.max(-1,Math.min(1,d*2)));
+  // atira se o alvo tá do lado
+  if(md<85){
+    const dr=dir(n.h),la=(dx*dr[0]+dz*dr[1])/md,ao=(dx*f[0]+dz*f[1])/md;
+    if(Math.abs(ao)<0.45){if(la>0)atira(n,1);else atira(n,-1);}
+  }
+}
+function atualizaOndas(dt){
+  if(!souDono()||venceu)return;
+  for(let i=inimigos.length-1;i>=0;i--){const n=inimigos[i];if(!n.vivo&&n.afund>4){tiraNavio(n);inimigos.splice(i,1);}}
+  if(fase==='luta'&&!inimigos.some(n=>n.vivo)){
+    if(onda>=ONDAS){venceu=true;mpEnvia({t:'vitoria'});vitoria();return;}
+    fase='intervalo';faseT=15;avisoGrande('✅ Onda '+onda+' vencida!');
+  }else if(fase==='intervalo'){faseT-=dt;if(faseT<=0)comecaOnda();}
+}
+
+// ================= LOJA =================
+const nivel={can:0,vel:0,casco:0};
+let lojaHtml='';
+function precos(){return {conserta:30,can:nivel.can<3?100+nivel.can*80:0,vel:nivel.vel<3?80+nivel.vel*60:0,casco:nivel.casco<4?90+nivel.casco*50:0};}
+function montaLoja(){
+  const p=precos(),el=$('loja');
+  const b=(id,txt,preco,pode)=>'<button data-c="'+id+'"'+(!pode||ouro<preco?' disabled':'')+'>'+txt+'<small>'+(pode?'💰 '+preco:'MÁXIMO')+'</small></button>';
+  const html='<div class="tit">🏪 LOJA DO PORTO — próxima onda em '+Math.ceil(Math.max(0,faseT))+'s</div>'+
+    b('conserta','🔧 Consertar +40',p.conserta,jogador&&jogador.vivo&&jogador.hp<jogador.max)+
+    b('can','💣 +1 canhão ('+jogador.can+')',p.can,nivel.can<3)+
+    b('vel','⛵ Mais rápido',p.vel,nivel.vel<3)+
+    b('casco','🛡️ Casco +25',p.casco,nivel.casco<4)+
+    (souDono()?'<button data-c="ja">⚔️ Começar já!<small>pular espera</small></button>':'');
+  if(html===lojaHtml)return; // só refaz os botões quando muda (senão o clique se perde)
+  lojaHtml=html;el.innerHTML=html;
+  el.querySelectorAll('button').forEach(bt=>bt.onclick=()=>compra(bt.dataset.c));
+}
+function compra(c){
+  const p=precos();
+  if(c==='ja'){if(souDono()&&fase==='intervalo')faseT=0;return;}
+  if(c==='conserta'&&ouro>=p.conserta&&jogador.hp<jogador.max){ouro-=p.conserta;jogador.hp=Math.min(jogador.max,jogador.hp+40);}
+  if(c==='can'&&p.can&&ouro>=p.can){ouro-=p.can;nivel.can++;jogador.can++;}
+  if(c==='vel'&&p.vel&&ouro>=p.vel){ouro-=p.vel;nivel.vel++;jogador.vmax+=3;}
+  if(c==='casco'&&p.casco&&ouro>=p.casco){ouro-=p.casco;nivel.casco++;jogador.max+=25;jogador.hp+=25;}
+  montaLoja();hud();
+}
+
+// ================= HUD =================
+let avisoT=0,msgT=0;
+function avisa(t){$('aviso').textContent=t;avisoT=2;}
+function avisoGrande(t){$('msg').textContent=t;msgT=2.5;}
+function hud(){
+  if(!jogador)return;
+  $('vidaTxt').textContent=Math.ceil(jogador.hp)+'/'+jogador.max;
+  $('barraIn').style.width=(100*jogador.hp/jogador.max)+'%';
+  $('hOuro').textContent='💰 '+ouro;
+  const vivos=inimigos.filter(n=>n.vivo).length;
+  $('hOnda').innerHTML='🌊 Onda '+Math.max(1,onda)+'/'+ONDAS+'<small>'+(fase==='luta'?'☠️ '+vivos+' inimigo'+(vivos===1?'':'s'):'⏳ próxima onda em '+Math.ceil(Math.max(0,faseT))+'s')+'</small>';
+  $('rE').className=jogador.recE<=0?'ok':'';$('rD').className=jogador.recD<=0?'ok':'';
+  $('rE').textContent=jogador.recE<=0?'💣 Q':'⏳ '+jogador.recE.toFixed(1);
+  $('rD').textContent=jogador.recD<=0?'E 💣':jogador.recD.toFixed(1)+' ⏳';
+  const lojaOn=fase==='intervalo'&&estado==='jogo'&&onda>0&&jogador.vivo;
+  $('loja').classList.toggle('on',lojaOn);if(lojaOn)montaLoja();
+}
+function desenhaRadar(){
+  const g=$('radar').getContext('2d'),R=65,esc=R/300;
+  g.clearRect(0,0,130,130);if(!jogador)return;
+  g.save();g.beginPath();g.arc(R,R,R-1,0,7);g.clip();
+  const f=fwd(jogador.h),d=dir(jogador.h);
+  const ponto=(x,z,cor,r)=>{ // radar gira com o navio (frente pra cima)
+    const dx=x-jogador.x,dz=z-jogador.z,ao=dx*f[0]+dz*f[1],la=dx*d[0]+dz*d[1];
+    g.fillStyle=cor;g.beginPath();g.arc(R+la*esc,R-ao*esc,r,0,7);g.fill();};
+  ilhas.forEach(il=>{const dx=il.x-jogador.x,dz=il.z-jogador.z;if(dx*dx+dz*dz<360*360)ponto(il.x,il.z,'#e8cf7a',Math.max(3,il.r*esc));});
+  baus.forEach(b=>ponto(b.x,b.z,'#ffe600',4));
+  barris.forEach(b=>ponto(b.x,b.z,'#ffb030',2.5));
+  inimigos.forEach(n=>{if(n.vivo)ponto(n.x,n.z,'#ff3344',n.tipo==='chefe'?6:4);});
+  for(const k in outros)if(outros[k].vivo)ponto(outros[k].x,outros[k].z,'#4dff88',4);
+  g.restore();
+  g.fillStyle='#fff';g.beginPath();g.moveTo(R,R-7);g.lineTo(R-5,R+5);g.lineTo(R+5,R+5);g.fill();
+}
+
+// ================= CONTROLES =================
+const tec={},toque={esq:false,dir:false,freio:false};
+function gp(){try{const ps=navigator.getGamepads?navigator.getGamepads():[];for(const p of ps)if(p&&p.connected)return p;}catch(e){}return null;}
+function gb(p,i){return !!(p&&p.buttons[i]&&p.buttons[i].pressed);}
+addEventListener('keydown',e=>{
+  if(e.target&&e.target.tagName==='INPUT')return;
+  const k=e.key;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].indexOf(k)>=0)e.preventDefault();
+  if(e.repeat)return;
+  tec[k.toLowerCase()]=true;
+  if(estado==='menu'&&!$('sala').classList.contains('on')&&k==='Enter')jogar();
+  else if(estado==='fim'&&k==='Enter'&&$('bDenovo').style.display!=='none')$('bDenovo').click();
+  else if(estado==='jogo'&&jogador){
+    const lk=k.toLowerCase();
+    if(lk==='q')atira(jogador,-1);
+    if(lk==='e')atira(jogador,1);
+    if(lk==='f'||k===' '){atira(jogador,-1);atira(jogador,1);}
+    if(k==='Escape')irMenu();
+  }
+});
+addEventListener('keyup',e=>{tec[e.key.toLowerCase()]=false;});
+[['bEsq','esq'],['bDir','dir'],['bFreio','freio']].forEach(([id,n])=>{
+  const el=$(id);
+  el.addEventListener('pointerdown',e=>{e.preventDefault();toque[n]=true;el.classList.add('on');});
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>el.addEventListener(ev,()=>{toque[n]=false;el.classList.remove('on');}));
+});
+$('bFogoE').addEventListener('pointerdown',e=>{e.preventDefault();if(jogador)atira(jogador,-1);});
+$('bFogoD').addEventListener('pointerdown',e=>{e.preventDefault();if(jogador)atira(jogador,1);});
+$('sair').onclick=()=>irMenu();
+let padAnt={};
+function controles(){
+  const pad=gp();
+  let acel=tec.arrowup||tec.w||gb(pad,7)||(!pad&&tec.j);
+  let freio=tec.arrowdown||tec.s||gb(pad,6)||toque.freio;
+  let giro=((tec.arrowleft||tec.a||toque.esq)?1:0)-((tec.arrowright||tec.d||toque.dir)?1:0);
+  if(pad&&Math.abs(pad.axes[0]||0)>0.15)giro=-(pad.axes[0]);
+  if(TOUCH&&!freio)acel=true;
+  if(pad){ // L1 esquerda, R1 direita, ⭕ os dois lados
+    [[4,-1],[5,1],[1,0]].forEach(([b,l])=>{const on=gb(pad,b);if(on&&!padAnt[b]){if(l)atira(jogador,l);else{atira(jogador,-1);atira(jogador,1);}}padAnt[b]=on;});
+  }
+  return {acel,freio,giro};
+}
+$('dicaCtl').innerHTML=TOUCH?'📱 O navio anda sozinho! ◀ ▶ pra virar, ⚓ pra frear, 💣◀ e 💣▶ atiram pra cada lado.'
+  :'⌨️ Setas ou WASD pra pilotar • <b>Q</b> atira pra esquerda • <b>E</b> pra direita • <b>F</b> ou ESPAÇO pros dois lados<br>🎮 Controle: R2 acelera, L1/R1 atiram, ⭕ atira pros dois lados';
+try{const r=localStorage.getItem('piratas_recorde');if(r)$('recorde').textContent='🏆 Seu recorde: onda '+r;}catch(e){}
+
+// ================= PARTIDA =================
+function limpa(){
+  [...balas,...efeitos].forEach(b=>scene.remove(b.m));balas=[];efeitos=[];
+  barris.forEach(b=>scene.remove(b.g));barris=[];baus.forEach(b=>scene.remove(b.g));baus=[];
+  inimigos.forEach(tiraNavio);inimigos=[];
+  for(const k in outros)tiraNavio(outros[k]);outros={};
+  if(jogador)tiraNavio(jogador);jogador=null;
+}
+function posInicial(i){const a=i*1.1;return {x:Math.cos(a)*14,z:Math.sin(a)*14};}
+function novaPartida(lista){
+  limpa();
+  if(vitrine){tiraNavio(vitrine);vitrine=null;}
+  onda=0;fase='intervalo';faseT=6;contIni=0;venceu=false;ouro=0;afundados=0;baúsPegos=0;nivel.can=nivel.vel=nivel.casco=0;
+  lista=lista||[{id:meuId,nome:meuNome}];
+  lista.forEach((p,i)=>{
+    const eu=p.id===meuId,n=novoNavio({id:p.id,tipo:'jogador',nome:mp.online?p.nome:'',remoto:!eu,eu});
+    const ps=posInicial(i);n.x=n.tx=ps.x;n.z=n.tz=ps.z;n.h=n.th=0;
+    if(eu)jogador=n;else outros[p.id]=n;
+  });
+  for(let i=0;i<4;i++)criaBau();
+  estado='jogo';document.body.classList.add('jogando');
+  ['menu','fim','sala'].forEach(id=>$(id).classList.remove('on'));
+  avisoGrande('⚓ Prepare os canhões!');camInstant=true;hud();
+}
+function jogar(){if(mp.online)mpSai();novaPartida(null);}
+function morri(){
+  avisoGrande('☠️ SEU NAVIO AFUNDOU!');
+  mpEnvia({t:'st',a:estadoArr(jogador)});
+  if(mp.online&&Object.values(outros).some(n=>n.vivo)){
+    jogador.morteT=8;ouro=Math.floor(ouro*0.75);
+    setTimeout(()=>avisa('⏳ Você volta em 8 segundos...'),1500);
+  }else setTimeout(()=>{if(estado==='jogo')fimDeJogo(false);},3000);
+}
+function renasce(){
+  const amigo=Object.values(outros).find(n=>n.vivo)||{x:0,z:0};
+  tiraNavio(jogador);
+  const n=novoNavio({id:meuId,tipo:'jogador',nome:mp.online?meuNome:'',eu:true});
+  n.x=n.tx=amigo.x+20;n.z=n.tz=amigo.z+20;n.can=TIPOS.jogador.can+nivel.can;n.vmax=TIPOS.jogador.vel+nivel.vel*3;n.max=100+nivel.casco*25;n.hp=n.max*0.6;
+  jogador=n;camInstant=true;avisoGrande('⚓ De volta ao mar!');
+}
+function premio(ganhou){return ganhou?60:Math.min(40,Math.max(2,(onda-1)*4+afundados));}
+function fimDeJogo(ganhou){
+  if(estado==='fim')return;
+  estado='fim';$('loja').classList.remove('on');
+  const moedas=premio(ganhou);
+  try{if(window.CoguCoins)CoguCoins.ganha(moedas);}catch(e){}
+  let rec=false;try{const r=+localStorage.getItem('piratas_recorde')||0,o=ganhou?ONDAS:onda;if(o>r){localStorage.setItem('piratas_recorde',o);rec=true;}}catch(e){}
+  $('fimTit').textContent=ganhou?'👑 REI DOS MARES! VOCÊ VENCEU!':'☠️ SEU NAVIO AFUNDOU!';
+  $('fimInfo').innerHTML='🌊 Chegou na onda <b>'+(ganhou?ONDAS:onda)+'</b>'+(rec?' • <b style="color:#7bff9e">NOVO RECORDE!</b>':'')+
+    '<br>⚔️ Navios afundados: <b>'+afundados+'</b><br>🎁 Baús de tesouro: <b>'+baúsPegos+'</b><br>🪙 +'+moedas+' Cogu Coins';
+  $('bDenovo').style.display=mp.online&&!mp.host?'none':'';
+  $('bMenu').textContent=mp.online?'🚪 Sair da sala':'🏠 Menu';
+  $('fim').classList.add('on');
+}
+function vitoria(){avisoGrande('👑 VOCÊS VENCERAM!');setTimeout(()=>fimDeJogo(true),2500);}
+function irMenu(){
+  if(mp.online)mpSai();
+  limpa();estado='menu';document.body.classList.remove('jogando');$('loja').classList.remove('on');
+  ['fim','sala'].forEach(id=>$(id).classList.remove('on'));$('menu').classList.add('on');
+  montaVitrine();
+}
+$('bJogar').onclick=jogar;
+$('bDenovo').onclick=()=>{if(mp.online&&mp.host)hostComeca();else if(!mp.online)jogar();};
+$('bMenu').onclick=irMenu;
+$('bAmigo').onclick=()=>{$('menu').classList.remove('on');$('sala').classList.add('on');if(!mp.online)mp.tela='inicio';salaRender();};
+$('bSalaVoltar').onclick=()=>{if(mp.online)mpSai();irMenu();};
+
+// navio do menu
+let vitrine=null;
+function montaVitrine(){if(vitrine)tiraNavio(vitrine);vitrine=novoNavio({id:'v',tipo:'jogador'});vitrine.x=0;vitrine.z=0;}
+
+// ================= MULTIPLAYER (sala com amigo, no mesmo time) =================
+const MP_WS='wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=piratas';
+const meuId='p'+Math.random().toString(36).slice(2,9);
+let meuNome='';try{meuNome=localStorage.getItem('cg_usuario')||'';}catch(e){}
+if(!meuNome)meuNome='Pirata '+(10+Math.floor(Math.random()*90));
+const mp={online:false,host:false,sala:'',ws:null,jog:[],ping:null,checa:null,ultEnvio:0,visto:{},tela:'inicio',hostSaiu:false};
+function r1(v){return Math.round(v*10)/10;}
+function mpEnvia(o){if(!mp.online||!mp.ws||mp.ws.readyState!==1)return;try{mp.ws.send(JSON.stringify(Object.assign({acao:'mp',sala:mp.sala,id:meuId},o)));}catch(e){}}
+function codigoSala(){const L='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<5;i++)s+=L[Math.floor(Math.random()*L.length)];return s;}
+function abreWs(sala){
+  try{mp.ws=new WebSocket(MP_WS);}catch(e){mp.tela='erro';salaRender();return;}
+  const ws=mp.ws;
+  ws.onopen=()=>{mpEnvia({t:'oi',nome:meuNome});salaRender();};
+  ws.onmessage=mpRecebe;ws.onerror=()=>{};
+  ws.onclose=()=>{if(mp.ws===ws&&mp.sala===sala){mp.ws=null;setTimeout(()=>{if(mp.sala===sala&&!mp.ws)abreWs(sala);},2000);}};
+}
+function mpConecta(sala,host){
+  mpSai();
+  mp.online=true;mp.sala=sala;mp.host=host;mp.hostSaiu=false;mp.visto={};
+  mp.jog=host?[{id:meuId,nome:meuNome}]:[];mp.tela=host?'host':'entrando';
+  abreWs(sala);
+  mp.ping=setInterval(()=>{
+    mpEnvia({t:'ping'});
+    if(mp.host&&estado!=='jogo'){const agora=Date.now(),antes=mp.jog.length;
+      mp.jog=mp.jog.filter(j=>j.id===meuId||agora-(mp.visto[j.id]||agora)<12000);
+      if(mp.jog.length!==antes){mandaLista();salaRender();}}
+  },4000);
+  if(!host)mp.checa=setTimeout(()=>{if(!mp.jog.length){mp.tela='erro';salaRender();}},7000);
+  salaRender();
+}
+function mpSai(){
+  if(mp.online)mpEnvia({t:'sai',host:mp.host});
+  const ws=mp.ws;mp.ws=null;mp.online=false;mp.sala='';mp.host=false;mp.jog=[];
+  clearInterval(mp.ping);clearTimeout(mp.checa);if(ws){try{ws.close();}catch(e){}}
+}
+function mandaLista(){mpEnvia({t:'lista',jog:mp.jog,jogo:estado==='jogo'});}
+function estadoArr(n){return [r1(n.x),r1(n.z),Math.round(n.h*100)/100,r1(n.v),Math.ceil(n.hp),n.max,n.vivo?1:0];}
+function aplicaNavio(n,a){if(!n||!a)return;n.tx=a[0];n.tz=a[1];n.th=a[2];n.v=a[3];n.hp=a[4];n.max=a[5];
+  const vivo=!!a[6];if(n.vivo&&!vivo){n.afund=0;explosao(n.x,3,n.z);}if(!n.vivo&&vivo){n.afund=0;n.x=n.tx;n.z=n.tz;}n.vivo=vivo;}
+function mpRecebe(ev){
+  let m;try{m=JSON.parse(ev.data);}catch(e){return;}
+  if(!m||m.sala!==mp.sala||!m.id||m.id===meuId)return;
+  mp.visto[m.id]=Date.now();
+  switch(m.t){
+    case 'oi':
+      if(mp.host){const j=mp.jog.find(x=>x.id===m.id);
+        if(j)j.nome=m.nome;else if(mp.jog.length<4)mp.jog.push({id:m.id,nome:String(m.nome||'Pirata').slice(0,20)});
+        mandaLista();salaRender();}
+      break;
+    case 'lista':
+      if(mp.host)break;clearTimeout(mp.checa);mp.jog=m.jog||[];
+      mp.tela=!mp.jog.some(j=>j.id===meuId)?'cheia':m.jogo?'emjogo':'esperando';salaRender();break;
+    case 'start':
+      if(mp.host||!m.jog||!m.jog.some(j=>j.id===meuId))break;
+      clearTimeout(mp.checa);mp.jog=m.jog;novaPartida(mp.jog);break;
+    case 'st':{const n=outros[m.id];if(n)aplicaNavio(n,m.a);break;}
+    case 'ini':
+      if(mp.host||estado!=='jogo')break;
+      onda=m.w;fase=m.f;faseT=m.ft;
+      {const vistos={};
+        (m.l||[]).forEach(a=>{vistos[a[0]]=1;let n=inimigos.find(x=>x.id===a[0]);
+          if(!n){n=novoNavio({id:a[0],tipo:a[1],inimigo:true,remoto:true,nome:(a[1]==='chefe'?'👑 ':'☠️ ')+TIPOS[a[1]].nome});n.x=n.tx=a[2];n.z=n.tz=a[3];n.h=n.th=a[4];inimigos.push(n);}
+          n.tx=a[2];n.tz=a[3];n.th=a[4];n.v=a[5];n.hp=a[6];n.max=a[7];
+          if(n.vivo&&!a[8]){n.vivo=false;n.afund=0;afundou(n);}});
+        for(let i=inimigos.length-1;i>=0;i--)if(!vistos[inimigos[i].id]){tiraNavio(inimigos[i]);inimigos.splice(i,1);}}
+      break;
+    case 'tiro':(m.b||[]).forEach(b=>criaBala(b,m.dono,!!m.ini,m.dano||10));
+      {const n=outros[m.dono]||inimigos.find(x=>x.id===m.dono);if(n&&m.b&&m.b[0])fumaca(m.b[0][0],4,m.b[0][2],0xdddddd,2);}break;
+    case 'vitoria':if(!venceu){venceu=true;vitoria();}break;
+    case 'sai':
+      if(mp.host){mp.jog=mp.jog.filter(j=>j.id!==m.id);mandaLista();salaRender();}
+      if(outros[m.id]){avisa('🚪 '+outros[m.id].nome+' saiu');tiraNavio(outros[m.id]);delete outros[m.id];}
+      if(m.host&&!mp.host){mp.hostSaiu=true;mp.tela='erro';salaRender();
+        if(estado==='jogo'){avisoGrande('🚪 O dono da sala saiu');setTimeout(()=>{if(estado==='jogo')fimDeJogo(false);},2500);}}
+      break;
+  }
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function salaRender(){
+  const el=$('salaCorpo');
+  const lista=()=>'<div id="salaLista">'+mp.jog.map(j=>'<div>🏴‍☠️ '+esc(j.nome)+(j.id===meuId?' <b>(você)</b>':'')+'</div>').join('')+'</div>';
+  if(!mp.online||mp.tela==='inicio'){
+    el.innerHTML='<button class="big g" id="bCriar">➕ CRIAR SALA</button>'+
+      '<div class="sub" style="margin-top:8px">ou digite o código que seu amigo mandou:</div>'+
+      '<div class="linha"><input id="cod" maxlength="5" placeholder="CÓDIGO" autocomplete="off"><button class="big" id="bEntrar" style="padding:10px 22px;font-size:22px;margin:0">ENTRAR</button></div>'+
+      '<div class="dica">Você aparece na sala como <b>'+esc(meuNome)+'</b>. Até 4 piratas por sala!</div>';
+    $('bCriar').onclick=()=>mpConecta(codigoSala(),true);
+    $('bEntrar').onclick=entrarPeloCampo;$('cod').onkeydown=e=>{if(e.key==='Enter')entrarPeloCampo();};
+    return;
+  }
+  if(mp.tela==='erro'){
+    el.innerHTML='<div class="sub" style="font-size:20px">😢 '+(mp.hostSaiu?'O dono da sala saiu.':'Não achei essa sala. Confere o código!')+'</div><button class="big" id="bDeNovoSala">🔁 Tentar de novo</button>';
+    $('bDeNovoSala').onclick=()=>{mpSai();mp.tela='inicio';salaRender();};return;
+  }
+  if(mp.host){
+    const pode=mp.jog.length>=2;
+    el.innerHTML='<div class="sub">Código da sala:</div><div class="codigo">'+mp.sala+'</div><div class="sub">Mande esse código pro seu amigo 👆</div>'+
+      '<button class="op" id="bCopiar">📋 Copiar link da sala</button><div class="rot">🏴‍☠️ PIRATAS NA SALA ('+mp.jog.length+'/4)</div>'+lista()+
+      (pode?'<button class="big" id="bComecar">⛵ ZARPAR!</button>':'<div class="sub">⏳ Esperando seu amigo entrar...</div>');
+    $('bCopiar').onclick=()=>{const l=location.origin+'/piratas/?sala='+mp.sala;
+      try{navigator.clipboard.writeText(l).then(()=>{$('bCopiar').textContent='✅ Link copiado!';},()=>{$('bCopiar').textContent=l;});}catch(e){$('bCopiar').textContent=l;}};
+    if(pode)$('bComecar').onclick=hostComeca;return;
+  }
+  const txt={entrando:'⏳ Entrando na sala...',esperando:'⏳ Esperando o dono da sala zarpar...',emjogo:'⚔️ A batalha já começou! Você entra na próxima 😉',cheia:'😢 A sala tá cheia (4 piratas).'}[mp.tela]||'';
+  el.innerHTML='<div class="sub">Sala</div><div class="codigo">'+mp.sala+'</div>'+(mp.jog.length?'<div class="rot">🏴‍☠️ PIRATAS NA SALA ('+mp.jog.length+'/4)</div>'+lista():'')+
+    '<div class="sub" style="font-size:19px;margin-top:6px">'+txt+'</div>';
+}
+function entrarPeloCampo(){const c=($('cod').value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length<4){$('cod').focus();return;}mpConecta(c,false);}
+function hostComeca(){if(!mp.host||mp.jog.length<2)return;mpEnvia({t:'start',jog:mp.jog});novaPartida(mp.jog);}
+function mpEnviaEstado(){
+  if(!mp.online||!jogador)return;
+  mpEnvia({t:'st',a:estadoArr(jogador)});
+  if(mp.host)mpEnvia({t:'ini',w:onda,f:fase,ft:Math.round(faseT),l:inimigos.map(n=>[n.id,n.tipo,r1(n.x),r1(n.z),Math.round(n.h*100)/100,r1(n.v),Math.ceil(n.hp),n.max,n.vivo?1:0])});
+}
+
+// ================= CÂMERA =================
+const camPos=new THREE.Vector3(),camTmp=new THREE.Vector3();let camInstant=true;
+function atualizaCamera(dt,t){
+  if(estado==='menu'||!jogador){
+    const a=t*0.15;camera.position.set(Math.sin(a)*34,14,Math.cos(a)*34);camera.lookAt(0,5,0);camInstant=true;return;
+  }
+  const n=jogador,f=fwd(n.h);
+  camTmp.set(n.x-f[0]*30,15,n.z-f[1]*30);
+  if(camInstant){camPos.copy(camTmp);camInstant=false;}else camPos.lerp(camTmp,1-Math.pow(0.02,dt));
+  camera.position.copy(camPos);
+  if(tremor>0){tremor-=dt;camera.position.x+=(Math.random()-0.5)*tremor*3;camera.position.y+=(Math.random()-0.5)*tremor*3;}
+  camera.lookAt(n.x+f[0]*12,3,n.z+f[1]*12);
+}
+
+// ================= LOOP =================
+function loop(ts){
+  requestAnimationFrame(loop);
+  if(TOUCH&&ts-ultQuadro<31)return;
+  ultQuadro=ts;
+  const dt=Math.min(0.05,(ts-ultimo)/1000);ultimo=ts;
+  passo(dt);
+  renderer.render(scene,camera);
+}
+function passo(dt){
+  const t=performance.now()/1000;
+  texMar.offset.x=t*0.004;texMar.offset.y=t*0.006;
+  if(estado==='jogo'||estado==='fim'){
+    if(jogador){
+      if(jogador.vivo){const c=controles();movimenta(jogador,dt,c.acel,c.freio,c.giro);jogador.recE-=dt;jogador.recD-=dt;}
+      else{jogador.v*=0.98;if(jogador.morteT>0){jogador.morteT-=dt;if(jogador.morteT<=0)renasce();}}
+    }
+    for(const k in outros)remotoPasso(outros[k],dt);
+    inimigos.forEach(n=>{if(n.remoto)remotoPasso(n,dt);else iaInimigo(n,dt);});
+    colideNavios();
+    atualizaBalas(dt);
+    atualizaTesouros(dt,t);
+    atualizaOndas(dt);
+    navios().concat(inimigos).forEach(n=>posGrafico(n,t));
+    if(mp.online){mp.ultEnvio+=dt;if(mp.ultEnvio>=0.1){mp.ultEnvio=0;mpEnviaEstado();}}
+  }else if(vitrine){vitrine.h+=dt*0.1;posGrafico(vitrine,t);}
+  atualizaCamera(dt,t);
+  if(avisoT>0){avisoT-=dt;if(avisoT<=0){avisoT=0;$('aviso').textContent='';}}
+  if(msgT>0){msgT-=dt;if(msgT<=0)$('msg').textContent='';}
+  acHud+=dt;if(acHud>0.25&&estado==='jogo'){acHud=0;hud();}
+  acRadar+=dt;if(acRadar>0.12&&estado==='jogo'){acRadar=0;desenhaRadar();}
+}
+
+// teste automático (só com #teste na URL)
+if(location.hash==='#teste'){
+  window.__pir={
+    jogar,passo:s=>{for(let i=0;i<s*30;i++)passo(1/30);},
+    tiro:()=>{atira(jogador,-1);atira(jogador,1);},
+    info:()=>({estado,onda,fase,hp:jogador&&jogador.hp,vivo:jogador&&jogador.vivo,ouro,afundados,ini:inimigos.map(n=>n.tipo+':'+n.hp+(n.vivo?'':'X')+(n.remoto?'R':'')).join(' '),outros:Object.keys(outros).length}),
+    deus:()=>{jogador.max=jogador.hp=99999;},
+    mataTudo:()=>inimigos.forEach(n=>danoInimigo(n,9999)),
+    criar:()=>{mpConecta(codigoSala(),true);return mp.sala;},entrar:c=>mpConecta(c,false),comecar:hostComeca
+  };
+}
+
+// ================= INÍCIO =================
+montaVitrine();
+try{const s=new URLSearchParams(location.search).get('sala');if(s){$('bAmigo').click();mpConecta(s.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5),false);}}catch(e){}
+})();
+</script>
+</body>
+</html>

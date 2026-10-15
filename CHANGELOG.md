@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v518 (2026-10-15)
+- JOGO NOVO (ainda escondido, só pelo link /piratas/): Batalha Pirata! Pilote um navio pirata 3D e afunde navios inimigos com os canhões (Q esquerda, E direita, F os dois lados). São 10 ondas com navios piratas, da marinha, fantasmas e CHEFÕES nas ondas 5 e 10. Tem ouro dos navios afundados, baús de tesouro nas ilhas, loja entre as ondas (consertar, mais canhões, velocidade, casco) e sala pra jogar com amigo no mesmo time
+
 ## v517 (2026-10-15)
 - 🏁 LANÇADO: Cogumelo Kart agora aparece na página inicial! Corrida de kart 3D com 3 pistas, roleta de poderes e sala pra jogar com amigo
 
