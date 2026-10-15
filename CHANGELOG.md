@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v516 (2026-10-15)
+- Cogumelo Kart: agora a tecla F também usa o poder
+
 ## v515 (2026-10-15)
 - Cogumelo Kart: tirei os sons (bipes e motor), que pareciam de robô
 
