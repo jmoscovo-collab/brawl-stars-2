@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v511 (2026-10-15)
+- Novo código secreto no perfil (🔑 Códigos secretos): digitar ":assets.m.cofu" abre o Catálogo 3D
+
 ## v498 (2026-10-09)
 - Troca de Cogu Coins pela moeda do jogo agora em mais 10 jogos que ainda não tinham: Corrida no Céu, Arena Cogumelo, Capivara Run 2 — Sombras, Estacionamento Maluco, Álbum de Figurinhas, Furacão.io, Polícia VS Ladrão, Chuva de Meteoros, Cogumelo Ninja e Parkour do Cogumelo 3D
 
