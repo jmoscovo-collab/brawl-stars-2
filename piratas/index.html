@@ -155,7 +155,15 @@ if(TOUCH)document.body.classList.add('touch');
 // ================= CONFIG =================
 const MUNDO=560, NAVIO_ROT=0, G=20;
 // inimigos
+// o que cada barco joga (tem a ver com o tamanho do barco!)
+const ARMAS={
+  pedra:{ic:'🪨',nome:'joga pedras',sp:30,vy:8,dano:0.8,alc:25},
+  flecha:{ic:'🏹',nome:'atira flechas',sp:55,vy:4,dano:0.9,alc:40},
+  canhao:{ic:'💣',nome:'canhões',sp:42,vy:9.5,dano:1,alc:55}
+};
 const TIPOS={
+  barquinho:{arq:'boat-row-small',esc:3,y:-0.6,hp:15,vel:12,can:1,raio:4,ouro:12,xp:4,nome:'Barquinho',ic:'🪨',alt:7,arma:'pedra',dano:3},
+  arqueiro:{arq:'ship-small',esc:1.2,hp:30,vel:14,can:2,raio:5,ouro:20,xp:7,nome:'Arqueiros',ic:'🏹',alt:14,arma:'flecha',dano:4},
   pequeno:{arq:'ship-pirate-small',esc:1.2,hp:40,vel:17,can:2,raio:5,ouro:30,xp:10,nome:'Pirata',alt:14},
   marinha:{arq:'ship-medium',esc:1.3,hp:70,vel:16,can:3,raio:6,ouro:50,xp:16,nome:'Marinha',alt:15},
   fantasma:{arq:'ship-ghost',esc:1.3,hp:90,vel:20,can:3,raio:6,ouro:70,xp:24,nome:'Fantasma',alt:15},
@@ -163,8 +171,8 @@ const TIPOS={
 };
 // navios do jogador (evolução)
 const NAVIOS=[
-  {nome:'Bote Pirata',ic:'🛶',arq:'boat-row-large',esc:3,y:-0.6,hp:100,vel:15,giro:1.05,can:2,raio:4,alt:7,preco:0},
-  {nome:'Chalupa',ic:'⛵',arq:'ship-small',esc:1.2,hp:130,vel:16,giro:1,can:2,raio:5,alt:14,preco:150},
+  {nome:'Bote Pirata',ic:'🛶',arma:'pedra',arq:'boat-row-large',esc:3,y:-0.6,hp:100,vel:15,giro:1.05,can:2,raio:4,alt:7,preco:0},
+  {nome:'Chalupa',ic:'⛵',arma:'flecha',arq:'ship-small',esc:1.2,hp:130,vel:16,giro:1,can:2,raio:5,alt:14,preco:150},
   {nome:'Escuna Pirata',ic:'🏴‍☠️',arq:'ship-pirate-small',esc:1.2,hp:160,vel:17,giro:1,can:2,raio:5,alt:14,preco:400},
   {nome:'Brigue',ic:'⚓',arq:'ship-medium',esc:1.3,hp:200,vel:18,giro:0.95,can:3,raio:6,alt:15,preco:900},
   {nome:'Galeão Pirata',ic:'☠️',arq:'ship-pirate-medium',esc:1.3,hp:250,vel:19,giro:0.95,can:3,raio:6,alt:15,preco:1800},
@@ -178,7 +186,7 @@ const UPS=[
   {id:'casco',ic:'🛡️',nome:'Casco Reforçado',desc:'+12% de vida',max:20,base:40},
   {id:'dano',ic:'💥',nome:'Pólvora Forte',desc:'+10% de dano',max:25,base:45},
   {id:'recarga',ic:'⏱️',nome:'Recarga Rápida',desc:'Canhões recarregam 4% mais rápido',max:15,base:50},
-  {id:'canhoes',ic:'➕',nome:'Canhões Extras',desc:'+1 canhão de cada lado',max:4,base:300},
+  {id:'canhoes',ic:'➕',nome:'Mais Tiros',desc:'+1 tiro de cada lado (pedra, flecha ou canhão)',max:4,base:300},
   {id:'velas',ic:'⛵',nome:'Velas Grandes',desc:'+4% de velocidade',max:15,base:35},
   {id:'leme',ic:'🧭',nome:'Leme Ágil',desc:'+6% pra virar',max:10,base:30},
   {id:'alcance',ic:'🎯',nome:'Alcance',desc:'Bala vai 6% mais longe',max:10,base:40},
@@ -390,25 +398,35 @@ let balas=[],efeitos=[],barris=[],baus=[];
 function atira(n,lado){ // lado: 1 direita, -1 esquerda
   if(!n.vivo)return false;
   const k=lado>0?'recD':'recE';if(n[k]>0)return false;
-  n[k]=n.inimigo?4:n.rec;
+  const arma=n.def.arma||'canhao',A=ARMAS[arma];
+  n[k]=n.inimigo?(arma==='pedra'?4.5:4):n.rec;
   const f=fwd(n.h),d=dir(n.h),lista=[],q=n.can,esp=q>1?Math.min(3.2,(n.raio*1.6)/(q-1)):0;
   for(let i=0;i<q;i++){
-    const off=(i-(q-1)/2)*esp,sp=(n.inimigo?42:48)*(n.alc||1),erro=n.inimigo?(Math.random()-0.5)*6:(Math.random()-0.5)*2;
+    const off=(i-(q-1)/2)*esp,sp=(n.inimigo?A.sp:A.sp*1.12)*(n.alc||1),erro=n.inimigo?(Math.random()-0.5)*6:(Math.random()-0.5)*2;
     const x=n.x+f[0]*off+d[0]*lado*3,z=n.z+f[1]*off+d[1]*lado*3;
-    lista.push([r1(x),3,r1(z),r1(d[0]*lado*sp+f[0]*(n.v+erro)),r1(9+Math.random()*1.5),r1(d[1]*lado*sp+f[1]*(n.v+erro))]);
+    lista.push([r1(x),3,r1(z),r1(d[0]*lado*sp+f[0]*(n.v+erro)),r1(A.vy+Math.random()*1.5),r1(d[1]*lado*sp+f[1]*(n.v+erro))]);
   }
-  const tipo=n.inimigo?'ferro':save.bala,dano=Math.round(n.dano);
-  lista.forEach(b=>criaBala(b,n.id,n.inimigo,dano,tipo));
-  mpEnvia({t:'tiro',b:lista,dono:n.id,ini:n.inimigo?1:0,dano,tipo});
-  fumaca(n.x+d[0]*lado*4,4,n.z+d[1]*lado*4,0xdddddd,Math.min(q,5));
+  // balas especiais (fogo, gelo...) só saem de canhão
+  const tipo=arma==='canhao'&&!n.inimigo?save.bala:'ferro',dano=Math.round(n.inimigo?n.dano:n.dano*A.dano);
+  lista.forEach(b=>criaBala(b,n.id,n.inimigo,dano,tipo,arma));
+  mpEnvia({t:'tiro',b:lista,dono:n.id,ini:n.inimigo?1:0,dano,tipo,arma});
+  if(arma==='canhao')fumaca(n.x+d[0]*lado*4,4,n.z+d[1]*lado*4,0xdddddd,Math.min(q,5));
   return true;
 }
-function criaBala(b,dono,inimigo,dano,tipo){
+const pedraG=new THREE.IcosahedronGeometry(0.9,0),pedraM=new THREE.MeshLambertMaterial({color:0x8a8a8a});
+const flechaG=new THREE.CylinderGeometry(0.08,0.08,2.4,5);flechaG.rotateX(Math.PI/2);
+const flechaM=new THREE.MeshLambertMaterial({color:0x8b5a2b}),pontaG=new THREE.ConeGeometry(0.2,0.5,5),pontaM=new THREE.MeshLambertMaterial({color:0xdddddd});
+pontaG.rotateX(Math.PI/2);pontaG.translate(0,0,1.4);
+function criaBala(b,dono,inimigo,dano,tipo,arma){
   if(!balaMat[tipo])tipo='ferro';
-  const m=new THREE.Mesh(balaG,balaMat[tipo]);m.position.set(b[0],b[1],b[2]);
-  if(tipo==='corrente')m.scale.setScalar(1.8);else if(tipo==='cogumelo')m.scale.setScalar(1.4);
+  arma=ARMAS[arma]?arma:'canhao';
+  let m;
+  if(arma==='pedra'){m=new THREE.Mesh(pedraG,pedraM);m.rotation.set(Math.random()*3,Math.random()*3,0);}
+  else if(arma==='flecha'){m=new THREE.Group();m.add(new THREE.Mesh(flechaG,flechaM));m.add(new THREE.Mesh(pontaG,pontaM));}
+  else{m=new THREE.Mesh(balaG,balaMat[tipo]);if(tipo==='corrente')m.scale.setScalar(1.8);else if(tipo==='cogumelo')m.scale.setScalar(1.4);}
+  m.position.set(b[0],b[1],b[2]);
   scene.add(m);
-  balas.push({m,x:b[0],y:b[1],z:b[2],vx:b[3],vy:b[4],vz:b[5],dono,inimigo,dano,tipo,vida:4});
+  balas.push({m,x:b[0],y:b[1],z:b[2],vx:b[3],vy:b[4],vz:b[5],dono,inimigo,dano,tipo,arma,vida:4});
 }
 function fumaca(x,y,z,cor,n){
   for(let i=0;i<n&&efeitos.length<90;i++){
@@ -446,6 +464,8 @@ function atualizaBalas(dt){
         b.vx=Math.sin(na)*vel;b.vz=Math.cos(na)*vel;b.vy-=G*dt*0.5;}else b.vy-=G*dt;
     }else b.vy-=G*dt;
     b.x+=b.vx*dt;b.y+=b.vy*dt;b.z+=b.vz*dt;b.m.position.set(b.x,b.y,b.z);
+    if(b.arma==='flecha')b.m.lookAt(b.x+b.vx,b.y+b.vy,b.z+b.vz);
+    else if(b.arma==='pedra'){b.m.rotation.x+=dt*8;b.m.rotation.y+=dt*5;}
     let fim=false;
     if(b.y<0.2){splash(b.x,b.z);fim=true;}
     else{
@@ -530,30 +550,46 @@ function atualizaTesouros(dt,t){
 let onda=0,fase='intervalo',faseT=0,contIni=0,tremor=0;
 function souDono(){return !mp.online||mp.host;}
 function centroJogadores(){const l=navios().filter(n=>n.vivo);if(!l.length)return {x:0,z:0};let x=0,z=0;l.forEach(n=>{x+=n.x;z+=n.z;});return {x:x/l.length,z:z/l.length};}
+// começa com barquinhos beeem fracos jogando pedra e vai ficando beeem forte
+const ONDAS_INICIO=[
+  ['barquinho'],
+  ['barquinho','barquinho'],
+  ['barquinho','barquinho','arqueiro'],
+  ['arqueiro','arqueiro','barquinho'],
+  ['pequeno','barquinho','barquinho'],
+  ['pequeno','arqueiro','arqueiro'],
+  ['pequeno','pequeno','arqueiro'],
+  ['marinha','pequeno','pequeno'],
+  ['marinha','marinha','pequeno','arqueiro'],
+  ['chefe','pequeno','pequeno']
+];
 function ondaLista(w){
-  if(w===5)return ['chefe','pequeno','pequeno'];
-  if(w===10)return ['chefe','chefe','fantasma','marinha'];
-  const l=[],n=w<10?Math.min(6,1+w):Math.min(9,3+Math.floor(w/3));
-  for(let i=0;i<n;i++){const r=(i*7+w*3)%10;l.push(w<3?(r<7?'pequeno':'marinha'):w<6?(r<4?'pequeno':r<8?'marinha':'fantasma'):(r<3?'pequeno':r<6?'marinha':'fantasma'));}
-  if(w>10&&w%5===0){l.unshift('chefe');if(w%10===0)l.unshift('chefe');}
+  if(w<=ONDAS_INICIO.length)return ONDAS_INICIO[w-1].slice();
+  const l=[],n=Math.min(9,2+Math.floor(w/3));
+  for(let i=0;i<n;i++){const r=(i*7+w*3)%10;l.push(w<15?(r<4?'pequeno':r<8?'marinha':'fantasma'):(r<2?'pequeno':r<5?'marinha':'fantasma'));}
+  if(w%5===0){l.unshift('chefe');if(w%10===0)l.unshift('chefe');}
   return l;
+}
+function forca(w){ // quanto os inimigos ficam mais fortes em cada onda (depois da 5 cresce cada vez mais rápido)
+  const k=Math.max(0,w-5);
+  return {hp:1+0.12*k+0.012*k*k,dano:1+0.08*k+0.006*k*k,vel:1+0.015*Math.min(w,20)};
 }
 function comecaOnda(){
   onda++;fase='luta';
   const c=centroJogadores(),lista=ondaLista(onda),extra=mp.online?Object.keys(outros).length:0;
-  for(let e=0;e<extra&&onda%5!==0;e++)lista.push(onda<4?'pequeno':'marinha');
-  const fHp=1+0.12*(onda-1),fDano=1+0.07*(onda-1),fVel=1+0.015*Math.min(onda,20);
+  for(let e=0;e<extra&&onda%5!==0;e++)lista.push(onda<5?'barquinho':onda<8?'pequeno':'marinha');
+  const F=forca(onda),fHp=F.hp,fDano=F.dano,fVel=F.vel;
   lista.forEach(tp=>{
     let x,z,tent=0;
     do{const a=Math.random()*Math.PI*2,d=130+Math.random()*70;x=c.x+Math.cos(a)*d;z=c.z+Math.sin(a)*d;
       const dd=Math.hypot(x,z);if(dd>MUNDO-20){x*=(MUNDO-20)/dd;z*=(MUNDO-20)/dd;}tent++;}
     while(tent<30&&ilhas.some(il=>Math.hypot(il.x-x,il.z-z)<il.r+15));
-    const T=TIPOS[tp],n=novoNavio({id:'e'+(contIni++),tipo:tp,def:T,inimigo:true,nome:(tp==='chefe'?'👑 ':'☠️ ')+T.nome});
-    n.hp=n.max=Math.round(T.hp*fHp*(tp==='chefe'&&onda===10?1.4:1));n.dano=(tp==='chefe'?9:5)*fDano;n.vmax=T.vel*fVel;
+    const T=TIPOS[tp],n=novoNavio({id:'e'+(contIni++),tipo:tp,def:T,inimigo:true,nome:(tp==='chefe'?'👑 ':T.ic?T.ic+' ':'☠️ ')+T.nome});
+    n.hp=n.max=Math.round(T.hp*fHp);n.dano=(T.dano||(tp==='chefe'?9:5))*fDano;n.vmax=T.vel*fVel;
     n.x=x;n.z=z;n.h=Math.atan2(c.x-x,c.z-z);n.v=8;n.lado=Math.random()<0.5?1:-1;n.recE=1.5+Math.random()*2;n.recD=1.5+Math.random()*2;
     inimigos.push(n);
   });
-  avisoGrande(onda%5===0?'👑 ONDA '+onda+': CHEFÃO!':'🌊 ONDA '+onda+'!');
+  avisoGrande(lista.indexOf('chefe')>=0?'👑 ONDA '+onda+': CHEFÃO!':onda===5?'💣 ONDA 5: chegaram os piratas com CANHÃO!':'🌊 ONDA '+onda+'!');
 }
 function iaInimigo(n,dt){
   if(n.lento>0)n.lento-=dt;
@@ -588,7 +624,7 @@ function iaInimigo(n,dt){
   if(md<=45&&da<10){ // acompanha a velocidade do alvo
     n.v+=(alvo.v-n.v)*Math.min(1,dt*2);movimenta(n,dt,false,false,Math.max(-1,Math.min(1,d*2)));
   }else movimenta(n,dt,true,md<14,Math.max(-1,Math.min(1,d*2)));
-  if(md<85){
+  if(md<ARMAS[n.def.arma||'canhao'].alc){
     const dr=dir(n.h),dx=alvo.x-n.x,dz=alvo.z-n.z,la=(dx*dr[0]+dz*dr[1])/md,ao=(dx*f[0]+dz*f[1])/md;
     if(Math.abs(ao)<0.45){if(la>0)atira(n,1);else atira(n,-1);}
   }
@@ -652,7 +688,7 @@ function renderEstaleiro(){
       else if(!anterior)bt='<button disabled>🔒 Compre o anterior</button>';
       else bt='<button data-nav="'+i+'"'+(save.ouro<nv.preco?' disabled':'')+'>Comprar 💰 '+fmtN(nv.preco)+'</button>';
       h+='<div class="card'+(eq?' eq':'')+(!tem&&!anterior?' trava':'')+'"><div class="ic">'+nv.ic+'</div><div class="nm">'+(i+1)+'. '+nv.nome+'</div>'+
-        '<div class="ds">❤️ '+nv.hp+' vida • ⛵ '+nv.vel+' veloc. • 💣 '+nv.can+' canhão'+(nv.can>1?'es':'')+' por lado'+(nv.aura?' • ✨ aura':'')+'</div>'+bt+'</div>';
+        '<div class="ds">❤️ '+nv.hp+' vida • ⛵ '+nv.vel+' veloc. • 💣 '+nv.can+' por lado ('+ARMAS[nv.arma||'canhao'].nome+')'+(nv.aura?' • ✨ aura':'')+'</div>'+bt+'</div>';
     });
   }else if(abaEst==='up'){
     UPS.forEach(u=>{
@@ -662,6 +698,7 @@ function renderEstaleiro(){
         (max?'<button disabled>⭐ MÁXIMO</button>':'<button data-up="'+u.id+'"'+(save.ouro<p?' disabled':'')+'>Evoluir 💰 '+fmtN(p)+'</button>')+'</div>';
     });
   }else if(abaEst==='balas'){
+    if(NAVIOS[save.navio].arma)h+='<div class="card trava" style="grid-column:1/-1;opacity:1;border-color:#ffd84a"><div class="nm">⚠️ Seu '+NAVIOS[save.navio].nome+' '+ARMAS[NAVIOS[save.navio].arma].nome+' '+ARMAS[NAVIOS[save.navio].arma].ic+'</div><div class="ds">As balas especiais só funcionam em navio com CANHÃO (da 🏴‍☠️ Escuna Pirata pra cima). Pode comprar agora e usar depois!</div></div>';
     BALAS.forEach(b=>{
       const tem=save.balas.indexOf(b.id)>=0,eq=save.bala===b.id;
       const bt=eq?'<button disabled>✅ NOS CANHÕES</button>':tem?'<button class="usar" data-bala="'+b.id+'">💣 USAR</button>':
@@ -672,7 +709,7 @@ function renderEstaleiro(){
     const s=stats();
     h+='<div class="card eq" style="grid-column:1/-1"><div class="ic">⭐</div><div class="nm">Nível '+ni.l+' — '+titulo(ni.l)+'</div>'+
       '<div class="ds">XP: '+fmtN(ni.x)+' / '+fmtN(ni.prox)+' pro próximo nível. Ganhe XP afundando navios e achando baús!<br>Cada nível dá <b>+2% de vida e de dano</b>. A cada 5 níveis você ganha um título novo.</div>'+
-      '<div class="ds">Seu navio agora: ❤️ '+s.hp+' • 💥 '+s.dano.toFixed(1)+' de dano por bala • 💣 '+s.can+' por lado • ⏱️ '+s.rec.toFixed(2)+'s pra recarregar • ⛵ '+s.vel.toFixed(1)+' de velocidade'+(s.reparo?' • 🔧 +'+s.reparo.toFixed(1)+' vida/s':'')+'</div>'+
+      '<div class="ds">Seu navio agora: ❤️ '+s.hp+' • 💥 '+s.dano.toFixed(1)+' de dano por tiro • '+ARMAS[NAVIOS[save.navio].arma||'canhao'].ic+' '+s.can+' por lado • ⏱️ '+s.rec.toFixed(2)+'s pra recarregar • ⛵ '+s.vel.toFixed(1)+' de velocidade'+(s.reparo?' • 🔧 +'+s.reparo.toFixed(1)+' vida/s':'')+'</div>'+
       '<div class="ds">🏆 Recorde: onda '+save.recorde+'</div></div>';
     TITULOS.forEach((t,i)=>{const nv=i*5+1;h+='<div class="card'+(ni.l>=nv?' eq':' trava')+'"><div class="ic">'+(ni.l>=nv?'🏅':'🔒')+'</div><div class="nm">'+t+'</div><div class="nv">a partir do nível '+nv+'</div></div>';});
   }
@@ -718,8 +755,9 @@ function hud(){
   const vivos=inimigos.filter(n=>n.vivo).length;
   $('hOnda').innerHTML='🌊 Onda '+Math.max(1,onda)+(onda>10?' ♾️':'')+'<small>'+(fase==='luta'?'☠️ '+vivos+' inimigo'+(vivos===1?'':'s'):'⏳ próxima onda em '+Math.ceil(Math.max(0,faseT))+'s')+'</small>';
   $('rE').className=jogador.recE<=0?'ok':'';$('rD').className=jogador.recD<=0?'ok':'';
-  $('rE').textContent=jogador.recE<=0?BALAS.find(b=>b.id===save.bala).ic+' Q':'⏳ '+jogador.recE.toFixed(1);
-  $('rD').textContent=jogador.recD<=0?'E '+BALAS.find(b=>b.id===save.bala).ic:jogador.recD.toFixed(1)+' ⏳';
+  const icA=NAVIOS[save.navio].arma?ARMAS[NAVIOS[save.navio].arma].ic:BALAS.find(b=>b.id===save.bala).ic;
+  $('rE').textContent=jogador.recE<=0?icA+' Q':'⏳ '+jogador.recE.toFixed(1);
+  $('rD').textContent=jogador.recD<=0?'E '+icA:jogador.recD.toFixed(1)+' ⏳';
   const lojaOn=fase==='intervalo'&&estado==='jogo'&&onda>0&&jogador.vivo&&!$('estaleiro').classList.contains('on');
   $('loja').classList.toggle('on',lojaOn);if(lojaOn)montaLoja();
 }
@@ -930,12 +968,12 @@ function mpRecebe(ev){
       onda=m.w;fase=m.f;faseT=m.ft;
       {const vistos={};
         (m.l||[]).forEach(a=>{vistos[a[0]]=1;let n=inimigos.find(x=>x.id===a[0]);
-          if(!n){const T=TIPOS[a[1]];if(!T)return;n=novoNavio({id:a[0],tipo:a[1],def:T,inimigo:true,remoto:true,nome:(a[1]==='chefe'?'👑 ':'☠️ ')+T.nome});n.x=n.tx=a[2];n.z=n.tz=a[3];n.h=n.th=a[4];inimigos.push(n);}
+          if(!n){const T=TIPOS[a[1]];if(!T)return;n=novoNavio({id:a[0],tipo:a[1],def:T,inimigo:true,remoto:true,nome:(a[1]==='chefe'?'👑 ':T.ic?T.ic+' ':'☠️ ')+T.nome});n.x=n.tx=a[2];n.z=n.tz=a[3];n.h=n.th=a[4];inimigos.push(n);}
           n.tx=a[2];n.tz=a[3];n.th=a[4];n.v=a[5];n.hp=a[6];n.max=a[7];n.queima=a[9]?1:0;n.lento=a[10]?1:0;
           if(n.vivo&&!a[8]){n.vivo=false;n.afund=0;afundou(n);}});
         for(let i=inimigos.length-1;i>=0;i--)if(!vistos[inimigos[i].id]){tiraNavio(inimigos[i]);inimigos.splice(i,1);}}
       break;
-    case 'tiro':(m.b||[]).forEach(b=>criaBala(b,m.dono,!!m.ini,m.dano||10,m.tipo||'ferro'));
+    case 'tiro':(m.b||[]).forEach(b=>criaBala(b,m.dono,!!m.ini,m.dano||10,m.tipo||'ferro',m.arma||'canhao'));
       if(m.b&&m.b[0])fumaca(m.b[0][0],4,m.b[0][2],0xdddddd,2);break;
     case 'sai':
       if(mp.host){mp.jog=mp.jog.filter(j=>j.id!==m.id);mandaLista();salaRender();}

@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v520 (2026-10-15)
+- Batalha Pirata: cada barco ataca com uma coisa que combina com ele! O 🛶 Bote Pirata joga PEDRAS 🪨, a ⛵ Chalupa atira FLECHAS 🏹 e só da 🏴‍☠️ Escuna Pirata pra cima tem CANHÃO 💣 (é aí que as balas especiais funcionam)
+- Os inimigos começam BEEEM fracos (barquinhos jogando pedra e arqueiros), os piratas com canhão chegam na onda 5, o chefão na onda 10, e depois eles vão ficando BEEEM fortes a cada onda (na onda 20 têm 5x mais vida, na 30 têm 11x!)
+
 ## v519 (2026-10-15)
 - 🏴‍☠️ LANÇADO: Batalha Pirata agora aparece na página inicial!
 - Os navios inimigos agora PERSEGUEM você de verdade: correm atrás, grudam do lado e não te largam (e não ficam mais presos nas ilhas)
