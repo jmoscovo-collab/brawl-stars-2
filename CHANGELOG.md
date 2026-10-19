@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v523 (2026-10-19)
+- Chuva de Meteoros: achado o motivo de o encolhimento de tela baixa não funcionar de verdade (uma regra de CSS estava "por cima" da outra e cancelava o efeito) e corrigido pra valer — agora o título e os textos encolhem mesmo no celular deitado e o menu some bem menos
+
 ## v522 (2026-10-19)
 - Chuva de Meteoros: corrigido o menu inicial que sumia no celular deitado e no computador (tela não deixava rolar de jeito nenhum); agora também encolhe sozinho quando a tela é baixa, pra precisar rolar bem menos
 
