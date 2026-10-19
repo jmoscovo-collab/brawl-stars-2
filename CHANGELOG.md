@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v524 (2026-10-19)
+- Chuva de Meteoros: o menu inicial em tela baixa (celular deitado / janela de PC baixinha) agora cabe inteiro na tela sem precisar rolar — os 4 botões viram uma gradinho 2x2 e a imagem/texto de história somem só nesse caso
+
 ## v523 (2026-10-19)
 - Chuva de Meteoros: achado o motivo de o encolhimento de tela baixa não funcionar de verdade (uma regra de CSS estava "por cima" da outra e cancelava o efeito) e corrigido pra valer — agora o título e os textos encolhem mesmo no celular deitado e o menu some bem menos
 
