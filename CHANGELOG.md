@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v522 (2026-10-19)
+- Chuva de Meteoros: corrigido o menu inicial que sumia no celular deitado e no computador (tela não deixava rolar de jeito nenhum); agora também encolhe sozinho quando a tela é baixa, pra precisar rolar bem menos
+
 ## v521 (2026-10-19)
 - Chuva de Meteoros: corrigido bug do Top Global que não rolava direito no celular (scroll por toque não funcionava); agora mostra o Top 10 com botões "Mostrar mais" (abre de 10 em 10) e "Mostrar tudo" (abre todo mundo)
 
