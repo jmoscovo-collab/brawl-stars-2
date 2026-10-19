@@ -44,7 +44,9 @@ input:focus{border-color:#ff8a3d}
 .linha .pos{width:30px;font-weight:bold;opacity:.8;flex:none}
 .linha .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:bold}
 .linha .tp{font-variant-numeric:tabular-nums;font-weight:bold;color:#ff9a4d}
-.rolar{max-height:46vh;overflow-y:auto;width:100%;max-width:400px}
+.rolar{max-height:46vh;overflow-y:auto;width:100%;max-width:400px;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.verBtns{display:none;gap:8px;width:100%;max-width:400px}
+.verBtns .bt{min-width:0;flex:1;padding:10px;font-size:13px}
 .abas{display:flex;gap:7px}
 .aba{border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;border-radius:13px;
   padding:7px 15px;font-size:13px;font-weight:bold;cursor:pointer;font-family:inherit}
@@ -91,6 +93,10 @@ input:focus{border-color:#ff8a3d}
     <button class="aba" data-ab="meu">🏆 Meu recorde</button>
   </div>
   <div class="top rolar" id="listaTop"></div>
+  <div class="verBtns" id="verBtns">
+    <button class="bt cinza" id="btVerMais">⬇️ Mostrar mais</button>
+    <button class="bt cinza" id="btVerTudo">📜 Mostrar tudo</button>
+  </div>
   <div class="sub" style="font-size:12px;opacity:.6" id="statusTop">carregando...</div>
 
   <a class="bt cinza" href="/" style="text-decoration:none;text-align:center;line-height:1.3;margin-top:6px">🏠 Voltar pro site</a>
@@ -907,41 +913,55 @@ function mandaPontuacao(segundos, aoTerminar){
 }
 
 var abaTop = 'global';
+var POR_PAGINA = 10;
+var topAtual = [], meuAtual = '', totalMundo = 0, qtdTop = POR_PAGINA;
+
+function desenhaTop(){
+  var lista = el('listaTop'), status = el('statusTop'), btns = el('verBtns');
+  lista.textContent = '';
+  var top = topAtual, meu = meuAtual;
+  if(!top.length){
+    btns.style.display = 'none';
+    status.textContent = (abaTop === 'meu')
+      ? (RECORDE > 0 ? ('Seu recorde aqui no aparelho é ' + tempoTxt(RECORDE) + 's — jogue pra entrar no mundo!') : 'Você ainda não jogou. Bora!')
+      : 'Ninguém jogou ainda. Seja o primeiro! 🥇';
+    return;
+  }
+  top.slice(0, qtdTop).forEach(function(x, i){
+    var d = document.createElement('div');
+    var souEu = String(x.nome||'').toLowerCase() === meu;
+    d.className = 'linha' + (souEu ? ' eu' : '');
+    var pos = document.createElement('span'); pos.className='pos';
+    pos.textContent = (i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'º');
+    var nm = document.createElement('span'); nm.className='nm'; nm.textContent = x.nome;
+    var tp = document.createElement('span'); tp.className='tp';
+    tp.textContent = tempoTxt((Number(x.pontos)||0)/100) + 's';
+    d.append(pos, nm, tp);
+    lista.appendChild(d);
+  });
+  if(!meu && abaTop === 'global' && RECORDE > 0){ status.textContent = 'Seu recorde: ' + tempoTxt(RECORDE) + 's'; }
+  else { status.textContent = totalMundo + ' jogadores no mundo'; }
+  btns.style.display = (top.length > qtdTop) ? 'flex' : 'none';
+}
+
+el('btVerMais').onclick = function(){ qtdTop += POR_PAGINA; desenhaTop(); };
+el('btVerTudo').onclick = function(){ qtdTop = topAtual.length; desenhaTop(); };
+
 function carregaTop(){
-  var lista = el('listaTop'), status = el('statusTop');
+  var status = el('statusTop'), btns = el('verBtns');
   if(!window.fetch){ status.textContent = 'seu navegador não consegue carregar o top 😕'; return; }
   status.textContent = 'carregando...';
+  btns.style.display = 'none';
   fetch(API, { method:'POST', headers:{'content-type':'application/json'},
     body: JSON.stringify({ acao:'ranking_top', jogo:JOGO }) })
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(j){
-      lista.textContent = '';
       var top = (j && j.top) ? j.top : [];
-      var meu = (MEU_NOME || nomeEscolhido()).toLowerCase();
-      if(abaTop === 'meu'){
-        top = top.filter(function(x){ return String(x.nome||'').toLowerCase() === meu; });
-        if(!top.length){
-          status.textContent = RECORDE > 0
-            ? ('Seu recorde aqui no aparelho é ' + tempoTxt(RECORDE) + 's — jogue pra entrar no mundo!')
-            : 'Você ainda não jogou. Bora!';
-          return;
-        }
-      }
-      if(!top.length){ status.textContent = 'Ninguém jogou ainda. Seja o primeiro! 🥇'; return; }
-      if(!meu && RECORDE > 0) status.textContent = 'Seu recorde: ' + tempoTxt(RECORDE) + 's';
-      top.slice(0,50).forEach(function(x, i){
-        var d = document.createElement('div');
-        var souEu = String(x.nome||'').toLowerCase() === meu;
-        d.className = 'linha' + (souEu ? ' eu' : '');
-        var pos = document.createElement('span'); pos.className='pos';
-        pos.textContent = (i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'º');
-        var nm = document.createElement('span'); nm.className='nm'; nm.textContent = x.nome;
-        var tp = document.createElement('span'); tp.className='tp';
-        tp.textContent = tempoTxt((Number(x.pontos)||0)/100) + 's';
-        d.append(pos, nm, tp);
-        lista.appendChild(d);
-      });
-      status.textContent = (j.top.length) + ' jogadores no mundo';
+      totalMundo = top.length;
+      meuAtual = (MEU_NOME || nomeEscolhido()).toLowerCase();
+      topAtual = (abaTop === 'meu') ? top.filter(function(x){ return String(x.nome||'').toLowerCase() === meuAtual; }) : top;
+      qtdTop = POR_PAGINA;
+      desenhaTop();
     })
     .catch(function(){ status.textContent = 'não consegui carregar agora 😕'; });
 }

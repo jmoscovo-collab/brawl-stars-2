@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v521 (2026-10-19)
+- Chuva de Meteoros: corrigido bug do Top Global que não rolava direito no celular (scroll por toque não funcionava); agora mostra o Top 10 com botões "Mostrar mais" (abre de 10 em 10) e "Mostrar tudo" (abre todo mundo)
+
 ## v520 (2026-10-15)
 - Batalha Pirata: cada barco ataca com uma coisa que combina com ele! O 🛶 Bote Pirata joga PEDRAS 🪨, a ⛵ Chalupa atira FLECHAS 🏹 e só da 🏴‍☠️ Escuna Pirata pra cima tem CANHÃO 💣 (é aí que as balas especiais funcionam)
 - Os inimigos começam BEEEM fracos (barquinhos jogando pedra e arqueiros), os piratas com canhão chegam na onda 5, o chefão na onda 10, e depois eles vão ficando BEEEM fortes a cada onda (na onda 20 têm 5x mais vida, na 30 têm 11x!)
