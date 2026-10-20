@@ -230,8 +230,11 @@ var snd = {
 var API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
 var JOGO = 'meteoros';
 var RECORDE = 0, MEU_NOME = '';
+// tempos maiores que isso só existiam por causa do bug da aba fechada contando tempo
+var LIMITE_PONTOS = 30000;   // 300s em centésimos
 try {
   RECORDE = parseFloat(localStorage.getItem('meteoros_recorde') || '0') || 0;
+  if(RECORDE * 100 > LIMITE_PONTOS) RECORDE = 0;
   MEU_NOME = localStorage.getItem('meteoros_nome') || localStorage.getItem('cg_usuario') || '';
 } catch(e){}
 
@@ -428,7 +431,8 @@ function passo(dt){
   }
 
   if(!jogando) return;
-  tempoVivo = (performance.now() - vivoDesde) / 1000;
+  // conta só o tempo que o jogo rodou de verdade (aba escondida ou PC dormindo não conta mais)
+  tempoVivo += dt;
   pintaRelogio();
 
   // ---- mexer ----
@@ -918,7 +922,7 @@ function pedeNomeUmaVez(){
 function mandaPontuacao(segundos, aoTerminar){
   var nome = pedeNomeUmaVez();
   var pontos = Math.round(segundos * 100);        // centésimos, pra ordenar certinho
-  if(!nome || nome.length < 2 || pontos <= 0 || !window.fetch) return aoTerminar(null);
+  if(!nome || nome.length < 2 || pontos <= 0 || pontos > LIMITE_PONTOS || !window.fetch) return aoTerminar(null);
   fetch(API, { method:'POST', headers:{'content-type':'application/json'},
     body: JSON.stringify({ acao:'ranking_enviar', jogo:JOGO, nome:nome, pontos:pontos }) })
     .then(function(r){ return r.ok ? r.json() : null; })
@@ -970,7 +974,7 @@ function carregaTop(){
     body: JSON.stringify({ acao:'ranking_top', jogo:JOGO }) })
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(j){
-      var top = (j && j.top) ? j.top : [];
+      var top = ((j && j.top) ? j.top : []).filter(function(x){ var p = Number(x.pontos)||0; return p > 0 && p <= LIMITE_PONTOS; });
       totalMundo = top.length;
       meuAtual = (MEU_NOME || nomeEscolhido()).toLowerCase();
       topAtual = (abaTop === 'meu') ? top.filter(function(x){ return String(x.nome||'').toLowerCase() === meuAtual; }) : top;

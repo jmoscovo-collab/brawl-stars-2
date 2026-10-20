@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v529 (2026-10-20)
+- 🌠 Chuva de Meteoros: arrumado o bug de farmar pontos! Antes o tempo era contado pelo relógio do computador, então se você saísse da aba ou fechasse o notebook o tempo continuava subindo. Agora só conta o tempo em que o jogo está rodando de verdade
+- 🌍 Top Global: os tempos impossíveis (mais de 5 minutos, feitos com esse bug) não aparecem mais na lista e não dá mais pra mandar tempo assim
+
 ## v528 (2026-10-20)
 - ⚔️ Bola vs Bola NOVO (ainda escondido, só pelo link /bolas/): agora são 25 BOLAS, cada uma com uma HABILIDADE bem diferente (rastro de fogo, congelar, superpulo, cura, espinhos, teleporte elétrico, ímã, explosão, estrelas ninja, escudo, chuva de flechas, invisível, gigante, mini, clones, suga vida, tornado, mísseis teleguiados, buraco negro, câmera lenta, bafo de dragão, laser, gravidade invertida, arco-íris surpresa e chuva de cogumelos). Tecla F usa a habilidade
 - 🎰 Roleta: gaste 50 moedas e ganhe uma bola nova (Comum, Rara, Épica, Lendária ou Mítica). Moedas se ganham jogando
