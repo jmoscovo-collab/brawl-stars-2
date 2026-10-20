@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v527 (2026-10-20)
+- 🎈 Capivara no Balão ficou MAIS BONITA e MAIS DIFÍCIL: tudo redesenhado com o dobro de pixels (capivaras com pelo e olhinho brilhando, balão com gomos, aviões com janelinhas, foguete, satélite, disco voador, meteoro com rastro de fogo, morros, árvores, sol, planeta com anel, lua e a Terra lá embaixo quando você está no espaço). Agora vêm muito mais obstáculos, bandos de pássaros, foguetes e meteoros mirando em você, raios mais perto, e cada batida faz perder 25.000 metros e deixa o balão tonto
+
 ## v526 (2026-10-20)
 - JOGO NOVO (ainda escondido, só pelo link /capibalao/): 🎈 Capivara no Balão! Jogo de pixel: a família da capivarinha está lá em cima, a 1.000.000 de metros. A câmera desce o caminho todo até a capivarinha chorando, que pede ajuda falando o nome da sua conta ("tutururu"). Você entra no balão de ar (E, ou tocando no balão no celular) e sobe desviando de pássaros, aviões, nuvens com raio, foguetes, satélites, meteoros e discos voadores, com a contagem de metros no alto da tela. Lá em cima você pula pra ilha da família, fala com a mamãe e aperta o botão verde pra ver PARABÉNS, VOCÊ CONSEGUIU!!!
 - 🔫 Cogumelo Armas foi pro final da lista, com a etiqueta EM BREVE, e quando entra aparece "ESSE JOGO AINDA NÃO ESTÁ DISPONÍVEL" (o jogo não foi apagado, só está fechado)
