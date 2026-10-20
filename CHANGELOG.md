@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v530 (2026-10-20)
+- 🌠 Chuva de Meteoros: arrumado o Top Global que não aparecia no computador (só mostrava "8 jogadores no mundo" e a lista ficava espremida, com altura zero). Agora a lista aparece certinha
+
 ## v529 (2026-10-20)
 - 🌠 Chuva de Meteoros: arrumado o bug de farmar pontos! Antes o tempo era contado pelo relógio do computador, então se você saísse da aba ou fechasse o notebook o tempo continuava subindo. Agora só conta o tempo em que o jogo está rodando de verdade
 - 🌍 Top Global: os tempos impossíveis (mais de 5 minutos, feitos com esse bug) não aparecem mais na lista e não dá mais pra mandar tempo assim
