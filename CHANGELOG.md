@@ -1,5 +1,11 @@
 # Changelog - Cogumelo Games (site)
 
+## v528 (2026-10-20)
+- ⚔️ Bola vs Bola NOVO (ainda escondido, só pelo link /bolas/): agora são 25 BOLAS, cada uma com uma HABILIDADE bem diferente (rastro de fogo, congelar, superpulo, cura, espinhos, teleporte elétrico, ímã, explosão, estrelas ninja, escudo, chuva de flechas, invisível, gigante, mini, clones, suga vida, tornado, mísseis teleguiados, buraco negro, câmera lenta, bafo de dragão, laser, gravidade invertida, arco-íris surpresa e chuva de cogumelos). Tecla F usa a habilidade
+- 🎰 Roleta: gaste 50 moedas e ganhe uma bola nova (Comum, Rara, Épica, Lendária ou Mítica). Moedas se ganham jogando
+- Lobby: jogar com bots ou criar SALA pra jogar com amigos (até 8 bolas na arena). Cada um tem 3 VIDAS e o jogo sorteia 3 bolas suas pra você escolher. Arena maior e bolas maiores
+- O jogo antigo continua no botão 🏆 Torneio clássico
+
 ## v527 (2026-10-20)
 - 🎈 Capivara no Balão ficou MAIS BONITA e MAIS DIFÍCIL: tudo redesenhado com o dobro de pixels (capivaras com pelo e olhinho brilhando, balão com gomos, aviões com janelinhas, foguete, satélite, disco voador, meteoro com rastro de fogo, morros, árvores, sol, planeta com anel, lua e a Terra lá embaixo quando você está no espaço). Agora vêm muito mais obstáculos, bandos de pássaros, foguetes e meteoros mirando em você, raios mais perto, e cada batida faz perder 25.000 metros e deixa o balão tonto
 
