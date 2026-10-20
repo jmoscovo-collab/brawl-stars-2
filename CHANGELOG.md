@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v525 (2026-10-20)
+- JOGO NOVO (ainda escondido, só pelo link /bolas/): ⚔️ Bola vs Bola! Bolinhas quicando numa arena, cada uma com uma arma girando em volta: espada, adaga, lança, martelo, arco e foice. Você controla a sua bola (setas/WASD ou arrastando o dedo), usa 💨 impulso (Espaço) e 🔄 inverte o giro da arma (E ou Q). A cada acerto a arma fica mais forte (a espada dá mais dano, a adaga gira mais rápido, a lança cresce, o arco atira mais flechas e a foice rouba vida). Quando duas armas batem, elas quicam! Tem torneio de 10 lutas que vão liberando as armas, com a 👑 Bola Rei no final, e um modo treino
+
 ## v524 (2026-10-19)
 - Chuva de Meteoros: o menu inicial em tela baixa (celular deitado / janela de PC baixinha) agora cabe inteiro na tela sem precisar rolar — os 4 botões viram uma gradinho 2x2 e a imagem/texto de história somem só nesse caso
 
