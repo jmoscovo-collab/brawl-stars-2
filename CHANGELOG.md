@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v526 (2026-10-20)
+- JOGO NOVO (ainda escondido, só pelo link /capibalao/): 🎈 Capivara no Balão! Jogo de pixel: a família da capivarinha está lá em cima, a 1.000.000 de metros. A câmera desce o caminho todo até a capivarinha chorando, que pede ajuda falando o nome da sua conta ("tutururu"). Você entra no balão de ar (E, ou tocando no balão no celular) e sobe desviando de pássaros, aviões, nuvens com raio, foguetes, satélites, meteoros e discos voadores, com a contagem de metros no alto da tela. Lá em cima você pula pra ilha da família, fala com a mamãe e aperta o botão verde pra ver PARABÉNS, VOCÊ CONSEGUIU!!!
+- 🔫 Cogumelo Armas foi pro final da lista, com a etiqueta EM BREVE, e quando entra aparece "ESSE JOGO AINDA NÃO ESTÁ DISPONÍVEL" (o jogo não foi apagado, só está fechado)
+
 ## v525 (2026-10-20)
 - JOGO NOVO (ainda escondido, só pelo link /bolas/): ⚔️ Bola vs Bola! Bolinhas quicando numa arena, cada uma com uma arma girando em volta: espada, adaga, lança, martelo, arco e foice. Você controla a sua bola (setas/WASD ou arrastando o dedo), usa 💨 impulso (Espaço) e 🔄 inverte o giro da arma (E ou Q). A cada acerto a arma fica mais forte (a espada dá mais dano, a adaga gira mais rápido, a lança cresce, o arco atira mais flechas e a foice rouba vida). Quando duas armas batem, elas quicam! Tem torneio de 10 lutas que vão liberando as armas, com a 👑 Bola Rei no final, e um modo treino
 
