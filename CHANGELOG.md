@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v535 (2026-10-20)
+- ⚔️ LANÇADO: Bola vs Bola agora aparece na página inicial!
+- 🎈 LANÇADO: Capivara no Balão agora aparece na página inicial!
+- O selo NOVO! agora está em: Bola vs Bola, Capivara no Balão e Invasão Pixel
+
 ## v534 (2026-10-20)
 - 👾 LANÇADO: Invasão Pixel agora aparece na página inicial, com o selo NOVO!
 
