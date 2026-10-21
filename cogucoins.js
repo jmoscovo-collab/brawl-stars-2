@@ -5,6 +5,16 @@
 (function () {
   if (window.CoguCoins) return;
 
+  // painel ADM: mudança no save que ficou esperando o jogo recarregar (aplica antes do jogo ler o save)
+  try {
+    var pendente = sessionStorage.getItem('cg_adm_aplicar');
+    if (pendente) {
+      sessionStorage.removeItem('cg_adm_aplicar');
+      var pa = JSON.parse(pendente);
+      if (pa && typeof pa.k === 'string' && typeof pa.v === 'string' && !/^cg_/.test(pa.k)) localStorage.setItem(pa.k, pa.v);
+    }
+  } catch (e) {}
+
   var CHAVE = 'cg_cogucoins';
   var CHAVE_ITENS = 'cg_cogu_itens';
 
@@ -446,5 +456,5 @@
   }
 
   // painel ADM do Davi (abre digitando "adm" e colocando o código secreto)
-  try { var sa = document.createElement('script'); sa.src = '/adm.js?v=544'; sa.async = true; (document.head || document.documentElement).appendChild(sa); } catch (e) {}
+  try { var sa = document.createElement('script'); sa.src = '/adm.js?t=' + Math.floor(Date.now() / 600000); /* muda a cada 10 min: o painel atualiza sozinho */ sa.async = true; (document.head || document.documentElement).appendChild(sa); } catch (e) {}
 })();

@@ -32,10 +32,12 @@
   var NOMES_GRAVA = ['grava', 'salva', 'salvar', 'gravar', 'salvaJogo', 'saveGame', 'salvaLoja', 'salvaSave'];
   function global(n) { try { return (0, eval)('typeof ' + n + '!=="undefined"?' + n + ':undefined'); } catch (e) { return undefined; } }
   function achaSave() {
+    if (window.cgAdmJogo && window.cgAdmJogo.save) return window.cgAdmJogo.save;
     for (var i = 0; i < NOMES_SAVE.length; i++) { var s = global(NOMES_SAVE[i]); if (s && typeof s === 'object' && !Array.isArray(s)) return s; }
     return null;
   }
   function gravaJogo() {
+    if (window.cgAdmJogo && typeof window.cgAdmJogo.grava === 'function') { try { window.cgAdmJogo.grava(); } catch (e) {} return true; }
     for (var i = 0; i < NOMES_GRAVA.length; i++) { var f = global(NOMES_GRAVA[i]); if (typeof f === 'function') { try { f(); } catch (e) {} return true; } }
     return false;
   }
@@ -47,6 +49,147 @@
       else if (v && typeof v === 'object' && !Array.isArray(v) && prof < 1) numeros(v, pre + k + '.', out, prof + 1);
     }
     return out;
+  }
+
+  // ---- itens do jogo: liga cada lista do save com a lista de itens do jogo ----
+  var CATS = ('SKINS TELAS CORES NIVEIS LEVELS ROUPAS PISTAS MELHORIAS MAPS UPS TEMAS ESPADAS CONQUISTAS COMIDAS CARS BOLAS WEAPONS VARAS TESOUROS SHOP ' +
+    'PODERES PEIXES PACOTES NAVIOS MUNDOS MODELOS MOCHILAS MISSOES MINERIOS KARTS ITENS ISCAS INGREDIENTES ILHAS HABS FRUTAS FIGS DETECTORES DECORACOES ' +
+    'COLECOES CHAPEUS BALAS ARMAS PICARETA PICARETAS PAS PRATOS REMEDIOS RESTAURANTES TOOLS FERRAMENTAS PETS ANIMAIS PERSONAGENS BRAWLERS CARROS ' +
+    'ACESSORIOS MOVEIS SEMENTES PLANTAS POCOES BRINQUEDOS TRILHAS LOJA ITENS_LOJA UPGRADES CARTAS FIGURINHAS CHAMPIONS TROFEUS MASCARAS OCULOS ' +
+    'CABELOS PERSONAGEM SKINS_ARMAS ESP_K').split(' ');
+  function idDe(it) {
+    if (typeof it === 'string') return it;
+    if (it && typeof it === 'object') { if (it.id != null) return it.id; if (it.k != null) return it.k; if (it.key != null) return it.key; }
+    return null;
+  }
+  function rotulo(it, i) {
+    if (typeof it === 'string') return it;
+    if (it && typeof it === 'object') return (it.ic ? it.ic + ' ' : '') + (it.n || it.nome || it.name || it.id || it.k || ('#' + i));
+    return '#' + i;
+  }
+  function catalogos() {
+    var out = [];
+    var extra = (window.cgAdmJogo && window.cgAdmJogo.cats) || {};
+    Object.keys(extra).forEach(function (n) { if (Array.isArray(extra[n]) && extra[n].length) out.push({ nome: n, arr: extra[n] }); });
+    CATS.forEach(function (n) { if (extra[n]) return; var v = global(n); if (Array.isArray(v) && v.length && v.length < 3000) out.push({ nome: n, arr: v }); });
+    return out;
+  }
+  function parecido(campo, cat) {
+    var a = campo.toLowerCase(), b = cat.toLowerCase();
+    return a === b || b.indexOf(a) === 0 || a.indexOf(b) === 0 || (a.length > 3 && b.indexOf(a.slice(0, 4)) === 0);
+  }
+  function itensDoJogo(s, cx) {
+    var cats = catalogos(); if (!cats.length) return;
+    var achou = [];
+    Object.keys(s).forEach(function (campo) {
+      var v = s[campo];
+      if (Array.isArray(v) && v.every(function (x) { return typeof x === 'string'; })) {
+        var melhor = null;
+        cats.forEach(function (c) {
+          var ids = c.arr.map(idDe); if (ids.some(function (x) { return x == null; })) return;
+          var dentro = v.every(function (x) { return ids.indexOf(x) >= 0; });
+          if (!dentro) return;
+          if (!v.length && !parecido(campo, c.nome)) return;
+          var nota = (parecido(campo, c.nome) ? 100 : 0) + v.length;
+          if (!melhor || nota > melhor.nota) melhor = { c: c, nota: nota };
+        });
+        if (melhor) achou.push({ campo: campo, tipo: 'lista', c: melhor.c });
+      } else if (Array.isArray(v) && v.length && v.every(function (x) { return typeof x === 'number' && x >= 0 && x % 1 === 0; })) {
+        var mx = Math.max.apply(null, v), m2 = null;
+        cats.forEach(function (c) {
+          if (c.arr.length <= mx || typeof c.arr[0] !== 'object' || idDe(c.arr[0]) != null) return;
+          var nota = parecido(campo, c.nome) ? 100 : 1;
+          if (!m2 || nota > m2.nota) m2 = { c: c, nota: nota };
+        });
+        if (m2 && m2.nota >= 100) achou.push({ campo: campo, tipo: 'indices', c: m2.c });
+      } else if (v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).every(function (k) { return typeof v[k] === 'number'; })) {
+        var m3 = null;
+        cats.forEach(function (c) {
+          var ids = c.arr.map(idDe); if (ids.some(function (x) { return x == null || typeof x !== 'string'; })) return;
+          if (!Object.keys(v).every(function (k) { return ids.indexOf(k) >= 0; })) return;
+          var temMax = c.arr.every(function (it) { return it && typeof it === 'object' && typeof it.max === 'number'; });
+          var nota = (parecido(campo, c.nome) ? 100 : 0) + (/^(up|ups|upgrades|melhorias|niveis|lv|nv)$/i.test(campo) && temMax ? 90 : 0) + Object.keys(v).length;
+          if (nota < 5) return;
+          if (!m3 || nota > m3.nota) m3 = { c: c, nota: nota, temMax: temMax };
+        });
+        if (m3) achou.push({ campo: campo, tipo: 'qtd', c: m3.c, temMax: m3.temMax });
+      }
+    });
+    if (!achou.length) return;
+    cx.appendChild(secao('🎁 Itens do jogo'));
+    achou.forEach(function (a) {
+      var arr = a.c.arr;
+      cx.appendChild(el('div', 'font:bold 13px Arial;margin:10px 0 4px;color:#7dff6a', '📦 ' + a.campo + ' <span style="opacity:.6;font-weight:normal">(' + arr.length + ' itens)</span>'));
+      if (a.tipo === 'lista' || a.tipo === 'indices') {
+        var l = el('div', 'display:flex;flex-wrap:wrap;gap:6px;align-items:center');
+        var sel = el('select', IN + ';width:200px');
+        arr.forEach(function (it, i) { var o = el('option', '', rotulo(it, i)); o.value = i; sel.appendChild(o); });
+        var b1 = el('button', BT, '🎁 DAR');
+        b1.onclick = function () { var i = +sel.value, val = a.tipo === 'lista' ? idDe(arr[i]) : i; if (s[a.campo].indexOf(val) < 0) s[a.campo].push(val); gravaJogo(); b1.textContent = '✅'; setTimeout(function () { b1.textContent = '🎁 DAR'; }, 900); };
+        var b2 = el('button', BT + ';background:#7dff6a', '🎁 DAR TODOS');
+        b2.onclick = function () { arr.forEach(function (it, i) { var val = a.tipo === 'lista' ? idDe(it) : i; if (s[a.campo].indexOf(val) < 0) s[a.campo].push(val); }); gravaJogo(); b2.textContent = '✅ TODOS!'; };
+        l.appendChild(sel); l.appendChild(b1); l.appendChild(b2); cx.appendChild(l);
+      } else {
+        var box = el('div', 'max-height:260px;overflow-y:auto;border:1px solid #333;border-radius:8px;padding:4px');
+        arr.forEach(function (it, i) {
+          var k = idDe(it), li = el('div', 'display:flex;align-items:center;gap:6px;margin:2px 0;font-size:12px');
+          li.appendChild(el('span', 'flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap', rotulo(it, i) + (a.temMax ? ' <span style="opacity:.6">(máx ' + it.max + ')</span>' : '')));
+          var inp = el('input', IN + ';width:80px'); inp.type = 'number'; inp.value = s[a.campo][k] || 0; li.appendChild(inp);
+          var b = el('button', BT, 'OK');
+          b.onclick = function () { var n = Math.max(0, Math.min(a.temMax ? it.max : MAX, Math.round(+inp.value || 0))); s[a.campo][k] = n; inp.value = n; gravaJogo(); b.textContent = '✅'; setTimeout(function () { b.textContent = 'OK'; }, 900); };
+          li.appendChild(b); box.appendChild(li);
+        });
+        cx.appendChild(box);
+        var bm = el('button', BT + ';background:#7dff6a', a.temMax ? '⬆ TUDO NO MÁXIMO' : '🎁 +10 DE CADA');
+        bm.onclick = function () { arr.forEach(function (it) { var k = idDe(it); s[a.campo][k] = a.temMax ? it.max : Math.min(MAX, (s[a.campo][k] || 0) + 10); }); gravaJogo(); abre(); };
+        cx.appendChild(bm);
+      }
+    });
+    cx.appendChild(el('div', 'font-size:11px;opacity:.6;margin-top:4px', 'Se o item não aparecer no jogo na hora, saia e entre de novo.'));
+  }
+
+  // ---- jogos que escondem o save: mexe no que está guardado no aparelho e recarrega ----
+  var chaveEscolhida = null;
+  function guardados(cx) {
+    var ks = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i); if (/^cg_/.test(k)) continue;
+        var v = localStorage.getItem(k) || '';
+        if (/^-?\d+(\.\d+)?$/.test(v)) { ks.push({ k: k, num: true }); continue; }
+        if (v.charAt(0) !== '{') continue;
+        try { var o = JSON.parse(v); if (o && typeof o === 'object' && !Array.isArray(o)) ks.push({ k: k }); } catch (e) {}
+      }
+    } catch (e) {}
+    var jogo = (location.pathname.split('/')[1] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    var meu = function (x) { return jogo && x.k.toLowerCase().replace(/[^a-z0-9]/g, '').indexOf(jogo.slice(0, 5)) >= 0; };
+    var desse = ks.filter(meu);
+    if (!desse.length) { cx.appendChild(el('div', 'font-size:13px;opacity:.8', 'Não achei nada guardado desse jogo ainda. Jogue uma partida e abra o painel de novo!')); return; }
+    if (!chaveEscolhida || !desse.some(function (x) { return x.k === chaveEscolhida; })) chaveEscolhida = desse[0].k;
+    cx.appendChild(el('div', 'font-size:12px;opacity:.75;margin-bottom:6px', 'Esse jogo esconde o save, então eu mudo o que está guardado no aparelho e o jogo recarrega já com as mudanças.'));
+    var sel = el('select', IN + ';width:240px');
+    desse.forEach(function (x) { var op = el('option', '', '💾 ' + x.k); op.value = x.k; if (x.k === chaveEscolhida) op.selected = true; sel.appendChild(op); });
+    sel.onchange = function () { chaveEscolhida = sel.value; abre(); };
+    cx.appendChild(sel);
+    var item = desse.filter(function (x) { return x.k === chaveEscolhida; })[0], copia, campos = [];
+    var raw = localStorage.getItem(item.k);
+    if (item.num) { copia = { valor: Number(raw) }; campos = [{ obj: copia, k: 'valor', nome: item.k }]; }
+    else { try { copia = JSON.parse(raw); } catch (e) { copia = {}; } campos = numeros(copia, '', [], 0); }
+    campos.forEach(function (c) {
+      var l = el('div', 'display:flex;align-items:center;gap:6px;margin:3px 0;font-size:13px');
+      l.appendChild(el('span', 'flex:1;overflow:hidden;text-overflow:ellipsis', c.nome));
+      var i = el('input', IN); i.type = 'number'; i.value = c.obj[c.k];
+      i.oninput = function () { var v = Number(i.value); if (isFinite(v)) c.obj[c.k] = Math.max(-MAX, Math.min(MAX, v)); };
+      l.appendChild(i); cx.appendChild(l);
+    });
+    if (!campos.length) cx.appendChild(el('div', 'font-size:13px;opacity:.8', 'Esse save não tem números pra mudar.'));
+    var b = el('button', BT + ';background:#7dff6a;margin-top:6px', '💾 APLICAR E RECARREGAR O JOGO');
+    b.onclick = function () {
+      var novo = item.num ? String(copia.valor) : JSON.stringify(copia);
+      try { sessionStorage.setItem('cg_adm_aplicar', JSON.stringify({ k: item.k, v: novo })); localStorage.setItem(item.k, novo); } catch (e) {}
+      location.reload();
+    };
+    cx.appendChild(b);
   }
 
   // ---- tela ----
@@ -76,7 +219,7 @@
     // save do jogo
     var s = achaSave();
     cx.appendChild(secao('🎮 Números do save deste jogo'));
-    if (!s) cx.appendChild(el('div', 'font-size:13px;opacity:.8', 'Não achei o save desse jogo (ou essa página não é um jogo).'));
+    if (!s) guardados(cx);
     else {
       var campos = numeros(s, '', [], 0);
       if (!campos.length) cx.appendChild(el('div', 'font-size:13px;opacity:.8', 'Esse save não tem números pra mudar.'));
@@ -90,6 +233,9 @@
       });
       cx.appendChild(el('div', 'font-size:11px;opacity:.6;margin-top:4px', 'Mudou e o jogo não atualizou? Saia e entre de novo no jogo.'));
     }
+
+    // itens do jogo (acha sozinho as listas de itens de cada jogo)
+    if (s) itensDoJogo(s, cx);
 
     // extras do Ovo de Dragão
     if (/^\/ovos/.test(location.pathname) && s && global('RAR') && global('ESP_K')) {

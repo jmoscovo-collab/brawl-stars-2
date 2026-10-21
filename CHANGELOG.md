@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v545 (2026-10-20)
+- 🛠️ Painel ADM: nova parte 🎁 ITENS DO JOGO, que acha sozinha os itens de cada jogo e deixa dar um item ou TODOS de uma vez (navios, balas, bolas, comidas...) e colocar as melhorias no nível máximo. Nos jogos que escondem o save, o painel muda o que está guardado e recarrega o jogo
+- Cogu Coins: cache novo (?v=545); o painel agora se atualiza sozinho
+
 ## v544 (2026-10-20)
 - 🛠️ Painel ADM secreto do Davi em todos os jogos (só abre com o código secreto dele). Por enquanto mexe só nas coisas do próprio aparelho: Cogu Coins, números do save do jogo aberto e, no Ovo de Dragão, dar ovos e pets
 - Cogu Coins: cache novo (?v=544) em todas as páginas
