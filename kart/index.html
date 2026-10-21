@@ -33,7 +33,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a1020;font-family:
 .correndo #sair{display:block}
 .tb{position:fixed;bottom:18px;width:84px;height:84px;border-radius:50%;background:rgba(255,255,255,.18);border:3px solid rgba(255,255,255,.55);font-size:36px;display:none;align-items:center;justify-content:center;color:#fff}
 .tb.on{background:rgba(255,221,51,.45)}
-#bEsq{left:14px}#bDir{left:110px}#bFreio{right:14px}
+#bEsq{left:14px}#bDir{left:110px}#bFreio{right:14px}#bAndar{right:108px}
 .touch.correndo .tb{display:flex}
 .touch #hVel{bottom:112px}
 .touch #item{top:auto;bottom:118px;right:18px}
@@ -81,6 +81,7 @@ h1{font-size:46px;color:#ffdd33;text-shadow:0 4px 0 #b34700,0 0 20px rgba(255,17
 <button id="sair" title="Sair">🏠</button>
 <div class="tb" id="bEsq">◀</div>
 <div class="tb" id="bDir">▶</div>
+<div class="tb" id="bAndar">⬆️</div>
 <div class="tb" id="bFreio">🛑</div>
 
 <div id="menu" class="tela on">
@@ -817,8 +818,8 @@ addEventListener('keydown',e=>{
   }
 });
 addEventListener('keyup',e=>{tec[e.key.toLowerCase()]=false;});
-const toque={esq:false,dir:false,freio:false};
-[['bEsq','esq'],['bDir','dir'],['bFreio','freio']].forEach(([id,n])=>{
+const toque={esq:false,dir:false,freio:false,andar:false};
+[['bEsq','esq'],['bDir','dir'],['bFreio','freio'],['bAndar','andar']].forEach(([id,n])=>{
   const el=$(id);
   el.addEventListener('pointerdown',e=>{e.preventDefault();audio();toque[n]=true;el.classList.add('on');});
   ['pointerup','pointercancel','pointerleave'].forEach(ev=>el.addEventListener(ev,()=>{toque[n]=false;el.classList.remove('on');}));
@@ -827,16 +828,15 @@ $('item').addEventListener('pointerdown',e=>{e.preventDefault();audio();if(estad
 $('sair').addEventListener('click',()=>irMenu());
 function controleJogador(){
   const pad=gp();
-  let acel=tec.arrowup||tec.w||(!pad&&tec.j)||gb(pad,0)||gb(pad,7);
+  let acel=tec.arrowup||tec.w||(!pad&&tec.j)||gb(pad,0)||gb(pad,7)||toque.andar;
   let freio=tec.arrowdown||tec.s||gb(pad,1)||gb(pad,6)||toque.freio;
   let giro=((tec.arrowleft||tec.a||toque.esq)?1:0)-((tec.arrowright||tec.d||toque.dir)?1:0);
   if(pad&&Math.abs(pad.axes[0]||0)>0.15)giro=-(pad.axes[0]);
-  if(TOUCH&&!freio)acel=true;
   if(pad&&(gb(pad,3)||gb(pad,5))&&!controleJogador.itemAnt)usaItem(jogador);
   controleJogador.itemAnt=pad&&(gb(pad,3)||gb(pad,5));
   return {acel,freio,giro};
 }
-$('dicaCtl').textContent=TOUCH?'📱 O kart acelera sozinho! ◀ ▶ pra virar, 🛑 freia/ré e toque no item pra usar.'
+$('dicaCtl').textContent=TOUCH?'📱 Segure ⬆️ pra andar! ◀ ▶ pra virar, 🛑 freia/ré e toque no item pra usar.'
   :'⌨️ Setas ou WASD pra dirigir • F ou ESPAÇO usa o item • 🎮 Controle: X ou R2 acelera, ⬜ usa o item';
 
 // ================= MENU =================

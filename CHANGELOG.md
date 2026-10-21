@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v546 (2026-10-21)
+- Cogumelo Kart e Batalha Pirata: adicionado um botão ⬆️ pra andar no celular (antes o kart/navio acelerava sozinho; agora é só segurar o botão pra andar e soltar pra desacelerar, igual os carros de verdade)
+
 ## v545 (2026-10-20)
 - 🛠️ Painel ADM: nova parte 🎁 ITENS DO JOGO, que acha sozinha os itens de cada jogo e deixa dar um item ou TODOS de uma vez (navios, balas, bolas, comidas...) e colocar as melhorias no nível máximo. Nos jogos que escondem o save, o painel muda o que está guardado e recarrega o jogo
 - Cogu Coins: cache novo (?v=545); o painel agora se atualiza sozinho
