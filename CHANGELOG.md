@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v534 (2026-10-20)
+- 👾 LANÇADO: Invasão Pixel agora aparece na página inicial, com o selo NOVO!
+
 ## v533 (2026-10-20)
 - Página inicial: o selo NOVO! agora fica só nos 3 jogos mais novos (Batalha Pirata, Cogumelo Kart e Capivara Caindo)
 
