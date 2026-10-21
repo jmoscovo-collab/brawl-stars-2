@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v541 (2026-10-20)
+- 🥚 Ovo de Dragão: 📖 ÍNDICE DOS PETS (botão ou tecla O) com todos os pets que você já teve. Os que faltam aparecem como sombra "???"
+- MUUUITOS pets novos: agora são 685! Comum, Incomum, Raro, Épico, Mítico e Lendário têm 102 cada, Divino tem 50, Exótico 20 e o SECRETO só 3 (com 0,261% de chance de aparecer)
+- 💪 A cada 5 níveis o pet ganha um VISUAL NOVO e mais forte (Bebê, Filhote, Jovem, Forte, Adulto, Guerreiro, Campeão, Titã) até o nível 40, quando vira GIGANTE SUPREMO com COROA 👑. Chifres, espinhos, asas, garras, armadura e joia crescem junto, e pet maior dá mais 💰
+
 ## v540 (2026-10-20)
 - 🥚 Ovo de Dragão: 🎒 INVENTÁRIO (botão ou tecla I) mostrando tudo que você tem: moedas, vitórias, renda do cercado, comidas, ovos na mochila, ovos chocando e pets
 - 🐾 Agora os ovos chocam no CERCADO: vá até o portão do cercado, coloque o ovo e espere o tempo (aparece o tempinho em cima de cada ovo)
