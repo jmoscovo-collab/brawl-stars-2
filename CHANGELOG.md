@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v536 (2026-10-20)
+- JOGO NOVO (ainda escondido, só pelo link /ovos/): 🥚 Ovo de Dragão! Você começa com um ovo de passarinho e anda por um mundo de pixel. Na 🎪 Doação de Ovos chegam 4 ovos novos a cada 2 minutos, de 9 raridades: Comum, Incomum, Raro, Épico, Mítico, Lendário, Divino, Exótico e o SECRETO. Choque os ovos no 🪺 Ninho, colha 🍎 frutas no pomar pra alimentar, e treine na ⚔ Arena (seu pet cospe fogo nos bonecos) pra ele crescer de Bebê até GIGANTE. Os pets dão moedas sozinhos (os raros dão muito mais), e dá pra comprar mais ninhos e acelerar os ovos
+
 ## v535 (2026-10-20)
 - ⚔️ LANÇADO: Bola vs Bola agora aparece na página inicial!
 - 🎈 LANÇADO: Capivara no Balão agora aparece na página inicial!
