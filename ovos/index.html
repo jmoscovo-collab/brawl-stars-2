@@ -1297,5 +1297,38 @@ $('bIdx').onclick=abreIdx;
 addEventListener('keydown',e=>{if(e.code==='KeyO'&&est==='jogo'){if($('pIdx').classList.contains('on'))$('pIdx').classList.remove('on');else if(!painelAberto())abreIdx();}});
 if(TESTE)Object.assign(window.__ovo,{abreIdx:abreIdx});
 </script>
+
+<style>
+#bAuto{position:fixed;top:116px;right:8px;z-index:6;font-family:inherit;font-size:9px;padding:7px 8px;background:rgba(0,0,0,.6);color:#fff;border:2px solid #000;cursor:pointer}
+#bAuto.on{background:#7dff6a;color:#000;animation:piscaAuto 1s infinite alternate}
+@keyframes piscaAuto{from{box-shadow:0 0 0 0 #7dff6a}to{box-shadow:0 0 12px 3px #7dff6a}}
+</style>
+<button id="bAuto">🤖 AUTO FARM</button>
+<script>
+'use strict';
+// =====================================================================
+// PARTE 7: auto farm (o pet treina sozinho na arena)
+// =====================================================================
+let autoFarm=false,autoT=0;
+function ligaAuto(v){autoFarm=v;$('bAuto').classList.toggle('on',v);$('bAuto').textContent=v?'🤖 AUTO FARM: LIGADO':'🤖 AUTO FARM';
+  if(v&&!petAtivo())texto(heroi.x,heroi.y-24,'Você precisa de um pet com você!','#fff');else if(v)texto(heroi.x,heroi.y-24,'🤖 indo treinar na arena!','#7dff6a');}
+$('bAuto').onclick=()=>ligaAuto(!autoFarm);
+// mexer com as setas desliga o auto farm
+addEventListener('keydown',e=>{if(autoFarm&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','KeyA','KeyD','KeyW','KeyS'].indexOf(e.code)>=0)ligaAuto(false);});
+cv.addEventListener('touchstart',()=>{if(autoFarm)ligaAuto(false);});
+const update4=update;
+update=function(dt){
+  if(autoFarm&&est==='jogo'&&cena==='fora'&&!painelAberto()&&petAtivo()){
+    const pm=petsMundo[save.ativo];let alvo=-1,bd=1e9;
+    BONECOS.forEach((b,i)=>{if(hpBon[i]<=0)return;const d=Math.hypot(b.x-heroi.x,b.y-heroi.y);if(d<bd){bd=d;alvo=i;}});
+    if(alvo<0)alvo=0;   // todos derrubados: espera perto do primeiro
+    const b=BONECOS[alvo];
+    const tx=b.x-4,ty=b.y+3,dx=tx-heroi.x,dy=ty-heroi.y,l=Math.hypot(dx,dy);
+    joy=l>4?{id:-1,ox:0,oy:0,dx:dx/l,dy:dy/l,auto:1}:null;
+    autoT-=dt;if(l<14&&pm&&hpBon[alvo]>0&&autoT<=0){heroi.dir=1;querFogo=true;autoT=0.5;}
+    update4(dt);if(joy&&joy.auto)joy=null;return;}
+  update4(dt);};
+if(TESTE)Object.assign(window.__ovo,{ligaAuto:ligaAuto});
+</script>
 </body>
 </html>

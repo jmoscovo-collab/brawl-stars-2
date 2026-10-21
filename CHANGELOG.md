@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v542 (2026-10-20)
+- 🥚 Ovo de Dragão: botão 🤖 AUTO FARM! Liga e o personagem vai sozinho até a arena e o pet fica treinando nos bonecos (ganha XP e 💰). Mexer com as setas ou tocar na tela desliga
+
 ## v541 (2026-10-20)
 - 🥚 Ovo de Dragão: 📖 ÍNDICE DOS PETS (botão ou tecla O) com todos os pets que você já teve. Os que faltam aparecem como sombra "???"
 - MUUUITOS pets novos: agora são 685! Comum, Incomum, Raro, Épico, Mítico e Lendário têm 102 cada, Divino tem 50, Exótico 20 e o SECRETO só 3 (com 0,261% de chance de aparecer)
