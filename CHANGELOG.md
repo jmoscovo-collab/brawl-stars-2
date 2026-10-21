@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v540 (2026-10-20)
+- 🥚 Ovo de Dragão: 🎒 INVENTÁRIO (botão ou tecla I) mostrando tudo que você tem: moedas, vitórias, renda do cercado, comidas, ovos na mochila, ovos chocando e pets
+- 🐾 Agora os ovos chocam no CERCADO: vá até o portão do cercado, coloque o ovo e espere o tempo (aparece o tempinho em cima de cada ovo)
+- 🔮 BARRAQUINHA DA MUTAÇÃO: pague 💰450 pra tentar colocar mutação num ovo (não é garantido! 45% de não sair nada). A mutação não aparece mais sozinha
+
 ## v539 (2026-10-20)
 - 🥚 Ovo de Dragão: 🌍 SERVIDOR ONLINE! Quando você entra, já está num servidor com todo mundo que está jogando (a sala privada com amigo continua existindo)
 - 🛒 A Doação virou LOJA DE OVOS: cada ovo custa 💰 (Comum 10 até o Secreto 25.000)
