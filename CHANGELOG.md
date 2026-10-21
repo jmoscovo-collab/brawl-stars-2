@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v531 (2026-10-20)
+- 🌠 Chuva de Meteoros: TOP GLOBAL NOVO (temporada 2)! Começa zerado pra todo mundo, sem os tempos falsos do bug. O Top antigo não foi apagado, só não aparece mais
+
 ## v530 (2026-10-20)
 - 🌠 Chuva de Meteoros: arrumado o Top Global que não aparecia no computador (só mostrava "8 jogadores no mundo" e a lista ficava espremida, com altura zero). Agora a lista aparece certinha
 
