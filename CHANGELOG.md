@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v533 (2026-10-20)
+- Página inicial: o selo NOVO! agora fica só nos 3 jogos mais novos (Batalha Pirata, Cogumelo Kart e Capivara Caindo)
+
 ## v532 (2026-10-20)
 - JOGO NOVO (ainda escondido, só pelo link /invasao/): 👾 Invasão Pixel! Aliens de pixel descem do céu em ondas (verdes, azuis, roxos que mergulham, vermelhos que miram em você e dourados cheios de moedas) e a cada 5 ondas vem a NAVE-MÃE. A nave atira sozinha e pega ⭐ (tiro duplo, triplo, espalhado e LASER), 🛡 escudo e ❤ vida extra. No 🛠 HANGAR dá pra evoluir arma, dano, cadência, motor, casco, escudo, mísseis teleguiados e ímã de moedas
 - Bola vs Bola: o símbolo de moeda virou 💰 (o antigo não aparecia no Windows 10)
