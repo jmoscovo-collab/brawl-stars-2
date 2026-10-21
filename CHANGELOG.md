@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v543 (2026-10-20)
+- 🥚 LANÇADO: Ovo de Dragão agora aparece na página inicial, com o selo NOVO!
+
 ## v542 (2026-10-20)
 - 🥚 Ovo de Dragão: botão 🤖 AUTO FARM! Liga e o personagem vai sozinho até a arena e o pet fica treinando nos bonecos (ganha XP e 💰). Mexer com as setas ou tocar na tela desliga
 
