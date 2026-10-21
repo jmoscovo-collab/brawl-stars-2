@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v544 (2026-10-20)
+- 🛠️ Painel ADM secreto do Davi em todos os jogos (só abre com o código secreto dele). Por enquanto mexe só nas coisas do próprio aparelho: Cogu Coins, números do save do jogo aberto e, no Ovo de Dragão, dar ovos e pets
+- Cogu Coins: cache novo (?v=544) em todas as páginas
+
 ## v543 (2026-10-20)
 - 🥚 LANÇADO: Ovo de Dragão agora aparece na página inicial, com o selo NOVO!
 

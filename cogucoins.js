@@ -444,4 +444,7 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mostra); else mostra();
     setInterval(tiqueSemConta, 5000);
   }
+
+  // painel ADM do Davi (abre digitando "adm" e colocando o código secreto)
+  try { var sa = document.createElement('script'); sa.src = '/adm.js?v=544'; sa.async = true; (document.head || document.documentElement).appendChild(sa); } catch (e) {}
 })();
