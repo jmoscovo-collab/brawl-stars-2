@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v538 (2026-10-20)
+- 🥚 Ovo de Dragão: SALA COM AMIGOS (botão 👥 SALA)! Crie uma sala ou entre com o código do amigo. Vocês se veem andando no mapa com os pets, mandam emojis 👋😄🔥, dividem os ovos da Doação (quem chegar primeiro leva!) e dá pra chegar perto do amigo e ⚔️ DESAFIAR o dragão dele numa batalha
+
 ## v537 (2026-10-20)
 - 🥚 Ovo de Dragão: agora dá pra ENTRAR NA CASA! Lá dentro tem cama, banheira, geladeira, brinquedos e um 📱 CELULAR com apps: 🍔 DragoFood (compra comida de dragão: maçã, peixe, carne assada, pizza de dragão, pimenta de fogo, bolo mágico e poção de crescer), 💗 Cuidados (comer, banho, brincar, dormir e carinho) e 🐉 Meus Pets. Os pets agora têm fome, limpeza, alegria e energia
 - 🏟️ COLISEU dos Dragões: batalhas com torcida contra 10 rivais cada vez mais fortes (até o Lorde das Sombras), com Fogo, Mordida, Defender e Super Ataque. Pet bem cuidado luta melhor!

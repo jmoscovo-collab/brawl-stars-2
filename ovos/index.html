@@ -868,5 +868,145 @@ hud=function(){
 const nascer0=nascer;nascer=function(o){const p=nascer0(o);if(p){p.limpo=100;p.alegria=100;p.energia=100;}return p;};
 if(TESTE)Object.assign(window.__ovo,{cena:()=>cena,entra:entraCasa,sai:saiCasa,fone:abreFone,bat:comecaBatalha,B:()=>B,joga:(k)=>joga('eu',k)});
 </script>
+
+<style>
+#bSala{position:fixed;top:8px;right:8px;z-index:6;font-family:inherit;font-size:9px;padding:7px 8px;background:rgba(0,0,0,.6);color:#fff;border:2px solid #000;cursor:pointer}
+#salaBox .codigo{font-size:26px;color:#ffdd33;text-align:center;letter-spacing:6px;margin:6px 0;text-shadow:3px 3px 0 #000}
+#salaBox input{font-family:inherit;font-size:16px;width:150px;text-align:center;text-transform:uppercase;padding:8px;border:3px solid #000;background:#111;color:#fff}
+#salaBox .lista{font-size:10px;line-height:2.2;text-align:center;margin:8px 0}
+</style>
+<button id="bSala">👥 SALA</button>
+<div class="painel" id="pSala"><div class="caixa" id="salaBox">
+  <h2>👥 SALA COM AMIGOS</h2>
+  <div id="salaCorpo"></div>
+  <button class="bt cz fechar" data-f3="pSala">✖ FECHAR</button>
+</div></div>
+<script>
+'use strict';
+// =====================================================================
+// PARTE 3: sala com amigos (ver o amigo no mapa, dividir os ovos da
+// doação e desafiar o dragão dele no Coliseu)
+// =====================================================================
+const MP_WS='wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=ovos';
+const meuId='p'+Math.random().toString(36).slice(2,9);
+let meuNome='';try{meuNome=localStorage.getItem('cg_usuario')||'';}catch(e){}
+if(!meuNome)meuNome='Jogador '+(10+Math.floor(Math.random()*90));meuNome=String(meuNome).slice(0,14);
+const mp={online:false,sala:'',ws:null,ping:null,envT:0,ovosEnv:{}};
+const amigos={};
+function escH(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function mpEnvia(o){if(!mp.online||!mp.ws||mp.ws.readyState!==1)return;try{mp.ws.send(JSON.stringify(Object.assign({acao:'mp',sala:mp.sala,id:meuId},o)));}catch(e){}}
+function codigoSala(){const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<5;i++)s+=A[Math.floor(Math.random()*A.length)];return s;}
+function abreWs(sala){
+  try{mp.ws=new WebSocket(MP_WS);}catch(e){return;}
+  const ws=mp.ws;
+  ws.onopen=()=>{mpEnvia({t:'oi'});enviaPos();salaRender();};
+  ws.onmessage=mpRecebe;ws.onerror=()=>{};
+  ws.onclose=()=>{if(mp.ws===ws&&mp.sala===sala){mp.ws=null;setTimeout(()=>{if(mp.sala===sala&&!mp.ws)abreWs(sala);},2000);}};
+}
+function entraSala(sala){saiSala();mp.online=true;mp.sala=sala;mp.ovosEnv={};abreWs(sala);
+  mp.ping=setInterval(()=>{const ag=Date.now();for(const k in amigos)if(ag-amigos[k].visto>10000){texto(heroi.x,heroi.y-30,'🚪 '+amigos[k].nome+' saiu','#fff');delete amigos[k];}salaRender();},3000);salaRender();}
+function saiSala(){if(mp.online)mpEnvia({t:'tchau'});const ws=mp.ws;mp.ws=null;mp.online=false;mp.sala='';clearInterval(mp.ping);for(const k in amigos)delete amigos[k];if(ws){try{ws.close();}catch(e){}}salaRender();}
+function petInfo(){const p=petAtivo();return p?{esp:p.esp,nv:p.nv,r:p.r}:null;}
+function enviaPos(){mpEnvia({t:'pos',nome:meuNome,x:Math.round(heroi.x),y:Math.round(heroi.y),d:heroi.dir,a:heroi.anda?1:0,c:cena,pet:petInfo()});}
+function mpRecebe(ev){
+  let m;try{m=JSON.parse(ev.data);}catch(e){return;}
+  if(!m||m.sala!==mp.sala||!m.id||m.id===meuId)return;
+  if(m.t==='tchau'){if(amigos[m.id]){texto(heroi.x,heroi.y-30,'🚪 '+amigos[m.id].nome+' saiu','#fff');delete amigos[m.id];salaRender();}return;}
+  if(m.t==='oi'){enviaPos();return;}
+  if(m.t==='pos'){let a=amigos[m.id];const novo=!a;
+    if(!a)a=amigos[m.id]={x:+m.x||0,y:+m.y||0,px:+m.x||0,py:+m.y||0,f:0};
+    a.nome=String(m.nome||'Amigo').slice(0,14);a.tx=clamp(+m.x||0,0,WW);a.ty=clamp(+m.y||0,0,WH);a.dir=m.d<0?-1:1;a.anda=!!m.a;a.cena=String(m.c||'fora');a.visto=Date.now();
+    a.pet=m.pet&&ESP[m.pet.esp]?{esp:m.pet.esp,nv:clamp(Math.floor(+m.pet.nv)||1,1,40),r:clamp(Math.floor(+m.pet.r)||0,0,8)}:null;
+    if(novo){texto(heroi.x,heroi.y-30,'👋 '+a.nome+' entrou!','#7dff6a');salaRender();}return;}
+  if(m.t==='ovo'){const p=+m.p,i=+m.i;if(p===periodo()&&i>=0&&i<4){const pg=pegos();if(pg.indexOf(i)<0){pg.push(i);mp.ovosEnv[p+'_'+i]=1;
+      const a=amigos[m.id];texto(heroi.x,heroi.y-30,'🥚 '+(a?a.nome:'Seu amigo')+' pegou um ovo!','#ffdd33');if($('pDoacao').classList.contains('on'))abreDoacao();}}return;}
+  if(m.t==='emo'){const a=amigos[m.id];if(a)a.emo={s:String(m.s||'👋').slice(0,4),t:2.5};return;}
+}
+function salaRender(){
+  const el=$('salaCorpo');if(!el)return;const n=Object.keys(amigos).length;
+  $('bSala').textContent=mp.online?'👥 '+(n+1)+' NA SALA':'👥 SALA';
+  if(!mp.online){
+    el.innerHTML='<div class="sub">Jogue junto com seus amigos! Vocês se veem no mapa, dividem os ovos da 🎪 Doação (quem chegar primeiro leva!) e podem desafiar o dragão um do outro.</div>'+
+      '<div style="text-align:center"><button class="bt vd" id="sCriar" style="font-size:12px;padding:12px 16px">➕ CRIAR SALA</button></div>'+
+      '<div class="sub" style="margin-top:12px">ou digite o código do seu amigo:</div><div style="text-align:center"><input id="sCod" maxlength="5" placeholder="CÓDIGO"> <button class="bt" id="sEntrar">ENTRAR</button></div>'+
+      '<div class="sub" style="margin-top:10px">Você aparece como <b>'+escH(meuNome)+'</b></div>';
+    $('sCriar').onclick=()=>entraSala(codigoSala());
+    const ent=()=>{const c=($('sCod').value||'').trim().toUpperCase();if(c.length===5)entraSala(c);};$('sEntrar').onclick=ent;$('sCod').onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')ent();};return;}
+  el.innerHTML='<div class="sub">Código da sala:</div><div class="codigo">'+mp.sala+'</div>'+
+    '<div style="text-align:center"><button class="bt az" id="sCopiar">📋 COPIAR LINK</button></div>'+
+    '<div class="lista">⭐ '+escH(meuNome)+' (você)<br>'+Object.values(amigos).map(a=>'🐉 '+escH(a.nome)+(a.pet?' • '+ESP[a.pet.esp].n+' Nv '+a.pet.nv:'')).join('<br>')+(n?'':'<br>⏳ esperando amigos...')+'</div>'+
+    '<div style="text-align:center"><button class="bt" data-e="👋">👋</button><button class="bt" data-e="😄">😄</button><button class="bt" data-e="🔥">🔥</button><button class="bt" data-e="🥚">🥚</button><button class="bt" data-e="⚔️">⚔️</button></div>'+
+    '<div style="text-align:center;margin-top:8px"><button class="bt vm" id="sSair">🚪 SAIR DA SALA</button></div>';
+  $('sCopiar').onclick=()=>{const l=location.origin+'/ovos/?sala='+mp.sala;try{navigator.clipboard.writeText(l).then(()=>{$('sCopiar').textContent='✅ COPIADO!';},()=>{$('sCopiar').textContent=l;});}catch(e){$('sCopiar').textContent=l;}};
+  $('sSair').onclick=saiSala;
+  el.querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>{mpEnvia({t:'emo',s:b.dataset.e});meuEmo={s:b.dataset.e,t:2.5};$('pSala').classList.remove('on');});
+}
+let meuEmo=null;
+$('bSala').onclick=()=>{salaRender();$('pSala').classList.add('on');};
+document.querySelectorAll('[data-f3]').forEach(b=>b.onclick=()=>$(b.dataset.f3).classList.remove('on'));
+
+// ===== desafiar o dragão do amigo =====
+const interacao1=interacao;
+interacao=function(){
+  if(cena==='fora'&&mp.online){for(const id in amigos){const a=amigos[id];if(a.cena==='fora'&&Math.hypot(heroi.x-a.x,heroi.y-a.y)<20)return {tp:'amigo',id:id,s:a.pet?'⚔️ desafiar '+a.nome:'👋 '+a.nome};}}
+  return interacao1();};
+const update1=update;
+update=function(dt){
+  if(est==='jogo'&&cena==='fora'&&querAcao&&!painelAberto()){const it=interacao();if(it&&it.tp==='amigo'){querAcao=false;desafia(it.id);return;}}
+  update1(dt);
+  // amigos andando suave
+  for(const id in amigos){const a=amigos[id];a.x+=(a.tx-a.x)*Math.min(1,dt*8);a.y+=(a.ty-a.y)*Math.min(1,dt*8);a.f+=dt*8;
+    a.px+=((a.x-a.dir*16)-a.px)*Math.min(1,dt*4);a.py+=((a.y+2)-a.py)*Math.min(1,dt*4);if(a.emo){a.emo.t-=dt;if(a.emo.t<=0)a.emo=null;}}
+  if(meuEmo){meuEmo.t-=dt;if(meuEmo.t<=0)meuEmo=null;}
+  if(mp.online&&est==='jogo'){mp.envT+=dt;if(mp.envT>=0.15){mp.envT=0;enviaPos();}
+    const p=periodo();for(const i of pegos()){const k=p+'_'+i;if(!mp.ovosEnv[k]){mp.ovosEnv[k]=1;mpEnvia({t:'ovo',p:p,i:i});}}}
+};
+function desafia(id){
+  const a=amigos[id],p=petAtivo();
+  if(!a||!a.pet){texto(heroi.x,heroi.y-24,'👋 Oi, '+(a?a.nome:'')+'!','#fff');mpEnvia({t:'emo',s:'👋'});meuEmo={s:'👋',t:2};return;}
+  if(!p)return texto(heroi.x,heroi.y-24,'Você precisa de um pet!','#fff');
+  if(p.energia<15)return texto(heroi.x,heroi.y-24,'Seu pet está cansado... 😴','#fff');
+  p.energia-=15;
+  const E=ESP[a.pet.esp],se=stats(p.esp,p.r,p.nv),so=stats(a.pet.esp,a.pet.r,a.pet.nv);
+  let atk=se.atk;if(p.energia<30)atk*=0.85;if(p.alegria>70)atk*=1.1;if(p.limpo<30)atk*=0.9;if(p.fome<20)atk*=0.85;
+  B={i:-1,amigo:a.nome,eu:{nome:ESP[p.esp].n,esp:p.esp,r:p.r,nv:p.nv,hp:se.hp,max:se.hp,atk:atk,def:false,quei:0,sup:0,ave:!!ESP[p.esp].ave},
+     ele:{nome:E.n+' de '+a.nome,esp:a.pet.esp,r:a.pet.r,nv:a.pet.nv,hp:so.hp,max:so.hp,atk:so.atk,def:false,quei:0,sup:0},
+     vez:'eu',anim:null,t:0,log:'⚔️ Desafio contra o dragão de '+a.nome+'!',fim:null,num:[],tremor:0,torcida:0};
+  mpEnvia({t:'emo',s:'⚔️'});
+  cena='batalha';$('casa').style.display='none';$('toque').style.display='none';$('batUI').classList.add('on');$('petCard').style.display='none';$('hud').style.display='none';$('bSala').style.display='none';
+  desenhaBatUI();}
+const termina0=termina;
+termina=function(ganhei){
+  if(!B||B.i>=0)return termina0(ganhei);
+  const p=petAtivo();
+  if(ganhei){const m=10+B.ele.nv*3,xp=10+B.ele.nv*2;save.moedas+=m;if(p)ganhaXp(p,xp);B.log='🏆 Você venceu o dragão de '+B.amigo+'! +💰'+m+' +'+xp+' XP';mpEnvia({t:'emo',s:'🏆'});}
+  else{B.log='😢 O dragão de '+B.amigo+' ganhou! Treine e tente de novo!';mpEnvia({t:'emo',s:'😭'});}
+  B.fim=ganhei?'v':'d';B.torcida=ganhei?3:0;grava();desenhaBatUI();};
+const fimBatalha0=fimBatalha;
+fimBatalha=function(){$('bSala').style.display='block';
+  if(B&&B.i<0){$('batUI').classList.remove('on');$('casa').style.display='block';cena='fora';B=null;$('toque').style.display=toque?'block':'none';$('hud').style.display='flex';hud();montaPetsMundo();return;}
+  fimBatalha0();};
+
+// ===== desenhar os amigos no mapa =====
+const desenha1=desenha;
+desenha=function(){
+  desenha1();
+  if(est!=='jogo'||cena!=='fora')return;
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.imageSmoothingEnabled=false;
+  const sc=S/Q,T=(s,x,y,c,tam)=>{ctx.font=(tam||Math.max(7,Math.round(S*2.4)))+"px 'Press Start 2P',monospace";ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=4;ctx.strokeStyle='#000';ctx.strokeText(s,x,y);ctx.fillStyle=c||'#fff';ctx.fillText(s,x,y);};
+  const flipDraw=(c,x,y,flip)=>{const w=c.width*sc,h=c.height*sc;if(flip){ctx.save();ctx.translate(x+w,y);ctx.scale(-1,1);ctx.drawImage(c,0,0,w,h);ctx.restore();}else ctx.drawImage(c,x,y,w,h);};
+  for(const id in amigos){const a=amigos[id];if(a.cena!=='fora')continue;
+    const X=v=>(v-camX)*S,Y=v=>(v-camY)*S;
+    if(a.pet){const s=petSpr(a.pet.esp,fase(a.pet.nv),Math.floor(tJogo*4)%2);flipDraw(s,X(a.px-s.width/Q/2),Y(a.py-s.height/Q+1),a.dir<0);}
+    flipDraw(HER[a.anda?Math.floor(a.f)%2:0],X(a.x-6),Y(a.y-16),a.dir<0);
+    T(a.nome,X(a.x),Y(a.y-21),'#7dff6a');
+    if(a.emo)T(a.emo.s,X(a.x),Y(a.y-30),'#fff',Math.max(14,S*5));}
+  if(meuEmo)T(meuEmo.s,(heroi.x-camX)*S,(heroi.y-30-camY)*S,'#fff',Math.max(14,S*5));
+};
+(function(){const s=new URLSearchParams(location.search).get('sala');if(s&&/^[A-Z0-9]{5}$/i.test(s)){const c=s.toUpperCase();const go=()=>{entraSala(c);};
+  if(est==='jogo')go();else $('bJogar').addEventListener('click',()=>setTimeout(go,300));}})();
+addEventListener('pagehide',()=>{if(mp.online)mpEnvia({t:'tchau'});});
+if(TESTE)Object.assign(window.__ovo,{entraSala:entraSala,amigos:()=>amigos,mp:mp,desafia:desafia});
+</script>
 </body>
 </html>
