@@ -57,7 +57,7 @@ canvas#c{display:block;position:fixed;inset:0;width:100%;height:100%;image-rende
 
 <div id="menu">
   <h1>🥚 OVO DE<br>DRAGÃO 🐉</h1>
-  <div class="sub">Você ganhou um OVO DE PASSARINHO! 🐦<br>Vá na 🎪 DOAÇÃO DE OVOS pegar mais ovos (a cada 2 minutos chegam ovos novos!), choque no seu ninho, cuide deles em casa pelo 📱 celular (comida no DragoFood, banho, brincar, dormir) e lute no 🏟️ COLISEU até virarem DRAGÕES GIGANTES que cospem fogo! 🔥<br><br>Raridades: Comum, Incomum, Raro, Épico, Mítico, Lendário, Divino, Exótico e o... SECRETO! 🤫</div>
+  <div class="sub">Você ganhou um OVO DE PASSARINHO! 🐦<br>Compre ovos na 🛒 LOJA DE OVOS (a cada 2 minutos chegam ovos novos!), choque no seu ninho, cuide deles em casa pelo 📱 celular (comida no DragoFood, banho, brincar, dormir) e lute no 🏟️ COLISEU até virarem DRAGÕES GIGANTES que cospem fogo! 🔥<br><br>💰 Pets no cercado dão dinheiro sozinhos (maior, mais raro e com ✨ mutação = mais 💰). 🌍 Servidor online com todo mundo!<br><br>Raridades: Comum, Incomum, Raro, Épico, Mítico, Lendário, Divino, Exótico e o... SECRETO! 🤫</div>
   <button class="bt" id="bJogar">▶ JOGAR</button>
   <div class="sub" style="font-size:9px">⌨️ setas/WASD andam • E interage • F ou ESPAÇO = seu pet ataca<br>📱 arraste o dedo pra andar • ✋ interage • 🔥 ataca</div>
 </div>
@@ -264,7 +264,7 @@ const PLACAS=[{x:130,y:131,s:'🪺 NINHO'},{x:300,y:119,s:'🎪 OVOS'},{x:150,y:
 // ===== save =====
 const SAVE_K='ovos_save';
 let save=null;
-function novoSave(){return {moedas:0,frutas:3,ovos:[],inc:[{r:0,esp:'passarinho',ini:Date.now(),dur:RAR[0].choca*1000}],slots:2,pets:[],ativo:-1,pegos:{p:-1,i:[]},ult:Date.now(),ganhoCC:0};}
+function novoSave(){return {moedas:30,frutas:3,ovos:[],inc:[{r:0,esp:'passarinho',ini:Date.now(),dur:RAR[0].choca*1000}],slots:2,pets:[],ativo:-1,pegos:{p:-1,i:[]},ult:Date.now(),ganhoCC:0};}
 function carrega(){try{const s=JSON.parse(localStorage.getItem(SAVE_K)||'null');if(s&&typeof s==='object'){save=Object.assign(novoSave(),s);return;}}catch(e){}
   save=novoSave();}
 function grava(){try{localStorage.setItem(SAVE_K,JSON.stringify(save));}catch(e){}try{if(window.cgNuvem)window.cgNuvem.salva();}catch(e){}}
@@ -315,7 +315,7 @@ function abreDoacao(){
   $('pDoacao').classList.add('on');}
 function abreNinho(){
   const inc=$('nInc');inc.innerHTML='';
-  $('nInfo').innerHTML='💰 '+save.moedas+' • 🍎 '+save.frutas+' frutas • 🐉 '+save.pets.length+'/12 pets<br>Seus pets dão 💰 moedas sozinhos (os mais raros dão muito mais!)';
+  $('nInfo').innerHTML='💰 '+save.moedas+' • 🍎 '+save.frutas+' frutas • 🐉 '+save.pets.length+'/12 pets<br>Pets no 🐾 cercado (os que não estão com você) dão 💰 sozinhos! Maior, mais raro e com mutação = mais 💰';
   for(let i=0;i<save.slots;i++){const o=save.inc[i];
     if(o){const falta=Math.max(0,o.ini+o.dur-Date.now()),pronto=falta<=0;
       const c=cartaOvo(o,'<br>'+(pronto?'<b style="color:#7dff6a">PRONTO!</b>':'⏱ '+Math.ceil(falta/1000)+'s'));
@@ -327,13 +327,13 @@ function abreNinho(){
   if(save.slots<4){const c=document.createElement('div');c.className='carta';const pr=[0,0,150,600][save.slots];
     c.innerHTML='<br>➕ Ninho extra<br><br>';const b=document.createElement('button');b.className='bt';b.textContent='COMPRAR 💰'+pr;b.disabled=save.moedas<pr;
     b.onclick=()=>{if(save.moedas<pr)return;save.moedas-=pr;save.slots++;grava();abreNinho();};c.appendChild(b);inc.appendChild(c);}
-  const ov=$('nOvos');ov.innerHTML='';if(!save.ovos.length)ov.innerHTML='<div class="sub">Nenhum ovo. Vá na 🎪 Doação de Ovos!</div>';
+  const ov=$('nOvos');ov.innerHTML='';if(!save.ovos.length)ov.innerHTML='<div class="sub">Nenhum ovo. Vá na 🛒 Loja de Ovos!</div>';
   save.ovos.forEach((o,i)=>{const c=cartaOvo(o);const b=document.createElement('button');b.className='bt vd';b.textContent='🔥 CHOCAR';b.disabled=save.inc.length>=save.slots;
     b.onclick=()=>{if(save.inc.length>=save.slots)return;save.ovos.splice(i,1);save.inc.push({r:o.r,esp:o.esp,ini:Date.now(),dur:RAR[o.r].choca*1000});grava();abreNinho();};c.appendChild(b);ov.appendChild(c);});
   const pg=$('nPets');pg.innerHTML='';if(!save.pets.length)pg.innerHTML='<div class="sub">Ainda não nasceu nenhum pet. Choque um ovo!</div>';
   save.pets.forEach((p,i)=>{const E=ESP[p.esp],R=RAR[p.r],f=fase(p.nv);const c=document.createElement('div');c.className='carta'+(i===save.ativo?' ativo':'');c.style.borderColor=R.cor;
     const s=petSpr(p.esp,0,0),cc=cnv(72,64),x=cc.getContext('2d');x.imageSmoothingEnabled=false;x.drawImage(s,(72-s.width*2)/2,(64-s.height*2)/2,s.width*2,s.height*2);c.appendChild(cc);
-    const d=document.createElement('div');d.innerHTML='<b>'+E.n+'</b><br><span class="rar" style="color:'+R.cor+'">'+R.n+'</span><br>Nv '+p.nv+' • '+FASES[f].n+'<br>🍖 '+Math.round(p.fome)+'% • 💰'+(R.mult*(1+p.nv*0.1)).toFixed(1)+'/min';c.appendChild(d);
+    const d=document.createElement('div');d.innerHTML='<b>'+E.n+'</b><br><span class="rar" style="color:'+R.cor+'">'+R.n+'</span><br>Nv '+p.nv+' • '+FASES[f].n+'<br>🍖 '+Math.round(p.fome)+'%<br>'+(i===save.ativo?'⭐ equipado':'💰'+Math.round(rendaMin(p))+'/min')+(p.mut?'<br>✨ '+MUT[p.mut].n:'');c.appendChild(d);
     const b1=document.createElement('button');b1.className='bt vm';b1.textContent='🍎 DAR FRUTA';b1.disabled=save.frutas<1;b1.onclick=()=>{if(save.frutas<1)return;save.frutas--;p.fome=Math.min(100,p.fome+30);ganhaXp(p,12);grava();abreNinho();};
     const b2=document.createElement('button');b2.className='bt az';b2.textContent=i===save.ativo?'⭐ COM VOCÊ':'🐾 LEVAR';b2.disabled=i===save.ativo;b2.onclick=()=>{save.ativo=i;grava();abreNinho();};
     const b3=document.createElement('button');b3.className='bt cz';const venda=Math.round(10*R.mult*(1+p.nv*0.2));b3.textContent='👋 SOLTAR (+💰'+venda+')';
@@ -400,7 +400,7 @@ function update(dt){
         if(hpBon[alvo]<=0){respBon[alvo]=5;ganhaXp(ap,8+ap.nv);save.moedas+=2;texto(BONECOS[alvo].x,BONECOS[alvo].y-36,'+XP +💰2','#7dff6a');grava();}}
       else if(alvo>=0&&bd<alc+40)texto(pm.x,pm.y-24,'chegue mais perto!','#fff');}}
   // pets dão moedas e ficam com fome
-  for(const p of save.pets){const R=RAR[p.r];p.fome=Math.max(0,p.fome-dt/60*1.5);if(p.fome>0){p._m=(p._m||0)+dt/60*R.mult*(1+p.nv*0.1);if(p._m>=1){const g=Math.floor(p._m);p._m-=g;save.moedas+=g;}}}
+  for(const p of save.pets){const R=RAR[p.r];p.fome=Math.max(0,p.fome-dt/60*1.5);}
   for(let i=fx.length-1;i>=0;i--){const p=fx[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.t-=dt;if(p.t<=0)fx.splice(i,1);}
   for(let i=textos.length-1;i>=0;i--){textos[i].y-=14*dt;textos[i].t-=dt;if(textos[i].t<=0)textos.splice(i,1);}
   tSave+=dt;if(tSave>20){tSave=0;save.ult=Date.now();grava();}
@@ -468,7 +468,7 @@ function comeca(){
   carrega();est='jogo';$('menu').style.display='none';$('toque').style.display=toque?'block':'none';
   // moedas que os pets fizeram enquanto você estava fora (no máximo 1 hora)
   const fora=Math.min(60,(Date.now()-(save.ult||Date.now()))/60000);let g=0;
-  if(fora>1)for(const p of save.pets)if(p.fome>0)g+=Math.floor(fora*RAR[p.r].mult*(1+p.nv*0.1)*0.5);
+  if(fora>1)save.pets.forEach((p,i)=>{if(i!==save.ativo)g+=Math.floor(fora*rendaMin(p)*0.5);});
   if(g>0){save.moedas+=g;setTimeout(()=>texto(heroi.x,heroi.y-30,'Seus pets fizeram 💰'+g+'!','#ffdd33'),400);}
   save.ult=Date.now();montaPetsMundo();grava();hud();
   if(!save.pets.length&&save.inc.length)texto(heroi.x,heroi.y-30,'Vá no 🪺 NINHO ver seu ovo!','#fff');
@@ -609,7 +609,7 @@ interacao=function(){
 function decai(dt,tudo){
   for(const p of save.pets){p.limpo=Math.max(0,p.limpo-dt/60*1.0);p.alegria=Math.max(0,p.alegria-dt/60*1.2);
     if(!(cena==='casa'&&casaPet.acao==='dormir'&&p===petAtivo()))p.energia=Math.max(0,p.energia-dt/60*0.6);
-    if(tudo){const R=RAR[p.r];p.fome=Math.max(0,p.fome-dt/60*1.5);if(p.fome>0){p._m=(p._m||0)+dt/60*R.mult*(1+p.nv*0.1);if(p._m>=1){const g=Math.floor(p._m);p._m-=g;save.moedas+=g;}}}}}
+    if(tudo){const R=RAR[p.r];p.fome=Math.max(0,p.fome-dt/60*1.5);}}}
 const update0=update;
 update=function(dt){
   if(est!=='jogo')return;
@@ -1007,6 +1007,84 @@ desenha=function(){
   if(est==='jogo')go();else $('bJogar').addEventListener('click',()=>setTimeout(go,300));}})();
 addEventListener('pagehide',()=>{if(mp.online)mpEnvia({t:'tchau'});});
 if(TESTE)Object.assign(window.__ovo,{entraSala:entraSala,amigos:()=>amigos,mp:mp,desafia:desafia});
+</script>
+
+<script>
+'use strict';
+// =====================================================================
+// PARTE 4: loja de ovos, dinheiro dos pets no cercado (tamanho, raridade
+// e MUTAÇÃO) e servidor online público
+// =====================================================================
+const MUT={dourada:{n:'Dourada',x:2,c:['#ffd23f','#fff2b0']},diamante:{n:'Diamante',x:3,c:['#7ffff0','#ffffff']},
+  arcoiris:{n:'Arco-Íris',x:5,c:['#ff4d4d','#ffdd33','#7dff6a','#4db8ff','#c77dff']},cosmica:{n:'Cósmica',x:8,c:['#ff2bd6','#00ffd0','#ffffff']}};
+const RENDA=[6,15,40,100,250,600,1500,4000,12000],TAM=[1,1.5,2.2,3.5],PRECO_OVO=[10,30,80,200,500,1200,3000,8000,25000];
+function rendaMin(p){return RENDA[p.r]*TAM[fase(p.nv)]*(p.mut&&MUT[p.mut]?MUT[p.mut].x:1)*(1+0.03*p.nv);}
+function sorteiaMut(){const r=rnd();return r<0.015?'cosmica':r<0.045?'arcoiris':r<0.095?'diamante':r<0.195?'dourada':'';}
+const nascer2=nascer;nascer=function(o){const p=nascer2(o);if(p){p.mut=sorteiaMut();}return p;};
+const mostraNasce0=mostraNasce;mostraNasce=function(p){mostraNasce0(p);
+  if(p.mut&&MUT[p.mut]){const M=MUT[p.mut];$('nasceT').innerHTML+='<br><span style="color:'+M.c[0]+'">✨ MUTAÇÃO '+M.n.toUpperCase()+'! (x'+M.x+' 💰)</span>';}
+  $('nasceD').innerHTML=ESP[p.esp].n+'<br>Deixe ele no 🐾 cercado pra ganhar 💰'+Math.round(rendaMin(p))+'/min,<br>ou leve com você pra treinar e lutar no 🏟️ Coliseu!';};
+
+// ===== loja de ovos (no lugar da doação) =====
+PLACAS[1].s='🛒 OVOS';
+document.querySelector('#pDoacao h2').textContent='🛒 LOJA DE OVOS';
+document.querySelector('#pDoacao .sub').textContent='Compre ovos com 💰! A cada 2 minutos chegam ovos novos. Ganhe 💰 deixando pets no cercado e vencendo batalhas.';
+abreDoacao=function(){
+  const lista=ovosDoPeriodo(periodo()),pg=pegos(),g=$('dOvos');g.innerHTML='';
+  $('dTimer').textContent='💰 você tem '+save.moedas+' • ovos novos em '+Math.floor(faltaMs()/60000)+':'+String(Math.floor(faltaMs()/1000)%60).padStart(2,'0');
+  lista.forEach((o,i)=>{const ja=pg.indexOf(i)>=0,pr=PRECO_OVO[o.r];const c=cartaOvo(o,'<br>⏱ choca em '+RAR[o.r].choca+'s<br>💰 '+RENDA[o.r]+'+/min no cercado');
+    const b=document.createElement('button');b.className='bt vd';b.textContent=ja?'ESGOTADO':'COMPRAR 💰'+pr;b.disabled=ja||save.ovos.length>=6||save.moedas<pr;
+    b.onclick=()=>{if(pegos().indexOf(i)>=0||save.ovos.length>=6||save.moedas<pr)return;save.moedas-=pr;save.ovos.push({r:o.r,esp:o.esp});pegos().push(i);grava();texto(heroi.x,heroi.y-20,'+1 🥚 -💰'+pr,'#fff');abreDoacao();};
+    c.appendChild(b);g.appendChild(c);});
+  if(save.ovos.length>=6){const s=document.createElement('div');s.className='sub';s.textContent='🎒 Mochila cheia! Choque os ovos no 🪺 ninho.';g.appendChild(s);}
+  $('pDoacao').classList.add('on');};
+const interacao2=interacao;interacao=function(){const r=interacao2();if(r&&r.tp==='doacao')r.s='🛒 loja de ovos';return r;};
+
+// ===== dinheiro dos pets no cercado =====
+let pagaT=0;
+const update2=update;
+update=function(dt){
+  update2(dt);
+  if(est!=='jogo')return;
+  save.pets.forEach((p,i)=>{if(i===save.ativo)return;p._m=(p._m||0)+dt/60*rendaMin(p)*(p.fome>0?1:0.5);});
+  pagaT+=dt;if(pagaT>=5){pagaT=0;
+    save.pets.forEach((p,i)=>{if(i===save.ativo||!(p._m>=1))return;const g=Math.floor(p._m);p._m-=g;save.moedas+=g;
+      const pm=petsMundo[i];if(cena==='fora'&&pm)textos.push({x:pm.x,y:pm.y-18,s:'+💰'+g,c:'#ffdd33',t:1.4});});}
+};
+// brilho das mutações
+const desenha2=desenha;
+desenha=function(){desenha2();
+  if(est!=='jogo'||cena!=='fora')return;ctx.setTransform(dpr,0,0,dpr,0,0);
+  petsMundo.forEach((pm,i)=>{const p=save.pets[i];if(!p||!p.mut||!MUT[p.mut])return;const M=MUT[p.mut],s=petSpr(p.esp,fase(p.nv),0),w=s.width/Q,h=s.height/Q;
+    for(let k=0;k<10;k++){const a=tJogo*2.2+k*0.63+i,x=(pm.x+Math.cos(a)*w*0.6-camX)*S,y=(pm.y-h/2+Math.sin(a)*h*0.55-camY)*S;
+      ctx.globalAlpha=0.55+0.45*Math.sin(tJogo*7+k);ctx.fillStyle=M.c[k%M.c.length];const t=Math.max(3,S*(k%2?1.2:2));ctx.fillRect(x-t/2,y-t/2,t,t);}
+    ctx.globalAlpha=1;});};
+const hud2=hud;hud=function(){hud2();$('hTimer').textContent=$('hTimer').textContent.replace('🎪','🛒');
+  const p=petAtivo();if(p&&p.mut&&MUT[p.mut]&&cena!=='batalha'){const c=$('petCard');c.innerHTML=c.innerHTML.replace('<br>','<br>✨ '+MUT[p.mut].n+' • ');}};
+petInfo=function(){const p=petAtivo();return p?{esp:p.esp,nv:p.nv,r:p.r}:null;};
+
+// ===== servidor online público =====
+const PUBLICO='PUBLICO';
+const salaRender0=salaRender;
+salaRender=function(){
+  if(!mp.online||mp.sala!==PUBLICO)return salaRender0();
+  const el=$('salaCorpo'),n=Object.keys(amigos).length;
+  $('bSala').textContent='🌍 '+(n+1)+' ONLINE';if(!el)return;
+  el.innerHTML='<div class="sub">🌍 Você está no <b>SERVIDOR ONLINE</b>!<br>Todo mundo que está jogando aparece no mapa. Os ovos da 🛒 loja são divididos: quem comprar primeiro leva!</div>'+
+    '<div class="lista">⭐ '+escH(meuNome)+' (você)<br>'+Object.values(amigos).map(a=>'🐉 '+escH(a.nome)+(a.pet?' • '+ESP[a.pet.esp].n+' Nv '+a.pet.nv:'')).join('<br>')+(n?'':'<br>⏳ ninguém mais online agora...')+'</div>'+
+    '<div style="text-align:center"><button class="bt" data-e="👋">👋</button><button class="bt" data-e="😄">😄</button><button class="bt" data-e="🔥">🔥</button><button class="bt" data-e="🥚">🥚</button><button class="bt" data-e="⚔️">⚔️</button></div>'+
+    '<div class="sub" style="margin-top:12px">Quer jogar só com um amigo?</div>'+
+    '<div style="text-align:center"><button class="bt vd" id="sPriv">🔒 CRIAR SALA PRIVADA</button></div>'+
+    '<div style="text-align:center;margin-top:8px"><input id="sCod" maxlength="5" placeholder="CÓDIGO"> <button class="bt" id="sEntrar">ENTRAR</button></div>';
+  $('sPriv').onclick=()=>entraSala(codigoSala());
+  const ent=()=>{const c=($('sCod').value||'').trim().toUpperCase();if(c.length===5)entraSala(c);};$('sEntrar').onclick=ent;$('sCod').onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')ent();};
+  el.querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>{mpEnvia({t:'emo',s:b.dataset.e});meuEmo={s:b.dataset.e,t:2.5};$('pSala').classList.remove('on');});
+};
+// sair da sala privada volta pro servidor público
+const saiSala0=saiSala;
+saiSala=function(){const era=mp.online&&mp.sala!==PUBLICO;saiSala0();if(era&&est==='jogo')setTimeout(()=>{if(!mp.online)entraSala(PUBLICO);},300);};
+if(!new URLSearchParams(location.search).get('sala'))$('bJogar').addEventListener('click',()=>setTimeout(()=>{if(!mp.online)entraSala(PUBLICO);},400));
+if(TESTE)Object.assign(window.__ovo,{rendaMin:rendaMin,MUT:MUT});
 </script>
 </body>
 </html>

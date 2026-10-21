@@ -1,5 +1,11 @@
 # Changelog - Cogumelo Games (site)
 
+## v539 (2026-10-20)
+- 🥚 Ovo de Dragão: 🌍 SERVIDOR ONLINE! Quando você entra, já está num servidor com todo mundo que está jogando (a sala privada com amigo continua existindo)
+- 🛒 A Doação virou LOJA DE OVOS: cada ovo custa 💰 (Comum 10 até o Secreto 25.000)
+- 💰 Os pets que ficam no cercado (os que não estão com você) dão dinheiro sozinhos: quanto MAIOR, mais RARO e com MUTAÇÃO, mais dinheiro! Vencer batalhas também dá dinheiro
+- ✨ MUTAÇÕES novas quando o ovo choca: Dourada (x2), Diamante (x3), Arco-Íris (x5) e Cósmica (x8)
+
 ## v538 (2026-10-20)
 - 🥚 Ovo de Dragão: SALA COM AMIGOS (botão 👥 SALA)! Crie uma sala ou entre com o código do amigo. Vocês se veem andando no mapa com os pets, mandam emojis 👋😄🔥, dividem os ovos da Doação (quem chegar primeiro leva!) e dá pra chegar perto do amigo e ⚔️ DESAFIAR o dragão dele numa batalha
 
