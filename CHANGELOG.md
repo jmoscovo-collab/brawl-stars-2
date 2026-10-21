@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v537 (2026-10-20)
+- 🥚 Ovo de Dragão: agora dá pra ENTRAR NA CASA! Lá dentro tem cama, banheira, geladeira, brinquedos e um 📱 CELULAR com apps: 🍔 DragoFood (compra comida de dragão: maçã, peixe, carne assada, pizza de dragão, pimenta de fogo, bolo mágico e poção de crescer), 💗 Cuidados (comer, banho, brincar, dormir e carinho) e 🐉 Meus Pets. Os pets agora têm fome, limpeza, alegria e energia
+- 🏟️ COLISEU dos Dragões: batalhas com torcida contra 10 rivais cada vez mais fortes (até o Lorde das Sombras), com Fogo, Mordida, Defender e Super Ataque. Pet bem cuidado luta melhor!
+
 ## v536 (2026-10-20)
 - JOGO NOVO (ainda escondido, só pelo link /ovos/): 🥚 Ovo de Dragão! Você começa com um ovo de passarinho e anda por um mundo de pixel. Na 🎪 Doação de Ovos chegam 4 ovos novos a cada 2 minutos, de 9 raridades: Comum, Incomum, Raro, Épico, Mítico, Lendário, Divino, Exótico e o SECRETO. Choque os ovos no 🪺 Ninho, colha 🍎 frutas no pomar pra alimentar, e treine na ⚔ Arena (seu pet cospe fogo nos bonecos) pra ele crescer de Bebê até GIGANTE. Os pets dão moedas sozinhos (os raros dão muito mais), e dá pra comprar mais ninhos e acelerar os ovos
 
