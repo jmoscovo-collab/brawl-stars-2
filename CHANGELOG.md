@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v547 (2026-10-22)
+- 🔒 Contas: conta NOVA agora começa ZERADA (sem Cogu Coins e sem progresso). Antes, quem criava conta num aparelho que já tinha sido usado levava o progresso de outra pessoa junto
+
 ## v546 (2026-10-21)
 - Cogumelo Kart e Batalha Pirata: adicionado um botão ⬆️ pra andar no celular (antes o kart/navio acelerava sozinho; agora é só segurar o botão pra andar e soltar pra desacelerar, igual os carros de verdade)
 

@@ -242,10 +242,14 @@ async function criar(){
     const h = await hash(s1);
     aviso('⏳ Criando sua conta na nuvem...', true);
     try {
-        await chamaAPI({ acao:'registrar', nome, senhaHash:h, dados: pegaProgresso() });
+        // conta nova nasce ZERADA: nunca leva o progresso/Cogu Coins de quem usou o aparelho antes
+        await chamaAPI({ acao:'registrar', nome, senhaHash:h, dados: {} });
     } catch(e) {
         return aviso('😕 ' + e.message);
     }
+    Object.keys(pegaProgresso()).forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+    localStorage.setItem('cg_cogucoins', '0');
+    localStorage.setItem('cg_nuvem_ts', String(Date.now()));
     localStorage.setItem('cg_usuario', nome);
     localStorage.setItem('cg_senhaHash', h);
     localStorage.setItem('cg_semconta_ms','0');
