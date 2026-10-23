@@ -270,6 +270,88 @@ const INIM={
     gaivota:{vel:90,alc:75,abre:9,nome:'GAIVOTA',voa:true}
 };
 
+// ===== 200 FASES EXTRAS (geradas sozinhas e conferidas: sempre dá pra pegar as 5 pérolas e chegar na saída) =====
+const N_EXTRAS=200, NF=FASES.length+N_EXTRAS;
+function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const INIM_AREA=[['chef','chef','garcom'],['garcom','gato','garcom'],['rato','rato','gato'],['pescador','gaivota','gato']];
+const VIZ=[[1,0],[-1,0],[0,1],[0,-1]];
+// BFS que sabe usar os canos (entrar num cano = sair no par dele)
+function alcanca(g,de,podeE){
+    const O=[]; for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(g[r][c]==='O') O.push(r*COLS+c);
+    const vis=new Set([de]), fila=[de];
+    while(fila.length){ const k=fila.shift(), c=k%COLS, r=(k-c)/COLS;
+        for(const [dc,dr] of VIZ){ const nc=c+dc, nr=r+dr, ch=g[nr][nc]; if(ch==='#'||(!podeE&&ch==='E')) continue;
+            let nk=nr*COLS+nc;
+            if(ch==='O'){ vis.add(nk); const i=O.indexOf(nk); nk=O[i%2?i-1:i+1]; }
+            if(!vis.has(nk)){ vis.add(nk); fila.push(nk); } } }
+    return vis;
+}
+function tentaGerar(n,tent){
+    const R=rng(77000+n*131+tent*7919), ri=k=>Math.floor(R()*k), a=Math.floor(n/5)%4, nivel=n/N_EXTRAS;
+    const g=[]; for(let r=0;r<ROWS;r++){ g.push([]); for(let c=0;c<COLS;c++) g[r].push(r===0||c===0||r===ROWS-1||c===COLS-1?'#':'.'); }
+    const blocos=9+ri(6)+Math.floor(nivel*7);
+    for(let k=0;k<blocos;k++){ let w=1+ri(4), h=1+ri(3); if(R()<0.5){ const t=w; w=h; h=t; }
+        const x=1+ri(COLS-2-w), y=1+ri(ROWS-2-h); for(let r=y;r<y+h;r++) for(let c=x;c<x+w;c++) g[r][c]='#'; }
+    const cores=['r','b','g','y','k'].filter(k=>k!==AREAS[a].base);
+    for(let k=0,nz=3+ri(3);k<nz;k++){ const w=2+ri(5), h=2+ri(3), x=1+ri(COLS-2-w), y=1+ri(ROWS-2-h), cor=cores[ri(cores.length)];
+        for(let r=y;r<y+h;r++) for(let c=x;c<x+w;c++) if(g[r][c]!=='#') g[r][c]=cor; }
+    const sr=1+ri(ROWS-2), sc=1+ri(2), er=1+ri(ROWS-2), ec=COLS-2-ri(2);
+    g[sr][sc]='S'; g[er][ec]='E';
+    if(a===3&&er+1<ROWS-1&&g[er+1][ec]!=='#') g[er+1][ec]='E';   // no porto o mar é maior
+    const S=sr*COLS+sc;
+    let vis=alcanca(g,S,true);
+    if(!vis.has(er*COLS+ec)) return null;
+    // canos (fase sim, fase não)
+    if(n%2===1){
+        const livres=[...alcanca(g,S,false)].filter(k=>{ const c=k%COLS, r=(k-c)/COLS; return g[r][c]!=='S'&&g[r][c]!=='E'&&g[r][c]!=='O'; });
+        for(let t=0;t<30;t++){ const p1=livres[ri(livres.length)], p2=livres[ri(livres.length)];
+            const c1=p1%COLS, r1=(p1-c1)/COLS, c2=p2%COLS, r2=(p2-c2)/COLS;
+            if(Math.abs(c1-c2)+Math.abs(r1-r2)<9) continue;
+            g[r1][c1]='O'; g[r2][c2]='O';
+            if(alcanca(g,S,true).has(er*COLS+ec)) break;
+            g[r1][c1]='.'; g[r2][c2]='.';
+        }
+    }
+    // 5 pérolas espalhadas (alcançáveis sem passar pela saída)
+    const semE=[...alcanca(g,S,false)].filter(k=>{ const c=k%COLS, r=(k-c)/COLS; return !'SEO'.includes(g[r][c]); });
+    const per=[];
+    for(let t=0;t<400&&per.length<5;t++){ const k=semE[ri(semE.length)], c=k%COLS, r=(k-c)/COLS;
+        if(Math.abs(c-sc)+Math.abs(r-sr)<3) continue;
+        if(per.every(q=>Math.abs(q[0]-c)+Math.abs(q[1]-r)>=3)) per.push([c,r]); }
+    if(per.length<5) return null;
+    per.forEach(([c,r])=>g[r][c]='p');
+    // inimigos patrulhando corredores retos (longe do começo)
+    const tipos=INIM_AREA[a], qtd=Math.min(6,2+Math.floor(n/35)+ri(2)), inim=[];
+    const livre=(c,r)=>g[r]&&g[r][c]&&g[r][c]!=='#';
+    for(let t=0;t<200&&inim.length<qtd;t++){
+        const tp=tipos[ri(tipos.length)];
+        if(INIM[tp].voa){ const p1=[2+ri(COLS-4),1+ri(ROWS-2)], p2=[2+ri(COLS-4),1+ri(ROWS-2)];
+            if(Math.hypot(p1[0]-p2[0],p1[1]-p2[1])<6||Math.min(Math.hypot(p1[0]-sc,p1[1]-sr),Math.hypot(p2[0]-sc,p2[1]-sr))<5) continue;
+            inim.push({t:tp,r:[p1,p2]}); continue; }
+        const c=1+ri(COLS-2), r=1+ri(ROWS-2); if(!livre(c,r)) continue;
+        const hor=R()<0.5; let i0=hor?c:r, i1=i0;
+        while(hor?livre(i0-1,r):livre(c,i0-1)) i0--;
+        while(hor?livre(i1+1,r):livre(c,i1+1)) i1++;
+        if(i1-i0<4) continue;
+        const p1=hor?[i0,r]:[c,i0], p2=hor?[i1,r]:[c,i1];
+        // não pode passar perto do começo
+        let perto=false; for(let s=i0;s<=i1;s++){ const q=hor?[s,r]:[c,s]; if(Math.abs(q[0]-sc)+Math.abs(q[1]-sr)<4) perto=true; }
+        if(perto) continue;
+        inim.push({t:tp,r:[p1,p2]});
+    }
+    if(inim.length<2) return null;
+    return {a,m:g.map(l=>l.join('')),inim,dica:'',vel:1+Math.min(0.45,n/440),extra:n+1};
+}
+const cacheExtra={};
+function faseDef(i){
+    if(i<FASES.length) return FASES[i];
+    const n=i-FASES.length;
+    if(cacheExtra[n]) return cacheExtra[n];
+    for(let t=0;t<80;t++){ const f=tentaGerar(n,t); if(f) return cacheExtra[n]=f; }
+    return cacheExtra[n]=FASES[n%FASES.length];
+}
+const areaDe=i=>i<FASES.length?FASES[i].a:Math.floor((i-FASES.length)/5)%4;
+
 // ===== SAVE =====
 const SAVE_K='polvo_save';
 let save={est:[]};
@@ -295,7 +377,7 @@ function centro(c,r){ return {x:c*T+T/2,y:r*T+T/2}; }
 // ===== ESTADO =====
 let estado='menu', faseN=0, tempo=0, polvo=null, inimigos=[], nuvens=[], perolas=[], parts=[], textos=[], fimT=0, resultado='', dicaT=0;
 function comecaFase(i){
-    faseN=i; F=FASES[i]; grid=F.m.map(l=>l.split('')); canos=[]; perolas=[];
+    faseN=i; F=faseDef(i); grid=F.m.map(l=>l.split('')); canos=[]; perolas=[];
     let ini={x:T*1.5,y:T*1.5};
     for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
         const k=grid[r][c];
@@ -305,7 +387,7 @@ function comecaFase(i){
     }
     polvo={x:ini.x,y:ini.y,ini,cor:AREAS[F.a].base,alerta:0,tinta:3,pegos:0,pegoT:0,protege:1.5,canoBloq:-1,anda:0,dir:0};
     inimigos=F.inim.map(d=>{ const p=centro(d.r[0][0],d.r[0][1]), cfg=INIM[d.t];
-        return Object.assign({t:d.t,x:p.x,y:p.y,ang:0,rota:d.r.map(q=>centro(q[0],q[1])),i:1,dir:1,espera:0.5,base:0,viu:0},cfg); });
+        return Object.assign({t:d.t,x:p.x,y:p.y,ang:0,rota:d.r.map(q=>centro(q[0],q[1])),i:1,dir:1,espera:0.5,base:0,viu:0},cfg,{vel:cfg.vel*(F.vel||1)}); });
     nuvens=[]; parts=[]; textos=[]; tempo=0; fimT=0; resultado=''; dicaT=F.dica?4.5:0;
     desenhaMapa();
     estado='jogo';
@@ -353,9 +435,9 @@ addEventListener('keydown',e=>{
 addEventListener('keyup',e=>{ teclas[e.code]=false; });
 const stick={id:null,bx:0,by:0,x:0,y:0}, R_ST=55;
 // 4 bolinhas de cor num arco (da esquerda até em cima) em volta do botão de tinta, no canto direito de baixo
-// (no PC fica no canto esquerdo, pra não tampar a saída que quase sempre fica embaixo à direita)
+// (no PC os botões ficam sempre do lado oposto ao polvo, pra nunca tampar ele)
 function posBotoes(){
-    const esq=!TOUCH, bx=esq?62:W-62, by=H-62, R=118, l=[];
+    const esq=!TOUCH&&(!polvo||polvo.x*S+OX>W/2), bx=esq?62:W-62, by=H-62, R=118, l=[];
     ORDEM_COR.forEach((k,i)=>{ const a=esq?-Math.PI/2+i*(Math.PI/2)/3:Math.PI+i*(Math.PI/2)/3; l.push({k,x:bx+Math.cos(a)*R,y:by+Math.sin(a)*R,r:28}); });
     l.push({k:'tinta',x:bx,y:by,r:38});
     return l;
@@ -422,7 +504,7 @@ function update(dt){
                 for(let q=0;q<14;q++) parts.push({x:d.x,y:d.y,vx:(Math.random()-.5)*240,vy:(Math.random()-.5)*240,v:.5,cor:'#6ae0ff',r:4}); }
         }
         for(const pe of perolas) if(!pe.pega && Math.hypot(pe.x-p.x,pe.y-p.y)<24){ pe.pega=true; textos.push({x:pe.x,y:pe.y-24,txt:'+1 ⚪',v:0.8,cor:'#fff'}); for(let q=0;q<10;q++) parts.push({x:pe.x,y:pe.y,vx:(Math.random()-.5)*200,vy:(Math.random()-.5)*200,v:.5,cor:'#fff',r:3}); }
-        if(k==='E'){ resultado='ganhou'; fimT=1.6; textos.push({x:p.x,y:p.y-40,txt:F===FASES[FASES.length-1]?'LIBERDADE! 🌊':'FUGIU! 🐙',v:1.6,cor:'#8aff8a'}); }
+        if(k==='E'){ resultado='ganhou'; fimT=1.6; textos.push({x:p.x,y:p.y-40,txt:faseN===FASES.length-1||faseN===NF-1?'LIBERDADE! 🌊':'FUGIU! 🐙',v:1.6,cor:'#8aff8a'}); }
     }
     // inimigos patrulham e olham em volta
     let alguemVe=false;
@@ -439,7 +521,7 @@ function update(dt){
         if(p.pegoT<=0 && !resultado){
             const ve=!escondido() && (enxerga(e,p.x,p.y) || Math.hypot(e.x-p.x,e.y-p.y)<26);
             e.viu=ve?Math.min(1,e.viu+dt*4):Math.max(0,e.viu-dt*2);
-            if(ve){ alguemVe=true; if(Math.hypot(e.x-p.x,e.y-p.y)<26) p.alerta=1; }
+            if(ve) alguemVe=true;   // encostar também conta, mas precisa ficar visível um tiquinho pra ser pego
             if(ve && p.alerta>=1){ pegaPolvo(e); break; }
         } else e.viu=Math.max(0,e.viu-dt*2);
     }
@@ -633,14 +715,22 @@ function render(){
 
 // ===== TELAS =====
 function montaMenu(){
-    $('mEstr').textContent='⭐ '+totalEst()+' / '+(FASES.length*3);
+    $('mEstr').textContent='⭐ '+totalEst()+' / '+(NF*3);
+    const botao=(i,A)=>{ const e=save.est[i]||0, ok=liberada(i);
+        return '<button class="fase'+(ok?'':' trav')+(e?' feita':'')+'" style="background:'+A.menu+'" '+(ok?'onclick="comecaFase('+i+')"':'')+'>'+(ok?i+1:'🔒')+'<small>'+(ok?'⭐'.repeat(e)+'☆'.repeat(3-e):'')+'</small></button>'; };
     let h='';
     AREAS.forEach((A,a)=>{
         h+='<div class="area"><div class="ta">'+A.nome+'</div><div class="fases">';
-        FASES.forEach((f,i)=>{ if(f.a!==a) return; const e=save.est[i]||0, ok=liberada(i);
-            h+='<button class="fase'+(ok?'':' trav')+(e?' feita':'')+'" style="background:'+A.menu+'" '+(ok?'onclick="comecaFase('+i+')"':'')+'>'+(ok?i+1:'🔒')+'<small>'+(ok?'⭐'.repeat(e)+'☆'.repeat(3-e):'')+'</small></button>'; });
+        FASES.forEach((f,i)=>{ if(f.a===a) h+=botao(i,A); });
         h+='</div></div>';
     });
+    // fases extras: de 20 em 20
+    for(let b=FASES.length;b<NF;b+=20){
+        const fimB=Math.min(NF,b+20);
+        h+='<div class="area"><div class="ta">🌟 Fases Extras '+(b+1)+'–'+fimB+'</div><div class="fases" style="grid-template-columns:repeat(5,1fr)">';
+        for(let i=b;i<fimB;i++) h+=botao(i,AREAS[areaDe(i)]);
+        h+='</div></div>';
+    }
     $('gFases').innerHTML=h;
     $('ajuda').innerHTML=(TOUCH?'📱 Arraste do lado esquerdo pra andar. Toque nas bolinhas coloridas pra mudar de cor e no 💨 pra soltar tinta.'
         :'⌨️ WASD/setas: andar • 1 2 3 4: mudar de cor (ou E) • Espaço: tinta 💨 • 🎮 Controle: Quadrado muda a cor, R2 solta tinta')
@@ -653,21 +743,22 @@ function mostraFim(){
     let tx='⚪ Pérolas: '+pegas+'/'+perolas.length+'<br>🍲 Vezes que te pegaram: '+polvo.pegos;
     if(e>antes){
         save.est[faseN]=e; salva();
-        const novas=e-antes, bonus=totalEst()===FASES.length*3?10:0;
+        const novas=e-antes, bonus=totalEst()===NF*3?10:0;
         try{ if(window.CoguCoins) CoguCoins.ganha(novas+bonus); }catch(er){}
         tx+='<br>+'+(novas+bonus)+' 🍄 Cogu Coins'+(bonus?' (BÔNUS de todas as estrelas!)':'');
     }
-    const ultima=faseN===FASES.length-1;
-    if(ultima) tx+='<br><br>🌊 O Polvilho chegou no MAR! Você zerou o Polvo Fujão! 🐙🎉';
-    else if(FASES[faseN+1].a!==F.a) tx+='<br>🗺️ Próxima área: '+AREAS[FASES[faseN+1].a].nome+'!';
-    $('fTit').textContent=ultima?'LIBERDADE! 🌊':['','Fugiu! 🐙','Muito bem! 😄','PERFEITO! 🤩'][e];
+    const mar=faseN===FASES.length-1, ultima=faseN===NF-1;
+    if(mar) tx+='<br><br>🌊 O Polvilho chegou no MAR! Mas ainda tem 200 FASES EXTRAS te esperando! 🐙🌟';
+    else if(ultima) tx+='<br><br>🏆 Você zerou TODAS as '+NF+' fases do Polvo Fujão! LENDA! 🐙👑';
+    else if(areaDe(faseN+1)!==F.a) tx+='<br>🗺️ Próxima área: '+AREAS[areaDe(faseN+1)].nome+'!';
+    $('fTit').textContent=mar||ultima?'LIBERDADE! 🌊':['','Fugiu! 🐙','Muito bem! 😄','PERFEITO! 🤩'][e];
     $('fEst').textContent='⭐'.repeat(e)+'☆'.repeat(3-e);
     $('fTx').innerHTML=tx;
     $('fProx').style.display=ultima?'none':'inline-block';
     $('fim').style.display='flex';
 }
 function vaiMenu(){ estado='menu'; $('fim').style.display='none'; $('hud').style.display='none'; $('menu').style.display='flex'; montaMenu(); }
-$('fProx').onclick=()=>comecaFase(Math.min(FASES.length-1,faseN+1));
+$('fProx').onclick=()=>comecaFase(Math.min(NF-1,faseN+1));
 $('fRep').onclick=()=>comecaFase(faseN);
 $('fMenu').onclick=vaiMenu;
 $('bMenu').onclick=vaiMenu;

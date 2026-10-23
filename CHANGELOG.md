@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v552 (2026-10-23)
+- 🐙 Polvo Fujão: +200 FASES EXTRAS (agora são 212!), todas testadas: dá pra pegar as 5 pérolas e chegar na saída em cada uma. Os inimigos vão ficando mais rápidos e em maior número
+- Ficou mais justo: encostar num inimigo só te pega se ele te vir por um tiquinho (antes pegava na hora, mesmo trocando de cor)
+- No PC, os botões de cor trocam de lado sozinhos pra nunca tampar o polvo
+
 ## v551 (2026-10-23)
 - 🐙 NOVO JOGO: Polvo Fujão! Fuja do restaurante até o mar mudando de cor igual ao chão pra ficar invisível, soltando tinta e entrando nos canos. 4 áreas (Cozinha, Salão, Encanamento escuro e Porto) e 12 fases testadas, com chefs, garçons, gatos, ratos, pescadores e gaivotas. Selo NOVO saiu do Ovo de Dragão
 
