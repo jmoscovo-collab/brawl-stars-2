@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v551 (2026-10-23)
+- 🐙 NOVO JOGO: Polvo Fujão! Fuja do restaurante até o mar mudando de cor igual ao chão pra ficar invisível, soltando tinta e entrando nos canos. 4 áreas (Cozinha, Salão, Encanamento escuro e Porto) e 12 fases testadas, com chefs, garçons, gatos, ratos, pescadores e gaivotas. Selo NOVO saiu do Ovo de Dragão
+
 ## v550 (2026-10-23)
 - 🏹 NOVO JOGO: Arqueiro Maluco! Acerte a fruta na cabeça do boneco (se acertar o boneco ele cai e você perde). 6 mundos (Fazenda, Deserto, Montanha Gelada, Praia Pirata, Floresta Assombrada e Castelo do Rei), 30 fases testadas, flechas especiais e 1 Cogu Coin por estrela nova. Selo NOVO saiu da Capivara no Balão
 
