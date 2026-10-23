@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v548 (2026-10-22)
+- 🥊 NOVO JOGO (escondido, só pelo link /arena2/): Arena Cogumelo 2! 879 lutadores desenhados, 5 modos (Duelo, Pega-Gemas, Brawl Bola, Chefão e ONLINE), 5 mapas, evolução até o nível 15, caminho de troféus, loja, missões e passe de temporada (25 dias; Plus 10.000 e Plus+ 20.000 Cogu Coins)
+
 ## v547 (2026-10-22)
 - 🔒 Contas: conta NOVA agora começa ZERADA (sem Cogu Coins e sem progresso). Antes, quem criava conta num aparelho que já tinha sido usado levava o progresso de outra pessoa junto
 
