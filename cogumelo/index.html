@@ -8,7 +8,8 @@
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   html,body { width:100%; height:100%; overflow:hidden; background:#12261a; font-family:'Comic Sans MS','Chalkboard SE',cursive,sans-serif; touch-action:none; }
-  #c { display:block; width:100%; height:100%; }
+  body { background:linear-gradient(180deg,#1c3d57 0%,#2f6a7a 45%,#3a7a4a 52%,#1c3a22 100%); }
+  #c { display:block; width:100%; height:100%; position:fixed; inset:0; z-index:1; }
   .overlay {
     position:fixed; inset:0; display:flex; flex-direction:column;
     align-items:center; justify-content:center; justify-content:safe center; overflow-y:auto; z-index:10;
@@ -42,6 +43,7 @@
 <script src="/cogucoins.js?v=545"></script>
 <script src="/top.js?v=1"></script>
 <script src="/letra.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -158,11 +160,136 @@ function desenhaCogu(it){
   ctx.restore();
 }
 
+// ===== 3D: grama, cesta e cogumelos de verdade (Three.js). Sem Three, fica o desenho 2D de antes =====
+const MOBILE=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+let T3=null;
+function monta3D(){
+  if(!window.THREE) return;
+  try{
+    const r=new THREE.WebGLRenderer({antialias:!MOBILE,alpha:true});
+    r.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+    r.domElement.style.cssText='position:fixed;inset:0;z-index:0;display:block';
+    document.body.insertBefore(r.domElement,cv);
+    const cena=new THREE.Scene();
+    cena.fog=new THREE.Fog(0x3a7a5a,1200,4200);
+    const cam=new THREE.PerspectiveCamera(40,1,5,8000);
+    cena.add(new THREE.HemisphereLight(0xdff0ff,0x2a4a1a,0.8));
+    const sol=new THREE.DirectionalLight(0xffffff,0.85); sol.position.set(-300,700,900); cena.add(sol);
+    // chão e grama
+    const campo=new THREE.Group(); cena.add(campo);
+    const chao=new THREE.Mesh(new THREE.PlaneGeometry(14000,7000),new THREE.MeshLambertMaterial({color:0x2e7d32}));
+    chao.rotation.x=-Math.PI/2; chao.position.z=-1800; campo.add(chao);
+    const folha=new THREE.ConeGeometry(3.2,1,4); folha.translate(0,0.5,0);
+    const NG=MOBILE?700:1500;
+    const grama=new THREE.InstancedMesh(folha,new THREE.MeshLambertMaterial({color:0xffffff}),NG); campo.add(grama);
+    const NF=MOBILE?40:90;
+    const flores=new THREE.InstancedMesh(new THREE.SphereGeometry(4,8,6),new THREE.MeshLambertMaterial({color:0xffffff}),NF); campo.add(flores);
+    // cesta
+    const tc=document.createElement('canvas'); tc.width=tc.height=64; const tx=tc.getContext('2d');
+    for(let i=0;i<8;i++) for(let j=0;j<8;j++){ tx.fillStyle=(i+j)%2?'#c8873e':'#9a6026'; tx.fillRect(i*8,j*8,8,8); }
+    const trama=new THREE.CanvasTexture(tc); trama.wrapS=trama.wrapT=THREE.RepeatWrapping; trama.repeat.set(6,2);
+    const matCesta=new THREE.MeshLambertMaterial({map:trama,side:THREE.DoubleSide});
+    const matAro=new THREE.MeshLambertMaterial({color:0x7a4a1a});
+    const cestaG=new THREE.Group();
+    const perfil=[new THREE.Vector2(38,-24),new THREE.Vector2(44,-10),new THREE.Vector2(51,8),new THREE.Vector2(56,24)];
+    cestaG.add(new THREE.Mesh(new THREE.LatheGeometry(perfil,28),matCesta));
+    const fundo=new THREE.Mesh(new THREE.CircleGeometry(38,24),matAro); fundo.rotation.x=-Math.PI/2; fundo.position.y=-24; cestaG.add(fundo);
+    const aro=new THREE.Mesh(new THREE.TorusGeometry(56,3.5,8,32),matAro); aro.rotation.x=Math.PI/2; aro.position.y=24; cestaG.add(aro);
+    const aro2=new THREE.Mesh(new THREE.TorusGeometry(44.5,2.5,8,32),matAro); aro2.rotation.x=Math.PI/2; aro2.position.y=-10; cestaG.add(aro2);
+    const alca=new THREE.Mesh(new THREE.TorusGeometry(52,3.5,8,24,Math.PI),matAro); alca.position.y=24; cestaG.add(alca);
+    cestaG.rotation.x=0.38; cena.add(cestaG);
+    // cogumelos
+    const geoCaule=new THREE.CylinderGeometry(7,9,20,14); geoCaule.translate(0,-6,0);
+    const geoChapeu=new THREE.SphereGeometry(19,22,12,0,Math.PI*2,0,Math.PI/2);
+    const geoBaixo=new THREE.CircleGeometry(18.5,22);
+    const geoBolinha=new THREE.SphereGeometry(3.4,8,6);
+    const matCaule=new THREE.MeshLambertMaterial({color:0xfff1d6});
+    const MAT={
+      normal:[new THREE.MeshPhongMaterial({color:0xe53935,shininess:60}),new THREE.MeshLambertMaterial({color:0xffffff})],
+      dourado:[new THREE.MeshPhongMaterial({color:0xffc928,emissive:0x664400,shininess:120,specular:0xffffaa}),new THREE.MeshLambertMaterial({color:0xfff6c0,emissive:0x443300})],
+      veneno:[new THREE.MeshPhongMaterial({color:0x8e3ad6,shininess:40}),new THREE.MeshLambertMaterial({color:0x9cff57,emissive:0x1a4a00})]
+    };
+    const coracao=new THREE.Shape();
+    coracao.moveTo(0,-14); coracao.bezierCurveTo(-4,-9,-18,-2,-18,8); coracao.bezierCurveTo(-18,16,-8,19,0,11);
+    coracao.bezierCurveTo(8,19,18,16,18,8); coracao.bezierCurveTo(18,-2,4,-9,0,-14);
+    const geoCoracao=new THREE.ExtrudeGeometry(coracao,{depth:9,bevelEnabled:true,bevelSize:2.5,bevelThickness:2.5,bevelSegments:3}); geoCoracao.center();
+    const matCoracao=new THREE.MeshPhongMaterial({color:0xff3355,emissive:0x440010,shininess:90});
+    const PONTOS=[[0,1],[1.25,0.55],[2.5,0.6],[3.8,0.55],[5.1,0.6]];
+    function criaCogu(tipo){
+      const g=new THREE.Group();
+      if(tipo==='vida'){ g.add(new THREE.Mesh(geoCoracao,matCoracao)); return g; }
+      const m=MAT[tipo]||MAT.normal;
+      g.add(new THREE.Mesh(geoCaule,matCaule));
+      const ch=new THREE.Mesh(geoChapeu,m[0]); ch.scale.y=0.78; ch.position.y=2; g.add(ch);
+      const bx=new THREE.Mesh(geoBaixo,matCaule); bx.rotation.x=Math.PI/2; bx.position.y=2; g.add(bx);
+      for(const [a,el] of PONTOS){
+        const b=new THREE.Mesh(geoBolinha,m[1]);
+        const rr=19*Math.sin(el*Math.PI/2*0.9+0.1);
+        b.position.set(Math.cos(a)*rr*(el===1?0:1),2+19*0.78*Math.cos(el*Math.PI/2*0.9+0.1),Math.sin(a)*rr*(el===1?0:1));
+        g.add(b);
+      }
+      return g;
+    }
+    T3={r,cena,cam,campo,grama,flores,cestaG,criaCogu,malhas:new Map(),w:0,h:0,dist:1};
+  }catch(e){ T3=null; }
+}
+function arruma3D(){
+  const t=T3; if(t.w===W&&t.h===H) return; t.w=W; t.h=H;
+  t.r.setSize(W,H,false); t.r.domElement.style.width=W+'px'; t.r.domElement.style.height=H+'px';
+  t.cam.aspect=W/H; t.dist=(H/2)/Math.tan(20*Math.PI/180);
+  t.cam.position.set(0,0,t.dist); t.cam.lookAt(0,0,0); t.cam.updateProjectionMatrix();
+  const gy=-(H/2-34); t.campo.position.y=gy;
+  // folhas de grama espalhadas até o horizonte (mais largo lá no fundo, por causa da perspectiva)
+  const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), p=new THREE.Vector3(), cor=new THREE.Color();
+  const verdes=[0x3f9a3a,0x4caf50,0x2e8a34,0x66bb4a,0x37803a];
+  for(let i=0;i<t.grama.count;i++){
+    const z=i<t.grama.count*0.35?-20+Math.random()*Math.min(260,t.dist*0.5):-2600+Math.random()*2580;
+    const larg=(W/2)*(t.dist-z)/t.dist*1.1;
+    p.set((Math.random()*2-1)*larg,0,z);
+    q.setFromAxisAngle(new THREE.Vector3(Math.random()-.5,0,Math.random()-.5).normalize(),Math.random()*0.35);
+    const h=12+Math.random()*26; s.set(1,h,1);
+    m.compose(p,q,s); t.grama.setMatrixAt(i,m); t.grama.setColorAt(i,cor.setHex(verdes[i%verdes.length]));
+  }
+  t.grama.instanceMatrix.needsUpdate=true; if(t.grama.instanceColor) t.grama.instanceColor.needsUpdate=true;
+  const cores=[0xffeb3b,0xffffff,0xff80ab,0x80d8ff];
+  for(let i=0;i<t.flores.count;i++){
+    const z=-30+Math.random()*-1400, larg=(W/2)*(t.dist-z)/t.dist;
+    p.set((Math.random()*2-1)*larg,14+Math.random()*10,z); s.set(1,1,1); q.identity();
+    m.compose(p,q,s); t.flores.setMatrixAt(i,m); t.flores.setColorAt(i,cor.setHex(cores[i%cores.length]));
+  }
+  t.flores.instanceMatrix.needsUpdate=true; if(t.flores.instanceColor) t.flores.instanceColor.needsUpdate=true;
+}
+let pulo=0;
+function desenha3D(dt){
+  const t=T3; arruma3D();
+  // cogumelos: cria a malha quando nasce, tira quando some
+  const vivos=new Set(itens);
+  t.malhas.forEach((g,it)=>{ if(!vivos.has(it)){ t.cena.remove(g); t.malhas.delete(it); } });
+  for(const it of itens){
+    let g=t.malhas.get(it);
+    if(!g){ g=t.criaCogu(it.tipo); g.scale.setScalar(1.3); t.malhas.set(it,g); t.cena.add(g); g.userData.giro=(Math.random()-.5)*0.08; }
+    g.position.set(it.x-W/2,H/2-it.y,0);
+    g.rotation.z=-it.ang*0.6; g.rotation.y+=(g.userData.giro+0.02)*dt; g.rotation.x=0.35;
+  }
+  // cesta
+  const naMenu=!document.getElementById('menu').classList.contains('hidden');
+  t.cestaG.visible=jogando||naMenu;
+  const cx=jogando?cesta.x:W/2;
+  if(pulo>0) pulo=Math.max(0,pulo-0.08*dt);
+  t.cestaG.position.set(cx-W/2,H/2-(H-60),0);
+  t.cestaG.scale.setScalar(1+Math.sin(pulo*Math.PI)*0.15);
+  t.cestaG.rotation.y=Math.sin(performance.now()/700)*0.12;
+  t.r.render(t.cena,t.cam);
+}
+monta3D();
+
 let ultimo=0;
 function loop(t){
   requestAnimationFrame(loop);
   const dt=Math.min((t-ultimo)/16.7,3); ultimo=t;
 
+  if(T3){ ctx.clearRect(0,0,W,H); }
+  else {
   // fundo
   const g=ctx.createLinearGradient(0,0,0,H);
   g.addColorStop(0,'#1c3d57'); g.addColorStop(0.7,'#2a5a35'); g.addColorStop(1,'#1c3a22');
@@ -171,6 +298,7 @@ function loop(t){
   ctx.fillStyle='#2e7d32'; ctx.fillRect(0,H-46,W,46);
   ctx.font='24px serif';
   for(let x=10;x<W;x+=90){ ctx.fillText('🌿', x, H-14); }
+  }
 
   if(jogando){
     tempo+=dt/60;
@@ -194,6 +322,7 @@ function loop(t){
         else if(it.tipo==='vida'){ vidas=Math.min(VIDAS_INICIAIS,vidas+1); boom(it.x,it.y,'#ff6b81',14); }
         else if(it.tipo==='dourado'){ pontos+=5; boom(it.x,it.y,'#ffd54a',16); }
         else { pontos++; boom(it.x,it.y,'#ff5252',10); }
+        pulo=1;
         itens.splice(i,1); continue;
       }
       // caiu no chão: deixou escapar um cogumelo bom = perde uma vida
@@ -215,7 +344,7 @@ function loop(t){
   }
 
   // itens
-  itens.forEach(desenhaCogu);
+  if(T3) desenha3D(dt); else itens.forEach(desenhaCogu);
 
   // partículas
   for(let i=parts.length-1;i>=0;i--){
@@ -226,7 +355,7 @@ function loop(t){
   }
 
   // cesta
-  if(jogando || document.getElementById('menu').classList.contains('hidden')===false){
+  if(!T3 && (jogando || document.getElementById('menu').classList.contains('hidden')===false)){
     const cx=jogando?cesta.x:W/2, cy=H-64;
     ctx.font='56px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('🧺', cx, cy+8);

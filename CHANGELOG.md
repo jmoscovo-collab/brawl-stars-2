@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v560 (2026-10-24)
+- 🍄 Chuva de Cogumelos 3 agora é 3D! A grama tem folhinhas e flores até o horizonte, a cesta é de palha trançada (e pula quando pega um cogumelo) e os cogumelos, os dourados, os venenosos e os corações são 3D e giram caindo
+
 ## v559 (2026-10-24)
 - 🔍 Pesquisa com CARACTERÍSTICAS: embaixo da pesquisa tem botões (Ação, Inteligência, Corrida, 3D, Online, Aventura, Esporte, Animais, Música, Criar, Reflexo, Calminho). Dá pra escolher várias e aparecem os jogos que têm todas. Cada botão mostra quantos jogos tem
 - ⏳ Retroceder: tirou o "Feito pelo Papai", agora tem etiqueta normal (Puzzle • Tempo)
