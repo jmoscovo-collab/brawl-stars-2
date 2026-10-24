@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v556 (2026-10-24)
+- 🎸 Cogu Rock sem letra: o Cogu não fala mais nada, agora é só a música radical
+
 ## v555 (2026-10-24)
 - 🎸 Cogu Rock LANÇADO na home (com selo NOVO)! O selo NOVO saiu da Arena Cogumelo 2
 
