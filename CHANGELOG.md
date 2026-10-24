@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v557 (2026-10-24)
+- 🏰 Defesa da Torre (escondido, só pelo link /torre/): proteja a sua torre dos monstros comprando soldadinhos! 6 soldadinhos que vão sendo liberados (Soldado, Arqueiro, Mago do Gelo, Canhão, Mago do Raio e Super Cogu), cada um melhora até o nível 3. 30 ondas, Dragão chefão a cada 10 ondas, 3 mapas (Fácil, Médio, Difícil), modo infinito e Top ondas
+
 ## v556 (2026-10-24)
 - 🎸 Cogu Rock sem letra: o Cogu não fala mais nada, agora é só a música radical
 
