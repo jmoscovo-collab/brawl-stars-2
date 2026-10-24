@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v559 (2026-10-24)
+- 🔍 Pesquisa com CARACTERÍSTICAS: embaixo da pesquisa tem botões (Ação, Inteligência, Corrida, 3D, Online, Aventura, Esporte, Animais, Música, Criar, Reflexo, Calminho). Dá pra escolher várias e aparecem os jogos que têm todas. Cada botão mostra quantos jogos tem
+- ⏳ Retroceder: tirou o "Feito pelo Papai", agora tem etiqueta normal (Puzzle • Tempo)
+
 ## v558 (2026-10-24)
 - 🏰 Defesa da Torre: +200 SOLDADINHOS NOVOS (206 no total!), com temas de Fogo, Água, Robô, Dino, Fantasma, Espacial, Diamante, Rei, Supremo e muito mais. Vão sendo liberados a cada onda
 - Soldadinhos agora vão até o NÍVEL 14
