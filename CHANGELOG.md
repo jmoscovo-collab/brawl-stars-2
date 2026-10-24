@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v555 (2026-10-24)
+- 🎸 Cogu Rock LANÇADO na home (com selo NOVO)! O selo NOVO saiu da Arena Cogumelo 2
+
 ## v554 (2026-10-24)
 - 🎸 Cogu Rock: músicas MUITO mais radicais! Guitarra distorcida, solo de guitarra no refrão, prato, viradas de bateria e bumbo duplo no MODO LENDA
 - Cada nível tem a sua música: Rock do Cogu, Chuva de Guitarra, Trovão Cogumelo e Lenda do Metal
