@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v554 (2026-10-24)
+- 🎸 Cogu Rock: músicas MUITO mais radicais! Guitarra distorcida, solo de guitarra no refrão, prato, viradas de bateria e bumbo duplo no MODO LENDA
+- Cada nível tem a sua música: Rock do Cogu, Chuva de Guitarra, Trovão Cogumelo e Lenda do Metal
+
 ## v553 (2026-10-24)
 - 🏆 Chuva de Cogumelos 1, 2 e 3 agora têm TOP 10! Mostra as 10 melhores partidas com o nome da conta, e a sua partida nova aparece destacada no fim do jogo
 - 🎸 Cogu Rock (escondido, só pelo link /cogurock/): jogo de ritmo com o Cogu, um cogumelo roqueiro de óculos escuros e guitarra. Música de rock nova, 4 níveis (até o MODO LENDA), contador de vitórias e TOP DE VITÓRIAS
