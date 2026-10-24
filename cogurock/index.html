@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>🎸 Cogu Rock — Cogumelo Games</title>
+<meta name="description" content="Cogu Rock: aperte as setas no ritmo e toque guitarra com o Cogu, o cogumelo roqueiro! Top de vitórias.">
+<script src="/letra.js"></script>
+<script src="/cogucoins.js?v=545"></script>
+<script src="/gamepad.js?v=358"></script>
+<script src="/top.js?v=1"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#200a0a;font-family:'Segoe UI',Arial,sans-serif;color:#fff;user-select:none;-webkit-user-select:none;touch-action:none}
+#c{display:block;position:fixed;inset:0}
+.tela{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:16px 12px 60px;background:radial-gradient(circle at 50% 20%,#b03a1a,#200a0a 75%);z-index:5;touch-action:pan-y}
+h1{font-size:42px;text-shadow:0 4px 0 #7a1a0a,0 0 20px rgba(255,160,60,.8);margin-top:10px;text-align:center}
+.sub{color:#ffe0c8;margin:8px 0 14px;text-align:center;max-width:520px;line-height:1.4;font-size:17px}
+.bal{background:#fff;color:#b01a2a;border-radius:18px;padding:8px 16px;font-weight:bold;font-size:20px;margin:6px 0 14px;box-shadow:0 4px 0 #ff9a5a}
+.btn{display:block;width:280px;max-width:90vw;margin:6px auto;padding:14px;border-radius:16px;border:3px solid rgba(255,255,255,.5);color:#fff;font-weight:bold;font-size:20px;cursor:pointer}
+.btn small{display:block;font-size:13px;font-weight:normal;opacity:.9}
+.f{background:linear-gradient(#4ccf6a,#1f8a3a)} .m{background:linear-gradient(#ffb43a,#d0700a)} .d{background:linear-gradient(#ff4a6a,#a01a3a)} .x{background:linear-gradient(#b04aff,#5a1aa0)}
+.ajuda{font-size:14px;color:#ffe0c8;margin-top:14px;text-align:center;max-width:500px;line-height:1.6}
+.voltar{color:#ffe0c8;margin-top:12px;font-size:14px}
+#fim{display:none;background:rgba(30,5,0,.7);justify-content:center}
+.caixa{background:#4a1a12;border:3px solid #ffd76a;border-radius:20px;padding:22px 26px;text-align:center;max-width:420px;margin-top:40px}
+.caixa h2{font-size:30px}
+.caixa p{margin:8px 0;font-size:18px}
+#pausa{position:fixed;top:10px;right:10px;z-index:4;width:46px;height:46px;border-radius:12px;border:2px solid rgba(255,255,255,.5);background:rgba(0,0,0,.35);color:#fff;font-size:22px;display:none;cursor:pointer}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<button id="pausa">⏸</button>
+
+<div class="tela" id="menu">
+  <h1>🎸 Cogu Rock</h1>
+  <div class="bal">"Eu sou o Cogu, e o rock é meu!" 🤘</div>
+  <div class="sub">Aperte as setas <b>no ritmo</b> quando elas chegarem na linha e toque guitarra com o Cogu, o cogumelo roqueiro!</div>
+  <div id="vits" class="bal" style="background:#ffd23a;color:#5a2a00;box-shadow:0 4px 0 #b07a00;font-size:17px"></div>
+  <div id="botoes"></div>
+  <button class="btn" id="btnTop" style="background:linear-gradient(#ffd23a,#c08a00);color:#3a1a00">🏆 TOP DE VITÓRIAS</button>
+  <div id="topMenu" style="width:100%;display:none"></div>
+  <div class="ajuda">💻 Setas ou <b>D F J K</b> · 📱 Toque nas colunas · 🎮 Controle: direcional<br>Acertou bem no tempo = <b>PERFEITO!</b> ✨ Errou muito = o público vaia e o show acaba 😵</div>
+  <a class="voltar" href="/">⬅ Voltar pro Cogumelo Games</a>
+</div>
+
+<div class="tela" id="fim">
+  <div class="caixa">
+    <h2 id="fimT">🎉 Arrasou!</h2>
+    <p id="fimE" style="font-size:34px"></p>
+    <p id="fimP"></p>
+    <p id="fimC" style="color:#ffd76a"></p>
+    <div id="fimTop" style="width:100%"></div>
+    <button class="btn f" id="deNovo">🔁 Tocar de novo</button>
+    <button class="btn x" id="praMenu">🏠 Menu</button>
+  </div>
+</div>
+
+<script>
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+let W=0,H=0,DPR=1;
+function resize(){ DPR=Math.min(1.5,window.devicePixelRatio||1); W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener('resize',resize); resize();
+
+// ---------- save ----------
+let save={rec:{},vit:0};
+try{ const s=JSON.parse(localStorage.getItem('cogurock_save')); if(s&&s.rec){ save=s; save.vit=save.vit||0; } }catch(e){}
+function grava(){ try{ localStorage.setItem('cogurock_save',JSON.stringify(save)); }catch(e){} }
+
+// ---------- músicas ----------
+// Música original de rock: Em C G D, cada coluna toca uma nota do acorde
+const PROG=[[4,7,11,16],[0,4,7,12],[-5,-1,2,7],[2,6,9,14]];
+const LETRA=["Eu sou o Cogu!","Rock no talo!","Levanta a mão!","Cogumelo roqueiro!","Toca guitarra!","Ninguém me para!","Mais barulho, galera!","Eu sou o Cogu, e o rock é meu!"];
+const DIFS=[
+  {id:'f',nome:'😊 Fácil',  dica:'afinando a guitarra',        bpm:104, vel:330, dens:0, moedas:5},
+  {id:'m',nome:'😎 Médio',  dica:'o show começou!',            bpm:118, vel:420, dens:1, moedas:10},
+  {id:'d',nome:'🔥 Difícil',dica:'solo de guitarra',           bpm:132, vel:520, dens:2, moedas:15},
+  {id:'x',nome:'🤘 MODO LENDA',dica:'só pra lendas do rock',     bpm:148, vel:620, dens:3, moedas:20},
+];
+const BARRAS=32, INTRO=4; // 4 batidas de contagem antes
+function rng(s){ return ()=>{ s|=0; s=s+0x6D2B79F5|0; let t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function geraChart(d){
+  const r=rng(4242+d.dens*57), bt=60/d.bpm, notas=[]; let lane=1;
+  for(let b=0;b<BARRAS;b++){
+    const parte=Math.floor(b/8); // 4 partes, a última é a mais animada
+    const dens=Math.min(3,d.dens+(parte===3?1:0)-(parte===0?1:0));
+    const passos=[];
+    if(dens<=0) passos.push(0,2);
+    else if(dens===1){ passos.push(0,1,2,3); }
+    else if(dens===2){ for(let k=0;k<8;k++) if(k%2===0||r()<.45) passos.push(k/2); }
+    else { for(let k=0;k<8;k++) if(k%2===0||r()<.75) passos.push(k/2); }
+    for(const p of passos){
+      let nl=lane; while(nl===lane&&r()<.8) nl=Math.floor(r()*4);
+      lane=nl;
+      const t=(INTRO+b*4+p)*bt;
+      notas.push({t,l:lane,b});
+      if(dens>=2&&p%1===0&&r()<(dens===3?.22:.12)){ // nota dupla
+        let l2=(lane+1+Math.floor(r()*3))%4; notas.push({t,l:l2,b});
+      }
+    }
+  }
+  return notas;
+}
+
+// ---------- áudio ----------
+let actx=null, mestre=null;
+function audio(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); mestre=actx.createGain(); mestre.gain.value=.5; mestre.connect(actx.destination); }catch(e){} } if(actx&&actx.state==='suspended') actx.resume(); }
+const hz=s=>261.63*Math.pow(2,s/12);
+function tom(f,t,dur,tipo,vol){ if(!actx) return; const o=actx.createOscillator(), g=actx.createGain(); o.type=tipo; o.frequency.value=f; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.01); g.gain.exponentialRampToValueAtTime(.001,t+dur); o.connect(g); g.connect(mestre); o.start(t); o.stop(t+dur+.05); }
+function bumbo(t){ if(!actx) return; const o=actx.createOscillator(), g=actx.createGain(); o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(40,t+.12); g.gain.setValueAtTime(.9,t); g.gain.exponentialRampToValueAtTime(.001,t+.15); o.connect(g); g.connect(mestre); o.start(t); o.stop(t+.2); }
+let ruidoBuf=null;
+function chimbal(t,vol){ if(!actx) return; if(!ruidoBuf){ ruidoBuf=actx.createBuffer(1,actx.sampleRate*.1,actx.sampleRate); const d=ruidoBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; }
+  const s=actx.createBufferSource(), f=actx.createBiquadFilter(), g=actx.createGain(); s.buffer=ruidoBuf; f.type='highpass'; f.frequency.value=7000; g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+.05); s.connect(f); f.connect(g); g.connect(mestre); s.start(t); s.stop(t+.06); }
+
+function caixa(t){ if(!actx) return; if(!ruidoBuf) chimbal(t,.001); const s=actx.createBufferSource(), f=actx.createBiquadFilter(), g=actx.createGain(); s.buffer=ruidoBuf; f.type='bandpass'; f.frequency.value=1800; g.gain.setValueAtTime(.5,t); g.gain.exponentialRampToValueAtTime(.001,t+.09); s.connect(f); f.connect(g); g.connect(mestre); s.start(t); s.stop(t+.1); tom(190,t,.07,'triangle',.25); }
+
+// voz do Cogu (voz do navegador, se tiver)
+let vozes=[];
+function pegaVozes(){ try{ vozes=speechSynthesis.getVoices(); }catch(e){} }
+try{ pegaVozes(); speechSynthesis.onvoiceschanged=pegaVozes; }catch(e){}
+function canta(txt){
+  balao={txt,t:2.2};
+  try{
+    if(!window.speechSynthesis) return;
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(txt.replace('E tals, e tals!','E tals, e tals!'));
+    const en=/[A-Za-z]'s/.test(txt);
+    u.lang=en?'en-US':'pt-BR';
+    const v=vozes.find(v=>v.lang&&v.lang.replace('_','-').startsWith(u.lang)&&/male|david|guy|daniel|antonio|ricardo/i.test(v.name)&&!/female/i.test(v.name))||vozes.find(v=>v.lang&&v.lang.replace('_','-').startsWith(u.lang));
+    if(v) u.voice=v;
+    u.pitch=.8; u.rate=1.1; u.volume=1;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+// ---------- jogo ----------
+let estado='menu', dif=null, notas=[], t0=0, tPausa=0, pausado=false;
+let pontos=0, combo=0, maxCombo=0, vida=60, cont={p:0,o:0,b:0,e:0};
+let agendado=0, balao=null, efeitos=[], pose=-1, poseT=0, letraIdx=-1, fimMusica=0, apertada=[0,0,0,0], bate=0, bocaT=0;
+const CORES=['#c04aff','#3ac8ff','#4cdf6a','#ff4a6a'];
+const SETA=[Math.PI,Math.PI/2,-Math.PI/2,0]; // ← ↓ ↑ →
+
+function tempo(){ return actx?actx.currentTime-t0:0; }
+function comeca(d){
+  audio(); dif=d; notas=geraChart(d).map(n=>({...n,feita:false,erro:false}));
+  pontos=0; combo=0; maxCombo=0; vida=60; cont={p:0,o:0,b:0,e:0}; efeitos=[]; balao=null; letraIdx=-1; pose=-1;
+  const bt=60/d.bpm; fimMusica=(INTRO+BARRAS*4)*bt+1.5;
+  t0=(actx?actx.currentTime:0)+.3; agendado=0; pausado=false;
+  estado='jogo';
+  document.getElementById('menu').style.display='none'; document.getElementById('fim').style.display='none'; document.getElementById('pausa').style.display='block';
+  canta("Eu sou o Cogu!");
+}
+
+function agenda(){ // toca a base da música um pouquinho adiantado
+  if(!actx||pausado) return;
+  const bt=60/dif.bpm, ate=tempo()+.25;
+  while(agendado*bt/2<ate){
+    const k=agendado, t=t0+k*bt/2, batida=k/2;
+    if(t>=actx.currentTime-.02 && batida<INTRO+BARRAS*4){
+      if(batida<INTRO){ if(k%2===0) tom(batida===INTRO-1?1046:784,t,.08,'square',.12); }
+      else{
+        const b=Math.floor((batida-INTRO)/4), acorde=PROG[b%4];
+        if(k%8===0||k%8===4||k%16===13) bumbo(t);
+        if(k%8===2||k%8===6) caixa(t);
+        chimbal(t,k%2?.1:.06);
+        tom(hz(acorde[0]-24),t,bt*.4,'sawtooth',.09);           // guitarra base “tchun tchun”
+        tom(hz(acorde[0]-17),t,bt*.4,'sawtooth',.05);
+        if(k%8===0) tom(hz(acorde[0]-36),t,bt*1.8,'triangle',.3);
+      }
+    }
+    agendado++;
+  }
+}
+
+function aperta(l){
+  apertada[l]=.15;
+  if(estado!=='jogo'||pausado) return;
+  const t=tempo(); let melhor=null, md=1;
+  for(const n of notas){ if(n.feita||n.erro||n.l!==l) continue; const d=Math.abs(n.t-t); if(d<md){ md=d; melhor=n; } if(n.t>t+.3) break; }
+  if(!melhor||md>.16) return; // apertar sem nota não tira nada
+  melhor.feita=true;
+  let tipo, pts;
+  if(md<.05){ tipo='PERFEITO!'; pts=300; cont.p++; vida+=3; }
+  else if(md<.1){ tipo='ÓTIMO!'; pts=200; cont.o++; vida+=2; }
+  else { tipo='BOM'; pts=100; cont.b++; vida+=1; }
+  vida=Math.min(100,vida); combo++; maxCombo=Math.max(maxCombo,combo);
+  pontos+=pts*(1+Math.min(4,Math.floor(combo/10))*.25)|0;
+  const acorde=PROG[Math.max(0,melhor.b)%4];
+  tom(hz(acorde[l]+12),actx.currentTime,.25,'sawtooth',.08);
+  tom(hz(acorde[l]+24),actx.currentTime,.15,'sine',.04);
+  pose=l; poseT=.35; bocaT=.25;
+  const L=lay(); efeitos.push({x:L.lx+L.lw*(l+.5),y:L.alvo,txt:tipo,cor:tipo==='BOM'?'#fff':tipo==='ÓTIMO!'?'#7fe0ff':'#ffd76a',t:.6,anel:true,l});
+}
+
+function erra(n){
+  n.erro=true; cont.e++; combo=0; vida-=dif.dens===0?5:7;
+  pose=4; poseT=.3;
+  if(actx) tom(110,actx.currentTime,.18,'sawtooth',.06);
+  const L=lay(); efeitos.push({x:L.lx+L.lw*(n.l+.5),y:L.alvo,txt:'ERROU',cor:'#ff6a6a',t:.5});
+  if(vida<=0) termina(false);
+}
+
+function termina(ganhou){
+  estado='fim'; document.getElementById('pausa').style.display='none';
+  try{ speechSynthesis.cancel(); }catch(e){}
+  const total=notas.length, acc=(cont.p+cont.o*.8+cont.b*.5)/total;
+  const est=!ganhou?0:acc>.92?3:acc>.75?2:1;
+  let moedas=0, novo=false, posTop=0;
+  if(ganhou){
+    moedas=Math.round(dif.moedas*est/3)||1;
+    try{ if(window.CoguCoins) CoguCoins.ganha(moedas); }catch(e){}
+    const r=save.rec[dif.id]||{p:0,e:0};
+    if(pontos>r.p){ novo=true; r.p=pontos; } r.e=Math.max(r.e,est); save.rec[dif.id]=r; save.vit++; grava();
+    try{ if(window.CoguTop) posTop=CoguTop.registra('cogurock', pontos); }catch(e){}
+    canta("Valeu, galera! Rock no talo!");
+  }
+  document.getElementById('fimT').textContent=ganhou?(est===3?'🌟 SHOW PERFEITO!':'🎉 Arrasou!'):'😵 O público vaiou!';
+  document.getElementById('fimE').textContent=ganhou?'⭐'.repeat(est)+'☆'.repeat(3-est):'🍅🍅';
+  document.getElementById('fimP').innerHTML=`Pontos: <b>${pontos}</b>${novo?' 🏆 RECORDE!':''}<br>Combo máximo: <b>${maxCombo}</b><br>✨ ${cont.p} · 👍 ${cont.o+cont.b} · ❌ ${cont.e}<br>Precisão: <b>${Math.round(acc*100)}%</b>`;
+  document.getElementById('fimC').textContent=ganhou?`+${moedas} 💰 Cogu Coins`:'Tenta de novo, você consegue!';
+  try{ document.getElementById('fimTop').innerHTML=(ganhou?`<p>🤘 Vitórias: <b>${save.vit}</b>${posTop?` · você ficou em <b>${posTop}º</b> no top!`:''}</p>`:'')+(window.CoguTop?CoguTop.html('cogurock',' pts','🏆 Top de vitórias'):''); }catch(e){}
+  setTimeout(()=>{ document.getElementById('fim').style.display='flex'; },ganhou?600:300);
+}
+
+function pausar(p){
+  if(estado!=='jogo') return;
+  pausado=p;
+  if(actx){ if(p) actx.suspend(); else actx.resume(); }
+  try{ if(p) speechSynthesis.cancel(); }catch(e){}
+  document.getElementById('pausa').textContent=p?'▶':'⏸';
+}
+document.getElementById('pausa').onclick=()=>pausar(!pausado);
+addEventListener('blur',()=>pausar(true));
+
+// ---------- layout ----------
+function lay(){
+  const retrato=H>W*1.1;
+  if(retrato){ const lw=Math.min(90,(W-24)/4); const lx=(W-lw*4)/2; return {retrato,lx,lw,alvo:H-90,topo:H*.4,vx:W*.42,vy:H*.25,vs:Math.min(W,H*.42)/470}; }
+  const lw=Math.min(95,W*.11), lx=W*.52; return {retrato,lx,lw,alvo:H-95,topo:0,vx:W*.25,vy:H*.55,vs:Math.min(W*.45,H)/430};
+}
+
+// ---------- desenho ----------
+function seta(x,y,r,ang,cor,cheia){
+  ctx.save(); ctx.translate(x,y); ctx.rotate(ang);
+  ctx.beginPath(); ctx.moveTo(r,0); ctx.lineTo(0,-r); ctx.lineTo(0,-r*.42); ctx.lineTo(-r,-r*.42); ctx.lineTo(-r,r*.42); ctx.lineTo(0,r*.42); ctx.lineTo(0,r); ctx.closePath();
+  if(cheia){ ctx.fillStyle=cor; ctx.fill(); ctx.lineWidth=3; ctx.strokeStyle='#fff'; ctx.stroke(); }
+  else { ctx.lineWidth=4; ctx.strokeStyle=cor; ctx.stroke(); }
+  ctx.restore();
+}
+
+function desenhaCogu(x,y,s,t){
+  const pulo=Math.abs(Math.sin(bate*Math.PI))*10*s;
+  ctx.save(); ctx.translate(x,y-pulo+(pose===1?10*s:0)); ctx.scale(s,s);
+  let incl=Math.sin(bate*Math.PI)*.05;
+  if(pose===0) incl=-.2; if(pose===3) incl=.2; if(pose===2) incl=-.08;
+  ctx.rotate(incl);
+  const triste=pose===4, toca=poseT>0&&pose>=0&&pose<4;
+  // pernas e tênis
+  ctx.fillStyle='#2a2a3a'; ctx.fillRect(-30,90,22,66); ctx.fillRect(8,90,22,66);
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(-20,160,24,11,0,0,7); ctx.ellipse(20,160,24,11,0,0,7); ctx.fill();
+  ctx.fillStyle='#e83a3a'; ctx.fillRect(-42,160,44,6); ctx.fillRect(-2,160,44,6);
+  // corpo (talo) com jaqueta
+  ctx.fillStyle='#f4e6c8'; ctx.beginPath(); ctx.ellipse(0,20,48,80,0,0,7); ctx.fill();
+  ctx.fillStyle='#1a1a24'; ctx.beginPath(); ctx.moveTo(-48,10); ctx.quadraticCurveTo(-52,90,-30,100); ctx.lineTo(-8,100); ctx.lineTo(-14,0); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(48,10); ctx.quadraticCurveTo(52,90,30,100); ctx.lineTo(8,100); ctx.lineTo(14,0); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#c0c0d0'; for(let i=0;i<4;i++){ ctx.beginPath(); ctx.arc(-30,30+i*16,2.5,0,7); ctx.fill(); }
+  // rosto
+  if(triste){ ctx.strokeStyle='#3a2a1a'; ctx.lineWidth=4; for(const ox of [-18,18]){ ctx.beginPath(); ctx.arc(ox,-22,7,0,Math.PI*1.6); ctx.stroke(); } }
+  else { // óculos escuros
+    ctx.fillStyle='#111'; roundRect(-36,-32,30,18,6); ctx.fill(); roundRect(6,-32,30,18,6); ctx.fill(); ctx.fillRect(-8,-28,16,4);
+    ctx.fillStyle='rgba(255,255,255,.5)'; ctx.fillRect(-30,-29,8,4); ctx.fillRect(12,-29,8,4); }
+  ctx.fillStyle='#8a1a2a';
+  if(triste){ ctx.strokeStyle='#8a1a2a'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(0,8,10,Math.PI*1.15,Math.PI*1.85); ctx.stroke(); }
+  else if(bocaT>0||(balao&&balao.t>0.4&&Math.sin(t*20)>0)){ ctx.beginPath(); ctx.ellipse(0,0,13,11,0,0,7); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillRect(-8,-10,16,4); }
+  else { ctx.strokeStyle='#8a1a2a'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(-12,-2); ctx.quadraticCurveTo(4,8,14,-6); ctx.stroke(); }
+  // chapéu de cogumelo
+  const cap=ctx.createLinearGradient(0,-130,0,-40); cap.addColorStop(0,'#ff4a4a'); cap.addColorStop(1,'#b01a2a');
+  ctx.fillStyle=cap; ctx.beginPath(); ctx.moveTo(-95,-45); ctx.quadraticCurveTo(-90,-150,0,-150); ctx.quadraticCurveTo(90,-150,95,-45); ctx.quadraticCurveTo(0,-62,-95,-45); ctx.fill();
+  ctx.fillStyle='#fff'; [[-55,-90,14],[-15,-120,11],[30,-100,16],[65,-70,10],[-75,-60,8]].forEach(([a,b,r])=>{ ctx.beginPath(); ctx.arc(a,b,r,0,7); ctx.fill(); });
+  // topete de raio
+  ctx.fillStyle='#ffd23a'; ctx.beginPath(); ctx.moveTo(-6,-150); ctx.lineTo(10,-178); ctx.lineTo(4,-162); ctx.lineTo(20,-166); ctx.lineTo(2,-138); ctx.closePath(); ctx.fill();
+  // guitarra
+  ctx.save(); ctx.translate(4,52); ctx.rotate(pose===2?-.9:-.45);
+  ctx.fillStyle='#7a4a1a'; ctx.fillRect(10,-6,120,12); // braço
+  ctx.fillStyle='#ddd'; for(let i=0;i<6;i++) ctx.fillRect(28+i*16,-6,2,12);
+  ctx.fillStyle='#222'; roundRect(126,-12,26,24,6); ctx.fill();
+  const gc=ctx.createLinearGradient(-50,-30,30,30); gc.addColorStop(0,'#3ac8ff'); gc.addColorStop(1,'#7a2ad0');
+  ctx.fillStyle=gc; ctx.beginPath(); ctx.ellipse(-20,0,42,30,0,0,7); ctx.ellipse(10,0,26,22,0,0,7); ctx.fill();
+  ctx.fillStyle='#ffd23a'; ctx.beginPath(); ctx.moveTo(-34,-14); ctx.lineTo(-18,-2); ctx.lineTo(-26,0); ctx.lineTo(-12,14); ctx.lineTo(-30,4); ctx.lineTo(-24,2); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#111'; ctx.fillRect(-4,-14,6,28);
+  ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.lineWidth=1; for(let i=-1;i<=1;i++){ ctx.beginPath(); ctx.moveTo(-10,i*4); ctx.lineTo(130,i*4); ctx.stroke(); }
+  ctx.restore();
+  // braços
+  ctx.strokeStyle='#f4e6c8'; ctx.lineWidth=15; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(40,20); ctx.lineTo(70,40); ctx.lineTo(pose===2?70:92,pose===2?-10:10); ctx.stroke(); // mão no braço da guitarra
+  const pal=toca?Math.sin(t*40)*10:0;
+  ctx.beginPath(); ctx.moveTo(-40,20); ctx.lineTo(-40,50); ctx.lineTo(-8,48+pal); ctx.stroke(); // palheta
+  // notas musicais saindo
+  if(toca){ ctx.fillStyle='#ffd23a'; ctx.font='bold 26px Arial'; ctx.fillText('♪',-90-(.35-poseT)*80,-20-(.35-poseT)*120); ctx.fillText('♫',70+(.35-poseT)*80,-60-(.35-poseT)*100); }
+  ctx.restore();
+}
+function estrela(x,y,r){ ctx.beginPath(); for(let i=0;i<10;i++){ const a=-Math.PI/2+i*Math.PI/5, rr=i%2?r*.45:r; ctx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr); } ctx.closePath(); ctx.fill(); }
+
+function desenhaPalco(L,t){
+  const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#3a0e10'); g.addColorStop(1,'#160606'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  // holofotes
+  for(let i=0;i<3;i++){ const a=Math.sin(t*.8+i*2)*.35, x=W*(.2+i*.3);
+    ctx.save(); ctx.translate(x,-10); ctx.rotate(a); const gg=ctx.createLinearGradient(0,0,0,H); gg.addColorStop(0,`hsla(${(i*110+t*40)%360},100%,70%,.28)`); gg.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=gg; ctx.beginPath(); ctx.moveTo(-15,0); ctx.lineTo(15,0); ctx.lineTo(160,H*1.1); ctx.lineTo(-160,H*1.1); ctx.fill(); ctx.restore(); }
+  // estrelinhas
+  ctx.fillStyle='rgba(255,255,255,.6)'; for(let i=0;i<40;i++){ const x=(i*137.5)%W, y=(i*71.3)%(H*.6); if(Math.sin(t*3+i)>.2) ctx.fillRect(x,y,2,2); }
+  // palco
+  ctx.fillStyle='#4a1a3a'; const py=L.retrato?L.vy+L.vs*170:L.vy+L.vs*170;
+  ctx.fillRect(0,py,W,H-py); ctx.fillStyle='#ff5ab0'; ctx.fillRect(0,py,W,4);
+  // plateia de cogumelos
+  for(let i=0;i<14;i++){ const x=(i+.5)*W/14, pul=Math.abs(Math.sin(bate*Math.PI+i))*6, y=H-8-pul;
+    ctx.fillStyle='#f0e0c8'; ctx.fillRect(x-6,y-14,12,14);
+    ctx.fillStyle=i%2?'#e83a3a':'#b04aff'; ctx.beginPath(); ctx.ellipse(x,y-14,16,11,0,Math.PI,0); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x-6,y-18,2.5,0,7); ctx.arc(x+6,y-19,2,0,7); ctx.fill(); }
+}
+
+function desenha(){
+  const t=performance.now()/1000, L=lay();
+  desenhaPalco(L,t);
+  desenhaCogu(L.vx,L.vy,L.vs,t);
+  // balão de fala
+  if(balao&&balao.t>0){
+    const fs=Math.max(16,Math.min(26,W/28)); ctx.font=`bold ${fs}px 'Segoe UI',Arial`;
+    const tw=ctx.measureText(balao.txt).width+30, bx=Math.min(W-tw-8,Math.max(8,L.vx-tw/2+L.vs*40)), by=Math.max(44,L.vy-L.vs*210);
+    ctx.globalAlpha=Math.min(1,balao.t*3);
+    ctx.fillStyle='#fff'; roundRect(bx,by,tw,fs+20,16); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(bx+tw*.45,by+fs+18); ctx.lineTo(bx+tw*.4,by+fs+34); ctx.lineTo(bx+tw*.58,by+fs+18); ctx.fill();
+    ctx.fillStyle='#8a1a9a'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🎵 '+balao.txt,bx+tw/2,by+fs/2+10);
+    ctx.globalAlpha=1;
+  }
+  if(estado!=='jogo'&&estado!=='fim') return;
+  // colunas
+  ctx.fillStyle='rgba(0,0,0,.35)'; roundRect(L.lx-6,L.topo,L.lw*4+12,H-L.topo,10); ctx.fill();
+  const r=L.lw*.36;
+  for(let l=0;l<4;l++){ const x=L.lx+L.lw*(l+.5);
+    if(apertada[l]>0){ ctx.fillStyle=CORES[l]+'40'; ctx.fillRect(L.lx+L.lw*l,L.topo,L.lw,H-L.topo); }
+    seta(x,L.alvo,r*(apertada[l]>0?1.12:1),SETA[l],apertada[l]>0?CORES[l]:'rgba(255,255,255,.55)',apertada[l]>0); }
+  // notas
+  const tm=tempo();
+  for(const n of notas){ if(n.feita) continue; const y=L.alvo-(n.t-tm)*dif.vel; if(y<L.topo-r) break; if(y>H+r) continue;
+    ctx.globalAlpha=n.erro?.3:1; seta(L.lx+L.lw*(n.l+.5),y,r,SETA[n.l],CORES[n.l],true); ctx.globalAlpha=1; }
+  // efeitos
+  for(const e of efeitos){ ctx.globalAlpha=Math.min(1,e.t*2.5);
+    if(e.anel){ ctx.strokeStyle=CORES[e.l]; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(e.x,e.y,r+(.6-e.t)*80,0,7); ctx.stroke(); }
+    ctx.font="bold 22px 'Segoe UI',Arial"; ctx.textAlign='center'; ctx.fillStyle=e.cor; ctx.strokeStyle='#000'; ctx.lineWidth=4;
+    const ty=e.y-r-20-(.6-e.t)*50; ctx.strokeText(e.txt,e.x,ty); ctx.fillText(e.txt,e.x,ty); ctx.globalAlpha=1; }
+  // HUD
+  ctx.textAlign='left'; ctx.textBaseline='top'; ctx.font="bold 20px 'Segoe UI',Arial"; ctx.fillStyle='#fff'; ctx.strokeStyle='#000'; ctx.lineWidth=4;
+  const hx=12, hy=12;
+  ctx.strokeText('⭐ '+pontos,hx,hy); ctx.fillText('⭐ '+pontos,hx,hy);
+  if(combo>=5){ const c='🔥 '+combo+' combo'; ctx.strokeText(c,hx,hy+28); ctx.fillText(c,hx,hy+28); }
+  // vida (voz)
+  const bw=Math.min(220,W*.4), bx=W/2-bw/2, by=12;
+  ctx.fillStyle='rgba(0,0,0,.5)'; roundRect(bx-3,by-3,bw+6,22,11); ctx.fill();
+  ctx.fillStyle=vida>30?'#4cdf6a':'#ff4a6a'; roundRect(bx,by,bw*Math.max(0,vida)/100,16,8); ctx.fill();
+  ctx.font="bold 13px 'Segoe UI',Arial"; ctx.textAlign='center'; ctx.fillStyle='#fff'; ctx.fillText('🤘 público',W/2,by+1);
+  // progresso
+  ctx.fillStyle='rgba(255,255,255,.25)'; ctx.fillRect(0,H-4,W,4); ctx.fillStyle='#ffd76a'; ctx.fillRect(0,H-4,W*Math.min(1,tm/fimMusica),4);
+  // contagem
+  const bt=60/dif.bpm;
+  if(tm>-0.3&&tm<INTRO*bt){ const n=INTRO-Math.floor(tm/bt); ctx.font="bold 70px 'Segoe UI',Arial"; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#ffd76a'; ctx.strokeStyle='#000'; ctx.lineWidth=6;
+    const s=n>0?String(n):'VAI!'; ctx.strokeText(s,L.lx+L.lw*2,H*.55); ctx.fillText(s,L.lx+L.lw*2,H*.55); }
+  if(pausado){ ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(0,0,W,H); ctx.font="bold 40px 'Segoe UI',Arial"; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#fff'; ctx.fillText('⏸ PAUSADO',W/2,H/2-20); ctx.font="20px 'Segoe UI',Arial"; ctx.fillText('toque em ▶ pra continuar',W/2,H/2+24); }
+}
+function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+// ---------- loop ----------
+let ultimo=performance.now();
+function update(dt){
+  for(let l=0;l<4;l++) apertada[l]=Math.max(0,apertada[l]-dt);
+  for(const e of efeitos) e.t-=dt; efeitos=efeitos.filter(e=>e.t>0);
+  if(balao) balao.t-=dt;
+  poseT-=dt; if(poseT<=0) pose=-1; bocaT-=dt;
+  if(estado==='jogo'&&!pausado){
+    agenda();
+    const tm=tempo(), bt=60/dif.bpm;
+    bate=tm>0?tm/bt:0;
+    for(const n of notas){ if(n.feita||n.erro) continue; if(n.t>tm-.16) break; erra(n); if(estado!=='jogo') return; }
+    const li=Math.floor((tm/bt-INTRO)/16); // uma frase a cada 4 compassos
+    if(li>=0&&li<LETRA.length&&li!==letraIdx){ letraIdx=li; canta(LETRA[li]); }
+    if(tm>fimMusica) termina(true);
+  } else if(estado==='menu'){ bate=performance.now()/1000*1.7; }
+}
+function loop(){ const a=performance.now(), dt=Math.min(.05,(a-ultimo)/1000); ultimo=a; update(dt); desenha(); requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+
+// ---------- controles ----------
+const TECLAS={ArrowLeft:0,ArrowDown:1,ArrowUp:2,ArrowRight:3,KeyD:0,KeyF:1,KeyJ:2,KeyK:3,KeyA:0,KeyS:1,KeyW:2};
+addEventListener('keydown',e=>{
+  if(e.code in TECLAS){ e.preventDefault(); if(!e.repeat) aperta(TECLAS[e.code]); }
+  else if(e.code==='KeyP'||e.code==='Escape') pausar(!pausado);
+  else if((e.code==='Enter'||e.code==='Space')&&pausado) pausar(false);
+});
+cv.addEventListener('pointerdown',e=>{
+  if(estado!=='jogo') return;
+  if(pausado){ pausar(false); return; }
+  const L=lay(); let l=Math.floor((e.clientX-L.lx)/L.lw);
+  if(e.clientY<L.topo) return;
+  if(l<0||l>3){ if(e.pointerType==='mouse') return; l=Math.max(0,Math.min(3,l)); }
+  aperta(l);
+});
+
+// ---------- menu ----------
+function montaMenu(){
+  document.getElementById('vits').textContent='🤘 Vitórias: '+save.vit;
+  const b=document.getElementById('botoes'); b.innerHTML='';
+  DIFS.forEach((d,i)=>{ const r=save.rec[d.id]; const el=document.createElement('button'); el.className='btn '+d.id;
+    el.innerHTML=`${d.nome}<small>${d.dica}${r?` · 🏆 ${r.p} ${'⭐'.repeat(r.e)}`:''}</small>`;
+    el.onclick=()=>comeca(d); b.appendChild(el); });
+}
+function voltaMenu(){ estado='menu'; balao=null; try{ speechSynthesis.cancel(); }catch(e){} document.getElementById('fim').style.display='none'; document.getElementById('menu').style.display='flex'; document.getElementById('pausa').style.display='none'; montaMenu(); }
+document.getElementById('deNovo').onclick=()=>comeca(dif);
+document.getElementById('praMenu').onclick=voltaMenu;
+document.getElementById('btnTop').onclick=()=>{ const t=document.getElementById('topMenu'); try{ t.innerHTML=window.CoguTop?CoguTop.html('cogurock',' pts','🏆 Top de vitórias'):'<p>Top indisponível</p>'; }catch(e){} t.style.display=t.style.display==='none'?'block':'none'; };
+montaMenu();
+</script>
+</body>
+</html>

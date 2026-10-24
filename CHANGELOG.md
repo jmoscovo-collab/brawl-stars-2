@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v553 (2026-10-24)
+- 🏆 Chuva de Cogumelos 1, 2 e 3 agora têm TOP 10! Mostra as 10 melhores partidas com o nome da conta, e a sua partida nova aparece destacada no fim do jogo
+- 🎸 Cogu Rock (escondido, só pelo link /cogurock/): jogo de ritmo com o Cogu, um cogumelo roqueiro de óculos escuros e guitarra. Música de rock nova, 4 níveis (até o MODO LENDA), contador de vitórias e TOP DE VITÓRIAS
+
 ## v552 (2026-10-23)
 - 🐙 Polvo Fujão: +200 FASES EXTRAS (agora são 212!), todas testadas: dá pra pegar as 5 pérolas e chegar na saída em cada uma. Os inimigos vão ficando mais rápidos e em maior número
 - Ficou mais justo: encostar num inimigo só te pega se ele te vir por um tiquinho (antes pegava na hora, mesmo trocando de cor)
