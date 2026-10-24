@@ -17,19 +17,29 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a2a1a;font-family:
 #hud .v{font-size:18px;white-space:nowrap}
 #hud .esp{flex:1}
 #hud button{height:38px;min-width:42px;border-radius:10px;border:2px solid rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff;font-size:17px;font-weight:bold;cursor:pointer;padding:0 8px}
-#btnOnda{background:linear-gradient(#4ccf6a,#1f8a3a)!important;font-size:16px!important}
-#btnOnda:disabled{opacity:.45}
-@media (max-width:520px){#hud{gap:4px;padding:0 5px} #hud .v{font-size:15px} #hud button{min-width:34px;padding:0 5px;font-size:15px} #btnSom{display:none}}
+#btnOnda{position:fixed;right:12px;bottom:12px;z-index:3;display:none;padding:14px 26px;border-radius:22px;border:4px solid #fff;background:linear-gradient(#5ce07a,#1f8a3a);color:#fff;font-size:28px;font-weight:bold;font-family:inherit;cursor:pointer;box-shadow:0 6px 0 #0f5a22,0 0 24px rgba(90,255,120,.6);animation:pulsa 1s infinite alternate}
+#btnOnda:disabled{opacity:.5;animation:none;font-size:20px;padding:10px 18px;box-shadow:none}
+@keyframes pulsa{from{transform:scale(1)}to{transform:scale(1.08)}}
+@media (max-width:520px){#hud{gap:4px;padding:0 5px} #hud .v{font-size:15px} #hud button{min-width:34px;padding:0 5px;font-size:15px} #btnSom{display:none} #btnOnda{font-size:22px;padding:10px 18px}}
+#salvarTela,#progTela{display:none;background:rgba(0,10,0,.75);justify-content:center}
+#nomeSave{width:100%;font-size:20px;padding:10px;border-radius:12px;border:3px solid #ffd23a;margin:10px 0;font-family:inherit;user-select:text;-webkit-user-select:text}
+.prog{background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.3);border-radius:14px;padding:8px 10px;margin:8px 0;text-align:left}
+.prog b{font-size:18px}
+.prog small{display:block;color:#cfe0ff;margin:2px 0 6px}
+.prog button{border-radius:10px;border:2px solid #fff;color:#fff;font-weight:bold;font-size:16px;padding:6px 12px;cursor:pointer;font-family:inherit;margin-right:6px}
 #painel{position:fixed;left:6px;right:6px;display:none;background:rgba(20,28,50,.95);border:3px solid #ffd23a;border-radius:16px;padding:8px 8px 10px;z-index:4;touch-action:pan-x}
 #painel .pt{font-weight:bold;font-size:17px;margin:0 36px 6px 4px}
 #painel .info{font-size:14px;margin:0 0 6px 4px;color:#cfe0ff}
 #painel .row{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+#painel .row.grade{flex-wrap:wrap;overflow-x:hidden;overflow-y:auto;max-height:42vh;touch-action:pan-y}
 #painel .card{flex:0 0 auto;width:104px;border-radius:12px;border:2px solid rgba(255,255,255,.5);background:linear-gradient(#3a6ad0,#1a3a8a);color:#fff;padding:6px 4px;cursor:pointer;text-align:center;font-family:inherit}
 #painel .card .ic{font-size:28px;display:block}
 #painel .card b{display:block;font-size:14px}
 #painel .card small{display:block;font-size:11px;opacity:.9;line-height:1.2;margin-top:2px}
 #painel .card i{display:block;font-style:normal;font-weight:bold;color:#ffd23a;font-size:16px;margin-top:3px}
 #painel .card:disabled{filter:grayscale(.7);opacity:.55}
+#painel .card{position:relative}
+#painel .card .novo{position:absolute;top:2px;right:2px;background:#ff3355;color:#fff;font-size:10px;font-weight:bold;padding:1px 5px;border-radius:8px}
 #painel .card.bloq{background:linear-gradient(#555,#333)}
 #painel .card.venda{background:linear-gradient(#d0a020,#8a6a10)}
 #painel .fecha{position:absolute;top:6px;right:8px;width:30px;height:30px;border-radius:50%;border:2px solid #fff;background:#d03a3a;color:#fff;font-weight:bold;cursor:pointer}
@@ -58,9 +68,10 @@ h1{font-size:40px;text-shadow:0 4px 0 #2a4a2a,0 0 20px rgba(255,210,60,.7);margi
   <span class="esp"></span>
   <button id="btnVel" title="Velocidade">1x</button>
   <button id="btnSom" title="Som">🔊</button>
+  <button id="btnSalvar" title="Salvar progresso">💾</button>
   <button id="btnPausa" title="Pausar">⏸</button>
-  <button id="btnOnda">▶ Onda 1</button>
 </div>
+<button id="btnOnda">▶ Onda 1</button>
 <div id="painel"></div>
 <div id="aviso"></div>
 
@@ -68,11 +79,13 @@ h1{font-size:40px;text-shadow:0 4px 0 #2a4a2a,0 0 20px rgba(255,210,60,.7);margi
   <h1>🏰 Defesa da Torre</h1>
   <div class="sub">Os monstros querem destruir a sua torre! Toque na grama pra <b>comprar soldadinhos</b>, toque neles pra <b>melhorar</b> e aguente <b>30 ondas</b>. A cada onda vencida você libera soldadinhos novos!</div>
   <div id="botoes"></div>
+  <button class="btn x" id="btnProg">📂 Progressos salvos</button>
   <button class="btn cz" id="btnTop" style="font-size:16px;width:220px">🏆 Top ondas</button>
   <div id="topMenu" style="display:none"></div>
-  <div class="ajuda">💂 Soldado → 🏹 Arqueiro → ❄️ Mago do Gelo → 💣 Canhão → ⚡ Mago do Raio → 🍄 Super Cogu<br>
-  A cada 10 ondas vem o 🐉 <b>DRAGÃO CHEFÃO</b>!<br>
-  Teclado/controle: setas movem, Enter escolhe, 1-6 compra, U melhora, N chama onda</div>
+  <div class="ajuda"><b>206 soldadinhos!</b> 💂 Soldado → 🏹 Arqueiro → ❄️ Mago do Gelo → 💣 Canhão → ⚡ Mago do Raio → 🍄 Super Cogu → 🔥💧🤖🦖👻🚀💎👑🐉 e muito mais!<br>
+  Cada soldadinho vai até o <b>nível 14</b> e a 🏰 torre evolui até o nível 10 (toque nela!)<br>
+  A cada 10 ondas vem o 🐉 <b>DRAGÃO CHEFÃO</b>! Aperte 💾 entre as ondas pra salvar.<br>
+  Teclado/controle: setas movem, Enter escolhe, 1-9 compra, U melhora, N chama onda</div>
   <a class="voltar" href="/">← voltar pro Cogumelo Games</a>
 </div>
 
@@ -82,6 +95,24 @@ h1{font-size:40px;text-shadow:0 4px 0 #2a4a2a,0 0 20px rgba(255,210,60,.7);margi
     <button class="btn f" id="bCont">▶ Continuar</button>
     <button class="btn m" id="bReinicia">🔄 Recomeçar</button>
     <button class="btn cz" id="bMenu">🏠 Menu</button>
+  </div>
+</div>
+
+<div class="tela" id="salvarTela">
+  <div class="caixa">
+    <h2>💾 Salvar progresso</h2>
+    <p>Dê um nome pro seu progresso:</p>
+    <input id="nomeSave" maxlength="24" autocomplete="off">
+    <button class="btn f" id="bSalvaOk">💾 Salvar</button>
+    <button class="btn cz" id="bSalvaCancela">✖ Cancelar</button>
+  </div>
+</div>
+
+<div class="tela" id="progTela">
+  <div class="caixa" style="min-width:300px">
+    <h2>📂 Progressos salvos</h2>
+    <div id="progLista"></div>
+    <button class="btn cz" id="bProgFecha">← Voltar</button>
   </div>
 </div>
 
@@ -103,11 +134,11 @@ const MOBILE=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
 
 // ===== MAPAS (pontos do caminho em casas; o último é a torre) =====
 const MAPAS=[
-  {nome:'Campo Verde',ic:'🌳',dif:'Fácil',cls:'f',mult:1,vidas:30,din:220,c1:'#62bd5a',c2:'#57b04f',cam:'#e0bf82',borda:'#b08c52',deco:['🌳','🌼','🌷','🍄'],
+  {nome:'Campo Verde',ic:'🌳',dif:'Fácil',cls:'f',mult:0.85,vidas:30,din:220,c1:'#62bd5a',c2:'#57b04f',cam:'#e0bf82',borda:'#b08c52',deco:['🌳','🌼','🌷','🍄'],
    pts:[[-1,1],[3,1],[3,6],[7,6],[7,2],[11,2],[11,7],[14,7],[14,4],[15,4]]},
   {nome:'Deserto',ic:'🌵',dif:'Médio',cls:'m',mult:1.15,vidas:20,din:200,c1:'#ecd17e',c2:'#e2c470',cam:'#b88e56',borda:'#8a663a',deco:['🌵','🐪','🦂','🌵'],
    pts:[[-1,7],[2,7],[2,1],[6,1],[6,7],[10,7],[10,1],[13,1],[13,5],[15,5]]},
-  {nome:'Montanha Gelada',ic:'⛄',dif:'Difícil',cls:'d',mult:1.3,vidas:15,din:200,c1:'#e6f2fc',c2:'#d6e8f6',cam:'#8ea4bc',borda:'#62788e',deco:['🌲','⛄','❄️','🌲'],
+  {nome:'Montanha Gelada',ic:'⛄',dif:'Difícil',cls:'d',mult:1.25,vidas:15,din:200,c1:'#e6f2fc',c2:'#d6e8f6',cam:'#8ea4bc',borda:'#62788e',deco:['🌲','⛄','❄️','🌲'],
    pts:[[-1,4],[5,4],[5,1],[9,1],[9,7],[12,7],[12,4],[15,4]]},
 ];
 
@@ -121,6 +152,26 @@ const TIPOS={
   cogu:{nome:'Super Cogu',ic:'🍄',custo:500,alc:4.2,dano:80,cad:0.3,onda:15,cor:'#e03030',desc:'O soldadinho mais forte!'},
 };
 const ORDEM=['soldado','arqueiro','gelo','canhao','raio','cogu'];
+for(const k of ORDEM) TIPOS[k].comp=k;
+// +200 soldadinhos: 8 tipos x 25 temas, cada tema mais forte que o anterior
+const PAPEIS=[
+  {n:'Soldado',c:'soldado'},{n:'Atirador',c:'soldado',alc:0.6,dano:1.25,custo:1.3},{n:'Arqueiro',c:'arqueiro'},
+  {n:'Ninja',c:'arqueiro',dano:0.55,cad:0.5,alc:-0.6,custo:1.05},{n:'Mago do Gelo',c:'gelo'},{n:'Canhão',c:'canhao'},
+  {n:'Mago do Raio',c:'raio'},{n:'Cogu',c:'cogu'}];
+const TEMAS=[['de Fogo','🔥','#e0521a'],['de Água','💧','#2a8ad0'],['de Pedra','🗿','#7a7a7a'],['da Floresta','🌲','#2a8a3a'],
+  ['Pirata','☠️','#3a3a3a'],['Robô','🤖','#8aa0b8'],['Dourado','🌟','#e0b020'],['de Doce','🍭','#ff6ab0'],['de Pizza','🍕','#e08a2a'],
+  ['Dino','🦖','#4aa04a'],['do Mar','🌊','#1a6ab0'],['Fantasma','👻','#c8c8e8'],['Espacial','🚀','#3a3a8a'],['de Lava','🌋','#b02a0a'],
+  ['de Cristal','💎','#6ae0e0'],['Arco-íris','🌈','#c04ad0'],['do Trovão','🌩️','#d0c02a'],['Sombrio','🌑','#2a1a3a'],['Zumbi','🧟','#6a9a5a'],
+  ['Rei','👑','#d0a020'],['Mega','💥','#ff3a3a'],['Ultra','🔱','#2a5ad0'],['Lendário','🏆','#e0a020'],['Cósmico','🌌','#4a2a8a'],['Supremo','🐉','#d02a2a']];
+const DESC={soldado:'Atira rápido',arqueiro:'Flecha de longe',gelo:'Deixa os monstros lentos',canhao:'Explosão em área',raio:'Raio que pula',cogu:'Tiro muito forte'};
+TEMAS.forEach(([tn,ic,cor],t)=>PAPEIS.forEach((p,r)=>{
+  const i=t*PAPEIS.length+r, b=TIPOS[p.c], f=1+(t+1)*0.45, ef=1+(t+1)*0.025;
+  const k='x'+i; ORDEM.push(k);
+  TIPOS[k]={nome:p.n+' '+tn,ic,cor,comp:p.c,tema:1,custo:Math.round(b.custo*f*(p.custo||1)/5)*5,alc:b.alc+(p.alc||0)+t*0.03,
+    dano:b.dano*f*ef*(p.dano||1),cad:b.cad*(p.cad||1),onda:Math.max(b.onda,2+Math.floor(i*29/200)),
+    lento:b.lento,area:b.area,cadeia:b.cadeia,desc:DESC[p.c]};
+}));
+const NVMAX=14, TORREMAX=10;
 
 // ===== MONSTROS =====
 const INIM={
@@ -129,7 +180,7 @@ const INIM={
   morcego:{nome:'Morcego',hp:38,vel:1.8,rec:8,dano:1,r:0.26,cor:'#8a4ad0'},
   cavaleiro:{nome:'Cavaleiro',hp:85,vel:1.0,rec:12,dano:2,r:0.32,cor:'#9aa4b0',arm:4},
   ogro:{nome:'Ogro',hp:170,vel:0.7,rec:18,dano:3,r:0.4,cor:'#6a8a3a'},
-  dragao:{nome:'Dragão',hp:550,vel:0.55,rec:150,dano:6,r:0.55,cor:'#d02a2a',arm:6},
+  dragao:{nome:'Dragão',hp:400,vel:0.55,rec:150,dano:6,r:0.55,cor:'#d02a2a',arm:6},
 };
 
 // ===== ESTADO =====
@@ -139,7 +190,7 @@ let mi=0, mapa=MAPAS[0], caminho=new Set(), segs=[], L=0, deco=new Map();
 let soldados=[], inimigos=[], tiros=[], fx=[], parts=[], textos=[];
 let vidas=20, vidasMax=20, din=150, onda=0, fila=[], spawnT=0, ondaAtiva=false;
 let vel=1, pausado=false, jogando=false, infinito=false, acabou=false;
-let sel=null, cursor={x:0,y:0}, teclado=false, abates=0, torreHit=0, somOn=true, tempo=0;
+let sel=null, cursor={x:0,y:0}, teclado=false, abates=0, torreHit=0, somOn=true, tempo=0, torreNv=1, torreCd=0;
 
 let save={melhor:[0,0,0],vit:[0,0,0]};
 try{ const s=JSON.parse(localStorage.getItem('torre_save')); if(s&&s.melhor) save=s; }catch(e){}
@@ -215,20 +266,27 @@ function novoJogo(m){
   mi=m; mapa=MAPAS[m]; montaMapa();
   soldados=[]; inimigos=[]; tiros=[]; fx=[]; parts=[]; textos=[];
   vidas=vidasMax=mapa.vidas; din=mapa.din; onda=0; fila=[]; ondaAtiva=false;
-  pausado=false; jogando=true; infinito=false; acabou=false; sel=null; abates=0; torreHit=0;
+  pausado=false; jogando=true; infinito=false; acabou=false; sel=null; abates=0; torreHit=0; torreNv=1; torreCd=0;
   const t=torreXY(); cursor={x:Math.max(0,t.x-2),y:t.y};
   resize();
   document.getElementById('menu').style.display='none';
   document.getElementById('fim').style.display='none';
   document.getElementById('pausaTela').style.display='none';
   document.getElementById('hud').style.display='flex';
+  document.getElementById('btnOnda').style.display='block';
   montaPainel(); hud(true);
   aviso('Toque na grama pra comprar um soldadinho! 💂',3);
 }
 function ondaAtual(){ return ondaAtiva?onda:onda+1; }
 function liberado(k){ return ondaAtual()>=TIPOS[k].onda; }
-function stats(s){ const b=TIPOS[s.t], n=s.nv-1; return {dano:b.dano*Math.pow(1.6,n), alc:b.alc+0.4*n, cad:b.cad*Math.pow(0.85,n)}; }
-function custoUp(s){ return Math.round(TIPOS[s.t].custo*(s.nv===1?0.8:1.5)); }
+function stats(s){ const b=TIPOS[s.t], n=s.nv-1; return {dano:b.dano*Math.pow(1.4,n), alc:b.alc+0.12*n, cad:b.cad*Math.pow(0.95,n)}; }
+function custoUp(s){ return Math.round(TIPOS[s.t].custo*0.5*Math.pow(1.42,s.nv-1)); }
+function custoTorre(){ return Math.round(150*Math.pow(1.6,torreNv-1)); }
+function evoluiTorre(){
+  if(torreNv>=TORREMAX) return false; const c=custoTorre(); if(din<c) return false;
+  din-=c; torreNv++; vidasMax+=8; vidas+=8; som('compra');
+  const t=torreXY(); poeira(t.x+.5,t.y+.5,'#ffd23a'); texto(t.x+.5,t.y-.5,'TORRE NÍVEL '+torreNv+'!','#ffd23a'); return true;
+}
 function valorVenda(s){ return Math.floor(s.gasto*0.6); }
 function custoConserto(){ return 60+onda*4; }
 function soldadoEm(x,y){ return soldados.find(s=>s.x===x&&s.y===y); }
@@ -242,7 +300,7 @@ function compra(k,x,y){
   som('compra'); poeira(x+.5,y+.5,'#fff'); return true;
 }
 function melhora(s){
-  if(!s||s.nv>=3) return false; const c=custoUp(s); if(din<c) return false;
+  if(!s||s.nv>=NVMAX) return false; const c=custoUp(s); if(din<c) return false;
   din-=c; s.gasto+=c; s.nv++; som('compra'); poeira(s.x+.5,s.y+.5,'#ffd23a');
   texto(s.x+.5,s.y,'NÍVEL '+s.nv+'!','#ffd23a'); return true;
 }
@@ -273,9 +331,10 @@ function fimOnda(){
   ondaAtiva=false;
   const bonus=20+onda*4; din+=bonus; som('moeda');
   if(onda>save.melhor[mi]){ save.melhor[mi]=onda; gravaSave(); }
-  const novo=ORDEM.find(k=>TIPOS[k].onda===onda+1);
+  const novos=ORDEM.filter(k=>TIPOS[k].onda===onda+1);
   if(onda>=ONDAS&&!infinito){ fimJogo(true); return; }
-  if(novo) aviso('🎉 NOVO SOLDADINHO: '+TIPOS[novo].ic+' '+TIPOS[novo].nome+'!',3.5);
+  if(novos.length===1) aviso('🎉 NOVO SOLDADINHO: '+TIPOS[novos[0]].ic+' '+TIPOS[novos[0]].nome+'!',3.5);
+  else if(novos.length) aviso('🎉 '+novos.length+' SOLDADINHOS NOVOS! '+[...new Set(novos.map(k=>TIPOS[k].ic))].join(''),3.5);
   else aviso('✅ Onda '+onda+' vencida! +$'+bonus,1.8);
   hud(true);
 }
@@ -293,7 +352,7 @@ function procuraAlvo(x,y,alc){
 }
 function acerta(e,d){
   if(e.morto) return;
-  e.hp-=Math.max(1,d-e.arm); e.flash=0.08;
+  e.hp-=Math.max(d*0.3,d-e.arm); e.flash=0.08;
   if(e.hp<=0){
     e.morto=true; din+=e.rec; abates++;
     for(let i=0;i<8;i++) parts.push({x:e.x,y:e.y,vx:(Math.random()-.5)*3,vy:(Math.random()-.5)*3,t:0.5,c:INIM[e.t].cor});
@@ -302,11 +361,11 @@ function acerta(e,d){
   }
 }
 function atira(s,st,a){
-  const b=TIPOS[s.t]; s.ax=a.x; s.ay=a.y; s.rec=0.12;
+  const b=TIPOS[s.t], cp=b.comp; s.ax=a.x; s.ay=a.y; s.rec=0.12;
   const ox=s.x+.5, oy=s.y+.5;
-  if(s.t==='raio'){
+  if(cp==='raio'){
     let atual=a, px=ox, py=oy, d=st.dano; const ja=[a];
-    for(let i=0;i<b.cadeia+s.nv-1;i++){
+    for(let i=0;i<b.cadeia+Math.floor((s.nv-1)/3);i++){
       fx.push({tipo:'raio',x1:px,y1:py,x2:atual.x,y2:atual.y,t:0.15});
       acerta(atual,d); px=atual.x; py=atual.y; d*=0.85;
       let prox=null,pd=1.8;
@@ -315,9 +374,16 @@ function atira(s,st,a){
     }
     som('raio'); return;
   }
-  tiros.push({x:ox,y:oy,alvo:a,tx:a.x,ty:a.y,ang:0,vel:s.t==='canhao'?7:s.t==='arqueiro'?13:10,dano:st.dano,tipo:s.t,
-    area:b.area?b.area+0.15*(s.nv-1):0,lento:b.lento?b.lento-0.08*(s.nv-1):0});
-  som(s.t);
+  tiros.push({x:ox,y:oy,alvo:a,tx:a.x,ty:a.y,ang:0,vel:cp==='canhao'?7:cp==='arqueiro'?13:10,dano:st.dano,tipo:cp,cor:b.tema?b.cor:0,
+    area:b.area?b.area+0.05*(s.nv-1):0,lento:b.lento?Math.max(0.2,b.lento-0.025*(s.nv-1)):0});
+  som(cp);
+}
+function torreAtira(dt){
+  if(torreNv<2) return;
+  torreCd-=dt; if(torreCd>0) return;
+  const t=torreXY(), a=procuraAlvo(t.x+.5,t.y+.5,3+torreNv*0.2); if(!a) return;
+  torreCd=0.7;
+  tiros.push({x:t.x+.5,y:t.y-.3,alvo:a,tx:a.x,ty:a.y,ang:0,vel:11,dano:15*Math.pow(1.55,torreNv-2),tipo:'torre',area:0,lento:0});
 }
 function impacto(p){
   if(p.area){
@@ -345,6 +411,7 @@ function passo(dt){
     const st=stats(s); s.cd-=dt; if(s.rec>0) s.rec-=dt;
     if(s.cd<=0){ const a=procuraAlvo(s.x+.5,s.y+.5,st.alc); if(a){ atira(s,st,a); s.cd=st.cad; } }
   }
+  torreAtira(dt);
   for(const p of tiros){
     if(p.alvo&&!p.alvo.morto&&!p.alvo.fim){ p.tx=p.alvo.x; p.ty=p.alvo.y; } else p.alvo=null;
     const dx=p.tx-p.x, dy=p.ty-p.y, dd=Math.hypot(dx,dy), pa=p.vel*dt;
@@ -410,44 +477,50 @@ function som(tipo){
 // ===== DESENHO =====
 function circ(x,y,r,c){ ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
 function desenhaSoldado(s){
-  const c=toScr(s.x+.5,s.y+.5), k=T, px=c.x, py=c.y, b=TIPOS[s.t];
+  const c=toScr(s.x+.5,s.y+.5), k=T, px=c.x, py=c.y, b=TIPOS[s.t], cp=b.comp;
   const a=toScr(s.ax,s.ay), ang=Math.atan2(a.y-py,a.x-px);
   ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(px,py+.3*k,.4*k,.13*k,0,0,Math.PI*2); ctx.fill();
-  circ(px,py+.18*k,.36*k,['#8a6a4a','#a8b0bc','#ffd23a'][s.nv-1]);
-  circ(px,py+.18*k,.28*k,['#a8845a','#c8d0da','#ffe680'][s.nv-1]);
+  const fx=s.nv>=14?4:s.nv>=10?3:s.nv>=7?2:s.nv>=4?1:0;
+  circ(px,py+.18*k,.36*k,['#8a6a4a','#8a8a92','#a8b0bc','#ffd23a','#3ad0e0'][fx]);
+  circ(px,py+.18*k,.28*k,['#a8845a','#a8a8b0','#c8d0da','#ffe680','#aaf4ff'][fx]);
   const rc=s.rec>0?-s.rec*0.5*k:0;
   ctx.save(); ctx.translate(px,py);
-  if(s.t==='canhao'){
-    ctx.rotate(ang); ctx.fillStyle='#2a2a2a'; ctx.fillRect(rc,-.11*k,.48*k,.22*k); circ(.46*k+rc,0,.12*k,'#3a3a3a');
-    ctx.restore(); circ(px,py+.05*k,.2*k,'#444'); circ(px,py+.05*k,.08*k,'#888');
+  if(cp==='canhao'){
+    ctx.rotate(ang); ctx.fillStyle='#2a2a2a'; ctx.fillRect(rc,-.11*k,.48*k,.22*k); circ(.46*k+rc,0,.12*k,b.tema?b.cor:'#3a3a3a');
+    ctx.restore(); circ(px,py+.05*k,.2*k,b.tema?b.cor:'#444'); circ(px,py+.05*k,.08*k,'#888');
     estrelas(s,px,py,k); return;
   }
   ctx.rotate(ang); ctx.lineCap='round';
-  if(s.t==='soldado'){ ctx.fillStyle='#222'; ctx.fillRect(.05*k+rc,-.04*k,.34*k,.08*k); }
-  else if(s.t==='arqueiro'){ ctx.strokeStyle='#8a5a2a'; ctx.lineWidth=.05*k; ctx.beginPath(); ctx.arc(.12*k+rc,0,.22*k,-1.2,1.2); ctx.stroke();
+  if(cp==='soldado'){ ctx.fillStyle='#222'; ctx.fillRect(.05*k+rc,-.04*k,.34*k,.08*k); }
+  else if(cp==='arqueiro'){ ctx.strokeStyle='#8a5a2a'; ctx.lineWidth=.05*k; ctx.beginPath(); ctx.arc(.12*k+rc,0,.22*k,-1.2,1.2); ctx.stroke();
     ctx.strokeStyle='#eee'; ctx.lineWidth=.015*k; ctx.beginPath(); ctx.moveTo(.12*k+Math.cos(1.2)*.22*k+rc,-Math.sin(1.2)*.22*k); ctx.lineTo(.12*k+Math.cos(1.2)*.22*k+rc,Math.sin(1.2)*.22*k); ctx.stroke(); }
-  else if(s.t==='gelo'||s.t==='raio'){ ctx.strokeStyle='#7a4a2a'; ctx.lineWidth=.05*k; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(.38*k+rc,0); ctx.stroke();
-    circ(.4*k+rc,0,.08*k,s.t==='gelo'?'#9ae0ff':'#ffe84a'); }
-  else if(s.t==='cogu'){ ctx.fillStyle='#ffd23a'; ctx.fillRect(.05*k+rc,-.07*k,.42*k,.14*k); ctx.fillStyle='#e03030'; ctx.fillRect(.4*k+rc,-.09*k,.08*k,.18*k); }
+  else if(cp==='gelo'||cp==='raio'){ ctx.strokeStyle='#7a4a2a'; ctx.lineWidth=.05*k; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(.38*k+rc,0); ctx.stroke();
+    circ(.4*k+rc,0,.08*k,cp==='gelo'?'#9ae0ff':'#ffe84a'); }
+  else if(cp==='cogu'){ ctx.fillStyle='#ffd23a'; ctx.fillRect(.05*k+rc,-.07*k,.42*k,.14*k); ctx.fillStyle='#e03030'; ctx.fillRect(.4*k+rc,-.09*k,.08*k,.18*k); }
   ctx.restore();
   // corpo
   ctx.fillStyle=b.cor; ctx.beginPath(); ctx.ellipse(px,py+.08*k,.17*k,.2*k,0,0,Math.PI*2); ctx.fill();
-  if(s.t==='cogu'){
+  if(cp==='cogu'){
     circ(px,py-.14*k,.13*k,'#fff3dc');
-    ctx.fillStyle='#e03030'; ctx.beginPath(); ctx.ellipse(px,py-.22*k,.3*k,.18*k,0,Math.PI,0); ctx.fill();
+    ctx.fillStyle=b.tema?b.cor:'#e03030'; ctx.beginPath(); ctx.ellipse(px,py-.22*k,.3*k,.18*k,0,Math.PI,0); ctx.fill();
     circ(px-.12*k,py-.28*k,.04*k,'#fff'); circ(px+.08*k,py-.32*k,.05*k,'#fff'); circ(px+.2*k,py-.25*k,.03*k,'#fff');
   } else {
     circ(px,py-.14*k,.13*k,'#ffd0a0');
-    if(s.t==='gelo'||s.t==='raio'){ ctx.fillStyle=s.t==='gelo'?'#3a5ad0':'#8a3ad0'; ctx.beginPath(); ctx.moveTo(px-.17*k,py-.18*k); ctx.lineTo(px+.17*k,py-.18*k); ctx.lineTo(px+.03*k,py-.55*k); ctx.fill(); }
-    else { ctx.fillStyle=s.t==='arqueiro'?'#2a7a2a':'#4a6a2a'; ctx.beginPath(); ctx.arc(px,py-.16*k,.15*k,Math.PI,0); ctx.fill(); }
+    if(cp==='gelo'||cp==='raio'){ ctx.fillStyle=cp==='gelo'?'#3a5ad0':'#8a3ad0'; ctx.beginPath(); ctx.moveTo(px-.17*k,py-.18*k); ctx.lineTo(px+.17*k,py-.18*k); ctx.lineTo(px+.03*k,py-.55*k); ctx.fill(); }
+    else { ctx.fillStyle=cp==='arqueiro'?'#2a7a2a':'#4a6a2a'; ctx.beginPath(); ctx.arc(px,py-.16*k,.15*k,Math.PI,0); ctx.fill(); }
   }
   circ(px-.05*k,py-.12*k,.025*k,'#222'); circ(px+.05*k,py-.12*k,.025*k,'#222');
   estrelas(s,px,py,k);
 }
 function estrelas(s,px,py,k){
+  const b=TIPOS[s.t];
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  if(b.tema){ ctx.font=Math.round(.26*k)+'px serif'; ctx.fillText(b.ic,px+.3*k,py-.32*k); }
   if(s.nv<2) return;
-  ctx.fillStyle='#ffd23a'; ctx.font='bold '+Math.round(.24*k)+'px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText('★'.repeat(s.nv),px,py+.44*k);
+  ctx.font='bold '+Math.round(.24*k)+'px Arial';
+  const tx='★'+s.nv;
+  ctx.fillStyle='#000'; ctx.fillText(tx,px+1,py+.44*k+1);
+  ctx.fillStyle=s.nv>=NVMAX?'#aaf4ff':'#ffd23a'; ctx.fillText(tx,px,py+.44*k);
 }
 function desenhaInimigo(e){
   const c=toScr(e.x,e.y), k=T, r=e.r*k, b=INIM[e.t];
@@ -483,9 +556,12 @@ function desenhaTorre(){
   const t=torreXY(), c=toScr(t.x+.5,t.y+.5), k=T;
   const sh=torreHit>0?(Math.random()-.5)*.12*k:0, x=c.x+sh, y=c.y;
   ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(x,y+.45*k,.55*k,.15*k,0,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle=torreHit>0?'#ff8a8a':'#a8a8b8'; ctx.fillRect(x-.42*k,y-.6*k,.84*k,1.05*k);
+  const tn=torreNv, CORT=['#a8a8b8','#b8b0a0','#c0c8d8','#d8c070','#e8d060','#f0e080','#a0e8f0','#c8a0f0','#ff9ac8','#fff4a0'];
+  ctx.fillStyle=torreHit>0?'#ff8a8a':CORT[tn-1]; ctx.fillRect(x-.42*k,y-.6*k,.84*k,1.05*k);
   for(let i=0;i<3;i++) ctx.fillRect(x-.42*k+i*.31*k,y-.78*k,.22*k,.2*k);
-  ctx.fillStyle='#8a8a9a'; for(let i=0;i<4;i++) ctx.fillRect(x-.42*k,y-.4*k+i*.22*k,.84*k,.03*k);
+  ctx.fillStyle='rgba(0,0,0,.18)'; for(let i=0;i<4;i++) ctx.fillRect(x-.42*k,y-.4*k+i*.22*k,.84*k,.03*k);
+  if(tn>=4){ ctx.fillStyle='#ffd23a'; ctx.fillRect(x-.42*k,y-.62*k,.84*k,.06*k); }
+  if(tn>=7){ ctx.font=Math.round(.3*k)+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(tn>=10?'👑':'💎',x,y-.05*k); }
   ctx.fillStyle='#5a3a1a'; ctx.beginPath(); ctx.arc(x,y+.22*k,.17*k,Math.PI,0); ctx.fill(); ctx.fillRect(x-.17*k,y+.22*k,.34*k,.23*k);
   ctx.fillStyle='#2a2a3a'; ctx.fillRect(x-.07*k,y-.42*k,.14*k,.18*k);
   ctx.strokeStyle='#5a3a1a'; ctx.lineWidth=.04*k; ctx.beginPath(); ctx.moveTo(x,y-.78*k); ctx.lineTo(x,y-1.25*k); ctx.stroke();
@@ -494,14 +570,17 @@ function desenhaTorre(){
   const bw=.9*k, by=y-1.42*k;
   ctx.fillStyle='#300'; ctx.fillRect(x-bw/2,by,bw,.1*k);
   ctx.fillStyle=vidas/vidasMax>.5?'#4ae04a':vidas/vidasMax>.25?'#ffd23a':'#ff4a4a'; ctx.fillRect(x-bw/2,by,bw*Math.max(0,vidas/vidasMax),.1*k);
+  if(tn>=2){ ctx.font='bold '+Math.round(.24*k)+'px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle='#000'; ctx.fillText('Nv '+tn,x+1,y+.6*k+1); ctx.fillStyle='#ffd23a'; ctx.fillText('Nv '+tn,x,y+.6*k); }
 }
 function desenhaTiro(p){
   const c=toScr(p.x,p.y), k=T;
   if(p.tipo==='arqueiro'){ const a=toScr(p.x+Math.cos(p.ang)*.25,p.y+Math.sin(p.ang)*.25); ctx.strokeStyle='#5a3a1a'; ctx.lineWidth=.04*k; ctx.beginPath(); ctx.moveTo(c.x,c.y); ctx.lineTo(a.x,a.y); ctx.stroke(); circ(a.x,a.y,.035*k,'#ccc'); }
   else if(p.tipo==='canhao') circ(c.x,c.y,.1*k,'#222');
   else if(p.tipo==='gelo') circ(c.x,c.y,.08*k,'#9ae0ff');
-  else if(p.tipo==='cogu'){ circ(c.x,c.y,.09*k,'#e03030'); circ(c.x,c.y,.035*k,'#fff'); }
-  else circ(c.x,c.y,.05*k,'#ffe84a');
+  else if(p.tipo==='cogu'){ circ(c.x,c.y,.09*k,p.cor||'#e03030'); circ(c.x,c.y,.035*k,'#fff'); }
+  else if(p.tipo==='torre'){ circ(c.x,c.y,.1*k,'#ffd23a'); circ(c.x,c.y,.05*k,'#fff'); }
+  else circ(c.x,c.y,.05*k,p.cor||'#ffe84a');
 }
 function desenha(){
   ctx.setTransform(DPR,0,0,DPR,0,0);
@@ -549,29 +628,38 @@ function hud(forca){
   const curto=innerWidth<520;
   document.getElementById('hOnda').textContent='🌊 '+onda+(infinito||curto?'':'/'+ONDAS);
   const bo=document.getElementById('btnOnda');
-  bo.disabled=ondaAtiva; bo.textContent=(ondaAtiva?'⚔️ ':'▶ ')+(curto?'':'Onda ')+(ondaAtiva?onda:onda+1);
+  bo.disabled=ondaAtiva; bo.textContent=(ondaAtiva?'⚔️ Onda ':'▶ ONDA ')+(ondaAtiva?onda:onda+1);
   document.getElementById('btnVel').textContent=vel+'x';
   montaPainel();
 }
 let painelSig='';
+// liberados (do mais barato pro mais caro) + os 3 próximos que ainda vão liberar
+function listaCompra(){
+  const lib=ORDEM.filter(liberado).sort((a,b)=>TIPOS[a].custo-TIPOS[b].custo);
+  return lib.concat(ORDEM.filter(k=>!liberado(k)).slice(0,3));
+}
 function montaPainel(forca){
   const p=document.getElementById('painel');
   if(!sel||!jogando){ p.style.display='none'; painelSig=''; return; }
   const s=soldadoEm(sel.x,sel.y);
   let h='', sig='';
   if(ehTorre(sel.x,sel.y)){
-    const c=custoConserto(), pode=din>=c&&vidas<vidasMax; sig='t'+vidas+pode+c;
-    h=`<div class="pt">🏰 Sua Torre — ❤️ ${vidas}/${vidasMax}</div><div class="row"><button class="card" data-a="conserta" ${pode?'':'disabled'}><span class="ic">🔨</span><b>Consertar</b><small>+5 ❤️</small><i>$${c}</i></button></div>`;
+    const c=custoConserto(), pode=din>=c&&vidas<vidasMax, ct=custoTorre(), podeT=din>=ct&&torreNv<TORREMAX; sig='t'+vidas+pode+c+torreNv+podeT;
+    h=`<div class="pt">🏰 Sua Torre — nível ${torreNv}/${TORREMAX} · ❤️ ${vidas}/${vidasMax}</div><div class="info">${torreNv>=2?`🏹 A torre atira! 💥 dano ${Math.round(15*Math.pow(1.55,torreNv-2))}`:'Evolua a torre pra ela começar a atirar!'}</div><div class="row">`+
+      (torreNv<TORREMAX?`<button class="card" data-a="evolui" ${podeT?'':'disabled'}><span class="ic">🏰</span><b>Evoluir torre</b><small>vira nível ${torreNv+1} · +8 ❤️ · tiro mais forte</small><i>$${ct}</i></button>`
+        :`<button class="card" disabled><span class="ic">👑</span><b>Torre no máximo!</b></button>`)+
+      `<button class="card" data-a="conserta" ${pode?'':'disabled'}><span class="ic">🔨</span><b>Consertar</b><small>+5 ❤️</small><i>$${c}</i></button></div>`;
   } else if(s){
     const b=TIPOS[s.t], st=stats(s), cu=custoUp(s); sig='s'+s.nv+(din>=cu)+valorVenda(s)+s.x+','+s.y;
-    h=`<div class="pt">${b.ic} ${b.nome} — nível ${s.nv} ${'★'.repeat(s.nv)}</div><div class="info">💥 dano ${Math.round(st.dano)} · 🎯 alcance ${st.alc.toFixed(1)} · ⏱ ${(1/st.cad).toFixed(1)} tiros/s</div><div class="row">`+
-      (s.nv<3?`<button class="card" data-a="up" ${din<cu?'disabled':''}><span class="ic">⬆️</span><b>Melhorar</b><small>vira nível ${s.nv+1}</small><i>$${cu}</i></button>`:`<button class="card" disabled><span class="ic">🌟</span><b>Nível máximo!</b></button>`)+
+    h=`<div class="pt">${b.ic} ${b.nome} — nível ${s.nv}/${NVMAX}</div><div class="info">💥 dano ${Math.round(st.dano)} · 🎯 alcance ${st.alc.toFixed(1)} · ⏱ ${(1/st.cad).toFixed(1)} tiros/s</div><div class="row">`+
+      (s.nv<NVMAX?`<button class="card" data-a="up" ${din<cu?'disabled':''}><span class="ic">⬆️</span><b>Melhorar</b><small>vira nível ${s.nv+1}</small><i>$${cu}</i></button>`:`<button class="card" disabled><span class="ic">🌟</span><b>Nível máximo!</b></button>`)+
       `<button class="card venda" data-a="vende"><span class="ic">💰</span><b>Vender</b><i>+$${valorVenda(s)}</i></button></div>`;
   } else if(podeConstruir(sel.x,sel.y)){
-    h=`<div class="pt">Escolha um soldadinho:</div><div class="row">`;
-    ORDEM.forEach((k,i)=>{
+    const lista=listaCompra(), nl=ORDEM.filter(liberado).length;
+    h=`<div class="pt">Escolha um soldadinho: <span style="font-size:13px;color:#cfe0ff">(${nl}/${ORDEM.length} liberados)</span></div><div class="row grade">`;
+    lista.forEach((k,i)=>{
       const b=TIPOS[k], lib=liberado(k); sig+=lib?(din>=b.custo?'1':'0'):'x';
-      h+=lib?`<button class="card" data-a="compra" data-t="${k}" ${din<b.custo?'disabled':''}><span class="ic">${b.ic}</span><b>${i+1}. ${b.nome}</b><small>${b.desc}</small><i>$${b.custo}</i></button>`
+      h+=lib?`<button class="card" data-a="compra" data-t="${k}" ${din<b.custo?'disabled':''}><span class="ic">${b.ic}</span>${b.onda>=ondaAtual()-1&&b.onda>1?'<span class="novo">NOVO!</span>':''}<b>${i<9?(i+1)+'. ':''}${b.nome}</b><small>${b.desc}</small><i>$${b.custo}</i></button>`
             :`<button class="card bloq" disabled><span class="ic">🔒</span><b>${b.nome}</b><small>libera na onda ${b.onda}</small></button>`;
     });
     h+='</div>'; sig='c'+sig;
@@ -579,7 +667,9 @@ function montaPainel(forca){
   const c=toScr(sel.x+.5,sel.y+.5), emCima=c.y>HUDH+(H-HUDH)/2;
   sig+=emCima+'|'+sel.x+','+sel.y;
   if(!forca&&sig===painelSig) return; painelSig=sig;
+  const rolou=p.querySelector('.row'), sc=rolou&&painelSig.charAt(0)===sig.charAt(0)?rolou.scrollTop:0;
   p.innerHTML=h+'<button class="fecha" data-a="fecha">✖</button>';
+  if(sc){ const r=p.querySelector('.row'); if(r) r.scrollTop=sc; }
   p.style.display='block';
   if(emCima){ p.style.top=(HUDH+6)+'px'; p.style.bottom='auto'; } else { p.style.bottom='6px'; p.style.top='auto'; }
 }
@@ -593,6 +683,7 @@ function acao(a,t){
   if(a==='compra'){ if(compra(t,sel.x,sel.y)) sel=null; }
   else if(a==='up') melhora(s);
   else if(a==='vende'&&s){ vende(s); sel=null; }
+  else if(a==='evolui') evoluiTorre();
   else if(a==='conserta'){ const c=custoConserto(); if(din>=c&&vidas<vidasMax){ din-=c; vidas=Math.min(vidasMax,vidas+5); som('compra'); } }
   else if(a==='fecha') sel=null;
   hud(true); montaPainel(true);
@@ -627,10 +718,67 @@ addEventListener('keydown',ev=>{
   if(k==='Enter'||k===' '){ ev.preventDefault(); teclado=true; clicaCasa(cursor.x,cursor.y); return; }
   if(k==='Escape'){ sel=null; montaPainel(); return; }
   if(k==='n'||k==='N'){ iniciaOnda(); return; }
-  if(sel&&k>='1'&&k<='6'){ acao('compra',ORDEM[+k-1]); return; }
+  if(sel&&k>='1'&&k<='9'){ const l=listaCompra(); if(l[+k-1]) acao('compra',l[+k-1]); return; }
   if(sel&&(k==='u'||k==='U')) acao('up');
   if(sel&&(k==='v'||k==='V')) acao('vende');
 });
+
+// ===== PROGRESSOS SALVOS (com nome, neste aparelho) =====
+function leProgs(){ try{ const l=JSON.parse(localStorage.getItem('torre_progressos')); return Array.isArray(l)?l:[]; }catch(e){ return []; } }
+function gravaProgs(l){ try{ localStorage.setItem('torre_progressos',JSON.stringify(l)); return true; }catch(e){ return false; } }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function abreSalvar(){
+  if(!jogando) return;
+  if(ondaAtiva){ aviso('💾 Só dá pra salvar entre as ondas!',2); return; }
+  pausado=true; sel=null; montaPainel();
+  const i=document.getElementById('nomeSave');
+  i.value=mapa.nome+' - onda '+onda;
+  document.getElementById('salvarTela').style.display='flex';
+  setTimeout(()=>{ i.focus(); i.select(); },50);
+}
+function fechaSalvar(){ document.getElementById('salvarTela').style.display='none'; pausado=false; }
+function salva(){
+  const nome=document.getElementById('nomeSave').value.trim()||'Meu jogo';
+  const p={nome,quando:Date.now(),mi,onda,vidas,vidasMax,din,torreNv,abates,infinito,
+    sold:soldados.map(s=>[s.t,s.x,s.y,s.nv,s.gasto])};
+  const l=leProgs().filter(o=>o.nome!==nome);
+  l.unshift(p);
+  const ok=gravaProgs(l.slice(0,30));
+  fechaSalvar();
+  aviso(ok?'💾 Progresso "'+nome+'" salvo!':'😢 Não deu pra salvar neste aparelho',2.5);
+}
+function carrega(p){
+  novoJogo(p.mi);
+  onda=p.onda; vidas=p.vidas; vidasMax=p.vidasMax; din=p.din; torreNv=p.torreNv||1; abates=p.abates||0; infinito=!!p.infinito;
+  soldados=(p.sold||[]).filter(s=>TIPOS[s[0]]&&podeConstruir(s[1],s[2])).map(s=>({t:s[0],x:s[1],y:s[2],nv:Math.min(NVMAX,s[3]),cd:0,rec:0,ax:s[1]+1,ay:s[2]+.5,gasto:s[4]}));
+  for(const s of soldados) deco.delete(s.x+','+s.y);
+  desenhaFundo(); hud(true);
+  aviso('📂 Continuando "'+p.nome+'" na onda '+(onda+1)+'!',2.5);
+}
+function mostraProgs(){
+  const l=leProgs(), el=document.getElementById('progLista');
+  el.innerHTML=l.length?l.map((p,i)=>{
+    const m=MAPAS[p.mi]||MAPAS[0], d=new Date(p.quando);
+    return `<div class="prog"><b>📁 ${esc(p.nome)}</b><small>${m.ic} ${m.nome} · 🌊 onda ${p.onda} · ❤️ ${p.vidas} · 💰 ${p.din} · 💂 ${(p.sold||[]).length} · 🏰 nv ${p.torreNv||1}<br>📅 ${('0'+d.getDate()).slice(-2)}/${('0'+(d.getMonth()+1)).slice(-2)} ${('0'+d.getHours()).slice(-2)}:${('0'+d.getMinutes()).slice(-2)}</small>
+      <button class="f" data-c="${i}">▶ Continuar</button><button class="cz" data-x="${i}">🗑 Apagar</button></div>`;
+  }).join(''):'<p>Nenhum progresso salvo ainda.<br>No jogo, aperte 💾 entre as ondas pra salvar!</p>';
+  document.getElementById('progTela').style.display='flex';
+}
+document.getElementById('progLista').addEventListener('click',ev=>{
+  const b=ev.target.closest('button'); if(!b) return;
+  const l=leProgs();
+  if(b.dataset.c!==undefined){ const p=l[+b.dataset.c]; if(p){ document.getElementById('progTela').style.display='none'; carrega(p); } }
+  else if(b.dataset.x!==undefined){
+    if(b.dataset.ok!=='1'){ b.dataset.ok='1'; b.textContent='🗑 Certeza?'; b.style.background='#d03a3a'; return; }
+    l.splice(+b.dataset.x,1); gravaProgs(l); mostraProgs();
+  }
+});
+document.getElementById('btnProg').onclick=mostraProgs;
+document.getElementById('bProgFecha').onclick=()=>{ document.getElementById('progTela').style.display='none'; };
+document.getElementById('btnSalvar').onclick=abreSalvar;
+document.getElementById('bSalvaOk').onclick=salva;
+document.getElementById('bSalvaCancela').onclick=fechaSalvar;
+document.getElementById('nomeSave').addEventListener('keydown',ev=>{ ev.stopPropagation(); if(ev.key==='Enter') salva(); if(ev.key==='Escape') fechaSalvar(); });
 
 // ===== BOTÕES =====
 function pausa(p){
@@ -641,6 +789,7 @@ function vaiMenu(){
   jogando=false; pausado=false; sel=null; montaPainel();
   ['fim','pausaTela'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('hud').style.display='none';
+  document.getElementById('btnOnda').style.display='none';
   montaMenu(); document.getElementById('menu').style.display='flex';
 }
 document.getElementById('btnOnda').onclick=()=>iniciaOnda();
@@ -674,7 +823,8 @@ function loop(ts){
 montaMenu(); resize(); requestAnimationFrame(loop);
 
 // ganchos pros testes automáticos
-window.TD={novoJogo,iniciaOnda,passo,compra,melhora,podeConstruir,liberado,stats,custoUp,
+window.TD={novoJogo,iniciaOnda,passo,compra,melhora,podeConstruir,liberado,stats,custoUp,evoluiTorre,custoTorre,
+  torreNv:()=>torreNv,
   get:()=>({din,vidas,onda,ondaAtiva,acabou,jogando,soldados,caminho,inimigos,L}),
   set:o=>{ if('somOn' in o) somOn=o.somOn; }};
 </script>

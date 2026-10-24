@@ -1,5 +1,12 @@
 # Changelog - Cogumelo Games (site)
 
+## v558 (2026-10-24)
+- 🏰 Defesa da Torre: +200 SOLDADINHOS NOVOS (206 no total!), com temas de Fogo, Água, Robô, Dino, Fantasma, Espacial, Diamante, Rei, Supremo e muito mais. Vão sendo liberados a cada onda
+- Soldadinhos agora vão até o NÍVEL 14
+- A torre EVOLUI até o nível 10: ganha vida e começa a atirar nos monstros
+- 💾 Salvar progresso com nome e 📂 Progressos salvos no menu pra continuar depois
+- Botão de começar a onda bem GRANDE
+
 ## v557 (2026-10-24)
 - 🏰 Defesa da Torre (escondido, só pelo link /torre/): proteja a sua torre dos monstros comprando soldadinhos! 6 soldadinhos que vão sendo liberados (Soldado, Arqueiro, Mago do Gelo, Canhão, Mago do Raio e Super Cogu), cada um melhora até o nível 3. 30 ondas, Dragão chefão a cada 10 ondas, 3 mapas (Fácil, Médio, Difícil), modo infinito e Top ondas
 
