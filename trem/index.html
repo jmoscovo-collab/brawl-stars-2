@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>🚂 Trem do Cogu — Cogumelo Games</title>
+<meta name="description" content="Trem do Cogu: monte os trilhos na frente do trem antes que ele chegue! Pegue passageiros e não deixe o trem descarrilar.">
+<script src="/letra.js"></script>
+<script src="/cogucoins.js?v=545"></script>
+<script src="/gamepad.js?v=358"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#1e3a14;font-family:'Segoe UI',Arial,sans-serif;color:#fff;user-select:none;-webkit-user-select:none;touch-action:none}
+#c{display:block;position:fixed;inset:0}
+.tela{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:16px 12px 60px;background:radial-gradient(circle at 50% 15%,#4a8a2a,#14280a 75%);z-index:5;touch-action:pan-y}
+h1{font-size:40px;text-shadow:0 4px 0 #6a1a0a,0 0 20px rgba(255,160,80,.7);margin-top:10px;text-align:center}
+.sub{color:#eaffd8;margin:8px 0 14px;text-align:center;max-width:520px;line-height:1.4;font-size:17px}
+.bal{background:#ffd23a;color:#5a2a00;border-radius:18px;padding:8px 16px;font-weight:bold;font-size:17px;margin:4px 0 14px;box-shadow:0 4px 0 #b07a00}
+.fases{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;max-width:400px}
+.fase{border-radius:14px;border:3px solid rgba(255,255,255,.5);padding:8px 2px;text-align:center;cursor:pointer;color:#fff;font-family:inherit;font-weight:bold;font-size:22px;background:linear-gradient(#e0503a,#8a1a0a)}
+.fase small{display:block;font-size:12px}
+.fase.trava{background:linear-gradient(#3a3a4a,#1a1a24);opacity:.55;cursor:default}
+.btn{display:block;width:280px;max-width:90vw;margin:6px auto;padding:13px;border-radius:16px;border:3px solid rgba(255,255,255,.5);color:#fff;font-weight:bold;font-size:20px;cursor:pointer;font-family:inherit}
+.f{background:linear-gradient(#4ccf6a,#1f8a3a)} .x{background:linear-gradient(#e0503a,#8a1a0a)} .d{background:linear-gradient(#3aa0ff,#1a5aa0)} .a{background:linear-gradient(#ffb03a,#c06a00)}
+.ajuda{font-size:14px;color:#eaffd8;margin-top:16px;text-align:center;max-width:500px;line-height:1.6}
+.voltar{color:#eaffd8;margin-top:12px;font-size:14px}
+#fim,#pausaT{display:none;background:rgba(10,20,0,.7);justify-content:center}
+.caixa{background:#2a4a1a;border:3px solid #ffd76a;border-radius:20px;padding:22px 26px;text-align:center;max-width:420px;margin-top:40px}
+.caixa h2{font-size:30px}
+.caixa p{margin:8px 0;font-size:18px}
+#botoes{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom));display:none;gap:10px;z-index:3}
+#botoes button{border:3px solid rgba(255,255,255,.6);border-radius:16px;padding:10px 16px;font-weight:bold;font-size:18px;color:#fff;cursor:pointer;font-family:inherit;white-space:nowrap}
+#bPausa{position:fixed;top:10px;right:10px;z-index:4;width:44px;height:44px;border-radius:12px;border:2px solid rgba(255,255,255,.5);background:rgba(0,0,0,.35);color:#fff;font-size:20px;display:none;cursor:pointer}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<button id="bPausa">⏸</button>
+<div id="botoes">
+  <button id="bJa" class="f">🚂 Partir já!</button>
+  <button id="bRapido" class="d">⏩ Rápido</button>
+</div>
+
+<div class="tela" id="menu">
+  <h1>🚂 Trem do Cogu</h1>
+  <div class="sub">O trem do Cogu não para! Toque nos quadradinhos pra colocar os <b>trilhos</b> na frente dele. Se faltar trilho... <b>descarrila!</b> 💥 Pegue os passageiros 🙋 no caminho.</div>
+  <div id="estrelas" class="bal"></div>
+  <div class="fases" id="fases"></div>
+  <button class="btn a" id="bSemFim" style="margin-top:14px">♾️ Sem Fim</button>
+  <div class="ajuda">📱 Toque num quadrado pra pôr o próximo trilho (o de borda amarela)<br>Errou? Toque de novo num trilho que o trem ainda não passou pra trocar<br>💻 Setas mexem · <b>Espaço</b> coloca · <b>E</b> acelera<br>🎮 Direcional + ❌ coloca · ⬜ acelera<br>✖️ O cruzamento deixa o trem passar duas vezes!</div>
+  <a class="voltar" href="/">⬅ Voltar pro Cogumelo Games</a>
+</div>
+
+<div class="tela" id="fim">
+  <div class="caixa">
+    <h2 id="fimT"></h2>
+    <p id="fimE" style="font-size:36px"></p>
+    <p id="fimP"></p>
+    <p id="fimC" style="color:#ffd76a"></p>
+    <button class="btn f" id="bProx">➡ Próxima fase</button>
+    <button class="btn a" id="bDeNovo">🔁 Jogar de novo</button>
+    <button class="btn x" id="bMenu">🏠 Fases</button>
+  </div>
+</div>
+
+<div class="tela" id="pausaT">
+  <div class="caixa">
+    <h2>⏸ Pausado</h2>
+    <button class="btn f" id="bVolta">▶ Continuar</button>
+    <button class="btn x" id="bSai">🏠 Fases</button>
+  </div>
+</div>
+
+<script>
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+const $=id=>document.getElementById(id);
+const COLS=7, ROWS=9, C=80, GW=COLS*C, TOPO=150, GH=TOPO+ROWS*C+90;
+let W=0,H=0,DPR=1,S=1,OX=0,OY=0;
+function resize(){
+    DPR=Math.min(1.5,devicePixelRatio||1); W=innerWidth; H=innerHeight;
+    cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px';
+    S=Math.min(W/GW,H/GH); OX=(W-GW*S)/2; OY=(H-GH*S)/2;
+}
+addEventListener('resize',resize); resize();
+
+// ---------- direções: 0=N 1=L 2=S 3=O ----------
+const DX=[0,1,0,-1], DY=[-1,0,1,0];
+// peças = quais lados têm trilho (bits). 15 = cruzamento
+const PECAS=[{m:10,p:3},{m:5,p:3},{m:3,p:2},{m:6,p:2},{m:12,p:2},{m:9,p:2},{m:15,p:.8}];
+function sorteiaPeca(){ const tot=PECAS.reduce((a,p)=>a+p.p,0); let r=Math.random()*tot; for(const p of PECAS){ r-=p.p; if(r<=0) return p.m; } return 10; }
+
+// ---------- fases ----------
+const NOMES=['Estação Feliz','Fazenda','Bosque','Pedreira','Vale','Ponte Velha','Montanha','Mina','Deserto','Neve','Vulcão','Expresso Final'];
+function dadosFase(i){
+    if(i<0) return {n:Infinity,vel:.45,cd:12,pedras:4,gente:3,nome:'Sem Fim'};
+    return {n:12+i*3,vel:.40+i*.05,cd:Math.max(8,14-i*.5),pedras:2+i,gente:3+Math.floor(i/2),nome:NOMES[i]};
+}
+function rnd(seed){ return ()=>{ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+// ---------- save ----------
+let save={est:[],rec:0};
+try{ const s=JSON.parse(localStorage.getItem('trem_save')); if(s&&s.est) save=s; }catch(e){}
+function grava(){ try{ localStorage.setItem('trem_save',JSON.stringify(save)); }catch(e){} }
+
+// ---------- som ----------
+let AC=null;
+function audio(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(AC&&AC.state==='suspended') AC.resume(); }
+function bip(f,d,tipo,vol,f2){ if(!AC) return; const o=AC.createOscillator(), g=AC.createGain(), t=AC.currentTime;
+    o.type=tipo||'sine'; o.frequency.setValueAtTime(f,t); if(f2) o.frequency.exponentialRampToValueAtTime(f2,t+d);
+    g.gain.setValueAtTime(vol||.15,t); g.gain.exponentialRampToValueAtTime(.001,t+d); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+d); }
+const som={
+    poe:()=>bip(500,.08,'square',.08,300),
+    troca:()=>bip(300,.15,'sawtooth',.08,150),
+    piuii:()=>{ bip(880,.5,'triangle',.12); bip(1100,.5,'triangle',.08); },
+    gente:()=>[660,880].forEach((f,i)=>setTimeout(()=>bip(f,.12,'triangle',.15),i*80)),
+    bum:()=>{ bip(120,.6,'sawtooth',.2,40); bip(80,.8,'square',.15,30); },
+    ganhou:()=>[523,659,784,1046].forEach((f,i)=>setTimeout(()=>bip(f,.2,'triangle',.18),i*120)),
+    tchu:()=>bip(140,.07,'triangle',.05,90)
+};
+
+// ---------- estado ----------
+let fase=0, F=null, grade=[], fila=[], trem=null, estado='menu', cursor={c:3,r:4}, rapido=false, pausado=false;
+let contagem=0, feitos=0, pegou=0, totalGente=0, textos=[], fumaca=[], poeira=[], tempoBatida=0, caminho=[], tchuT=0;
+function cel(c,r){ return c>=0&&r>=0&&c<COLS&&r<ROWS?grade[r][c]:null; }
+function montaFase(i){
+    fase=i; F=dadosFase(i);
+    for(let tent=0;tent<200;tent++){
+        const R=rnd(i<0?Date.now()+tent:1000+i*97+tent*7);
+        grade=[]; for(let r=0;r<ROWS;r++){ grade.push([]); for(let c=0;c<COLS;c++) grade[r].push({t:'vazio',m:0,usado:0,gente:false,v:R()}); }
+        // estação: no meio, saindo pra um lado com espaço
+        const sc=1+Math.floor(R()*(COLS-2)), sr=2+Math.floor(R()*(ROWS-4)), sd=[1,3][R()<.5?0:1];
+        const ent=(sd+2)%4;
+        const st=grade[sr][sc]; st.t='trilho'; st.m=(1<<sd)|(1<<ent); st.usado=3; st.estacao=true;
+        const proibida=(c,r)=>(c===sc&&r===sr)||(c===sc+DX[sd]&&r===sr+DY[sd])||(c===sc+DX[sd]*2&&r===sr+DY[sd]*2)||(c===sc+DX[ent]&&r===sr+DY[ent]);
+        let n=0, guarda=0;
+        while(n<F.pedras&&guarda++<500){ const c=Math.floor(R()*COLS), r=Math.floor(R()*ROWS);
+            if(proibida(c,r)||grade[r][c].t!=='vazio') continue; grade[r][c].t='pedra'; n++; }
+        // casinha atrás da estação (enfeite que bloqueia)
+        const bc=sc+DX[ent], br=sr+DY[ent]; if(cel(bc,br)) grade[br][bc].t='casa';
+        // o lugar livre ligado à estação tem que ser grande
+        const vis=new Set(), fila2=[[sc+DX[sd],sr+DY[sd]]]; vis.add(fila2[0].join());
+        while(fila2.length){ const [c,r]=fila2.pop(); for(let d=0;d<4;d++){ const nc=c+DX[d], nr=r+DY[d], k=nc+','+nr; const q=cel(nc,nr);
+            if(q&&q.t==='vazio'&&!vis.has(k)){ vis.add(k); fila2.push([nc,nr]); } } }
+        if(vis.size<30) continue;
+        // ninguém sozinho trancado
+        for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(grade[r][c].t==='vazio'&&!vis.has(c+','+r)) grade[r][c].t='pedra';
+        trem={c:sc,r:sr,e:ent,x:sd,u:0,d:sd,rastro:[],ang:0};
+        cursor={c:sc+DX[sd],r:sr+DY[sd]};
+        break;
+    }
+    fila=[]; for(let k=0;k<5;k++) fila.push(sorteiaPeca());
+    feitos=0; pegou=0; totalGente=0; textos=[]; fumaca=[]; poeira=[]; caminho=[[trem.c,trem.r]]; rapido=false; pausado=false;
+    for(let k=0;k<F.gente;k++) poeGente();
+    contagem=F.cd; estado='espera'; tempoBatida=0;
+    const p=pontoTrem(); trem.rastro=[[p[0],p[1]]];
+}
+function poeGente(){
+    const l=[]; for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){ const q=grade[r][c]; if(q.t==='vazio'&&!q.gente&&Math.abs(c-trem.c)+Math.abs(r-trem.r)>2) l.push(q); }
+    if(!l.length) return; l[Math.floor(Math.random()*l.length)].gente=true; totalGente++;
+}
+
+// ---------- posição do trem dentro da casinha ----------
+function meioLado(c,r,d){ return [c*C+C/2+DX[d]*C/2, TOPO+r*C+C/2+DY[d]*C/2]; }
+function pontoNa(c,r,e,x,u){
+    if((e+2)%4===x){ const a=meioLado(c,r,e), b=meioLado(c,r,x); return [a[0]+(b[0]-a[0])*u, a[1]+(b[1]-a[1])*u]; }
+    const cx=c*C+C/2+(DX[e]+DX[x])*C/2, cy=TOPO+r*C+C/2+(DY[e]+DY[x])*C/2;
+    const a=meioLado(c,r,e), b=meioLado(c,r,x);
+    const a0=Math.atan2(a[1]-cy,a[0]-cx); let a1=Math.atan2(b[1]-cy,b[0]-cx), da=a1-a0;
+    while(da>Math.PI) da-=Math.PI*2; while(da<-Math.PI) da+=Math.PI*2;
+    const ang=a0+da*u; return [cx+Math.cos(ang)*C/2, cy+Math.sin(ang)*C/2];
+}
+const pontoTrem=()=>pontoNa(trem.c,trem.r,trem.e,trem.x,Math.min(1,trem.u));
+
+// ---------- colocar trilho ----------
+function toca(c,r){
+    if(estado!=='espera'&&estado!=='anda') return;
+    const q=cel(c,r); if(!q) return;
+    cursor={c,r};
+    if(q.t==='pedra'||q.t==='casa'||q.estacao) return;
+    if(q.t==='trilho'&&(q.usado||(c===trem.c&&r===trem.r))) return;
+    if(q.t==='trilho'){ som.troca(); for(let i=0;i<6;i++) poeira.push({x:c*C+C/2,y:TOPO+r*C+C/2,vx:(Math.random()-.5)*160,vy:(Math.random()-.5)*160,t:0}); }
+    else som.poe();
+    q.t='trilho'; q.m=fila.shift(); q.usado=0; q.novo=0; fila.push(sorteiaPeca());
+}
+
+// ---------- andar ----------
+function entra(){
+    // trem chegou no fim da casinha: vai pra próxima
+    const d=trem.x, nc=trem.c+DX[d], nr=trem.r+DY[d], q=cel(nc,nr), e=(d+2)%4;
+    if(!q||q.t!=='trilho'||!(q.m&(1<<e))) return bate(nc,nr,d);
+    let x;
+    if(q.m===15){ const eixo=e%2; if(q.usado&(1<<eixo)) return bate(nc,nr,d); q.usado|=1<<eixo; x=d; }
+    else { if(q.usado) return bate(nc,nr,d); q.usado=3; x=[0,1,2,3].find(k=>k!==e&&(q.m&(1<<k))); }
+    trem.c=nc; trem.r=nr; trem.e=e; trem.x=x; trem.u-=1; trem.d=d;
+    feitos++; caminho.push([nc,nr]);
+    if(q.gente){ q.gente=false; pegou++; som.gente(); textos.push({x:nc*C+C/2,y:TOPO+nr*C+C/2,s:'+1 🙋',t:0}); if(fase<0) poeGente(); }
+    // trilho velho some depois que o trem passa (dá pra usar de novo)
+    if(caminho.length>5){ const [oc,or]=caminho.shift(), o=grade[or][oc];
+        if(!o.estacao&&!(oc===trem.c&&or===trem.r)&&!caminho.some(p=>p[0]===oc&&p[1]===or)){ o.t='vazio'; o.m=0; o.usado=0; }
+        else if(o.estacao){ o.usado=3; } }
+    if(fase<0&&feitos%5===0){ F.vel=Math.min(1.6,F.vel+.03); textos.push({x:GW/2,y:TOPO+40,s:'⚡ Mais rápido!',t:0}); }
+    if(feitos>=F.n) ganhou();
+}
+function bate(nc,nr,d){
+    estado='batida'; tempoBatida=0; trem.batida={c:nc,r:nr,d}; som.bum();
+    const p=pontoTrem(); for(let i=0;i<20;i++) poeira.push({x:p[0],y:p[1],vx:(Math.random()-.5)*300,vy:(Math.random()-.5)*300,t:0,fogo:true});
+}
+
+// ---------- fim ----------
+let timerFim=0;
+function ganhou(){
+    estado='ganhou'; som.ganhou(); tempoBatida=0;
+    const est=1+(pegou*2>=totalGente?1:0)+(pegou>=totalGente?1:0), antes=save.est[fase]||0;
+    if(est>antes){ save.est[fase]=est; grava(); }
+    const moedas=Math.max(0,est-antes)*3; if(moedas){ try{ if(window.CoguCoins) CoguCoins.ganha(moedas); }catch(e){} }
+    const pg=pegou, tg=totalGente;
+    timerFim=setTimeout(()=>{
+        $('fimT').textContent='🎉 Chegou na estação!';
+        $('fimE').textContent='⭐'.repeat(est)+'☆'.repeat(3-est);
+        $('fimP').textContent='🙋 Passageiros: '+pg+' de '+tg;
+        $('fimC').textContent=moedas?'+'+moedas+' 🍄 Cogu Coins':(est<3?'Pegue todos os passageiros pra ganhar ⭐⭐⭐':'');
+        $('bProx').style.display=fase<NOMES.length-1?'block':'none';
+        mostraFim();
+    },1400);
+}
+function perdeu(){
+    let txt='';
+    if(fase<0){ const rec=feitos>(save.rec||0); if(rec){ save.rec=feitos; grava(); }
+        const m=Math.floor(feitos/10); if(m){ try{ if(window.CoguCoins) CoguCoins.ganha(m); }catch(e){} }
+        $('fimT').textContent='💥 Descarrilou!'; $('fimE').textContent='🛤️ '+feitos+' trilhos';
+        $('fimP').textContent=rec?'🏆 RECORDE NOVO!':'Recorde: '+(save.rec||0)+' trilhos'; txt=m?'+'+m+' 🍄 Cogu Coins':'';
+    } else {
+        $('fimT').textContent='💥 Descarrilou!'; $('fimE').textContent='😵';
+        $('fimP').textContent='Faltaram '+(F.n-feitos)+' trilhos pra chegar!';
+    }
+    $('fimC').textContent=txt; $('bProx').style.display='none'; mostraFim();
+}
+function mostraFim(){ estado='fim'; $('fim').style.display='flex'; $('botoes').style.display='none'; $('bPausa').style.display='none'; }
+
+// ---------- telas ----------
+function menu(){
+    clearTimeout(timerFim); estado='menu'; $('menu').style.display='flex'; $('fim').style.display='none'; $('pausaT').style.display='none';
+    $('botoes').style.display='none'; $('bPausa').style.display='none';
+    const tot=save.est.reduce((a,b)=>a+(b||0),0);
+    $('estrelas').textContent='⭐ '+tot+' de '+NOMES.length*3+(save.rec?' · ♾️ recorde '+save.rec:'');
+    $('fases').innerHTML=NOMES.map((n,i)=>{ const lib=i===0||save.est[i-1]; const e=save.est[i]||0;
+        return `<button class="fase${lib?'':' trava'}" data-i="${i}">${lib?i+1:'🔒'}<small>${lib?'⭐'.repeat(e)+'☆'.repeat(3-e):''}</small><small style="font-size:10px;font-weight:normal">${lib?n:''}</small></button>`; }).join('');
+    $('fases').querySelectorAll('.fase').forEach(b=>b.onclick=()=>{ if(!b.classList.contains('trava')) joga(+b.dataset.i); });
+}
+function joga(i){
+    clearTimeout(timerFim); audio(); montaFase(i);
+    $('menu').style.display='none'; $('fim').style.display='none'; $('pausaT').style.display='none';
+    $('botoes').style.display='flex'; $('bPausa').style.display='block'; atualizaBotoes();
+}
+function atualizaBotoes(){ $('bJa').style.display=estado==='espera'?'block':'none'; $('bRapido').style.display=estado==='anda'?'block':'none'; $('bRapido').textContent=rapido?'🐢 Normal':'⏩ Rápido'; }
+function parte(){ if(estado!=='espera') return; estado='anda'; som.piuii(); atualizaBotoes(); }
+$('bJa').onclick=()=>{ audio(); parte(); };
+$('bRapido').onclick=()=>{ rapido=!rapido; atualizaBotoes(); };
+$('bSemFim').onclick=()=>joga(-1);
+$('bProx').onclick=()=>joga(fase+1);
+$('bDeNovo').onclick=()=>joga(fase);
+$('bMenu').onclick=menu;
+$('bPausa').onclick=()=>{ if(estado==='espera'||estado==='anda'){ pausado=true; $('pausaT').style.display='flex'; } };
+$('bVolta').onclick=()=>{ pausado=false; $('pausaT').style.display='none'; };
+$('bSai').onclick=menu;
+
+// ---------- controles ----------
+cv.addEventListener('pointerdown',e=>{
+    audio(); if(pausado) return;
+    const x=(e.clientX-OX)/S, y=(e.clientY-OY)/S-TOPO;
+    toca(Math.floor(x/C),Math.floor(y/C));
+});
+addEventListener('keydown',e=>{
+    if(estado==='menu'){ if(e.key==='Enter'){ const l=save.est.length; joga(Math.min(NOMES.length-1,l)); } return; }
+    if(estado==='fim'){ if(e.key==='Enter'){ if($('bProx').style.display!=='none') joga(fase+1); else joga(fase); } return; }
+    if(pausado) return;
+    if(e.key==='ArrowLeft') cursor.c=Math.max(0,cursor.c-1);
+    else if(e.key==='ArrowRight') cursor.c=Math.min(COLS-1,cursor.c+1);
+    else if(e.key==='ArrowUp') cursor.r=Math.max(0,cursor.r-1);
+    else if(e.key==='ArrowDown') cursor.r=Math.min(ROWS-1,cursor.r+1);
+    else if(e.code==='Space'){ e.preventDefault(); audio(); toca(cursor.c,cursor.r); }
+    else if(e.key==='e'||e.key==='j'){ if(estado==='espera') parte(); else { rapido=!rapido; atualizaBotoes(); } }
+    else if(e.key==='Escape'||e.key==='p') $('bPausa').onclick();
+    else return;
+    e.preventDefault(); teclou=1.5;
+});
+let teclou=0;
+
+// ---------- loop ----------
+let ult=performance.now(), T=0;
+function loop(agora){
+    const dt=Math.min(.05,(agora-ult)/1000); ult=agora;
+    if(!pausado&&estado!=='menu'&&estado!=='fim') atualiza(dt);
+    desenha();
+    requestAnimationFrame(loop);
+}
+function atualiza(dt){
+    T+=dt; teclou-=dt;
+    if(estado==='espera'){ contagem-=dt; if(contagem<=0) parte(); }
+    if(estado==='anda'){
+        trem.u+=dt*F.vel*(rapido?3:1);
+        tchuT-=dt; if(tchuT<=0){ tchuT=.5/(F.vel*(rapido?3:1)); som.tchu(); }
+        while(trem.u>=1&&estado==='anda') entra();
+        if(Math.random()<.3) fumaca.push({p:null,t:0});
+    }
+    if(estado==='batida'){ tempoBatida+=dt; if(tempoBatida>1.6) perdeu(); }
+    if(estado==='ganhou') trem.u=Math.min(1,trem.u+dt*.5);
+    if(estado==='anda'||estado==='espera'||estado==='ganhou'){
+        const p=pontoTrem(), l=trem.rastro[trem.rastro.length-1];
+        if(Math.hypot(p[0]-l[0],p[1]-l[1])>2){ trem.rastro.push(p); if(trem.rastro.length>400) trem.rastro.shift(); }
+    }
+    textos=textos.filter(t=>(t.t+=dt)<1.3);
+    poeira=poeira.filter(p=>{ p.t+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; return p.t<.8; });
+}
+// pega um ponto atrás da locomotiva, andando 'dist' pelo rastro
+function atras(dist){
+    const r=trem.rastro; let i=r.length-1, sobra=dist, p=r[i];
+    while(i>0){ const q=r[i-1], d=Math.hypot(p[0]-q[0],p[1]-q[1]); if(d>=sobra){ const k=sobra/d; return [p[0]+(q[0]-p[0])*k,p[1]+(q[1]-p[1])*k,Math.atan2(p[1]-q[1],p[0]-q[0])]; } sobra-=d; p=q; i--; }
+    return null;
+}
+
+// ---------- desenho ----------
+function desenhaPeca(g,x,y,s,m,alfa){
+    g.save(); g.translate(x,y); g.globalAlpha=alfa==null?1:alfa;
+    const pares=[];
+    if(m===15){ pares.push([0,2],[1,3]); }
+    else { const l=[0,1,2,3].filter(k=>m&(1<<k)); if(l.length===2) pares.push(l); }
+    for(const camada of [0,1]) for(const [a,b] of pares){
+        if((a+2)%4===b){ // reto
+            const hor=a%2===1;
+            if(camada===0){ g.fillStyle='#7a4a1a'; for(let i=0;i<4;i++){ const o=-s/2+s*(i+.5)/4; if(hor) g.fillRect(o-s*.06,-s*.3,s*.12,s*.6); else g.fillRect(-s*.3,o-s*.06,s*.6,s*.12); } }
+            else { g.strokeStyle='#c8ccd8'; g.lineWidth=s*.07; g.beginPath(); for(const k of [-.18,.18]){ if(hor){ g.moveTo(-s/2,k*s); g.lineTo(s/2,k*s); } else { g.moveTo(k*s,-s/2); g.lineTo(k*s,s/2); } } g.stroke(); }
+        } else { // curva
+            const cx=(DX[a]+DX[b])*s/2, cy=(DY[a]+DY[b])*s/2;
+            const a0=Math.atan2(DY[a]*s/2-cy,DX[a]*s/2-cx); let a1=Math.atan2(DY[b]*s/2-cy,DX[b]*s/2-cx), da=a1-a0;
+            while(da>Math.PI) da-=Math.PI*2; while(da<-Math.PI) da+=Math.PI*2;
+            if(camada===0){ g.strokeStyle='#7a4a1a'; g.lineWidth=s*.12; for(let i=0;i<4;i++){ const an=a0+da*(i+.5)/4; g.beginPath(); g.moveTo(cx+Math.cos(an)*s*.2,cy+Math.sin(an)*s*.2); g.lineTo(cx+Math.cos(an)*s*.8,cy+Math.sin(an)*s*.8); g.stroke(); } }
+            else { g.strokeStyle='#c8ccd8'; g.lineWidth=s*.07; for(const rr of [.32,.68]){ g.beginPath(); g.arc(cx,cy,rr*s,a0,a0+da,da<0); g.stroke(); } }
+        }
+    }
+    g.restore();
+}
+function desenhaPedra(g,x,y,v){
+    g.fillStyle='#7a7a86'; g.strokeStyle='#4a4a54'; g.lineWidth=3;
+    g.beginPath(); g.ellipse(x,y+6,C*.34,C*.26,0,0,7); g.fill(); g.stroke();
+    g.fillStyle='#9a9aa6'; g.beginPath(); g.ellipse(x-8,y,C*.14,C*.1,0,0,7); g.fill();
+    if(v>.5){ g.fillStyle='#2f8a2a'; g.beginPath(); g.arc(x+C*.24,y-C*.18,C*.13,0,7); g.arc(x+C*.32,y-C*.08,C*.1,0,7); g.fill(); }
+}
+function desenhaVagao(g,x,y,ang,cor,loco){
+    g.save(); g.translate(x,y); g.rotate(ang);
+    const l=loco?C*.62:C*.5, w=C*.42;
+    g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(-l/2+3,-w/2+4,l,w);
+    g.fillStyle=cor; g.strokeStyle='#2a0a0a'; g.lineWidth=3;
+    g.beginPath(); g.roundRect?g.roundRect(-l/2,-w/2,l,w,8):g.rect(-l/2,-w/2,l,w); g.fill(); g.stroke();
+    if(loco){
+        g.fillStyle='#2a2a34'; g.fillRect(l*.05,-w*.28,l*.3,w*.56);
+        g.fillStyle='#ffd23a'; g.beginPath(); g.arc(l/2-2,0,5,0,7); g.fill();
+        g.fillStyle='#e0303a'; g.beginPath(); g.ellipse(-l*.18,0,w*.42,w*.42,0,0,7); g.fill(); g.stroke();
+        g.fillStyle='#fff'; g.beginPath(); g.arc(-l*.26,-w*.15,4,0,7); g.arc(-l*.1,w*.18,3.5,0,7); g.arc(-l*.08,-w*.2,3,0,7); g.fill();
+    } else { g.fillStyle='rgba(255,255,255,.35)'; g.fillRect(-l*.35,-w*.3,l*.7,w*.18); }
+    g.restore();
+}
+function desenha(){
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    ctx.fillStyle='#1e3a14'; ctx.fillRect(0,0,W,H);
+    if(estado==='menu'||!trem) return;
+    ctx.setTransform(DPR*S,0,0,DPR*S,DPR*OX,DPR*OY);
+    // grama
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){ ctx.fillStyle=(r+c)%2?'#5cb83a':'#52ad32'; ctx.fillRect(c*C,TOPO+r*C,C,C); }
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){ const q=grade[r][c]; if(q.v<.25&&q.t==='vazio'){ ctx.fillStyle='#ffe23a'; ctx.beginPath(); ctx.arc(c*C+15+q.v*150,TOPO+r*C+20+q.v*120,3,0,7); ctx.fill(); } }
+    ctx.strokeStyle='rgba(0,0,0,.12)'; ctx.lineWidth=1;
+    for(let c=0;c<=COLS;c++){ ctx.beginPath(); ctx.moveTo(c*C,TOPO); ctx.lineTo(c*C,TOPO+ROWS*C); ctx.stroke(); }
+    for(let r=0;r<=ROWS;r++){ ctx.beginPath(); ctx.moveTo(0,TOPO+r*C); ctx.lineTo(GW,TOPO+r*C); ctx.stroke(); }
+    // coisas nas casinhas
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+        const q=grade[r][c], x=c*C+C/2, y=TOPO+r*C+C/2;
+        if(q.t==='pedra') desenhaPedra(ctx,x,y,q.v);
+        if(q.t==='casa'){ ctx.fillStyle='#e8d0a0'; ctx.fillRect(x-C*.36,y-C*.2,C*.72,C*.5); ctx.fillStyle='#c0303a'; ctx.beginPath(); ctx.moveTo(x-C*.46,y-C*.18); ctx.lineTo(x,y-C*.46); ctx.lineTo(x+C*.46,y-C*.18); ctx.fill();
+            ctx.fillStyle='#6a3a1a'; ctx.fillRect(x-C*.08,y+C*.04,C*.16,C*.26); }
+        if(q.t==='trilho'){
+            if(q.estacao){ ctx.fillStyle='#b8a888'; ctx.fillRect(c*C+4,TOPO+r*C+4,C-8,C-8); }
+            desenhaPeca(ctx,x,y,C,q.m);
+            if(q.usado&&!q.estacao){ ctx.fillStyle='rgba(255,230,120,.12)'; ctx.fillRect(c*C,TOPO+r*C,C,C); }
+        }
+        if(q.gente){ const pula=Math.abs(Math.sin(T*4+c+r))*6; ctx.font='34px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🙋',x,y-pula); }
+    }
+    // cursor (teclado/controle)
+    if(teclou>0||estado==='espera'){ const q=cel(cursor.c,cursor.r);
+        ctx.strokeStyle='#ffd23a'; ctx.lineWidth=4; ctx.strokeRect(cursor.c*C+3,TOPO+cursor.r*C+3,C-6,C-6);
+        if(q&&(q.t==='vazio'||(q.t==='trilho'&&!q.usado&&!q.estacao))) desenhaPeca(ctx,cursor.c*C+C/2,TOPO+cursor.r*C+C/2,C,fila[0],.4); }
+    // trem
+    const cores=['#3aa0ff','#ffb03a','#4ccf4a'];
+    let tremAng=0;
+    for(let k=3;k>=1;k--){ const p=atras(k*C*.56); if(p) desenhaVagao(ctx,p[0],p[1],p[2],cores[k-1],false); }
+    const hp=pontoTrem(), ap=atras(6); tremAng=ap?Math.atan2(hp[1]-ap[1],hp[0]-ap[0]):Math.atan2(DY[trem.x],DX[trem.x]);
+    if(estado==='batida'){ ctx.save(); ctx.translate(hp[0],hp[1]); ctx.rotate(Math.min(1.2,tempoBatida*3)); desenhaVagao(ctx,0,0,tremAng,'#c02a2a',true); ctx.restore();
+        ctx.font=(40+Math.sin(T*20)*6)+'px serif'; ctx.textAlign='center'; ctx.fillText('💥',hp[0],hp[1]-20); }
+    else desenhaVagao(ctx,hp[0],hp[1],tremAng,'#c02a2a',true);
+    // fumaça
+    fumaca=fumaca.filter(f=>{ if(!f.p){ f.p=[hp[0]-Math.cos(tremAng)*C*.05,hp[1]-Math.sin(tremAng)*C*.05]; } f.t+=1/60;
+        ctx.fillStyle=`rgba(240,240,240,${.6*(1-f.t)})`; ctx.beginPath(); ctx.arc(f.p[0]+f.t*20,f.p[1]-f.t*40,6+f.t*16,0,7); ctx.fill(); return f.t<1; });
+    poeira.forEach(p=>{ ctx.fillStyle=p.fogo?`rgba(255,${120+Math.random()*100|0},40,${1-p.t})`:`rgba(140,100,60,${1-p.t})`; ctx.beginPath(); ctx.arc(p.x,p.y,6*(1-p.t)+2,0,7); ctx.fill(); });
+    textos.forEach(t=>{ ctx.globalAlpha=Math.max(0,1-t.t); ctx.font='bold 26px Segoe UI,Arial'; ctx.textAlign='center'; ctx.fillStyle='#fff'; ctx.strokeStyle='#000'; ctx.lineWidth=4;
+        ctx.strokeText(t.s,t.x,t.y-t.t*50); ctx.fillText(t.s,t.x,t.y-t.t*50); ctx.globalAlpha=1; });
+    // topo: HUD + fila de peças
+    ctx.fillStyle='#2a4a1a'; ctx.fillRect(0,0,GW,TOPO-6);
+    ctx.fillStyle='#fff'; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.font='bold 22px Segoe UI,Arial';
+    ctx.fillText(fase<0?'♾️ Sem Fim':'Fase '+(fase+1)+': '+F.nome,12,24);
+    ctx.font='bold 20px Segoe UI,Arial';
+    ctx.fillText('🛤️ '+feitos+(fase<0?'':' / '+F.n)+'   🙋 '+pegou+(fase<0?'':' / '+totalGente),12,54);
+    // barra de progresso
+    if(fase>=0){ ctx.fillStyle='rgba(0,0,0,.3)'; ctx.fillRect(12,72,GW-24,8); ctx.fillStyle='#4ccf4a'; ctx.fillRect(12,72,(GW-24)*Math.min(1,feitos/F.n),8); }
+    for(let i=0;i<5;i++){ const s=i===0?62:48, x=60+i*(s+14)+(i?24:0), y=TOPO-34-(i===0?6:0);
+        ctx.fillStyle=i===0?'#5cb83a':'rgba(92,184,58,.6)'; ctx.fillRect(x-s/2,y-s/2,s,s);
+        ctx.strokeStyle=i===0?'#ffd23a':'rgba(255,255,255,.4)'; ctx.lineWidth=i===0?4:2; ctx.strokeRect(x-s/2,y-s/2,s,s);
+        desenhaPeca(ctx,x,y,s,fila[i]); }
+    ctx.textAlign='left'; ctx.fillStyle='#ffd76a'; ctx.font='bold 16px Segoe UI,Arial'; ctx.fillText('◀ o amarelo é o',372,TOPO-46); ctx.fillText('próximo trilho',372,TOPO-26);
+    // contagem
+    if(estado==='espera'){ ctx.textAlign='center'; ctx.fillStyle='rgba(0,0,0,.45)'; ctx.fillRect(GW/2-180,TOPO+ROWS*C/2-40,360,80);
+        ctx.fillStyle='#fff'; ctx.font='bold 30px Segoe UI,Arial'; ctx.fillText('🚂 Sai em '+Math.ceil(contagem)+'s',GW/2,TOPO+ROWS*C/2-8);
+        ctx.font='16px Segoe UI,Arial'; ctx.fillText('Monte os trilhos na frente dele!',GW/2,TOPO+ROWS*C/2+22); }
+}
+menu();
+requestAnimationFrame(loop);
+// ganchos de teste
+window.__trem={joga,toca,parte,est:()=>({estado,feitos,trem,fila,grade}),atualiza};
+</script>
+</body>
+</html>

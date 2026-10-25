@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v576 (2026-10-25)
+- 🚂 JOGO NOVO (ainda escondido): Trem do Cogu! O trem não para: toque nos quadradinhos pra pôr os trilhos na frente dele antes que ele chegue. Pegue os passageiros 🙋 pra ganhar 3 estrelas. 12 fases (cada vez mais rápido e com mais pedras) e modo ♾️ Sem Fim com recorde
+
 ## v575 (2026-10-25)
 - 🧪 JOGO NOVO (ainda escondido): Laboratório Maluco! Misture 2 ou 3 ingredientes (🔥💧🌿⚡❄️🍄) no caldeirão e crie monstrinhos. 21 monstros normais + 6 SECRETOS com dicas no álbum. Modo Encomendas: faça os monstros que os clientes pedem em 1 minuto
 
