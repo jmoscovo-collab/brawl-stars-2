@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v565 (2026-10-25)
+- 🔥 JOGO NOVO (ainda escondido): Cogu vs Chefões! Desvie de centenas de tiros e derrote 6 chefões (Rei Rato, Abelha Rainha, Polvo Gigante, Robô Laser, Dragão de Fogo e o Cogumelo do Mal). Cada um tem 3 fases, e o Cogu tem dash 💨 e bomba 💥
+
 ## v564 (2026-10-25)
 - 🏷️ As características da pesquisa agora ficam escondidas num botãozinho "Características": clica e elas aparecem!
 
