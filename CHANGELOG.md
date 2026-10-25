@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v566 (2026-10-25)
+- 🔥 LANÇOU: Cogu vs Chefões agora está na home!
+- 🔊 Efeitos sonoros novos: o chefão RUGE quando chega, cada chefão tem o som de tiro dele, bip de aviso antes do laser, som dos tiros do Cogu e de quando acerta o chefão
+
 ## v565 (2026-10-25)
 - 🔥 JOGO NOVO (ainda escondido): Cogu vs Chefões! Desvie de centenas de tiros e derrote 6 chefões (Rei Rato, Abelha Rainha, Polvo Gigante, Robô Laser, Dragão de Fogo e o Cogumelo do Mal). Cada um tem 3 fases, e o Cogu tem dash 💨 e bomba 💥
 

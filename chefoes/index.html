@@ -106,8 +106,17 @@ const som={
     bum:()=>bip(90,0.6,'sawtooth',0.14,25),
     vence:()=>{ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>bip(f,0.25,'square',0.08),i*130)); },
     perde:()=>{ [392,330,262,196].forEach((f,i)=>setTimeout(()=>bip(f,0.3,'triangle',0.1),i*170)); },
-    laser:()=>bip(900,0.25,'sawtooth',0.04,200)
+    laser:()=>bip(900,0.25,'sawtooth',0.04,200),
+    aviso:()=>{ bip(1400,0.07,'square',0.03); setTimeout(()=>bip(1400,0.07,'square',0.03),110); },
+    ruge:()=>{ bip(140,0.9,'sawtooth',0.13,50); bip(90,1.0,'square',0.06,40); },
+    tiro:()=>bip(1200,0.04,'square',0.012,700),
+    acerto:()=>bip(220,0.05,'triangle',0.035,120),
+    pew:f=>bip(f,0.09,'triangle',0.025,f*0.5)
 };
+// alguns sons tocam no máximo de tantos em tantos segundos (senão vira barulho)
+const somUlt={};
+function somVez(k,iv,fn){ if(!AC) return; const t=AC.currentTime; if(t-(somUlt[k]||0)<iv) return; somUlt[k]=t; fn(); }
+const TOM_CHEFE=[500,880,380,700,300,600];
 
 // ---------- estado ----------
 let estado='menu', chefeI=0, boss=null, pl=null;
@@ -121,7 +130,8 @@ function bala(x,y,ang,sp,r,c,extra){
     if(balas.length>950) return null;
     const o={x,y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,r,c,t:0};
     if(extra) Object.assign(o,extra);
-    balas.push(o); return o;
+    balas.push(o); if(boss) somVez('pew',0.1,()=>som.pew(TOM_CHEFE[boss.i]));
+    return o;
 }
 function anel(x,y,n,sp,off,r,c,extra){ for(let i=0;i<n;i++) bala(x,y,off+i*Math.PI*2/n,sp,r,c,extra); }
 function mira(x,y){ return Math.atan2(pl.y-y,pl.x-x); }
@@ -133,7 +143,7 @@ function parede(gap,sp,c){
     const gx=gap/2+20+Math.random()*(GW-gap-40);
     for(let x=15;x<GW;x+=30) if(Math.abs(x-gx)>gap/2) bala(x,-10,Math.PI/2,sp,9,c);
 }
-function laser(x,w,warn,dur){ lasers.push({x:Math.max(w/2,Math.min(GW-w/2,x)),w,warn,dur,t:0}); }
+function laser(x,w,warn,dur){ somVez('aviso',0.3,som.aviso); lasers.push({x:Math.max(w/2,Math.min(GW-w/2,x)),w,warn,dur,t:0}); }
 function cada(k,iv){ const tm=boss.tm; tm[k]=(tm[k]===undefined?iv*0.5:tm[k])-DT; if(tm[k]<=0){ tm[k]+=iv; return true; } return false; }
 
 // ---------- os chefões ----------
@@ -186,6 +196,7 @@ function comeca(i){
     pl={x:GW/2,y:GH-140,hp:3,inv:1.5,dash:0,dcd:0,ddx:0,ddy:-1,bomba:1,vx:0,vy:0};
     balas=[]; tiros=[]; lasers=[]; parts=[]; textos=[]; shake=0; flash=0; tiroT=0; fimT=0;
     texto(GW/2,GH*0.42,C.nome.toUpperCase()+'!',C.cor,2.2,40);
+    setTimeout(som.ruge,300);
     estado='jogo'; mostra(null);
 }
 function texto(x,y,s,c,v,tam){ textos.push({x,y,s,c,v:v||1.2,max:v||1.2,tam:tam||28}); }
@@ -230,7 +241,7 @@ function update(dt){
         pl.inv-=dt; pl.dcd-=dt;
         // tiros automáticos
         tiroT-=dt;
-        if(tiroT<=0 && b.entra<=0 && !b.morto){ tiroT=0.085; tiros.push({x:pl.x-9,y:pl.y-18},{x:pl.x+9,y:pl.y-18}); }
+        if(tiroT<=0 && b.entra<=0 && !b.morto){ tiroT=0.085; somVez('tiro',0.17,som.tiro); tiros.push({x:pl.x-9,y:pl.y-18},{x:pl.x+9,y:pl.y-18}); }
     }
     // chefão
     b.t+=dt; b.pulso=Math.max(0,b.pulso-dt*6);
@@ -251,7 +262,7 @@ function update(dt){
     // tiros do Cogu
     for(let i=tiros.length-1;i>=0;i--){
         const t=tiros[i]; t.y-=900*dt;
-        if(!b.morto && b.entra<=0 && Math.abs(t.x-b.x)<60 && Math.abs(t.y-b.y)<55){ b.hp-=1; b.pulso=1; tiros.splice(i,1); if(Math.random()<0.25&&parts.length<500) parts.push({x:t.x,y:t.y,vx:(Math.random()-0.5)*120,vy:-60,v:0.25,c:'#ffe04a',tam:3}); continue; }
+        if(!b.morto && b.entra<=0 && Math.abs(t.x-b.x)<60 && Math.abs(t.y-b.y)<55){ b.hp-=1; b.pulso=1; somVez('acerto',0.12,som.acerto); tiros.splice(i,1); if(Math.random()<0.25&&parts.length<500) parts.push({x:t.x,y:t.y,vx:(Math.random()-0.5)*120,vy:-60,v:0.25,c:'#ffe04a',tam:3}); continue; }
         if(t.y<-20) tiros.splice(i,1);
     }
     // balas dos chefões
