@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>🏐 Vôlei do Cogu — Cogumelo Games</title>
+<meta name="description" content="Vôlei do Cogu: vôlei de praia 2D! Ande pra frente e pra trás, pule e rebata a bola contra a Capivara. 1 ou 2 jogadores.">
+<script src="/letra.js"></script>
+<script src="/cogucoins.js?v=545"></script>
+<script src="/gamepad.js?v=358"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#3a8ad0;font-family:'Segoe UI',Arial,sans-serif;color:#fff;user-select:none;-webkit-user-select:none;touch-action:none}
+#c{display:block;position:fixed;inset:0}
+.tela{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:16px 12px 60px;background:linear-gradient(#4ab0f0,#ffe0a0 85%);z-index:5;touch-action:pan-y}
+h1{font-size:44px;text-shadow:0 4px 0 #b05a00,0 0 18px rgba(255,255,255,.7);margin-top:10px;text-align:center}
+.sub{color:#1a3a5a;margin:8px 0 14px;text-align:center;max-width:520px;line-height:1.4;font-size:17px;font-weight:bold}
+.bal{background:#fff;color:#b05a00;border-radius:18px;padding:8px 16px;font-weight:bold;font-size:17px;margin:4px 0 12px;box-shadow:0 4px 0 #ffb43a}
+.btn{display:block;width:290px;max-width:90vw;margin:6px auto;padding:13px;border-radius:16px;border:3px solid rgba(255,255,255,.7);color:#fff;font-weight:bold;font-size:20px;cursor:pointer;font-family:inherit;text-shadow:0 2px 0 rgba(0,0,0,.25)}
+.btn small{display:block;font-size:13px;font-weight:normal;opacity:.95}
+.f{background:linear-gradient(#4ccf6a,#1f8a3a)} .m{background:linear-gradient(#ffb43a,#d0700a)} .d{background:linear-gradient(#ff4a6a,#a01a3a)} .x{background:linear-gradient(#b04aff,#5a1aa0)} .a{background:linear-gradient(#3aa0ff,#1a5ab0)}
+.ajuda{font-size:14px;color:#1a3a5a;margin-top:14px;text-align:center;max-width:500px;line-height:1.6}
+.voltar{color:#1a3a5a;margin-top:12px;font-size:14px;font-weight:bold}
+#fim,#pausaT{display:none;background:rgba(0,30,60,.55);justify-content:center}
+.caixa{background:#fff6e0;color:#5a2a00;border:4px solid #ffb43a;border-radius:20px;padding:22px 26px;text-align:center;max-width:420px;margin-top:40px}
+.caixa h2{font-size:30px}
+.caixa p{margin:8px 0;font-size:18px}
+#pausa{position:fixed;top:10px;right:10px;z-index:4;width:46px;height:46px;border-radius:12px;border:2px solid rgba(255,255,255,.7);background:rgba(0,0,0,.25);color:#fff;font-size:22px;display:none;cursor:pointer}
+.tb{position:fixed;z-index:4;width:76px;height:76px;border-radius:50%;border:3px solid rgba(255,255,255,.75);background:rgba(0,0,0,.28);color:#fff;font-size:30px;display:none;touch-action:none;font-family:inherit}
+.tb.on{background:rgba(255,255,255,.4)}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<button id="pausa">⏸</button>
+<div id="toques"></div>
+
+<div class="tela" id="menu">
+  <h1>🏐 Vôlei do Cogu</h1>
+  <div class="sub">Vôlei de praia! Ande pra frente e pra trás, <b>pule</b> e rebata a bola por cima da rede. Se a bola cair no chão do seu lado, é ponto do outro! Quem fizer <b>7 pontos</b> ganha. 🏆</div>
+  <div id="vits" class="bal"></div>
+  <button class="btn f" data-n="0">😊 Fácil<small>Capivara preguiçosa</small></button>
+  <button class="btn m" data-n="1">😐 Médio<small>Capivara atleta</small></button>
+  <button class="btn d" data-n="2">😈 Difícil<small>Capivara campeã mundial</small></button>
+  <button class="btn a" data-n="2p">👥 2 Jogadores<small>Cogu contra Capivara no mesmo aparelho</small></button>
+  <div class="ajuda">💻 <b>A / D</b> ou <b>← →</b> andam · <b>W</b>, <b>↑</b> ou <b>Espaço</b> pula<br>👥 2 jogadores: Cogu = A D W · Capivara = ← → ↑<br>📱 Botões na tela · 🎮 Controle: direcional + X pula<br>💡 Bata na bola com o <b>lado</b> do corpo pra mandar ela pro outro lado!</div>
+  <a class="voltar" href="/">⬅ Voltar pro Cogumelo Games</a>
+</div>
+
+<div class="tela" id="fim">
+  <div class="caixa">
+    <h2 id="fimT"></h2>
+    <p id="fimE" style="font-size:40px;font-weight:bold"></p>
+    <p id="fimC" style="color:#b07a00;font-weight:bold"></p>
+    <button class="btn f" id="bDeNovo">🔁 Jogar de novo</button>
+    <button class="btn x" id="bMenu">🏠 Menu</button>
+  </div>
+</div>
+
+<div class="tela" id="pausaT">
+  <div class="caixa">
+    <h2>⏸ Pausado</h2>
+    <button class="btn f" id="bVolta">▶ Continuar</button>
+    <button class="btn x" id="bSai">🏠 Menu</button>
+  </div>
+</div>
+
+<script>
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+const $=id=>document.getElementById(id);
+const GW=1000, GH=600, CHAO=520, REDE_X=500, REDE_W=14, REDE_Y=CHAO-150;
+const R=60, BR=18, VEL=460, PULO=780, G_JOG=2200, G_BOLA=1050, VMAX=1150, PONTOS=7;
+const TOQUE=matchMedia('(pointer:coarse)').matches || ('ontouchstart' in window);
+let W=0,H=0,DPR=1,S=1,OX=0,OY=0;
+const fundo=document.createElement('canvas'), fctx=fundo.getContext('2d');
+function resize(){
+    DPR=Math.min(1.5,window.devicePixelRatio||1); W=innerWidth; H=innerHeight;
+    cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px';
+    S=Math.min(W/GW,H/GH); OX=(W-GW*S)/2;
+    OY=(H>W && TOQUE)?Math.max(10,(H-GH*S)*0.25):(H-GH*S)/2; // em pé: sobra espaço embaixo pros botões
+    montaFundo();
+}
+
+// ---------- fundo da praia (desenhado uma vez só) ----------
+function montaFundo(){
+    fundo.width=GW; fundo.height=GH; const c=fctx;
+    let g=c.createLinearGradient(0,0,0,CHAO); g.addColorStop(0,'#3aa0f0'); g.addColorStop(0.6,'#9ad8ff'); g.addColorStop(1,'#d8f2ff');
+    c.fillStyle=g; c.fillRect(0,0,GW,GH);
+    // sol
+    g=c.createRadialGradient(840,90,10,840,90,90); g.addColorStop(0,'rgba(255,250,200,1)'); g.addColorStop(0.45,'rgba(255,230,120,0.9)'); g.addColorStop(1,'rgba(255,230,120,0)');
+    c.fillStyle=g; c.beginPath(); c.arc(840,90,90,0,6.283); c.fill();
+    // nuvens
+    c.fillStyle='rgba(255,255,255,0.9)';
+    [[150,80,1],[420,130,0.7],[640,60,0.85]].forEach(n=>{ const [x,y,s]=n; [[0,0,30],[28,-12,34],[60,0,28],[30,8,30]].forEach(b=>{ c.beginPath(); c.arc(x+b[0]*s,y+b[1]*s,b[2]*s,0,6.283); c.fill(); }); });
+    // mar
+    g=c.createLinearGradient(0,CHAO-110,0,CHAO-40); g.addColorStop(0,'#1a7ad0'); g.addColorStop(1,'#3ac0e0');
+    c.fillStyle=g; c.fillRect(0,CHAO-110,GW,70);
+    c.strokeStyle='rgba(255,255,255,0.6)'; c.lineWidth=3;
+    for(let x=0;x<GW;x+=60){ c.beginPath(); c.arc(x+30,CHAO-44,18,Math.PI*1.15,Math.PI*1.85); c.stroke(); }
+    // coqueiros
+    function coqueiro(x,esp){
+        c.strokeStyle='#8a5a2a'; c.lineWidth=14; c.lineCap='round';
+        c.beginPath(); c.moveTo(x,CHAO-30); c.quadraticCurveTo(x+esp*20,CHAO-140,x+esp*38,CHAO-230); c.stroke();
+        c.fillStyle='#2a9a3a'; const tx=x+esp*38, ty=CHAO-230;
+        for(let i=0;i<6;i++){ const a=-Math.PI/2+(i-2.5)*0.55; c.beginPath(); c.ellipse(tx+Math.cos(a)*45,ty+Math.sin(a)*22+12,50,12,a,0,6.283); c.fill(); }
+        c.fillStyle='#6a3a1a'; c.beginPath(); c.arc(tx-6,ty+8,8,0,6.283); c.arc(tx+8,ty+10,8,0,6.283); c.fill();
+    }
+    coqueiro(60,1); coqueiro(950,-1);
+    // areia
+    g=c.createLinearGradient(0,CHAO-40,0,GH); g.addColorStop(0,'#ffe6a8'); g.addColorStop(1,'#e8b860');
+    c.fillStyle=g; c.fillRect(0,CHAO-40,GW,GH-CHAO+40);
+    c.fillStyle='rgba(180,120,40,0.25)';
+    for(let i=0;i<220;i++){ c.fillRect(Math.random()*GW,CHAO-36+Math.random()*(GH-CHAO+36),3,2); }
+    c.fillStyle='rgba(255,255,255,0.5)'; c.fillRect(0,CHAO,GW,3);
+}
+
+// ---------- save ----------
+let save={vit:[0,0,0]};
+try{ const s=JSON.parse(localStorage.getItem('volei_save')); if(s&&s.vit) save=s; }catch(e){}
+function grava(){ try{ localStorage.setItem('volei_save',JSON.stringify(save)); }catch(e){} }
+
+// ---------- som ----------
+let AC=null;
+function audio(){ try{ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); }catch(e){} }
+function bip(f,d,tipo,vol,f2){
+    if(!AC) return;
+    try{ const o=AC.createOscillator(), g=AC.createGain(), t=AC.currentTime;
+        o.type=tipo||'square'; o.frequency.setValueAtTime(f,t); if(f2) o.frequency.exponentialRampToValueAtTime(f2,t+d);
+        g.gain.setValueAtTime(vol||0.08,t); g.gain.exponentialRampToValueAtTime(0.001,t+d);
+        o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+d); }catch(e){}
+}
+const som={
+    bate:v=>bip(260+Math.min(300,v*0.25),0.09,'triangle',0.13,140),
+    rede:()=>bip(160,0.15,'sawtooth',0.06,90),
+    parede:()=>bip(300,0.06,'triangle',0.06),
+    pulo:()=>bip(330,0.1,'square',0.035,660),
+    chao:()=>bip(110,0.25,'triangle',0.15,50),
+    apito:()=>{ bip(2400,0.12,'square',0.05,2300); setTimeout(()=>bip(2400,0.3,'square',0.05,2200),160); },
+    ponto:()=>{ bip(660,0.12,'square',0.07); setTimeout(()=>bip(990,0.2,'square',0.07),110); },
+    vence:()=>{ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>bip(f,0.25,'square',0.08),i*130)); },
+    perde:()=>{ [392,330,262,196].forEach((f,i)=>setTimeout(()=>bip(f,0.3,'triangle',0.1),i*170)); }
+};
+
+// ---------- estado ----------
+const NIVEIS=[ // vel = velocidade da Capivara, erro = quanto ela erra a conta, reac = tempo pra pensar, pulo = chance de pular
+    {nome:'Fácil',vel:0.6,erro:55,reac:0.35,pulo:0.35,moedas:3},
+    {nome:'Médio',vel:0.82,erro:25,reac:0.18,pulo:0.7,moedas:6},
+    {nome:'Difícil',vel:1.0,erro:8,reac:0.06,pulo:1,moedas:10}
+];
+let estado='menu', modo=0; // modo: 0,1,2 = contra a Capivara | '2p'
+let p1, p2, bola, placar=[0,0], sacador=0, espera=0, parts=[], textos=[], ultimoToque=-1;
+function novoJog(lado){ return {lado,x:lado===0?250:750,y:CHAO,vx:0,vy:0,noChao:true,alvo:lado===0?250:750,pensa:0,esmaga:0,olhoX:0,olhoY:0}; }
+function comeca(m){
+    audio(); modo=m; placar=[0,0]; sacador=0;
+    p1=novoJog(0); p2=novoJog(1); parts=[]; textos=[];
+    saque(); estado='jogo'; mostra(null); som.apito();
+}
+function saque(){
+    p1.x=250; p2.x=750; p1.y=p2.y=CHAO; p1.vy=p2.vy=0; p1.noChao=p2.noChao=true;
+    const sx=sacador===0?250+22:750-22;
+    bola={x:sx,y:CHAO-330,vx:0,vy:0,ang:0,giro:0};
+    espera=0.9; ultimoToque=-1;
+}
+function texto(x,y,s,c,v,tam){ textos.push({x,y,s,c,v:v||1.2,tam:tam||40}); }
+function areia(x,n){ for(let i=0;i<n&&parts.length<300;i++) parts.push({x,y:CHAO,vx:(Math.random()-0.5)*260,vy:-Math.random()*260,v:0.5+Math.random()*0.4,c:Math.random()<0.5?'#e8b860':'#ffe6a8',tam:3+Math.random()*4}); }
+
+// ---------- controles ----------
+const teclas={};
+const MAPA={KeyA:'a',KeyD:'d',KeyW:'w',ArrowLeft:'esq',ArrowRight:'dir',ArrowUp:'cima',Space:'esp'};
+addEventListener('keydown',e=>{
+    audio();
+    const k=MAPA[e.code]; if(k){ teclas[k]=true; e.preventDefault(); }
+    if(e.code==='Escape'||e.code==='KeyP'){ if(estado==='jogo') pausar(); else if(estado==='pausa') $('bVolta').onclick(); }
+    if(e.code==='Enter' && estado==='fim') $('bDeNovo').onclick();
+});
+addEventListener('keyup',e=>{ const k=MAPA[e.code]; if(k) teclas[k]=false; });
+const toque={}; // botões da tela: p1e p1d p1p p2e p2d p2p
+function entrada(lado){
+    if(lado===0){
+        if(modo==='2p') return {e:teclas.a||toque.p1e, d:teclas.d||toque.p1d, p:teclas.w||toque.p1p};
+        return {e:teclas.a||teclas.esq||toque.p1e, d:teclas.d||teclas.dir||toque.p1d, p:teclas.w||teclas.cima||teclas.esp||toque.p1p};
+    }
+    return {e:teclas.esq||toque.p2e, d:teclas.dir||toque.p2d, p:teclas.cima||toque.p2p};
+}
+function montaBotoes(){
+    const box=$('toques'); box.innerHTML='';
+    if(!TOQUE) return;
+    const lista=modo==='2p'
+        ?[['p1e','◀','left:10px'],['p1d','▶','left:92px'],['p1p','⬆','left:51px;bottom:96px'],['p2e','◀','right:92px'],['p2d','▶','right:10px'],['p2p','⬆','right:51px;bottom:96px']]
+        :[['p1e','◀','left:14px'],['p1d','▶','left:104px'],['p1p','⬆','right:20px']];
+    for(const [id,txt,pos] of lista){
+        const b=document.createElement('button'); b.className='tb'; b.textContent=txt;
+        b.style.cssText='bottom:16px;'+pos; b.style.display='block';
+        const liga=v=>e=>{ e.preventDefault(); toque[id]=v; b.classList.toggle('on',v); if(v) audio(); };
+        b.addEventListener('pointerdown',liga(true)); b.addEventListener('pointerup',liga(false));
+        b.addEventListener('pointercancel',liga(false)); b.addEventListener('pointerleave',liga(false));
+        box.appendChild(b);
+    }
+}
+
+// ---------- a Capivara pensa ----------
+// faz de conta que a bola anda sozinha e vê onde ela vai estar na altura da cabeça da Capivara
+function preve(){
+    let x=bola.x,y=bola.y,vx=bola.vx,vy=bola.vy;
+    const alvoY=CHAO-R*0.75, h=1/120;
+    for(let i=0;i<480;i++){
+        vy+=G_BOLA*h; x+=vx*h; y+=vy*h;
+        if(x<BR){ x=BR; vx=-vx; } if(x>GW-BR){ x=GW-BR; vx=-vx; }
+        if(y>REDE_Y && Math.abs(x-REDE_X)<REDE_W/2+BR){ vx=-vx; x+=vx*h*2; }
+        if(vy>0 && y>=alvoY) return x;
+    }
+    return x;
+}
+function cabeca(p,dt){
+    const N=NIVEIS[modo];
+    p.pensa-=dt;
+    if(p.pensa<=0){
+        p.pensa=N.reac;
+        const cai=preve();
+        if(espera>0) p.alvo=bola.x+(sacador===1?28:0);
+        else if(cai>REDE_X) p.alvo=cai+16+R*0.25+(Math.random()-0.5)*2*N.erro; // fica um pouco atrás pra mandar pra frente
+        else p.alvo=720;
+        p.alvo=Math.max(REDE_X+REDE_W/2+R,Math.min(GW-R,p.alvo));
+        p.querPular=Math.random()<N.pulo;
+    }
+    const dx=p.alvo-p.x;
+    const ent={e:dx<-6,d:dx>6,p:false,vel:N.vel};
+    const bx=bola.x-p.x, by=CHAO-bola.y;
+    if(p.querPular && espera<=0 && bola.x>REDE_X && Math.abs(bx)<70 && by>120 && by<300 && bola.vy>-100) ent.p=true;
+    return ent;
+}
+
+// ---------- física ----------
+function moveJog(p,ent,dt){
+    const v=VEL*(ent.vel||1);
+    p.vx=(ent.d?v:0)-(ent.e?v:0);
+    if(ent.p && p.noChao){ p.vy=-PULO; p.noChao=false; som.pulo(); }
+    p.x+=p.vx*dt;
+    p.vy+=G_JOG*dt; p.y+=p.vy*dt;
+    if(p.y>=CHAO){ if(!p.noChao){ p.esmaga=1; areia(p.x,6); } p.y=CHAO; p.vy=0; p.noChao=true; }
+    const min=p.lado===0?R:REDE_X+REDE_W/2+R, max=p.lado===0?REDE_X-REDE_W/2-R:GW-R;
+    p.x=Math.max(min,Math.min(max,p.x));
+    p.esmaga=Math.max(0,p.esmaga-dt*5);
+}
+function bateJog(p){
+    const dx=bola.x-p.x, dy=bola.y-p.y, d=Math.hypot(dx,dy), min=R+BR;
+    if(dy>0){ // bola embaixo da barriga (o jogador pulou em cima dela)
+        if(Math.abs(dx)<R && dy<BR){ bola.y=p.y+BR; bola.vy=Math.abs(bola.vy)+p.vy*0.3; }
+        return;
+    }
+    if(d>=min||d===0) return;
+    const nx=dx/d, ny=dy/d;
+    bola.x=p.x+nx*min; bola.y=p.y+ny*min;
+    const rvx=bola.vx-p.vx, rvy=bola.vy-p.vy, vn=rvx*nx+rvy*ny;
+    if(vn<0){
+        bola.vx=p.vx+(rvx-2*vn*nx)*0.92;
+        bola.vy=p.vy*0.6+(rvy-2*vn*ny)*0.92-60;
+        const v=Math.hypot(bola.vx,bola.vy); if(v>VMAX){ bola.vx*=VMAX/v; bola.vy*=VMAX/v; }
+        if(bola.vy>-250 && ny<-0.5) bola.vy=-250; // sempre dá uma subidinha quando bate em cima
+        bola.giro=(bola.vx)/BR; som.bate(Math.abs(vn)); ultimoToque=p.lado;
+    }
+}
+function bateRede(){
+    const cx=Math.max(REDE_X-REDE_W/2,Math.min(REDE_X+REDE_W/2,bola.x)), cy=Math.max(REDE_Y,Math.min(CHAO,bola.y));
+    let dx=bola.x-cx, dy=bola.y-cy; const d2=dx*dx+dy*dy;
+    if(d2>=BR*BR) return;
+    let d=Math.sqrt(d2), nx, ny;
+    if(d===0){ nx=bola.x<REDE_X?-1:1; ny=0; } else { nx=dx/d; ny=dy/d; }
+    bola.x=cx+nx*BR; bola.y=cy+ny*BR;
+    const vn=bola.vx*nx+bola.vy*ny;
+    if(vn<0){ bola.vx-=1.8*vn*nx; bola.vy-=1.8*vn*ny; som.rede(); }
+    if(ny<-0.7 && Math.abs(bola.vx)<80) bola.vx=(bola.x<REDE_X?-1:1)*(90+Math.random()*80); // não deixa a bola ficar quicando em cima da rede
+}
+function passoBola(dt){
+    bola.vy+=G_BOLA*dt; bola.x+=bola.vx*dt; bola.y+=bola.vy*dt;
+    bola.ang+=bola.giro*dt;
+    if(bola.x<BR){ bola.x=BR; bola.vx=Math.abs(bola.vx)*0.9; som.parede(); }
+    if(bola.x>GW-BR){ bola.x=GW-BR; bola.vx=-Math.abs(bola.vx)*0.9; som.parede(); }
+    bateRede(); bateJog(p1); bateJog(p2);
+    if(bola.y+BR>=CHAO){ bola.y=CHAO-BR; ponto(bola.x<REDE_X?1:0); }
+}
+function ponto(quem){
+    estado='ponto'; espera=1.4; placar[quem]++; sacador=quem;
+    som.chao(); areia(bola.x,22); bola.vx=bola.vy=0; bola.giro=0;
+    const nome=quem===0?'Cogu':'Capivara';
+    if(placar[quem]>=PONTOS){ espera=1.8; texto(GW/2,200,'🏆 '+nome+' GANHOU!','#ffd23a',2,54); }
+    else { som.ponto(); texto(GW/2,200,'PONTO DO '+nome.toUpperCase()+'!',quem===0?'#ff3355':'#a0602a',1.3,46); }
+}
+function update(dt){
+    if(estado==='ponto'){
+        espera-=dt;
+        moveJog(p1,{},dt); moveJog(p2,{},dt);
+        if(espera<=0){ if(placar[0]>=PONTOS||placar[1]>=PONTOS) acaba(); else { saque(); estado='jogo'; som.apito(); } }
+        return;
+    }
+    moveJog(p1,entrada(0),dt);
+    moveJog(p2,modo==='2p'?entrada(1):cabeca(p2,dt),dt);
+    if(espera>0){ espera-=dt; return; } // bola parada no ar antes do saque
+    const n=Math.max(1,Math.ceil(Math.hypot(bola.vx,bola.vy)*dt/(BR*0.5)));
+    for(let i=0;i<n&&estado==='jogo';i++) passoBola(dt/n);
+}
+function efeitos(dt){
+    for(let i=parts.length-1;i>=0;i--){ const p=parts[i]; p.v-=dt; p.vy+=700*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if(p.y>CHAO+8){ p.y=CHAO+8; p.vy*=-0.3; } if(p.v<=0) parts.splice(i,1); }
+    for(let i=textos.length-1;i>=0;i--){ const t=textos[i]; t.v-=dt; t.y-=18*dt; if(t.v<=0) textos.splice(i,1); }
+}
+
+// ---------- fim ----------
+function acaba(){
+    estado='fim';
+    const ganhou=placar[0]>placar[1];
+    $('fimE').textContent=placar[0]+' x '+placar[1];
+    $('fimC').textContent='';
+    if(modo==='2p'){ $('fimT').textContent=ganhou?'🍄 O Cogu ganhou!':'🦫 A Capivara ganhou!'; som.vence(); }
+    else if(ganhou){
+        som.vence(); $('fimT').textContent='🏆 Você ganhou!';
+        save.vit[modo]=(save.vit[modo]||0)+1; grava();
+        const m=NIVEIS[modo].moedas;
+        try{ if(window.CoguCoins) CoguCoins.ganha(m); }catch(e){}
+        $('fimC').textContent='+'+m+' 🍄 Cogu Coins';
+    } else { som.perde(); $('fimT').textContent='😢 A Capivara ganhou...'; $('fimC').textContent='Tenta de novo! Pule pra cortar a bola 💪'; }
+    mostra('fim');
+}
+
+// ---------- telas ----------
+function mostra(id){
+    ['menu','fim','pausaT'].forEach(t=>$(t).style.display=t===id?'flex':'none');
+    $('pausa').style.display=id===null?'block':'none';
+    if(id===null) montaBotoes(); else { $('toques').innerHTML=''; for(const k in toque) toque[k]=false; }
+}
+function menu(){
+    estado='menu';
+    $('vits').textContent='🏆 Vitórias: 😊 '+(save.vit[0]||0)+' · 😐 '+(save.vit[1]||0)+' · 😈 '+(save.vit[2]||0);
+    mostra('menu');
+}
+document.querySelectorAll('#menu [data-n]').forEach(b=>b.onclick=()=>comeca(b.dataset.n==='2p'?'2p':+b.dataset.n));
+$('bDeNovo').onclick=()=>comeca(modo);
+$('bMenu').onclick=menu;
+function pausar(){ if(estado!=='jogo'&&estado!=='ponto') return; estadoAntes=estado; estado='pausa'; mostra('pausaT'); }
+let estadoAntes='jogo';
+$('pausa').onclick=pausar;
+$('bVolta').onclick=()=>{ estado=estadoAntes; mostra(null); ultimo=performance.now(); };
+$('bSai').onclick=menu;
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) pausar(); });
+
+// ---------- desenho ----------
+function olhos(p,cor){
+    // os olhos seguem a bola
+    const ex=p.x+(p.lado===0?18:-18), ey=p.y-R*0.55-p.esmaga*-6;
+    const dx=bola.x-ex, dy=bola.y-ey, d=Math.hypot(dx,dy)||1;
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ex,ey,13,0,6.283); ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle=cor; ctx.beginPath(); ctx.arc(ex+dx/d*6,ey+dy/d*6,6,0,6.283); ctx.fill();
+}
+function sombra(x,y,larg){
+    const alt=Math.max(0,CHAO-y), k=Math.max(0.3,1-alt/500);
+    ctx.fillStyle='rgba(90,60,20,'+(0.3*k)+')'; ctx.beginPath(); ctx.ellipse(x,CHAO+4,larg*k,9*k,0,0,6.283); ctx.fill();
+}
+function desenhaCogu(p){
+    sombra(p.x,p.y,R);
+    const sx=1+p.esmaga*0.12, sy=1-p.esmaga*0.12;
+    ctx.save(); ctx.translate(p.x,p.y); ctx.scale(sx,sy);
+    // cabinho
+    ctx.fillStyle='#fff3dc'; ctx.fillRect(-26,-22,52,22);
+    // chapéu
+    const g=ctx.createLinearGradient(0,-R,0,0); g.addColorStop(0,'#ff5a5a'); g.addColorStop(1,'#c81a2a');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,-8,R,Math.PI,0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#fff';
+    [[-34,-36,10],[0,-56,9],[30,-40,11],[-12,-24,6],[46,-18,6]].forEach(b=>{ ctx.beginPath(); ctx.arc(b[0],b[1],b[2],0,6.283); ctx.fill(); });
+    ctx.restore();
+    olhos(p,'#1a1a2a');
+}
+function desenhaCapi(p){
+    sombra(p.x,p.y,R);
+    const sx=1+p.esmaga*0.12, sy=1-p.esmaga*0.12;
+    ctx.save(); ctx.translate(p.x,p.y); ctx.scale(sx,sy);
+    const g=ctx.createLinearGradient(0,-R,0,0); g.addColorStop(0,'#c08a50'); g.addColorStop(1,'#8a5a2a');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,R,Math.PI,0); ctx.closePath(); ctx.fill();
+    // orelhinhas
+    ctx.fillStyle='#7a4a1a'; ctx.beginPath(); ctx.arc(-34,-50,11,0,6.283); ctx.arc(10,-60,11,0,6.283); ctx.fill();
+    // focinho (olha pro lado da rede)
+    ctx.fillStyle='#6a3a12'; ctx.beginPath(); ctx.ellipse(-42,-22,20,15,0,0,6.283); ctx.fill();
+    ctx.fillStyle='#2a1a0a'; ctx.beginPath(); ctx.arc(-52,-26,3.5,0,6.283); ctx.arc(-42,-28,3.5,0,6.283); ctx.fill();
+    ctx.restore();
+    olhos(p,'#2a1a0a');
+}
+function desenhaBola(){
+    sombra(bola.x,bola.y,BR*1.1);
+    ctx.save(); ctx.translate(bola.x,bola.y); ctx.rotate(bola.ang);
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,BR,0,6.283); ctx.fill();
+    ctx.lineWidth=5;
+    ctx.strokeStyle='#ffc823'; ctx.beginPath(); ctx.arc(-BR*0.9,0,BR*0.95,-1.1,1.1); ctx.stroke();
+    ctx.strokeStyle='#2a7ae0'; ctx.beginPath(); ctx.arc(BR*0.9,0,BR*0.95,Math.PI-1.1,Math.PI+1.1); ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(bola.x,bola.y,BR,0,6.283); ctx.stroke();
+    // setinha quando a bola sobe além da tela
+    if(bola.y<-BR){ ctx.fillStyle='#fff'; ctx.beginPath(); ctx.moveTo(bola.x,6); ctx.lineTo(bola.x-10,24); ctx.lineTo(bola.x+10,24); ctx.fill(); }
+}
+function desenhaRede(){
+    // poste e rede
+    ctx.fillStyle='#e8e8e8'; ctx.fillRect(REDE_X-REDE_W/2,REDE_Y,REDE_W,CHAO-REDE_Y);
+    ctx.strokeStyle='rgba(40,40,40,0.55)'; ctx.lineWidth=1.5;
+    for(let y=REDE_Y+10;y<CHAO-20;y+=12){ ctx.beginPath(); ctx.moveTo(REDE_X-REDE_W/2,y); ctx.lineTo(REDE_X+REDE_W/2,y); ctx.stroke(); }
+    ctx.fillStyle='#fff'; ctx.fillRect(REDE_X-REDE_W/2-3,REDE_Y-4,REDE_W+6,10);
+    ctx.fillStyle='#ff3355'; ctx.fillRect(REDE_X-REDE_W/2-3,REDE_Y-4,REDE_W+6,4);
+}
+function desenha(){
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    ctx.fillStyle='#e8b860'; ctx.fillRect(0,0,W,H);
+    ctx.translate(OX,OY); ctx.scale(S,S);
+    ctx.drawImage(fundo,0,0);
+    if(estado==='menu') return;
+    desenhaRede();
+    desenhaCogu(p1); desenhaCapi(p2);
+    desenhaBola();
+    for(const p of parts){ ctx.globalAlpha=Math.min(1,p.v*2); ctx.fillStyle=p.c; ctx.fillRect(p.x-p.tam/2,p.y-p.tam/2,p.tam,p.tam); }
+    ctx.globalAlpha=1;
+    // placar
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle='rgba(0,40,80,0.45)'; ctx.beginPath(); ctx.roundRect?ctx.roundRect(GW/2-150,10,300,60,18):ctx.rect(GW/2-150,10,300,60); ctx.fill();
+    ctx.font='bold 40px "Segoe UI",Arial';
+    ctx.fillStyle='#ff5a6a'; ctx.fillText(placar[0],GW/2-55,42);
+    ctx.fillStyle='#fff'; ctx.fillText('x',GW/2,40);
+    ctx.fillStyle='#ffd08a'; ctx.fillText(placar[1],GW/2+55,42);
+    ctx.font='26px serif'; ctx.fillText('🍄',GW/2-115,40);
+    // mini Capivara desenhada (o emoji 🦫 não aparece em todo computador)
+    ctx.fillStyle='#a0703a'; ctx.beginPath(); ctx.arc(GW/2+115,44,15,Math.PI,0); ctx.fill();
+    ctx.fillStyle='#6a3a12'; ctx.beginPath(); ctx.ellipse(GW/2+104,39,7,5,0,0,6.283); ctx.arc(GW/2+122,30,4,0,6.283); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(GW/2+115,34,4,0,6.283); ctx.fill(); ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(GW/2+114,34,2,0,6.283); ctx.fill();
+    for(const t of textos){
+        ctx.globalAlpha=Math.min(1,t.v*2); ctx.font='bold '+t.tam+'px "Segoe UI",Arial';
+        ctx.lineWidth=7; ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.strokeText(t.s,t.x,t.y); ctx.fillStyle=t.c; ctx.fillText(t.s,t.x,t.y);
+    }
+    ctx.globalAlpha=1;
+    if(espera>0 && estado==='jogo'){ ctx.font='bold 26px "Segoe UI",Arial'; ctx.fillStyle='#fff'; ctx.fillText(sacador===0?'Saque do Cogu!':'Saque da Capivara!',GW/2,110); }
+    if(TOQUE && H>W){ ctx.font='bold 22px "Segoe UI",Arial'; ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.fillText('📱 Vire o celular de lado pra ficar maior!',GW/2,GH-20); }
+}
+
+// ---------- loop ----------
+let ultimo=performance.now();
+function loop(t){
+    requestAnimationFrame(loop);
+    if(TOQUE && t-ultimo<30) return; // 30fps no celular
+    let dt=(t-ultimo)/1000; ultimo=t; dt=Math.min(dt,0.05);
+    if(estado==='jogo'||estado==='ponto') update(dt);
+    if(estado!=='pausa') efeitos(dt);
+    desenha();
+}
+addEventListener('resize',resize); resize();
+requestAnimationFrame(loop);
+menu();
+</script>
+</body>
+</html>

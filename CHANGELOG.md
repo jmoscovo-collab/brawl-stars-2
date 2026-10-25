@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v570 (2026-10-25)
+- 🏐 JOGO NOVO (ainda escondido): Vôlei do Cogu! Vôlei de praia 2D, Cogu contra a Capivara. Anda pra frente e pra trás, pula e corta. 3 níveis (Fácil, Médio, Difícil) e modo 2 jogadores
+
 ## v569 (2026-10-25)
 - 🍄 Botões do YouTube, TikTok e Instagram agora dão 1000 Cogu Coins cada (só uma vez por conta)
 
