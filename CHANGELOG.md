@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v571 (2026-10-25)
+- 🏐 LANÇOU: Vôlei do Cogu na home!
+- 🌐 ONLINE: crie uma sala e mande o código pros amigos. 1v1 de lado ou 2v2 VISTO DE CIMA, num mapa maior, com guarda-sóis e um X mostrando onde a bola vai cair. Quem faltar vira robô
+- 🏆 TOP DE VITÓRIAS separado: Fácil, Médio, Difícil, 2 Jogadores e Online
+
 ## v570 (2026-10-25)
 - 🏐 JOGO NOVO (ainda escondido): Vôlei do Cogu! Vôlei de praia 2D, Cogu contra a Capivara. Anda pra frente e pra trás, pula e corta. 3 níveis (Fácil, Médio, Difícil) e modo 2 jogadores
 

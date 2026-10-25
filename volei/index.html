@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <title>🏐 Vôlei do Cogu — Cogumelo Games</title>
-<meta name="description" content="Vôlei do Cogu: vôlei de praia 2D! Ande pra frente e pra trás, pule e rebata a bola contra a Capivara. 1 ou 2 jogadores.">
+<meta name="description" content="Vôlei do Cogu: vôlei de praia 2D! Contra a Capivara, 2 jogadores ou ONLINE 1v1 e 2v2. Top de vitórias.">
 <script src="/letra.js"></script>
 <script src="/cogucoins.js?v=545"></script>
 <script src="/gamepad.js?v=358"></script>
@@ -14,11 +14,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#3a8ad0;font-family:
 #c{display:block;position:fixed;inset:0}
 .tela{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:16px 12px 60px;background:linear-gradient(#4ab0f0,#ffe0a0 85%);z-index:5;touch-action:pan-y}
 h1{font-size:44px;text-shadow:0 4px 0 #b05a00,0 0 18px rgba(255,255,255,.7);margin-top:10px;text-align:center}
+h2.t{font-size:30px;text-shadow:0 3px 0 #b05a00;margin:8px 0;text-align:center}
 .sub{color:#1a3a5a;margin:8px 0 14px;text-align:center;max-width:520px;line-height:1.4;font-size:17px;font-weight:bold}
-.bal{background:#fff;color:#b05a00;border-radius:18px;padding:8px 16px;font-weight:bold;font-size:17px;margin:4px 0 12px;box-shadow:0 4px 0 #ffb43a}
 .btn{display:block;width:290px;max-width:90vw;margin:6px auto;padding:13px;border-radius:16px;border:3px solid rgba(255,255,255,.7);color:#fff;font-weight:bold;font-size:20px;cursor:pointer;font-family:inherit;text-shadow:0 2px 0 rgba(0,0,0,.25)}
 .btn small{display:block;font-size:13px;font-weight:normal;opacity:.95}
-.f{background:linear-gradient(#4ccf6a,#1f8a3a)} .m{background:linear-gradient(#ffb43a,#d0700a)} .d{background:linear-gradient(#ff4a6a,#a01a3a)} .x{background:linear-gradient(#b04aff,#5a1aa0)} .a{background:linear-gradient(#3aa0ff,#1a5ab0)}
+.f{background:linear-gradient(#4ccf6a,#1f8a3a)} .m{background:linear-gradient(#ffb43a,#d0700a)} .d{background:linear-gradient(#ff4a6a,#a01a3a)} .x{background:linear-gradient(#b04aff,#5a1aa0)} .a{background:linear-gradient(#3aa0ff,#1a5ab0)} .o{background:linear-gradient(#ffd23a,#c08a00);color:#3a1a00;text-shadow:none}
 .ajuda{font-size:14px;color:#1a3a5a;margin-top:14px;text-align:center;max-width:500px;line-height:1.6}
 .voltar{color:#1a3a5a;margin-top:12px;font-size:14px;font-weight:bold}
 #fim,#pausaT{display:none;background:rgba(0,30,60,.55);justify-content:center}
@@ -28,6 +28,15 @@ h1{font-size:44px;text-shadow:0 4px 0 #b05a00,0 0 18px rgba(255,255,255,.7);marg
 #pausa{position:fixed;top:10px;right:10px;z-index:4;width:46px;height:46px;border-radius:12px;border:2px solid rgba(255,255,255,.7);background:rgba(0,0,0,.25);color:#fff;font-size:22px;display:none;cursor:pointer}
 .tb{position:fixed;z-index:4;width:76px;height:76px;border-radius:50%;border:3px solid rgba(255,255,255,.75);background:rgba(0,0,0,.28);color:#fff;font-size:30px;display:none;touch-action:none;font-family:inherit}
 .tb.on{background:rgba(255,255,255,.4)}
+.abas{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 10px}
+.aba{padding:8px 12px;border-radius:14px;border:2px solid #fff;background:rgba(0,40,80,.35);color:#fff;font-weight:bold;font-size:15px;cursor:pointer;font-family:inherit}
+.aba.on{background:#ffd23a;color:#3a1a00}
+.quadro{background:rgba(0,40,80,.45);border:3px solid #fff;border-radius:16px;padding:10px 14px;width:100%;max-width:380px;font-size:17px}
+.linha{display:flex;gap:8px;padding:4px 6px;border-radius:8px}
+.linha.eu{background:rgba(255,210,58,.45)}
+.linha .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#cod{font-size:22px;padding:10px;border-radius:12px;border:3px solid #fff;width:150px;text-align:center;text-transform:uppercase;font-family:inherit;font-weight:bold}
+.codigo{font-size:46px;font-weight:bold;letter-spacing:6px;background:#fff;color:#1a5ab0;border-radius:16px;padding:4px 18px;margin:6px 0}
 </style>
 </head>
 <body>
@@ -37,14 +46,28 @@ h1{font-size:44px;text-shadow:0 4px 0 #b05a00,0 0 18px rgba(255,255,255,.7);marg
 
 <div class="tela" id="menu">
   <h1>🏐 Vôlei do Cogu</h1>
-  <div class="sub">Vôlei de praia! Ande pra frente e pra trás, <b>pule</b> e rebata a bola por cima da rede. Se a bola cair no chão do seu lado, é ponto do outro! Quem fizer <b>7 pontos</b> ganha. 🏆</div>
-  <div id="vits" class="bal"></div>
+  <div class="sub">Vôlei de praia! Ande pra frente e pra trás, <b>pule</b> e rebata a bola por cima da rede. Quem fizer <b>7 pontos</b> ganha. 🏆</div>
   <button class="btn f" data-n="0">😊 Fácil<small>Capivara preguiçosa</small></button>
   <button class="btn m" data-n="1">😐 Médio<small>Capivara atleta</small></button>
   <button class="btn d" data-n="2">😈 Difícil<small>Capivara campeã mundial</small></button>
-  <button class="btn a" data-n="2p">👥 2 Jogadores<small>Cogu contra Capivara no mesmo aparelho</small></button>
-  <div class="ajuda">💻 <b>A / D</b> ou <b>← →</b> andam · <b>W</b>, <b>↑</b> ou <b>Espaço</b> pula<br>👥 2 jogadores: Cogu = A D W · Capivara = ← → ↑<br>📱 Botões na tela · 🎮 Controle: direcional + X pula<br>💡 Bata na bola com o <b>lado</b> do corpo pra mandar ela pro outro lado!</div>
+  <button class="btn a" data-n="2p">👥 2 Jogadores<small>no mesmo aparelho</small></button>
+  <button class="btn x" id="bOnline">🌐 ONLINE<small>1v1 de lado ou 2v2 visto de cima</small></button>
+  <button class="btn o" id="bTop">🏆 TOP DE VITÓRIAS</button>
+  <div class="ajuda">💻 <b>A / D</b> ou <b>← →</b> andam · <b>W</b>, <b>↑</b> ou <b>Espaço</b> pula<br>👥 2 jogadores: Cogu = A D W · Capivara = ← → ↑<br>🌐 2v2 (de cima): <b>WASD/setas</b> andam pra todo lado · <b>Espaço</b> pula e CORTA perto da rede<br>📱 Botões na tela · 🎮 Controle: direcional + X pula</div>
   <a class="voltar" href="/">⬅ Voltar pro Cogumelo Games</a>
+</div>
+
+<div class="tela" id="topT">
+  <h2 class="t">🏆 Top de Vitórias</h2>
+  <div class="abas" id="abasTop"></div>
+  <div class="quadro"><div id="statusTop" style="text-align:center;margin-bottom:6px"></div><div id="listaTop"></div></div>
+  <div class="sub" id="minhasVit" style="margin-top:12px"></div>
+  <button class="btn x" id="bTopVolta">⬅ Voltar</button>
+</div>
+
+<div class="tela" id="onT">
+  <h2 class="t">🌐 Vôlei Online</h2>
+  <div id="salaCorpo" style="width:100%;display:flex;flex-direction:column;align-items:center"></div>
 </div>
 
 <div class="tela" id="fim">
@@ -59,65 +82,77 @@ h1{font-size:44px;text-shadow:0 4px 0 #b05a00,0 0 18px rgba(255,255,255,.7);marg
 
 <div class="tela" id="pausaT">
   <div class="caixa">
-    <h2>⏸ Pausado</h2>
+    <h2 id="pausaTit">⏸ Pausado</h2>
     <button class="btn f" id="bVolta">▶ Continuar</button>
-    <button class="btn x" id="bSai">🏠 Menu</button>
+    <button class="btn x" id="bSai">🏠 Sair pro menu</button>
   </div>
 </div>
 
 <script>
 const cv=document.getElementById('c'), ctx=cv.getContext('2d');
 const $=id=>document.getElementById(id);
-const GW=1000, GH=600, CHAO=520, REDE_X=500, REDE_W=14, REDE_Y=CHAO-150;
-const R=60, BR=18, VEL=460, PULO=780, G_JOG=2200, G_BOLA=1050, VMAX=1150, PONTOS=7;
 const TOQUE=matchMedia('(pointer:coarse)').matches || ('ontouchstart' in window);
+const API='https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
+const MP_WS='wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=volei';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---------- tela ----------
 let W=0,H=0,DPR=1,S=1,OX=0,OY=0;
-const fundo=document.createElement('canvas'), fctx=fundo.getContext('2d');
+let jogo='lado'; // 'lado' = vôlei de lado 1v1 | 'cima' = 2v2 visto de cima
+const TAM={lado:[1000,600],cima:[1200,700]};
 function resize(){
     DPR=Math.min(1.5,window.devicePixelRatio||1); W=innerWidth; H=innerHeight;
     cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px';
-    S=Math.min(W/GW,H/GH); OX=(W-GW*S)/2;
-    OY=(H>W && TOQUE)?Math.max(10,(H-GH*S)*0.25):(H-GH*S)/2; // em pé: sobra espaço embaixo pros botões
-    montaFundo();
+    const [gw,gh]=TAM[jogo];
+    S=Math.min(W/gw,H/gh); OX=(W-gw*S)/2;
+    OY=(H>W && TOQUE)?Math.max(10,(H-gh*S)*0.25):(H-gh*S)/2; // em pé: sobra espaço embaixo pros botões
 }
 
-// ---------- fundo da praia (desenhado uma vez só) ----------
-function montaFundo(){
-    fundo.width=GW; fundo.height=GH; const c=fctx;
-    let g=c.createLinearGradient(0,0,0,CHAO); g.addColorStop(0,'#3aa0f0'); g.addColorStop(0.6,'#9ad8ff'); g.addColorStop(1,'#d8f2ff');
-    c.fillStyle=g; c.fillRect(0,0,GW,GH);
-    // sol
-    g=c.createRadialGradient(840,90,10,840,90,90); g.addColorStop(0,'rgba(255,250,200,1)'); g.addColorStop(0.45,'rgba(255,230,120,0.9)'); g.addColorStop(1,'rgba(255,230,120,0)');
-    c.fillStyle=g; c.beginPath(); c.arc(840,90,90,0,6.283); c.fill();
-    // nuvens
-    c.fillStyle='rgba(255,255,255,0.9)';
-    [[150,80,1],[420,130,0.7],[640,60,0.85]].forEach(n=>{ const [x,y,s]=n; [[0,0,30],[28,-12,34],[60,0,28],[30,8,30]].forEach(b=>{ c.beginPath(); c.arc(x+b[0]*s,y+b[1]*s,b[2]*s,0,6.283); c.fill(); }); });
-    // mar
-    g=c.createLinearGradient(0,CHAO-110,0,CHAO-40); g.addColorStop(0,'#1a7ad0'); g.addColorStop(1,'#3ac0e0');
-    c.fillStyle=g; c.fillRect(0,CHAO-110,GW,70);
-    c.strokeStyle='rgba(255,255,255,0.6)'; c.lineWidth=3;
-    for(let x=0;x<GW;x+=60){ c.beginPath(); c.arc(x+30,CHAO-44,18,Math.PI*1.15,Math.PI*1.85); c.stroke(); }
-    // coqueiros
-    function coqueiro(x,esp){
-        c.strokeStyle='#8a5a2a'; c.lineWidth=14; c.lineCap='round';
-        c.beginPath(); c.moveTo(x,CHAO-30); c.quadraticCurveTo(x+esp*20,CHAO-140,x+esp*38,CHAO-230); c.stroke();
-        c.fillStyle='#2a9a3a'; const tx=x+esp*38, ty=CHAO-230;
-        for(let i=0;i<6;i++){ const a=-Math.PI/2+(i-2.5)*0.55; c.beginPath(); c.ellipse(tx+Math.cos(a)*45,ty+Math.sin(a)*22+12,50,12,a,0,6.283); c.fill(); }
-        c.fillStyle='#6a3a1a'; c.beginPath(); c.arc(tx-6,ty+8,8,0,6.283); c.arc(tx+8,ty+10,8,0,6.283); c.fill();
-    }
-    coqueiro(60,1); coqueiro(950,-1);
-    // areia
-    g=c.createLinearGradient(0,CHAO-40,0,GH); g.addColorStop(0,'#ffe6a8'); g.addColorStop(1,'#e8b860');
-    c.fillStyle=g; c.fillRect(0,CHAO-40,GW,GH-CHAO+40);
-    c.fillStyle='rgba(180,120,40,0.25)';
-    for(let i=0;i<220;i++){ c.fillRect(Math.random()*GW,CHAO-36+Math.random()*(GH-CHAO+36),3,2); }
-    c.fillStyle='rgba(255,255,255,0.5)'; c.fillRect(0,CHAO,GW,3);
-}
-
-// ---------- save ----------
-let save={vit:[0,0,0]};
-try{ const s=JSON.parse(localStorage.getItem('volei_save')); if(s&&s.vit) save=s; }catch(e){}
+// ---------- save + top ----------
+// v = vitórias: [fácil, médio, difícil, 2 jogadores, online]
+let save={v:[0,0,0,0,0]};
+try{ const s=JSON.parse(localStorage.getItem('volei_save'));
+    if(s&&Array.isArray(s.v)) save.v=s.v.concat([0,0,0,0,0]).slice(0,5);
+    else if(s&&s.vit) save.v=[s.vit[0]||0,s.vit[1]||0,s.vit[2]||0,0,0]; }catch(e){}
 function grava(){ try{ localStorage.setItem('volei_save',JSON.stringify(save)); }catch(e){} }
+const TOPS=[['volei_facil','😊 Fácil'],['volei_medio','😐 Médio'],['volei_dificil','😈 Difícil'],['volei_2p','👥 2 Jogadores'],['volei_online','🌐 Online']];
+function nomeConta(){ try{ return localStorage.getItem('cg_usuario')||localStorage.getItem('volei_nome')||''; }catch(e){ return ''; } }
+function pedeNome(){
+    let n=nomeConta();
+    if(!n){ n=(prompt('Seu nome pro online e pro top (2 a 14 letras):','')||'').trim().slice(0,14); if(n) try{ localStorage.setItem('volei_nome',n); }catch(e){} }
+    return n;
+}
+// conta a vitória e manda o total pro top do mundo
+function ganhouTop(i){
+    save.v[i]=(save.v[i]||0)+1; grava();
+    const nome=pedeNome(); if(!nome||nome.length<2||!window.fetch) return;
+    fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({acao:'ranking_enviar',jogo:TOPS[i][0],nome:nome,pontos:save.v[i]})})
+        .then(r=>r.ok?r.json():null).then(j=>{ if(j&&j.posicao) $('fimC').textContent+=' · Você é o '+j.posicao+'º do mundo no '+TOPS[i][1]+'! 🌍'; }).catch(()=>{});
+}
+let abaTop=0;
+function abreTop(){
+    $('abasTop').innerHTML=TOPS.map((t,i)=>`<button class="aba${i===abaTop?' on':''}" data-t="${i}">${t[1]}</button>`).join('');
+    $('minhasVit').textContent='Suas vitórias no '+TOPS[abaTop][1]+': '+(save.v[abaTop]||0)+' 🏆';
+    const lista=$('listaTop'), st=$('statusTop'); lista.textContent=''; st.textContent='carregando...';
+    mostra('topT');
+    fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({acao:'ranking_top',jogo:TOPS[abaTop][0]})})
+        .then(r=>r.ok?r.json():null).then(j=>{
+            const top=(j&&j.top)?j.top:[], meu=nomeConta().toLowerCase();
+            if(!top.length){ st.textContent='Ninguém ainda no '+TOPS[abaTop][1]+'... seja o primeiro! 🚀'; return; }
+            st.textContent='quem mais ganhou no mundo';
+            const med=['🥇','🥈','🥉'];
+            top.forEach((x,i)=>{
+                const d=document.createElement('div'); d.className='linha'+(String(x.nome||'').toLowerCase()===meu?' eu':'');
+                const p=document.createElement('span'); p.style.width='34px'; p.textContent=med[i]||(i+1)+'º';
+                const nm=document.createElement('span'); nm.className='nm'; nm.textContent=x.nome;
+                const v=document.createElement('b'); v.textContent=x.pontos+' 🏆';
+                d.append(p,nm,v); lista.appendChild(d);
+            });
+        }).catch(()=>{ st.textContent='não deu pra carregar o top 😕'; });
+}
+$('abasTop').addEventListener('click',e=>{ const b=e.target.closest('[data-t]'); if(!b) return; abaTop=+b.dataset.t; abreTop(); });
+$('bTop').onclick=()=>{ abaTop=0; abreTop(); };
+$('bTopVolta').onclick=()=>menu();
 
 // ---------- som ----------
 let AC=null;
@@ -130,7 +165,8 @@ function bip(f,d,tipo,vol,f2){
         o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+d); }catch(e){}
 }
 const som={
-    bate:v=>bip(260+Math.min(300,v*0.25),0.09,'triangle',0.13,140),
+    bate:v=>bip(260+Math.min(300,(v||400)*0.25),0.09,'triangle',0.13,140),
+    corta:()=>{ bip(500,0.12,'sawtooth',0.1,120); bip(180,0.15,'triangle',0.12,60); },
     rede:()=>bip(160,0.15,'sawtooth',0.06,90),
     parede:()=>bip(300,0.06,'triangle',0.06),
     pulo:()=>bip(330,0.1,'square',0.035,660),
@@ -140,52 +176,60 @@ const som={
     vence:()=>{ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>bip(f,0.25,'square',0.08),i*130)); },
     perde:()=>{ [392,330,262,196].forEach((f,i)=>setTimeout(()=>bip(f,0.3,'triangle',0.1),i*170)); }
 };
+// toca o som aqui e, se for o dono da sala online, manda pros amigos também
+let fxFila=[];
+function toca(n,a){ if(som[n]) som[n](a); if(mp.host&&mp.emJogo) fxFila.push(n); }
 
-// ---------- estado ----------
+// ---------- coisas comuns ----------
+const PONTOS=7;
 const NIVEIS=[ // vel = velocidade da Capivara, erro = quanto ela erra a conta, reac = tempo pra pensar, pulo = chance de pular
     {nome:'Fácil',vel:0.6,erro:55,reac:0.35,pulo:0.35,moedas:3},
     {nome:'Médio',vel:0.82,erro:25,reac:0.18,pulo:0.7,moedas:6},
     {nome:'Difícil',vel:1.0,erro:8,reac:0.06,pulo:1,moedas:10}
 ];
-let estado='menu', modo=0; // modo: 0,1,2 = contra a Capivara | '2p'
-let p1, p2, bola, placar=[0,0], sacador=0, espera=0, parts=[], textos=[], ultimoToque=-1;
-function novoJog(lado){ return {lado,x:lado===0?250:750,y:CHAO,vx:0,vy:0,noChao:true,alvo:lado===0?250:750,pensa:0,esmaga:0,olhoX:0,olhoY:0}; }
-function comeca(m){
-    audio(); modo=m; placar=[0,0]; sacador=0;
-    p1=novoJog(0); p2=novoJog(1); parts=[]; textos=[];
-    saque(); estado='jogo'; mostra(null); som.apito();
-}
-function saque(){
-    p1.x=250; p2.x=750; p1.y=p2.y=CHAO; p1.vy=p2.vy=0; p1.noChao=p2.noChao=true;
-    const sx=sacador===0?250+22:750-22;
-    bola={x:sx,y:CHAO-330,vx:0,vy:0,ang:0,giro:0};
-    espera=0.9; ultimoToque=-1;
-}
+let estado='menu', modo=0; // modo: 0,1,2 = contra a Capivara | '2p' | 'online'
+let placar=[0,0], sacador=0, espera=0, parts=[], textos=[];
 function texto(x,y,s,c,v,tam){ textos.push({x,y,s,c,v:v||1.2,tam:tam||40}); }
-function areia(x,n){ for(let i=0;i<n&&parts.length<300;i++) parts.push({x,y:CHAO,vx:(Math.random()-0.5)*260,vy:-Math.random()*260,v:0.5+Math.random()*0.4,c:Math.random()<0.5?'#e8b860':'#ffe6a8',tam:3+Math.random()*4}); }
+function areia(x,y,n){ for(let i=0;i<n&&parts.length<300;i++) parts.push({x,y,chao:y,vx:(Math.random()-0.5)*260,vy:-Math.random()*260,v:0.5+Math.random()*0.4,c:Math.random()<0.5?'#e8b860':'#ffe6a8',tam:3+Math.random()*4}); }
+function efeitos(dt){
+    for(let i=parts.length-1;i>=0;i--){ const p=parts[i]; p.v-=dt; p.vy+=700*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if(p.y>p.chao+8){ p.y=p.chao+8; p.vy*=-0.3; } if(p.v<=0) parts.splice(i,1); }
+    for(let i=textos.length-1;i>=0;i--){ const t=textos[i]; t.v-=dt; t.y-=18*dt; if(t.v<=0) textos.splice(i,1); }
+}
+function avisoPonto(quem,nomeTime,gw){
+    if(placar[quem]>=PONTOS) texto(gw/2,200,'🏆 '+nomeTime+' GANHOU!','#ffd23a',2,54);
+    else texto(gw/2,200,'PONTO DO '+nomeTime.toUpperCase()+'!',quem===0?'#ff3355':'#a0602a',1.3,46);
+}
 
 // ---------- controles ----------
 const teclas={};
-const MAPA={KeyA:'a',KeyD:'d',KeyW:'w',ArrowLeft:'esq',ArrowRight:'dir',ArrowUp:'cima',Space:'esp'};
+const MAPA={KeyA:'a',KeyD:'d',KeyW:'w',KeyS:'s',ArrowLeft:'esq',ArrowRight:'dir',ArrowUp:'cima',ArrowDown:'baixo',Space:'esp',KeyJ:'esp',KeyK:'esp'};
 addEventListener('keydown',e=>{
+    if(e.target&&e.target.tagName==='INPUT') return;
     audio();
     const k=MAPA[e.code]; if(k){ teclas[k]=true; e.preventDefault(); }
-    if(e.code==='Escape'||e.code==='KeyP'){ if(estado==='jogo') pausar(); else if(estado==='pausa') $('bVolta').onclick(); }
+    if(e.code==='Escape'||e.code==='KeyP'){ if($('pausaT').style.display==='flex') $('bVolta').onclick(); else if(estado==='jogo'||estado==='ponto') pausar(); }
     if(e.code==='Enter' && estado==='fim') $('bDeNovo').onclick();
 });
 addEventListener('keyup',e=>{ const k=MAPA[e.code]; if(k) teclas[k]=false; });
-const toque={}; // botões da tela: p1e p1d p1p p2e p2d p2p
-function entrada(lado){
-    if(lado===0){
-        if(modo==='2p') return {e:teclas.a||toque.p1e, d:teclas.d||toque.p1d, p:teclas.w||toque.p1p};
-        return {e:teclas.a||teclas.esq||toque.p1e, d:teclas.d||teclas.dir||toque.p1d, p:teclas.w||teclas.cima||teclas.esp||toque.p1p};
-    }
-    return {e:teclas.esq||toque.p2e, d:teclas.dir||toque.p2d, p:teclas.cima||toque.p2p};
+const toque={}; // botões da tela
+let joy=null; // joystick do 2v2 no celular: {id,x0,y0,x,y}
+function lerLocal(qual){
+    const t=teclas, to=toque;
+    if(qual==='wasd') return {e:t.a||to.p1e,d:t.d||to.p1d,p:t.w||to.p1p};
+    if(qual==='setas') return {e:t.esq||to.p2e,d:t.dir||to.p2d,p:t.cima||to.p2p};
+    return {e:t.a||t.esq||to.p1e,d:t.d||t.dir||to.p1d,p:t.w||t.cima||t.esp||to.p1p};
+}
+function lerCima(){
+    let x=((teclas.d||teclas.dir)?1:0)-((teclas.a||teclas.esq)?1:0), y=((teclas.s||teclas.baixo)?1:0)-((teclas.w||teclas.cima)?1:0);
+    if(joy){ const dx=joy.x-joy.x0, dy=joy.y-joy.y0, d=Math.hypot(dx,dy); if(d>8){ x=dx/Math.max(d,45); y=dy/Math.max(d,45); } }
+    const d=Math.hypot(x,y); if(d>1){ x/=d; y/=d; }
+    return {x,y,p:!!(teclas.esp||toque.p1p)};
 }
 function montaBotoes(){
     const box=$('toques'); box.innerHTML='';
     if(!TOQUE) return;
-    const lista=modo==='2p'
+    const lista=jogo==='cima'?[['p1p','⬆','right:20px']]
+        :modo==='2p'
         ?[['p1e','◀','left:10px'],['p1d','▶','left:92px'],['p1p','⬆','left:51px;bottom:96px'],['p2e','◀','right:92px'],['p2d','▶','right:10px'],['p2p','⬆','right:51px;bottom:96px']]
         :[['p1e','◀','left:14px'],['p1d','▶','left:104px'],['p1p','⬆','right:20px']];
     for(const [id,txt,pos] of lista){
@@ -197,9 +241,60 @@ function montaBotoes(){
         box.appendChild(b);
     }
 }
+// joystick: arrastar o dedo em qualquer lugar da tela (no 2v2)
+cv.addEventListener('pointerdown',e=>{ audio(); if(jogo!=='cima'||!TOQUE||joy) return; joy={id:e.pointerId,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY}; });
+cv.addEventListener('pointermove',e=>{ if(joy&&e.pointerId===joy.id){ joy.x=e.clientX; joy.y=e.clientY; } });
+const soltaJoy=e=>{ if(joy&&e.pointerId===joy.id) joy=null; };
+cv.addEventListener('pointerup',soltaJoy); cv.addEventListener('pointercancel',soltaJoy);
 
-// ---------- a Capivara pensa ----------
-// faz de conta que a bola anda sozinha e vê onde ela vai estar na altura da cabeça da Capivara
+// =====================================================================
+// VÔLEI DE LADO (1v1)
+// =====================================================================
+const GW=1000, GH=600, CHAO=520, REDE_X=500, REDE_W=14, REDE_Y=CHAO-150;
+const R=60, BR=18, VEL=460, PULO=780, G_JOG=2200, G_BOLA=1050, VMAX=1150;
+let J=[], bola=null, ctrl=[]; // ctrl de cada lado: {tipo:'local',qual} | {tipo:'ia',nivel} | {tipo:'remoto',inp}
+const fundo=document.createElement('canvas'), fctx=fundo.getContext('2d');
+function montaFundo(){
+    fundo.width=GW; fundo.height=GH; const c=fctx;
+    let g=c.createLinearGradient(0,0,0,CHAO); g.addColorStop(0,'#3aa0f0'); g.addColorStop(0.6,'#9ad8ff'); g.addColorStop(1,'#d8f2ff');
+    c.fillStyle=g; c.fillRect(0,0,GW,GH);
+    g=c.createRadialGradient(840,90,10,840,90,90); g.addColorStop(0,'rgba(255,250,200,1)'); g.addColorStop(0.45,'rgba(255,230,120,0.9)'); g.addColorStop(1,'rgba(255,230,120,0)');
+    c.fillStyle=g; c.beginPath(); c.arc(840,90,90,0,6.283); c.fill();
+    c.fillStyle='rgba(255,255,255,0.9)';
+    [[150,80,1],[420,130,0.7],[640,60,0.85]].forEach(n=>{ const [x,y,s]=n; [[0,0,30],[28,-12,34],[60,0,28],[30,8,30]].forEach(b=>{ c.beginPath(); c.arc(x+b[0]*s,y+b[1]*s,b[2]*s,0,6.283); c.fill(); }); });
+    g=c.createLinearGradient(0,CHAO-110,0,CHAO-40); g.addColorStop(0,'#1a7ad0'); g.addColorStop(1,'#3ac0e0');
+    c.fillStyle=g; c.fillRect(0,CHAO-110,GW,70);
+    c.strokeStyle='rgba(255,255,255,0.6)'; c.lineWidth=3;
+    for(let x=0;x<GW;x+=60){ c.beginPath(); c.arc(x+30,CHAO-44,18,Math.PI*1.15,Math.PI*1.85); c.stroke(); }
+    function coqueiro(x,esp){
+        c.strokeStyle='#8a5a2a'; c.lineWidth=14; c.lineCap='round';
+        c.beginPath(); c.moveTo(x,CHAO-30); c.quadraticCurveTo(x+esp*20,CHAO-140,x+esp*38,CHAO-230); c.stroke();
+        c.fillStyle='#2a9a3a'; const tx=x+esp*38, ty=CHAO-230;
+        for(let i=0;i<6;i++){ const a=-Math.PI/2+(i-2.5)*0.55; c.beginPath(); c.ellipse(tx+Math.cos(a)*45,ty+Math.sin(a)*22+12,50,12,a,0,6.283); c.fill(); }
+        c.fillStyle='#6a3a1a'; c.beginPath(); c.arc(tx-6,ty+8,8,0,6.283); c.arc(tx+8,ty+10,8,0,6.283); c.fill();
+    }
+    coqueiro(60,1); coqueiro(950,-1);
+    g=c.createLinearGradient(0,CHAO-40,0,GH); g.addColorStop(0,'#ffe6a8'); g.addColorStop(1,'#e8b860');
+    c.fillStyle=g; c.fillRect(0,CHAO-40,GW,GH-CHAO+40);
+    c.fillStyle='rgba(180,120,40,0.25)';
+    for(let i=0;i<220;i++){ c.fillRect(Math.random()*GW,CHAO-36+Math.random()*(GH-CHAO+36),3,2); }
+    c.fillStyle='rgba(255,255,255,0.5)'; c.fillRect(0,CHAO,GW,3);
+}
+montaFundo();
+
+function novoJog(lado){ return {lado,x:lado===0?250:750,y:CHAO,vx:0,vy:0,noChao:true,alvo:lado===0?250:750,pensa:0,esmaga:0,nome:''}; }
+function comecaLado(ctrls,nomes){
+    jogo='lado'; resize();
+    J=[novoJog(0),novoJog(1)]; J[0].nome=nomes[0]||''; J[1].nome=nomes[1]||'';
+    ctrl=ctrls; placar=[0,0]; sacador=0; parts=[]; textos=[];
+    saque(); estado='jogo'; mostra(null); toca('apito');
+}
+function saque(){
+    J[0].x=250; J[1].x=750; J[0].y=J[1].y=CHAO; J[0].vy=J[1].vy=0; J[0].noChao=J[1].noChao=true;
+    bola={x:sacador===0?250+22:750-22,y:CHAO-330,vx:0,vy:0,ang:0,giro:0};
+    espera=0.9;
+}
+// faz de conta que a bola anda sozinha e vê onde ela vai estar na altura da cabeça
 function preve(){
     let x=bola.x,y=bola.y,vx=bola.vx,vy=bola.vy;
     const alvoY=CHAO-R*0.75, h=1/120;
@@ -211,33 +306,39 @@ function preve(){
     }
     return x;
 }
-function cabeca(p,dt){
-    const N=NIVEIS[modo];
+function cabeca(p,dt,nivel){
+    const N=NIVEIS[nivel], tras=p.lado===1?1:-1;
+    const meu=x=>p.lado===1?x>REDE_X:x<REDE_X;
+    const min=p.lado===0?R:REDE_X+REDE_W/2+R, max=p.lado===0?REDE_X-REDE_W/2-R:GW-R;
     p.pensa-=dt;
     if(p.pensa<=0){
         p.pensa=N.reac;
         const cai=preve();
-        if(espera>0) p.alvo=bola.x+(sacador===1?28:0);
-        else if(cai>REDE_X) p.alvo=cai+16+R*0.25+(Math.random()-0.5)*2*N.erro; // fica um pouco atrás pra mandar pra frente
-        else p.alvo=720;
-        p.alvo=Math.max(REDE_X+REDE_W/2+R,Math.min(GW-R,p.alvo));
+        if(espera>0) p.alvo=bola.x+(sacador===p.lado?tras*28:0);
+        else if(meu(cai)) p.alvo=cai+tras*(16+R*0.25)+(Math.random()-0.5)*2*N.erro; // fica um pouco atrás pra mandar pra frente
+        else p.alvo=p.lado===1?720:280;
+        p.alvo=Math.max(min,Math.min(max,p.alvo));
         p.querPular=Math.random()<N.pulo;
     }
     const dx=p.alvo-p.x;
     const ent={e:dx<-6,d:dx>6,p:false,vel:N.vel};
     const bx=bola.x-p.x, by=CHAO-bola.y;
-    if(p.querPular && espera<=0 && bola.x>REDE_X && Math.abs(bx)<70 && by>120 && by<300 && bola.vy>-100) ent.p=true;
+    if(p.querPular && espera<=0 && meu(bola.x) && Math.abs(bx)<70 && by>120 && by<300 && bola.vy>-100) ent.p=true;
     return ent;
 }
-
-// ---------- física ----------
+function entradaLado(i,dt){
+    const c=ctrl[i];
+    if(c.tipo==='local') return lerLocal(c.qual);
+    if(c.tipo==='ia') return cabeca(J[i],dt,c.nivel);
+    return c.inp||{};
+}
 function moveJog(p,ent,dt){
     const v=VEL*(ent.vel||1);
     p.vx=(ent.d?v:0)-(ent.e?v:0);
-    if(ent.p && p.noChao){ p.vy=-PULO; p.noChao=false; som.pulo(); }
+    if(ent.p && p.noChao){ p.vy=-PULO; p.noChao=false; toca('pulo'); }
     p.x+=p.vx*dt;
     p.vy+=G_JOG*dt; p.y+=p.vy*dt;
-    if(p.y>=CHAO){ if(!p.noChao){ p.esmaga=1; areia(p.x,6); } p.y=CHAO; p.vy=0; p.noChao=true; }
+    if(p.y>=CHAO){ if(!p.noChao){ p.esmaga=1; areia(p.x,CHAO,6); } p.y=CHAO; p.vy=0; p.noChao=true; }
     const min=p.lado===0?R:REDE_X+REDE_W/2+R, max=p.lado===0?REDE_X-REDE_W/2-R:GW-R;
     p.x=Math.max(min,Math.min(max,p.x));
     p.esmaga=Math.max(0,p.esmaga-dt*5);
@@ -257,95 +358,52 @@ function bateJog(p){
         bola.vy=p.vy*0.6+(rvy-2*vn*ny)*0.92-60;
         const v=Math.hypot(bola.vx,bola.vy); if(v>VMAX){ bola.vx*=VMAX/v; bola.vy*=VMAX/v; }
         if(bola.vy>-250 && ny<-0.5) bola.vy=-250; // sempre dá uma subidinha quando bate em cima
-        bola.giro=(bola.vx)/BR; som.bate(Math.abs(vn)); ultimoToque=p.lado;
+        bola.giro=bola.vx/BR; toca('bate',Math.abs(vn));
     }
 }
 function bateRede(){
     const cx=Math.max(REDE_X-REDE_W/2,Math.min(REDE_X+REDE_W/2,bola.x)), cy=Math.max(REDE_Y,Math.min(CHAO,bola.y));
-    let dx=bola.x-cx, dy=bola.y-cy; const d2=dx*dx+dy*dy;
+    const dx=bola.x-cx, dy=bola.y-cy, d2=dx*dx+dy*dy;
     if(d2>=BR*BR) return;
-    let d=Math.sqrt(d2), nx, ny;
+    const d=Math.sqrt(d2); let nx, ny;
     if(d===0){ nx=bola.x<REDE_X?-1:1; ny=0; } else { nx=dx/d; ny=dy/d; }
     bola.x=cx+nx*BR; bola.y=cy+ny*BR;
     const vn=bola.vx*nx+bola.vy*ny;
-    if(vn<0){ bola.vx-=1.8*vn*nx; bola.vy-=1.8*vn*ny; som.rede(); }
+    if(vn<0){ bola.vx-=1.8*vn*nx; bola.vy-=1.8*vn*ny; toca('rede'); }
     if(ny<-0.7 && Math.abs(bola.vx)<80) bola.vx=(bola.x<REDE_X?-1:1)*(90+Math.random()*80); // não deixa a bola ficar quicando em cima da rede
 }
 function passoBola(dt){
     bola.vy+=G_BOLA*dt; bola.x+=bola.vx*dt; bola.y+=bola.vy*dt;
     bola.ang+=bola.giro*dt;
-    if(bola.x<BR){ bola.x=BR; bola.vx=Math.abs(bola.vx)*0.9; som.parede(); }
-    if(bola.x>GW-BR){ bola.x=GW-BR; bola.vx=-Math.abs(bola.vx)*0.9; som.parede(); }
-    bateRede(); bateJog(p1); bateJog(p2);
-    if(bola.y+BR>=CHAO){ bola.y=CHAO-BR; ponto(bola.x<REDE_X?1:0); }
+    if(bola.x<BR){ bola.x=BR; bola.vx=Math.abs(bola.vx)*0.9; toca('parede'); }
+    if(bola.x>GW-BR){ bola.x=GW-BR; bola.vx=-Math.abs(bola.vx)*0.9; toca('parede'); }
+    bateRede(); bateJog(J[0]); bateJog(J[1]);
+    if(bola.y+BR>=CHAO){ bola.y=CHAO-BR; pontoLado(bola.x<REDE_X?1:0); }
 }
-function ponto(quem){
+function nomeTime(i){ return jogo==='cima'?(i===0?'Time Cogu':'Time Capivara'):(i===0?'Cogu':'Capivara'); }
+function pontoLado(quem){
     estado='ponto'; espera=1.4; placar[quem]++; sacador=quem;
-    som.chao(); areia(bola.x,22); bola.vx=bola.vy=0; bola.giro=0;
-    const nome=quem===0?'Cogu':'Capivara';
-    if(placar[quem]>=PONTOS){ espera=1.8; texto(GW/2,200,'🏆 '+nome+' GANHOU!','#ffd23a',2,54); }
-    else { som.ponto(); texto(GW/2,200,'PONTO DO '+nome.toUpperCase()+'!',quem===0?'#ff3355':'#a0602a',1.3,46); }
+    toca('chao'); areia(bola.x,CHAO,22); bola.vx=bola.vy=0; bola.giro=0;
+    if(placar[quem]>=PONTOS) espera=1.8; else toca('ponto');
+    avisoPonto(quem,nomeTime(quem),GW);
 }
-function update(dt){
+function updateLado(dt){
     if(estado==='ponto'){
         espera-=dt;
-        moveJog(p1,{},dt); moveJog(p2,{},dt);
-        if(espera<=0){ if(placar[0]>=PONTOS||placar[1]>=PONTOS) acaba(); else { saque(); estado='jogo'; som.apito(); } }
+        moveJog(J[0],{},dt); moveJog(J[1],{},dt);
+        if(espera<=0){ if(placar[0]>=PONTOS||placar[1]>=PONTOS) acaba(); else { saque(); estado='jogo'; toca('apito'); } }
         return;
     }
-    moveJog(p1,entrada(0),dt);
-    moveJog(p2,modo==='2p'?entrada(1):cabeca(p2,dt),dt);
+    moveJog(J[0],entradaLado(0,dt),dt);
+    moveJog(J[1],entradaLado(1,dt),dt);
     if(espera>0){ espera-=dt; return; } // bola parada no ar antes do saque
     const n=Math.max(1,Math.ceil(Math.hypot(bola.vx,bola.vy)*dt/(BR*0.5)));
     for(let i=0;i<n&&estado==='jogo';i++) passoBola(dt/n);
 }
-function efeitos(dt){
-    for(let i=parts.length-1;i>=0;i--){ const p=parts[i]; p.v-=dt; p.vy+=700*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if(p.y>CHAO+8){ p.y=CHAO+8; p.vy*=-0.3; } if(p.v<=0) parts.splice(i,1); }
-    for(let i=textos.length-1;i>=0;i--){ const t=textos[i]; t.v-=dt; t.y-=18*dt; if(t.v<=0) textos.splice(i,1); }
-}
 
-// ---------- fim ----------
-function acaba(){
-    estado='fim';
-    const ganhou=placar[0]>placar[1];
-    $('fimE').textContent=placar[0]+' x '+placar[1];
-    $('fimC').textContent='';
-    if(modo==='2p'){ $('fimT').textContent=ganhou?'🍄 O Cogu ganhou!':'🦫 A Capivara ganhou!'; som.vence(); }
-    else if(ganhou){
-        som.vence(); $('fimT').textContent='🏆 Você ganhou!';
-        save.vit[modo]=(save.vit[modo]||0)+1; grava();
-        const m=NIVEIS[modo].moedas;
-        try{ if(window.CoguCoins) CoguCoins.ganha(m); }catch(e){}
-        $('fimC').textContent='+'+m+' 🍄 Cogu Coins';
-    } else { som.perde(); $('fimT').textContent='😢 A Capivara ganhou...'; $('fimC').textContent='Tenta de novo! Pule pra cortar a bola 💪'; }
-    mostra('fim');
-}
-
-// ---------- telas ----------
-function mostra(id){
-    ['menu','fim','pausaT'].forEach(t=>$(t).style.display=t===id?'flex':'none');
-    $('pausa').style.display=id===null?'block':'none';
-    if(id===null) montaBotoes(); else { $('toques').innerHTML=''; for(const k in toque) toque[k]=false; }
-}
-function menu(){
-    estado='menu';
-    $('vits').textContent='🏆 Vitórias: 😊 '+(save.vit[0]||0)+' · 😐 '+(save.vit[1]||0)+' · 😈 '+(save.vit[2]||0);
-    mostra('menu');
-}
-document.querySelectorAll('#menu [data-n]').forEach(b=>b.onclick=()=>comeca(b.dataset.n==='2p'?'2p':+b.dataset.n));
-$('bDeNovo').onclick=()=>comeca(modo);
-$('bMenu').onclick=menu;
-function pausar(){ if(estado!=='jogo'&&estado!=='ponto') return; estadoAntes=estado; estado='pausa'; mostra('pausaT'); }
-let estadoAntes='jogo';
-$('pausa').onclick=pausar;
-$('bVolta').onclick=()=>{ estado=estadoAntes; mostra(null); ultimo=performance.now(); };
-$('bSai').onclick=menu;
-document.addEventListener('visibilitychange',()=>{ if(document.hidden) pausar(); });
-
-// ---------- desenho ----------
+// ---------- desenho de lado ----------
 function olhos(p,cor){
-    // os olhos seguem a bola
-    const ex=p.x+(p.lado===0?18:-18), ey=p.y-R*0.55-p.esmaga*-6;
+    const ex=p.x+(p.lado===0?18:-18), ey=p.y-R*0.55+p.esmaga*6;
     const dx=bola.x-ex, dy=bola.y-ey, d=Math.hypot(dx,dy)||1;
     ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ex,ey,13,0,6.283); ctx.fill();
     ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=2; ctx.stroke();
@@ -357,11 +415,8 @@ function sombra(x,y,larg){
 }
 function desenhaCogu(p){
     sombra(p.x,p.y,R);
-    const sx=1+p.esmaga*0.12, sy=1-p.esmaga*0.12;
-    ctx.save(); ctx.translate(p.x,p.y); ctx.scale(sx,sy);
-    // cabinho
+    ctx.save(); ctx.translate(p.x,p.y); ctx.scale(1+p.esmaga*0.12,1-p.esmaga*0.12);
     ctx.fillStyle='#fff3dc'; ctx.fillRect(-26,-22,52,22);
-    // chapéu
     const g=ctx.createLinearGradient(0,-R,0,0); g.addColorStop(0,'#ff5a5a'); g.addColorStop(1,'#c81a2a');
     ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,-8,R,Math.PI,0); ctx.closePath(); ctx.fill();
     ctx.fillStyle='#fff';
@@ -371,13 +426,10 @@ function desenhaCogu(p){
 }
 function desenhaCapi(p){
     sombra(p.x,p.y,R);
-    const sx=1+p.esmaga*0.12, sy=1-p.esmaga*0.12;
-    ctx.save(); ctx.translate(p.x,p.y); ctx.scale(sx,sy);
+    ctx.save(); ctx.translate(p.x,p.y); ctx.scale(1+p.esmaga*0.12,1-p.esmaga*0.12);
     const g=ctx.createLinearGradient(0,-R,0,0); g.addColorStop(0,'#c08a50'); g.addColorStop(1,'#8a5a2a');
     ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,R,Math.PI,0); ctx.closePath(); ctx.fill();
-    // orelhinhas
     ctx.fillStyle='#7a4a1a'; ctx.beginPath(); ctx.arc(-34,-50,11,0,6.283); ctx.arc(10,-60,11,0,6.283); ctx.fill();
-    // focinho (olha pro lado da rede)
     ctx.fillStyle='#6a3a12'; ctx.beginPath(); ctx.ellipse(-42,-22,20,15,0,0,6.283); ctx.fill();
     ctx.fillStyle='#2a1a0a'; ctx.beginPath(); ctx.arc(-52,-26,3.5,0,6.283); ctx.arc(-42,-28,3.5,0,6.283); ctx.fill();
     ctx.restore();
@@ -392,48 +444,486 @@ function desenhaBola(){
     ctx.strokeStyle='#2a7ae0'; ctx.beginPath(); ctx.arc(BR*0.9,0,BR*0.95,Math.PI-1.1,Math.PI+1.1); ctx.stroke();
     ctx.restore();
     ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(bola.x,bola.y,BR,0,6.283); ctx.stroke();
-    // setinha quando a bola sobe além da tela
     if(bola.y<-BR){ ctx.fillStyle='#fff'; ctx.beginPath(); ctx.moveTo(bola.x,6); ctx.lineTo(bola.x-10,24); ctx.lineTo(bola.x+10,24); ctx.fill(); }
 }
 function desenhaRede(){
-    // poste e rede
     ctx.fillStyle='#e8e8e8'; ctx.fillRect(REDE_X-REDE_W/2,REDE_Y,REDE_W,CHAO-REDE_Y);
     ctx.strokeStyle='rgba(40,40,40,0.55)'; ctx.lineWidth=1.5;
     for(let y=REDE_Y+10;y<CHAO-20;y+=12){ ctx.beginPath(); ctx.moveTo(REDE_X-REDE_W/2,y); ctx.lineTo(REDE_X+REDE_W/2,y); ctx.stroke(); }
     ctx.fillStyle='#fff'; ctx.fillRect(REDE_X-REDE_W/2-3,REDE_Y-4,REDE_W+6,10);
     ctx.fillStyle='#ff3355'; ctx.fillRect(REDE_X-REDE_W/2-3,REDE_Y-4,REDE_W+6,4);
 }
-function desenha(){
-    ctx.setTransform(DPR,0,0,DPR,0,0);
-    ctx.fillStyle='#e8b860'; ctx.fillRect(0,0,W,H);
-    ctx.translate(OX,OY); ctx.scale(S,S);
-    ctx.drawImage(fundo,0,0);
-    if(estado==='menu') return;
-    desenhaRede();
-    desenhaCogu(p1); desenhaCapi(p2);
-    desenhaBola();
-    for(const p of parts){ ctx.globalAlpha=Math.min(1,p.v*2); ctx.fillStyle=p.c; ctx.fillRect(p.x-p.tam/2,p.y-p.tam/2,p.tam,p.tam); }
-    ctx.globalAlpha=1;
-    // placar
+function placarDesenho(gw){
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillStyle='rgba(0,40,80,0.45)'; ctx.beginPath(); ctx.roundRect?ctx.roundRect(GW/2-150,10,300,60,18):ctx.rect(GW/2-150,10,300,60); ctx.fill();
+    ctx.fillStyle='rgba(0,40,80,0.45)'; ctx.beginPath(); ctx.roundRect?ctx.roundRect(gw/2-150,10,300,60,18):ctx.rect(gw/2-150,10,300,60); ctx.fill();
     ctx.font='bold 40px "Segoe UI",Arial';
-    ctx.fillStyle='#ff5a6a'; ctx.fillText(placar[0],GW/2-55,42);
-    ctx.fillStyle='#fff'; ctx.fillText('x',GW/2,40);
-    ctx.fillStyle='#ffd08a'; ctx.fillText(placar[1],GW/2+55,42);
-    ctx.font='26px serif'; ctx.fillText('🍄',GW/2-115,40);
+    ctx.fillStyle='#ff5a6a'; ctx.fillText(placar[0],gw/2-55,42);
+    ctx.fillStyle='#fff'; ctx.fillText('x',gw/2,40);
+    ctx.fillStyle='#ffd08a'; ctx.fillText(placar[1],gw/2+55,42);
+    ctx.font='26px serif'; ctx.fillText('🍄',gw/2-115,40);
     // mini Capivara desenhada (o emoji 🦫 não aparece em todo computador)
-    ctx.fillStyle='#a0703a'; ctx.beginPath(); ctx.arc(GW/2+115,44,15,Math.PI,0); ctx.fill();
-    ctx.fillStyle='#6a3a12'; ctx.beginPath(); ctx.ellipse(GW/2+104,39,7,5,0,0,6.283); ctx.arc(GW/2+122,30,4,0,6.283); ctx.fill();
-    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(GW/2+115,34,4,0,6.283); ctx.fill(); ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(GW/2+114,34,2,0,6.283); ctx.fill();
+    ctx.fillStyle='#a0703a'; ctx.beginPath(); ctx.arc(gw/2+115,44,15,Math.PI,0); ctx.fill();
+    ctx.fillStyle='#6a3a12'; ctx.beginPath(); ctx.ellipse(gw/2+104,39,7,5,0,0,6.283); ctx.arc(gw/2+122,30,4,0,6.283); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(gw/2+115,34,4,0,6.283); ctx.fill(); ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(gw/2+114,34,2,0,6.283); ctx.fill();
+}
+function desenhaTextos(){
+    ctx.textAlign='center'; ctx.textBaseline='middle';
     for(const t of textos){
         ctx.globalAlpha=Math.min(1,t.v*2); ctx.font='bold '+t.tam+'px "Segoe UI",Arial';
         ctx.lineWidth=7; ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.strokeText(t.s,t.x,t.y); ctx.fillStyle=t.c; ctx.fillText(t.s,t.x,t.y);
     }
     ctx.globalAlpha=1;
+}
+function nomeEm(x,y,s,eu){
+    if(!s) return;
+    ctx.font='bold 18px "Segoe UI",Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.lineWidth=4; ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.strokeText((eu?'⬇ ':'')+s,x,y); ctx.fillStyle=eu?'#ffd23a':'#fff'; ctx.fillText((eu?'⬇ ':'')+s,x,y);
+}
+function desenhaLado(){
+    ctx.drawImage(fundo,0,0);
+    desenhaRede();
+    desenhaCogu(J[0]); desenhaCapi(J[1]);
+    if(modo==='online'){ for(let i=0;i<2;i++) nomeEm(J[i].x,J[i].y-R-26,J[i].nome,i===mp.meuSlot); }
+    desenhaBola();
+    for(const p of parts){ ctx.globalAlpha=Math.min(1,p.v*2); ctx.fillStyle=p.c; ctx.fillRect(p.x-p.tam/2,p.y-p.tam/2,p.tam,p.tam); }
+    ctx.globalAlpha=1;
+    placarDesenho(GW);
+    desenhaTextos();
     if(espera>0 && estado==='jogo'){ ctx.font='bold 26px "Segoe UI",Arial'; ctx.fillStyle='#fff'; ctx.fillText(sacador===0?'Saque do Cogu!':'Saque da Capivara!',GW/2,110); }
     if(TOQUE && H>W){ ctx.font='bold 22px "Segoe UI",Arial'; ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.fillText('📱 Vire o celular de lado pra ficar maior!',GW/2,GH-20); }
 }
+
+// =====================================================================
+// VÔLEI 2v2 VISTO DE CIMA (mapa maior)
+// =====================================================================
+const CW=1200, CH=700, NX=600, QUADRA={x0:110,x1:1090,y0:90,y1:610};
+const REDE_Z=95, PR=26, PV=330, PJ=440, PG=1300, GZ=950, ALCANCE=46, ALTO=0.55;
+let K=[], cb=null, ctrlC=[], saqueVez=[0,0], ultimoTime=-1, toqueN=0;
+const CASAS=[[420,230],[780,470],[220,470],[980,230]]; // lugar de cada um (time = slot%2)
+const fundoC=document.createElement('canvas');
+function montaFundoCima(){
+    fundoC.width=CW; fundoC.height=CH; const c=fundoC.getContext('2d');
+    let g=c.createLinearGradient(0,0,0,CH); g.addColorStop(0,'#ffe6a8'); g.addColorStop(1,'#f0c878');
+    c.fillStyle=g; c.fillRect(0,0,CW,CH);
+    c.fillStyle='rgba(180,120,40,0.22)'; for(let i=0;i<500;i++) c.fillRect(Math.random()*CW,Math.random()*CH,3,2);
+    // mar em cima
+    g=c.createLinearGradient(0,0,0,50); g.addColorStop(0,'#1a7ad0'); g.addColorStop(1,'#3ac0e0'); c.fillStyle=g; c.fillRect(0,0,CW,46);
+    c.strokeStyle='rgba(255,255,255,0.7)'; c.lineWidth=3; for(let x=0;x<CW;x+=60){ c.beginPath(); c.arc(x+30,50,18,Math.PI*1.15,Math.PI*1.85); c.stroke(); }
+    // quadra
+    c.fillStyle='rgba(255,240,200,0.55)'; c.fillRect(QUADRA.x0,QUADRA.y0,QUADRA.x1-QUADRA.x0,QUADRA.y1-QUADRA.y0);
+    c.strokeStyle='#fff'; c.lineWidth=6; c.strokeRect(QUADRA.x0,QUADRA.y0,QUADRA.x1-QUADRA.x0,QUADRA.y1-QUADRA.y0);
+    c.lineWidth=3; c.setLineDash([12,10]); [NX-200,NX+200].forEach(x=>{ c.beginPath(); c.moveTo(x,QUADRA.y0); c.lineTo(x,QUADRA.y1); c.stroke(); }); c.setLineDash([]);
+    // guarda-sóis
+    [[50,640,'#ff3355'],[1150,640,'#3aa0ff'],[50,110,'#ffd23a'],[1150,110,'#4ccf6a']].forEach(([x,y,cor])=>{
+        c.fillStyle='rgba(90,60,20,0.25)'; c.beginPath(); c.arc(x+8,y+8,36,0,6.283); c.fill();
+        for(let i=0;i<8;i++){ c.fillStyle=i%2?'#fff':cor; c.beginPath(); c.moveTo(x,y); c.arc(x,y,36,i*Math.PI/4,(i+1)*Math.PI/4); c.fill(); }
+    });
+}
+montaFundoCima();
+
+function comecaCima(ctrls,nomes){
+    jogo='cima'; resize();
+    K=[0,1,2,3].map(s=>({slot:s,time:s%2,x:CASAS[s][0],y:CASAS[s][1],z:0,vz:0,cd:0,nome:nomes[s]||'',pensa:0,alvo:null,in:{x:0,y:0}}));
+    ctrlC=ctrls; placar=[0,0]; sacador=0; saqueVez=[0,0]; parts=[]; textos=[];
+    saqueCima(); estado='jogo'; mostra(null); toca('apito');
+}
+function sacadorCima(){ return K[sacador+2*saqueVez[sacador]]; }
+function saqueCima(){
+    K.forEach(p=>{ p.x=CASAS[p.slot][0]; p.y=CASAS[p.slot][1]; p.z=0; p.vz=0; p.cd=0; });
+    const s=sacadorCima(); s.x=s.time===0?70:CW-70; s.y=350;
+    cb={x:s.x+(s.time===0?14:-14),y:s.y,z:70,vx:0,vy:0,vz:0};
+    ultimoTime=-1; espera=1.1;
+}
+// onde a bola vai estar quando descer até a altura hz
+function preveCima(hz){
+    const a=0.5*GZ, d=cb.vz*cb.vz+2*GZ*(cb.z-hz);
+    let t= d>=0 ? (cb.vz+Math.sqrt(d))/GZ : (cb.vz+Math.sqrt(Math.max(0,cb.vz*cb.vz+2*GZ*cb.z)))/GZ;
+    return {x:cb.x+cb.vx*t,y:cb.y+cb.vy*t,t};
+}
+function bateCima(p,saque){
+    const adv=p.time===0?1:-1;
+    const corta=!saque && p.z>25 && Math.abs(p.x-NX)<240;
+    const fr=(p.in.x||0)*adv; // empurrando pra frente = mais fundo
+    let tx=NX+adv*(corta?140+Math.random()*220:120+(fr+1)*80+Math.random()*240);
+    // sem mirar = bola vai pra qualquer canto da quadra deles
+    let ty=p.in.y?p.y+p.in.y*320+(Math.random()-0.5)*120:QUADRA.y0+30+Math.random()*(QUADRA.y1-QUADRA.y0-60);
+    tx=Math.max(QUADRA.x0-10,Math.min(QUADRA.x1+10,tx)); if(adv>0) tx=Math.max(NX+60,tx); else tx=Math.min(NX-60,tx);
+    ty=Math.max(QUADRA.y0-10,Math.min(QUADRA.y1+10,ty));
+    let T=corta?0.5:(saque?1.2:0.85+Math.abs(tx-cb.x)/2000);
+    // tempo de voo que passa por cima da rede
+    for(let k=0;k<30;k++){
+        const vx=(tx-cb.x)/T, vz=(0.5*GZ*T*T-cb.z)/T, tc=(NX-cb.x)/vx;
+        const zc=cb.z+vz*tc-0.5*GZ*tc*tc;
+        if(tc<=0||zc>REDE_Z+18) break; T+=0.08;
+    }
+    cb.vx=(tx-cb.x)/T; cb.vy=(ty-cb.y)/T; cb.vz=(0.5*GZ*T*T-cb.z)/T;
+    p.cd=0.4; ultimoTime=p.time; toqueN++;
+    toca(corta?'corta':'bate',corta?900:500);
+    if(corta) for(let i=0;i<8&&parts.length<300;i++) parts.push({x:cb.x,y:cb.y-cb.z*ALTO,chao:CH,vx:(Math.random()-0.5)*300,vy:(Math.random()-0.5)*300,v:0.3,c:'#fff',tam:4});
+}
+function iaCima(p,dt){
+    p.pensa-=dt;
+    if(p.pensa<=0||!p.alvo){
+        p.pensa=0.22;
+        let tx=CASAS[p.slot][0], ty=CASAS[p.slot][1];
+        if(espera<=0){
+            const L=preveCima(55), meu=p.time===0?L.x<NX:L.x>NX;
+            if(meu){
+                const amigo=K.find(o=>o!==p&&o.time===p.time);
+                const dist=o=>Math.hypot(o.x-L.x,o.y-L.y);
+                if(!amigo||dist(p)<=dist(amigo)+4){ tx=L.x-(p.time===0?14:-14); ty=L.y; }
+            }
+        }
+        // a cada bola nova o robô erra a conta um pouco (às vezes muito)
+        if(p.erroN!==toqueN){ p.erroN=toqueN; const m=Math.random()<0.12?85:Math.random()*14, a=Math.random()*6.283; p.erro=[Math.cos(a)*m,Math.sin(a)*m]; }
+        p.alvo=[tx+p.erro[0],ty+p.erro[1]];
+    }
+    let x=(p.alvo[0]-p.x)/30, y=(p.alvo[1]-p.y)/30;
+    const d=Math.hypot(x,y); if(d>1){ x/=d; y/=d; } if(d<0.2){ x=0; y=0; }
+    const h=Math.hypot(cb.x-p.x,cb.y-p.y);
+    const pula=espera<=0 && Math.abs(p.x-NX)<240 && h<70 && cb.z>120 && cb.z<240 && cb.vz<0 && (p.time===0?cb.x<NX:cb.x>NX);
+    return {x:x*0.75,y:y*0.75,p:pula};
+}
+function entradaCima(p,dt){
+    const c=ctrlC[p.slot];
+    if(c.tipo==='local') return lerCima();
+    if(c.tipo==='ia') return iaCima(p,dt);
+    return c.inp||{x:0,y:0};
+}
+function moveCima(p,ent,dt,parado){
+    p.in={x:+ent.x||0,y:+ent.y||0};
+    if(!parado){ p.x+=p.in.x*PV*dt; p.y+=p.in.y*PV*dt; }
+    if(ent.p && p.z<=0){ p.vz=PJ; toca('pulo'); }
+    p.vz-=PG*dt; p.z+=p.vz*dt; if(p.z<=0){ if(p.vz<-200) areia(p.x,p.y,4); p.z=0; p.vz=0; }
+    const min=p.time===0?20:NX+PR+4, max=p.time===0?NX-PR-4:CW-20;
+    p.x=Math.max(min,Math.min(max,p.x)); p.y=Math.max(60,Math.min(CH-20,p.y));
+    p.cd-=dt;
+}
+function pontoCima(quem){
+    estado='ponto'; espera=1.4; placar[quem]++;
+    if(sacador!==quem){ sacador=quem; saqueVez[quem]=1-saqueVez[quem]; } // troca quem saca no time
+    toca('chao'); areia(cb.x,cb.y,22); cb.vx=cb.vy=cb.vz=0; cb.z=0;
+    if(placar[quem]>=PONTOS) espera=1.8; else toca('ponto');
+    avisoPonto(quem,nomeTime(quem),CW);
+}
+function updateCima(dt){
+    if(estado==='ponto'){
+        espera-=dt; K.forEach(p=>moveCima(p,{x:0,y:0},dt,true));
+        if(espera<=0){ if(placar[0]>=PONTOS||placar[1]>=PONTOS) acaba(); else { saqueCima(); estado='jogo'; toca('apito'); } }
+        return;
+    }
+    const sac=sacadorCima();
+    K.forEach(p=>moveCima(p,entradaCima(p,dt),dt,espera>0&&p===sac));
+    if(espera>0){ espera-=dt; if(espera<=0) bateCima(sac,true); return; }
+    const n=4;
+    for(let i=0;i<n&&estado==='jogo';i++){
+        const h=dt/n, xa=cb.x;
+        cb.vz-=GZ*h; cb.x+=cb.vx*h; cb.y+=cb.vy*h; cb.z+=cb.vz*h;
+        // rede: passou pro outro lado baixo demais = bate e volta
+        if((xa-NX)*(cb.x-NX)<0 && cb.z<REDE_Z){ cb.x=xa<NX?NX-6:NX+6; cb.vx*=-0.35; cb.vy*=0.5; toca('rede'); }
+        for(const p of K){
+            if(p.cd>0) continue;
+            const hd=Math.hypot(cb.x-p.x,cb.y-p.y), dz=cb.z-p.z;
+            if(hd<ALCANCE && dz>5 && dz<115 && cb.vz<0){ bateCima(p,false); break; } // só rebate a bola que está descendo
+        }
+        if(cb.z<=0){
+            const dentro=cb.x>=QUADRA.x0&&cb.x<=QUADRA.x1&&cb.y>=QUADRA.y0&&cb.y<=QUADRA.y1;
+            let ganha;
+            if(dentro) ganha=cb.x<NX?1:0;
+            else ganha=ultimoTime===0?1:ultimoTime===1?0:(cb.x<NX?1:0);
+            if(!dentro) texto(CW/2,260,'FORA! 🚩','#fff',1.2,40);
+            pontoCima(ganha);
+        }
+    }
+}
+
+// ---------- desenho de cima ----------
+function corpoCima(p,eu){
+    const sy=p.y-p.z*ALTO, k=1+p.z/500;
+    ctx.fillStyle='rgba(90,60,20,'+(0.3/k)+')'; ctx.beginPath(); ctx.ellipse(p.x,p.y+6,PR*1.05/k,PR*0.55/k,0,0,6.283); ctx.fill();
+    ctx.save(); ctx.translate(p.x,sy); ctx.scale(k,k);
+    if(p.time===0){
+        ctx.fillStyle=p.slot===0?'#e8283a':'#ff7a2a'; ctx.beginPath(); ctx.arc(0,0,PR,0,6.283); ctx.fill();
+        ctx.fillStyle='#fff'; [[-10,-10,6],[9,-6,5],[-4,10,5],[12,11,4]].forEach(b=>{ ctx.beginPath(); ctx.arc(b[0],b[1],b[2],0,6.283); ctx.fill(); });
+    } else {
+        ctx.fillStyle=p.slot===1?'#9a6a3a':'#7a5030'; ctx.beginPath(); ctx.ellipse(0,0,PR+2,PR-2,0,0,6.283); ctx.fill();
+        ctx.fillStyle='#6a3a12'; ctx.beginPath(); ctx.ellipse(-PR+2,0,12,10,0,0,6.283); ctx.fill(); // focinho pra rede
+        ctx.beginPath(); ctx.arc(6,-PR+4,6,0,6.283); ctx.arc(6,PR-4,6,0,6.283); ctx.fill(); // orelhas
+    }
+    if(eu){ ctx.strokeStyle='#ffd23a'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(0,0,PR+5,0,6.283); ctx.stroke(); }
+    ctx.restore();
+    nomeEm(p.x,sy-PR*k-16,p.nome,eu);
+}
+function desenhaCima(){
+    ctx.drawImage(fundoC,0,0);
+    // onde a bola vai cair (ajuda a se mexer)
+    if(estado==='jogo'&&espera<=0){
+        const L=preveCima(0);
+        ctx.strokeStyle='rgba(255,60,80,0.75)'; ctx.lineWidth=4;
+        ctx.beginPath(); ctx.moveTo(L.x-10,L.y-10); ctx.lineTo(L.x+10,L.y+10); ctx.moveTo(L.x+10,L.y-10); ctx.lineTo(L.x-10,L.y+10); ctx.stroke();
+    }
+    // a bola e os jogadores do fundo pra frente (quem tá mais embaixo aparece na frente)
+    const coisas=K.map(p=>({y:p.y,f:()=>corpoCima(p,modo==='online'?p.slot===mp.meuSlot:p.slot===0)}));
+    coisas.push({y:cb.y,f:()=>{
+        const k=1+cb.z/450;
+        ctx.fillStyle='rgba(90,60,20,0.3)'; ctx.beginPath(); ctx.ellipse(cb.x,cb.y+4,13/k,7/k,0,0,6.283); ctx.fill();
+        const by=cb.y-cb.z*ALTO;
+        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(cb.x,by,13*k,0,6.283); ctx.fill();
+        ctx.lineWidth=3; ctx.strokeStyle='#ffc823'; ctx.beginPath(); ctx.arc(cb.x-6*k,by,10*k,-1,1); ctx.stroke();
+        ctx.strokeStyle='#2a7ae0'; ctx.beginPath(); ctx.arc(cb.x+6*k,by,10*k,Math.PI-1,Math.PI+1); ctx.stroke();
+        ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cb.x,by,13*k,0,6.283); ctx.stroke();
+    }});
+    // rede (desenhada com altura: a faixa de cima fica mais pra cima na tela)
+    coisas.push({y:QUADRA.y1+30,f:()=>{
+        const y0=QUADRA.y0-30, alt=QUADRA.y1-QUADRA.y0+60;
+        ctx.fillStyle="rgba(90,60,20,0.25)"; ctx.fillRect(NX+4,y0+8,10,alt); // sombra da rede
+        ctx.fillStyle="rgba(255,255,255,0.35)"; ctx.fillRect(NX-7,y0,14,alt);
+        ctx.strokeStyle="rgba(40,40,40,0.45)"; ctx.lineWidth=1.5;
+        for(let y=y0;y<y0+alt;y+=12){ ctx.beginPath(); ctx.moveTo(NX-7,y); ctx.lineTo(NX+7,y+6); ctx.moveTo(NX+7,y); ctx.lineTo(NX-7,y+6); ctx.stroke(); }
+        ctx.fillStyle="#fff"; ctx.fillRect(NX-2.5,y0,5,alt); ctx.fillStyle="#ff3355"; ctx.fillRect(NX-1,y0,2,alt);
+        ctx.fillStyle="#8a8a8a"; [y0,y0+alt].forEach(y=>{ ctx.beginPath(); ctx.arc(NX,y,10,0,6.283); ctx.fill(); });
+    }});
+    coisas.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
+    for(const p of parts){ ctx.globalAlpha=Math.min(1,p.v*2); ctx.fillStyle=p.c; ctx.fillRect(p.x-p.tam/2,p.y-p.tam/2,p.tam,p.tam); }
+    ctx.globalAlpha=1;
+    placarDesenho(CW);
+    desenhaTextos();
+    if(espera>0 && estado==='jogo'){ ctx.font='bold 26px "Segoe UI",Arial'; ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.fillText('Saque do '+nomeTime(sacador)+'!',CW/2,110); }
+}
+
+// =====================================================================
+// ONLINE (o dono da sala faz o jogo andar e manda pros outros)
+// =====================================================================
+const meuId=Math.random().toString(36).slice(2,10);
+const mp={online:false,host:false,sala:'',ws:null,tipo:'1v1',jog:[],visto:{},tela:'inicio',emJogo:false,cliente:false,meuSlot:0,humanos:[],envT:0,inT:0,snap:null,hostSaiu:false,ping:null,checa:null};
+function mpEnvia(o){ if(!mp.online||!mp.ws||mp.ws.readyState!==1) return; try{ mp.ws.send(JSON.stringify(Object.assign({acao:'mp',sala:mp.sala,id:meuId},o))); }catch(e){} }
+function codigoSala(){ const L='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<5;i++) s+=L[Math.floor(Math.random()*L.length)]; return s; }
+function vagas(){ return mp.tipo==='2v2'?4:2; }
+function abreWs(sala){
+    try{ mp.ws=new WebSocket(MP_WS); }catch(e){ mp.tela='erro'; salaRender(); return; }
+    const ws=mp.ws;
+    ws.onopen=()=>{ mpEnvia({t:'oi',nome:pedeNomeOnline()}); salaRender(); };
+    ws.onmessage=mpRecebe; ws.onerror=()=>{};
+    ws.onclose=()=>{ if(mp.ws===ws&&mp.sala===sala){ mp.ws=null; setTimeout(()=>{ if(mp.sala===sala&&!mp.ws) abreWs(sala); },2000); } };
+}
+let nomeOnline='';
+function pedeNomeOnline(){ if(!nomeOnline) nomeOnline=(pedeNome()||'Jogador').slice(0,14); return nomeOnline; }
+function mpConecta(sala,host,tipo){
+    mpSai(); pedeNomeOnline();
+    mp.online=true; mp.sala=sala; mp.host=host; mp.tipo=tipo||'1v1'; mp.hostSaiu=false; mp.visto={}; mp.emJogo=false; mp.cliente=false;
+    mp.jog=host?[{id:meuId,nome:nomeOnline}]:[]; mp.tela=host?'host':'entrando';
+    abreWs(sala);
+    mp.ping=setInterval(()=>{ mpEnvia({t:'ping'});
+        if(mp.host&&!mp.emJogo){ const agora=Date.now(), antes=mp.jog.length;
+            mp.jog=mp.jog.filter(j=>j.id===meuId||agora-(mp.visto[j.id]||agora)<12000); if(mp.jog.length!==antes){ mandaLista(); salaRender(); } } },4000);
+    if(!host) mp.checa=setTimeout(()=>{ if(!mp.jog.length){ mp.tela='erro'; salaRender(); } },7000);
+    salaRender();
+}
+function mpSai(){
+    if(mp.online) mpEnvia({t:'sai',host:mp.host});
+    const ws=mp.ws; mp.ws=null; mp.online=false; mp.sala=''; mp.host=false; mp.jog=[]; mp.emJogo=false; mp.cliente=false;
+    clearInterval(mp.ping); clearTimeout(mp.checa); if(ws){ try{ ws.close(); }catch(e){} }
+}
+function mandaLista(){ mpEnvia({t:'lista',tipo:mp.tipo,jog:mp.jog.map(j=>({id:j.id,nome:j.nome})),jogo:mp.emJogo}); }
+function mpRecebe(ev){
+    let m; try{ m=JSON.parse(ev.data); }catch(e){ return; }
+    if(!m||m.sala!==mp.sala||!m.id||m.id===meuId) return;
+    mp.visto[m.id]=Date.now();
+    switch(m.t){
+        case 'oi': if(mp.host){
+            const nome=String(m.nome||'Amigo').slice(0,14), j=mp.jog.find(x=>x.id===m.id);
+            if(j) j.nome=nome; else if(mp.jog.length<vagas()&&!mp.emJogo) mp.jog.push({id:m.id,nome});
+            mandaLista(); salaRender(); } break;
+        case 'lista': if(mp.host) break;
+            clearTimeout(mp.checa); mp.jog=Array.isArray(m.jog)?m.jog:[]; mp.tipo=m.tipo==='2v2'?'2v2':'1v1';
+            if(!mp.jog.some(j=>j.id===meuId)) mp.tela='cheia'; else mp.tela=m.jogo?'emjogo':'esperando';
+            if(!mp.emJogo) salaRender(); break;
+        case 'start': if(mp.host||!Array.isArray(m.jog)) break;
+            { const i=m.jog.findIndex(j=>j[0]===meuId); if(i<0) break; clearTimeout(mp.checa); iniciaCliente(m,i); } break;
+        case 'in': if(mp.host&&mp.emJogo){
+            const i=mp.humanos.indexOf(m.id); if(i<=0) break;
+            const c=(jogo==='cima'?ctrlC:ctrl)[i];
+            if(c&&c.tipo==='remoto'){ c.inp=jogo==='cima'?{x:Math.max(-1,Math.min(1,+m.x||0)),y:Math.max(-1,Math.min(1,+m.y||0)),p:!!m.p}:{e:!!m.e,d:!!m.d,p:!!m.p}; c.quando=Date.now(); } } break;
+        case 'st': if(mp.cliente) aplicaSnap(m); break;
+        case 'fim': if(mp.cliente&&Array.isArray(m.pl)){ placar=[+m.pl[0]||0,+m.pl[1]||0]; acaba(); } break;
+        case 'volta': if(mp.cliente){ mp.cliente=false; mp.emJogo=false; estado='sala'; mp.tela='esperando'; mostra('onT'); salaRender(); } break;
+        case 'sai':
+            if(mp.host){ mp.jog=mp.jog.filter(j=>j.id!==m.id);
+                if(mp.emJogo){ const i=mp.humanos.indexOf(m.id); if(i>0){ mp.humanos[i]=null; const cs=jogo==='cima'?ctrlC:ctrl; cs[i]={tipo:'ia',nivel:1}; texto((jogo==='cima'?CW:GW)/2,150,'🚪 Alguém saiu, um robô entrou!','#fff',2,30); } }
+                mandaLista(); if(!mp.emJogo) salaRender(); }
+            else if(m.host){ mp.hostSaiu=true; mp.tela='erro'; if(mp.cliente){ mp.cliente=false; mp.emJogo=false; estado='sala'; mostra('onT'); } salaRender(); }
+            break;
+    }
+}
+function slotsHtml(){
+    const n=vagas(), nome=i=>mp.jog[i]?esc(mp.jog[i].nome)+(mp.jog[i].id===meuId?' <b>(você)</b>':''):'<span style="opacity:.7">🤖 robô</span>';
+    if(mp.tipo==='1v1') return `<div class="quadro"><div class="linha">🍄 ${nome(0)}</div><div class="linha">🦫 ${nome(1)}</div></div>`;
+    return `<div class="quadro"><b>🍄 Time Cogu</b><div class="linha">${nome(0)}</div><div class="linha">${nome(2)}</div>
+        <b style="display:block;margin-top:8px">🦫 Time Capivara</b><div class="linha">${nome(1)}</div><div class="linha">${nome(3)}</div></div>`;
+}
+function salaRender(){
+    const el=$('salaCorpo'); if(!el) return;
+    if(!mp.online||mp.tela==='inicio'){
+        el.innerHTML=`<div class="sub">Jogue com seus amigos! Crie uma sala e mande o código pra eles. Quem faltar vira robô 🤖</div>
+            <button class="btn f" id="bC1">➕ Criar sala 1v1<small>vôlei de lado, você contra um amigo</small></button>
+            <button class="btn a" id="bC2">➕ Criar sala 2v2<small>visto de cima, mapa maior, 2 times de 2</small></button>
+            <div class="sub" style="margin:14px 0 6px">ou digite o código que seu amigo mandou:</div>
+            <div style="display:flex;gap:8px"><input id="cod" maxlength="5" placeholder="CÓDIGO" autocomplete="off"><button class="btn m" style="width:auto;margin:0" id="bEntrar">ENTRAR</button></div>
+            <button class="btn x" id="bOnVolta" style="margin-top:16px">⬅ Voltar</button>`;
+        $('bC1').onclick=()=>mpConecta(codigoSala(),true,'1v1');
+        $('bC2').onclick=()=>mpConecta(codigoSala(),true,'2v2');
+        const entra=()=>{ const c=$('cod').value.trim().toUpperCase(); if(c.length===5) mpConecta(c,false); };
+        $('bEntrar').onclick=entra; $('cod').onkeydown=e=>{ if(e.key==='Enter') entra(); };
+        $('bOnVolta').onclick=()=>{ mpSai(); menu(); };
+        return;
+    }
+    const sair='<button class="btn x" id="bSalaSai">🚪 Sair da sala</button>';
+    if(mp.tela==='erro'||mp.tela==='cheia'){
+        el.innerHTML=`<div class="sub" style="font-size:20px">😢 ${mp.tela==='cheia'?'A sala está cheia!':mp.hostSaiu?'O dono da sala saiu.':'Não achei essa sala. Confere o código!'}</div><button class="btn m" id="bDenovoSala">🔁 Tentar de novo</button>`;
+        $('bDenovoSala').onclick=()=>{ mpSai(); mp.tela='inicio'; salaRender(); }; return;
+    }
+    if(mp.tela==='entrando'){ el.innerHTML='<div class="sub" style="font-size:20px">🔎 Procurando a sala '+esc(mp.sala)+'...</div>'+sair; $('bSalaSai').onclick=()=>{ mpSai(); mp.tela='inicio'; salaRender(); }; return; }
+    let h=`<div class="sub" style="margin:0">Código da sala ${mp.tipo==='2v2'?'2v2 (de cima)':'1v1 (de lado)'}:</div><div class="codigo">${esc(mp.sala)}</div>`+slotsHtml();
+    if(mp.host) h+=`<div class="sub">Mande o código pros amigos! Lugar vazio = robô 🤖</div><button class="btn f" id="bComecar">▶ COMEÇAR!</button>`;
+    else h+=`<div class="sub">${mp.tela==='emjogo'?'⏳ Tem uma partida rolando, espera acabar...':'⏳ Esperando o dono da sala começar...'}</div>`;
+    el.innerHTML=h+sair;
+    if(mp.host) $('bComecar').onclick=hostComeca;
+    $('bSalaSai').onclick=()=>{ mpSai(); mp.tela='inicio'; salaRender(); };
+}
+function hostComeca(){
+    if(!mp.host) return;
+    audio(); modo='online'; mp.emJogo=true; mp.meuSlot=0; mp.envT=0;
+    const n=vagas(); mp.humanos=[]; const nomes=[], ctrls=[];
+    for(let i=0;i<n;i++){
+        const j=mp.jog[i];
+        mp.humanos.push(j?j.id:null);
+        nomes.push(j?j.nome:'🤖 Robô');
+        ctrls.push(i===0?(n===2?{tipo:'local',qual:'todas'}:{tipo:'local'}):(j?{tipo:'remoto',inp:null,quando:Date.now()}:{tipo:'ia',nivel:1}));
+    }
+    mpEnvia({t:'start',tipo:mp.tipo,jog:mp.humanos.map((id,i)=>[id,nomes[i]])});
+    mandaLista();
+    if(mp.tipo==='2v2') comecaCima(ctrls,nomes); else comecaLado(ctrls,nomes);
+}
+const r1=v=>Math.round(v);
+function hostEnvia(dt){
+    // quem sumiu por muito tempo vira robô
+    const cs=jogo==='cima'?ctrlC:ctrl, agora=Date.now();
+    cs.forEach((c,i)=>{ if(c.tipo==='remoto'&&agora-(c.quando||agora)>10000){ cs[i]={tipo:'ia',nivel:1}; mp.humanos[i]=null; } });
+    mp.envT-=dt; if(mp.envT>0) return; mp.envT=0.066;
+    const s={t:'st',es:estado,pl:placar,sp:Math.round(espera*100)/100,sac:sacador,fx:fxFila};
+    if(jogo==='cima'){ s.b=[r1(cb.x),r1(cb.y),r1(cb.z),r1(cb.vx),r1(cb.vy),r1(cb.vz)]; s.j=K.map(p=>[r1(p.x),r1(p.y),r1(p.z)]); }
+    else { s.b=[r1(bola.x),r1(bola.y),r1(bola.vx),r1(bola.vy),Math.round(bola.ang*100)/100]; s.j=J.map(p=>[r1(p.x),r1(p.y)]); }
+    fxFila=[]; mpEnvia(s);
+}
+function iniciaCliente(m,slot){
+    audio(); modo='online'; mp.cliente=true; mp.emJogo=true; mp.meuSlot=slot; mp.snap=null; mp.inT=0;
+    mp.humanos=m.jog.map(j=>j[0]);
+    const nomes=m.jog.map(j=>String(j[1]||'').slice(0,14));
+    const nada=nomes.map(()=>({tipo:'ia',nivel:1}));
+    if(m.tipo==='2v2') comecaCima(nada,nomes); else comecaLado(nada,nomes);
+}
+function aplicaSnap(m){
+    if(!Array.isArray(m.b)||!Array.isArray(m.j)) return;
+    const antes=placar.slice();
+    placar=[+m.pl[0]||0,+m.pl[1]||0]; espera=+m.sp||0; sacador=m.sac===1?1:0;
+    const es=m.es==='ponto'?'ponto':'jogo';
+    if(placar[0]!==antes[0]||placar[1]!==antes[1]){ const q=placar[0]!==antes[0]?0:1; avisoPonto(q,nomeTime(q),jogo==='cima'?CW:GW); }
+    estado=es;
+    (m.fx||[]).forEach(n=>{ if(som[n]) som[n](); });
+    mp.snap={b:m.b,j:m.j,quando:performance.now()};
+}
+// cliente: mexe o próprio boneco na hora (pra não ficar travado) e o resto vem do dono da sala
+function clienteUpdate(dt){
+    const s=mp.snap; if(!s) return;
+    const idade=(performance.now()-s.quando)/1000;
+    if(jogo==='cima'){
+        cb.x=s.b[0]+s.b[3]*idade; cb.y=s.b[1]+s.b[4]*idade; cb.z=Math.max(0,s.b[2]+s.b[5]*idade-0.5*GZ*idade*idade); cb.vx=s.b[3]; cb.vy=s.b[4]; cb.vz=s.b[5]-GZ*idade;
+        K.forEach((p,i)=>{
+            const a=s.j[i]; if(!a) return;
+            if(i===mp.meuSlot){ moveCima(p,lerCima(),dt,false); p.x+=(a[0]-p.x)*0.12; p.y+=(a[1]-p.y)*0.12; if(Math.abs(a[2]-p.z)>60) p.z=a[2]; }
+            else { p.x+=(a[0]-p.x)*0.35; p.y+=(a[1]-p.y)*0.35; p.z+=(a[2]-p.z)*0.5; }
+        });
+    } else {
+        bola.x=s.b[0]+s.b[2]*idade; bola.y=s.b[1]+s.b[3]*idade+0.5*G_BOLA*idade*idade; bola.ang=s.b[4];
+        if(bola.y>CHAO-BR) bola.y=CHAO-BR;
+        J.forEach((p,i)=>{
+            const a=s.j[i]; if(!a) return;
+            if(i===mp.meuSlot){ moveJog(p,lerLocal('todas'),dt); p.x+=(a[0]-p.x)*0.12; p.y+=(a[1]-p.y)*0.15; }
+            else { const vy=p.y; p.x+=(a[0]-p.x)*0.35; p.y+=(a[1]-p.y)*0.35; if(p.y>=CHAO-1&&vy<CHAO-3) p.esmaga=1; p.esmaga=Math.max(0,p.esmaga-dt*5); }
+        });
+    }
+}
+function clienteEnvia(dt){
+    mp.inT-=dt; if(mp.inT>0) return; mp.inT=0.05;
+    if(jogo==='cima'){ const e=lerCima(); mpEnvia({t:'in',x:Math.round(e.x*100)/100,y:Math.round(e.y*100)/100,p:e.p?1:0}); }
+    else { const e=lerLocal('todas'); mpEnvia({t:'in',e:e.e?1:0,d:e.d?1:0,p:e.p?1:0}); }
+}
+
+// =====================================================================
+// começo, fim e telas
+// =====================================================================
+function comecaLocal(m){
+    audio(); modo=m; mp.meuSlot=0;
+    if(m==='2p') comecaLado([{tipo:'local',qual:'wasd'},{tipo:'local',qual:'setas'}],['','']);
+    else comecaLado([{tipo:'local',qual:'todas'},{tipo:'ia',nivel:m}],['','']);
+}
+function acaba(){
+    estado='fim';
+    $('fimE').textContent=placar[0]+' x '+placar[1];
+    $('fimC').textContent='';
+    $('bDeNovo').textContent='🔁 Jogar de novo';
+    if(modo==='online'){
+        if(mp.host) mpEnvia({t:'fim',pl:placar});
+        const meuTime=jogo==='cima'?mp.meuSlot%2:mp.meuSlot;
+        const ganhei=placar[meuTime]>placar[1-meuTime];
+        // só conta vitória online se tinha gente de verdade no outro time
+        const outroTime=mp.humanos.some((id,i)=>id&&(jogo==='cima'?i%2:i)!==meuTime);
+        $('fimT').textContent=ganhei?'🏆 Seu time ganhou!':'😢 Seu time perdeu...';
+        if(ganhei){ som.vence(); if(outroTime){ $('fimC').textContent='+1 vitória online 🌐'; ganhouTop(4); } else $('fimC').textContent='(contra robôs não conta pro top)'; }
+        else som.perde();
+        $('bDeNovo').textContent='🔁 Voltar pra sala';
+    }
+    else if(modo==='2p'){
+        const cogu=placar[0]>placar[1];
+        $('fimT').textContent=cogu?'🍄 O Cogu ganhou!':'🦫 A Capivara ganhou!'; som.vence();
+        if(cogu){ $('fimC').textContent='+1 vitória no 👥 2 Jogadores'; ganhouTop(3); }
+    }
+    else if(placar[0]>placar[1]){
+        som.vence(); $('fimT').textContent='🏆 Você ganhou!';
+        const m=NIVEIS[modo].moedas;
+        try{ if(window.CoguCoins) CoguCoins.ganha(m); }catch(e){}
+        $('fimC').textContent='+'+m+' 🍄 Cogu Coins';
+        ganhouTop(modo);
+    } else { som.perde(); $('fimT').textContent='😢 A Capivara ganhou...'; $('fimC').textContent='Tenta de novo! Pule pra cortar a bola 💪'; }
+    mostra('fim');
+}
+function mostra(id){
+    ['menu','fim','pausaT','topT','onT'].forEach(t=>$(t).style.display=t===id?'flex':'none');
+    $('pausa').style.display=id===null?'block':'none';
+    if(id===null) montaBotoes(); else { $('toques').innerHTML=''; for(const k in toque) toque[k]=false; joy=null; }
+}
+function menu(){ estado='menu'; modo=0; mostra('menu'); }
+document.querySelectorAll('#menu [data-n]').forEach(b=>b.onclick=()=>comecaLocal(b.dataset.n==='2p'?'2p':+b.dataset.n));
+$('bOnline').onclick=()=>{ audio(); estado='sala'; mostra('onT'); if(!mp.online) mp.tela='inicio'; salaRender(); };
+$('bDeNovo').onclick=()=>{
+    if(modo!=='online') return comecaLocal(modo);
+    estado='sala';
+    if(mp.host){ mp.emJogo=false; mpEnvia({t:'volta'}); mandaLista(); mp.tela='host'; }
+    else { mp.cliente=false; mp.emJogo=false; mp.tela='esperando'; }
+    mostra('onT'); salaRender();
+};
+$('bMenu').onclick=()=>{ if(mp.online) mpSai(); menu(); };
+let estadoAntes='jogo', pausaOnline=false;
+function pausar(){
+    if(estado!=='jogo'&&estado!=='ponto') return;
+    if(modo==='online'){ pausaOnline=true; $('pausaTit').textContent='🌐 O jogo continua!'; $('pausaT').style.display='flex'; return; } // online não para
+    estadoAntes=estado; estado='pausa'; $('pausaTit').textContent='⏸ Pausado'; mostra('pausaT');
+}
+$('pausa').onclick=pausar;
+$('bVolta').onclick=()=>{ if(pausaOnline){ pausaOnline=false; $('pausaT').style.display='none'; return; } estado=estadoAntes; mostra(null); ultimo=performance.now(); };
+$('bSai').onclick=()=>{ pausaOnline=false; if(mp.online) mpSai(); menu(); };
+document.addEventListener('visibilitychange',()=>{ if(document.hidden&&modo!=='online') pausar(); });
+addEventListener('beforeunload',()=>{ if(mp.online) mpSai(); });
 
 // ---------- loop ----------
 let ultimo=performance.now();
@@ -441,9 +931,19 @@ function loop(t){
     requestAnimationFrame(loop);
     if(TOQUE && t-ultimo<30) return; // 30fps no celular
     let dt=(t-ultimo)/1000; ultimo=t; dt=Math.min(dt,0.05);
-    if(estado==='jogo'||estado==='ponto') update(dt);
+    const jogando=estado==='jogo'||estado==='ponto';
+    if(jogando){
+        if(mp.cliente) clienteUpdate(dt);
+        else if(jogo==='cima') updateCima(dt); else updateLado(dt);
+        if(mp.host&&mp.emJogo&&estado!=='fim') hostEnvia(dt);
+    }
+    if(mp.cliente&&mp.emJogo) clienteEnvia(dt);
     if(estado!=='pausa') efeitos(dt);
-    desenha();
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    ctx.fillStyle='#e8b860'; ctx.fillRect(0,0,W,H);
+    ctx.translate(OX,OY); ctx.scale(S,S);
+    if(estado==='menu'||estado==='sala'||!bola&&!cb){ ctx.drawImage(fundo,0,0); return; }
+    if(jogo==='cima') desenhaCima(); else desenhaLado();
 }
 addEventListener('resize',resize); resize();
 requestAnimationFrame(loop);
