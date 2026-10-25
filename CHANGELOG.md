@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v579 (2026-10-25)
+- ☢️ Arena Cogumelo 2: raridade NOVA ☢️ EXÓTICO — a MELHOR de todas, acima da Ultra! Só tem 1 lutador: a CAPIVARA MUTANTE, o lutador mais roubado do jogo (muita vida, muito dano, rápida, metralhadora + super de cura). Sai só na 💝 Caixa MEGA, bem raro!
+
 ## v578 (2026-10-25)
 - 🎃 EVENTO DE HALLOWEEN (até 02/11)! Botão novo na página inicial. Jogue qualquer jogo por 2 minutos sem sair = 1 partida. Prêmios em Cogu Coins: 1 partida = 5, 3 = 20, 5 = 40, 10 = 100... até 20 partidas = 300!
 - 🧟 Zumbi: mapa novo 🎃 Halloween — céu roxo, janelas laranja, abóboras brilhando na rua e zumbis com cabeça de abóbora

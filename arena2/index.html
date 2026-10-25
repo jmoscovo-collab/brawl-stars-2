@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <title>🥊 Arena Cogumelo 2 — Cogumelo Games</title>
-<meta name="description" content="Arena Cogumelo 2: luta estilo arena com 879 lutadores, modos Duelo, Pega-Gemas, Brawl Bola, Chefão e ONLINE, evolua até o nível 15, caminho de troféus, loja, missões e passe de temporada.">
+<meta name="description" content="Arena Cogumelo 2: luta estilo arena com 880 lutadores, modos Duelo, Pega-Gemas, Brawl Bola, Chefão e ONLINE, evolua até o nível 15, caminho de troféus, loja, missões e passe de temporada.">
 <script src="/letra.js"></script>
 <script src="/cogucoins.js?v=546"></script>
 <script src="/gamepad.js?v=358"></script>
@@ -63,6 +63,8 @@ h1{font-size:34px;text-shadow:0 4px 0 #a02a2a,0 0 20px #ff5a5a;margin-top:6px}
 .passeL .nv{font-weight:bold;text-align:center;font-size:16px}
 .btnP{padding:3px 8px;font-size:12px}
 .ultra{background:linear-gradient(90deg,#ff5a5a,#ffd23a,#5fe08a,#3aa0ff,#b44aff);-webkit-background-clip:text;background-clip:text;color:transparent!important}
+.exotico{color:#39ffb0!important;font-weight:bold;text-shadow:0 0 6px #39ffb0,0 0 14px #00ff66;animation:exoPulsa 1.2s ease-in-out infinite}
+@keyframes exoPulsa{50%{text-shadow:0 0 12px #b6ff3a,0 0 26px #00ff66}}
 #fim{display:none;justify-content:center}
 #fim .caixa{background:rgba(0,0,0,.5);border:3px solid #ffd76a;border-radius:20px;padding:22px 26px;text-align:center;max-width:420px;margin-top:20px}
 #fim h2{font-size:36px;margin-bottom:8px}
@@ -143,7 +145,7 @@ function escurece(hex,k){ const n=parseInt(hex.slice(1),16); const r=Math.round(
 // ===== LUTADORES =====
 const RAR=[
     {n:'Comum',cor:'#b8c0cc'},{n:'Raro',cor:'#3ddc6a'},{n:'Super Raro',cor:'#3aa0ff'},{n:'Épico',cor:'#c46aff'},
-    {n:'Mítico',cor:'#ff4a6a'},{n:'Lendário',cor:'#ffd23a'},{n:'Ultra',cor:'#ff7af0'}];
+    {n:'Mítico',cor:'#ff4a6a'},{n:'Lendário',cor:'#ffd23a'},{n:'Ultra',cor:'#ff7af0'},{n:'☢️ EXÓTICO',cor:'#39ffb0'}]; // Exótico = a MELHOR, só tem 1 lutador
 const TIPOS={
     leque:     {hp:3600,vel:215,r:24,rel:1.3,alc:520,vb:850, custo:3200,ds:'Atira 3 tiros em leque.',arma:'#ff5a5a'},
     espingarda:{hp:5200,vel:200,r:28,rel:1.5,alc:300,vb:950, custo:2800,ds:'Soco espalhado de perto: dano ENORME colado!',arma:'#e8b078'},
@@ -198,7 +200,9 @@ const LUT=[
     fazLutador('cogu','Cogu',0,'leque','lob',{pele:'#fff1dc',roupa:'#ff5a5a',cab:'cogu',orelha:'',olhos:'normal',extra:'',forma:'',esc:1}),
     fazLutador('capi','Capi',1,'espingarda','dash',{pele:'#a8743f',roupa:'#3a7aff',cab:'',orelha:'urso',olhos:'normal',extra:'',forma:'',esc:1.05},5600),
     fazLutador('draco','Draco',3,'fogo','bola',{pele:'#3fc46a',roupa:'#ff9a2a',cab:'chifres',orelha:'',olhos:'bravo',extra:'asas',forma:'',esc:1}),
-    fazLutador('ninja','Ninja',4,'sniper','roda',{pele:'#ffd2a8',roupa:'#2a2a3a',cab:'',orelha:'',olhos:'mascara',extra:'',forma:'',esc:1})
+    fazLutador('ninja','Ninja',4,'sniper','roda',{pele:'#ffd2a8',roupa:'#2a2a3a',cab:'',orelha:'',olhos:'mascara',extra:'',forma:'',esc:1}),
+    // ☢️ EXÓTICO: o único da raridade e o lutador MAIS ROUBADO do jogo (só sai na Caixa MEGA, bem raro)
+    Object.assign(fazLutador('capimut','Capivara Mutante',7,'rajada','cura',{pele:'#7dff3a',roupa:'#1a3a1a',cab:'espinhos',orelha:'urso',olhos:'bravo',extra:'chamas',forma:'alto',esc:1.25},6500,262),{m:1.5})
 ];
 (function geraLutadores(){
     const R=rng(20261022);
@@ -364,7 +368,7 @@ function textoTempo(){
 function lutadorTemporada(rar){ const l=LUT.filter(x=>x.rar===rar); return l[(tempAtual()-1)%l.length]; }
 
 // ===== RECOMPENSAS =====
-const VALOR_REP=[50,80,120,200,300,500,800]; // ouro se já tiver o lutador
+const VALOR_REP=[50,80,120,200,300,500,800,2000]; // ouro se já tiver o lutador
 function recTxt(r){
     if(r.ouro) return '💰 '+fmt(r.ouro);
     if(r.gemas) return '💎 '+r.gemas;
@@ -376,7 +380,7 @@ function sorteiaLutador(pesos,R){
     let tot=pesos.reduce((a,b)=>a+b,0), x=R()*tot, rar=0;
     for(let i=0;i<pesos.length;i++){ x-=pesos[i]; if(x<=0){ rar=i; break; } }
     for(const d of [0,-1,1,-2,2,-3,3,-4,4,-5,5,-6,6]){
-        const r=rar+d; if(r<0||r>6) continue;
+        const r=rar+d; if(r<0||r>7) continue;
         const l=LUT.filter(x=>x.rar===r&&!save.tem[x.id]);
         if(l.length) return l[Math.floor(R()*l.length)].id;
     }
@@ -395,7 +399,7 @@ function daRec(r, res){
     if(r.caixa){
         const R=Math.random, cfg={normal:{o:[40,80],g:[0,0],rol:1,ch:0.35,p:[50,25,12,7,4,1.6,0.4]},
             grande:{o:[120,200],g:[0,10],rol:1,ch:0.75,p:[45,27,14,8,4,1.6,0.4]},
-            mega:{o:[300,500],g:[10,25],rol:2,ch:1,p:[30,28,18,12,7,4,1]}}[r.caixa];
+            mega:{o:[300,500],g:[10,25],rol:2,ch:1,p:[30,28,18,12,7,4,1,0.3]}}[r.caixa];
         res.linhas.push('— '+recTxt(r)+' —');
         daRec({ouro:Math.round(cfg.o[0]+R()*(cfg.o[1]-cfg.o[0]))},res);
         const gm=Math.round(cfg.g[0]+R()*(cfg.g[1]-cfg.g[0])); if(gm) daRec({gemas:gm},res);
@@ -459,7 +463,7 @@ function passePronto(){
 const PRECO_GEMA=[30,50,80,120,200,350,600], PRECO_OURO=[300,500,800,1200];
 function ofertasHoje(){
     const d=hoje(), R=rng(hashStr('loja'+d));
-    const alto=LUT.filter(l=>l.rar>=3), baixo=LUT.filter(l=>l.rar<=3&&l.rar>=1);
+    const alto=LUT.filter(l=>l.rar>=3&&l.rar<7), baixo=LUT.filter(l=>l.rar<=3&&l.rar>=1);
     const l1=alto[Math.floor(R()*alto.length)], l2=baixo[Math.floor(R()*baixo.length)];
     return [
         {id:'gratis',tit:'🎁 Presente do dia',ic:'🎁',rec:{ouro:50},preco:0,moeda:'ouro'},
@@ -1176,7 +1180,7 @@ let estado='menu';
 const $=id=>document.getElementById(id);
 const elMenu=$('menu'), elFim=$('fim'), elPausa=$('pausa'), lobbyCv=$('lobbyCv'), lctx=lobbyCv.getContext('2d');
 lobbyCv.width=240*DPR; lobbyCv.height=240*DPR;
-function nomeRar(l){ return '<span class="'+(l.rar===6?'ultra':'')+'" style="color:'+RAR[l.rar].cor+'">'+RAR[l.rar].n+'</span>'; }
+function nomeRar(l){ return '<span class="'+(l.rar===6?'ultra':l.rar===7?'exotico':'')+'" style="color:'+RAR[l.rar].cor+'">'+RAR[l.rar].n+'</span>'; }
 function desenhaLobby(t){
     const g=lctx, w=lobbyCv.width, h=lobbyCv.height;
     g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,w,h);
