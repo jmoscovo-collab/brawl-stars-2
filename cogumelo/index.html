@@ -315,9 +315,9 @@ function loop(t){
     if(tSpawn<=0){ spawn(); tSpawn=Math.max(38, 100-nivel*5)+Math.random()*34; }
 
     for(let i=itens.length-1;i>=0;i--){
-      const it=itens[i]; it.y+=it.v*dt; it.ang+=it.giro*dt;
-      // pegou?
-      if(it.y>cesta.y-18 && it.y<cesta.y+26 && Math.abs(it.x-cesta.x)<cesta.w/2){
+      const it=itens[i], antes=it.y; it.y+=it.v*dt; it.ang+=it.giro*dt;
+      // pegou? (olha o caminho todo que o cogumelo andou nesse quadro, senão quando ele cai rápido "atravessa" a cesta)
+      if(it.y>cesta.y-18 && antes<cesta.y+26 && Math.abs(it.x-cesta.x)<cesta.w/2+12){
         if(it.tipo==='veneno'){ vidas--; boom(it.x,it.y,'#b04ad6',18); if(vidas<=0){ itens.splice(i,1); fim(); break; } }
         else if(it.tipo==='vida'){ vidas=Math.min(VIDAS_INICIAIS,vidas+1); boom(it.x,it.y,'#ff6b81',14); }
         else if(it.tipo==='dourado'){ pontos+=5; boom(it.x,it.y,'#ffd54a',16); }

@@ -96,7 +96,22 @@ const FASES=[
  {n:'Arco-íris',m:['333333333333','3..........3','3.22222222.3','3.2......2.3','3.2.1OO1.2.3','3.2......2.3','3.22222222.3','3..........3']},
  {n:'Zigue-zague',m:['............','............','333333333...','######......','...222222222','......######','111111111...']},
  {n:'Cara de Cogu',m:['...333333...','.3333333333.','33.33333.333','333333333333','.....22.....','...222222...','...2B22B2...','...222222...']},
- {n:'O Chefão',m:['B3333333333B','3#33#33#33#3','333333333333','2OO22222OO22','222222222222','#1#1#1#1#1#1','111111111111']}
+ {n:'O Chefão',m:['B3333333333B','3#33#33#33#3','333333333333','2OO22222OO22','222222222222','#1#1#1#1#1#1','111111111111']},
+ {n:'Escada',m:['............','1...........','11..........','111.........','2222........','22222.......','333333......','3333333.....','OOOOOOOO....']},
+ {n:'Bombas Escondidas',m:['............','333333333333','3B33B33B33B3','222222222222','2B22B22B22B2','111111111111']},
+ {n:'Óculos',m:['............','.3333..3333.','3#OO3333OO#3','.3333..3333.','............','..22222222..']},
+ {n:'Muralha',m:['............','333333333333','##..####..##','222222222222','##..####..##','111111111111']},
+ {n:'Sorriso',m:['..33333333..','.3333333333.','33.333333.33','333333333333','33.OOOOOO.33','.33......33.','..33333333..']},
+ {n:'Cruz',m:['.....33.....','.....33.....','..22222222..','..2BB22BB2..','..22222222..','.....33.....','.....33.....']},
+ {n:'Corredores',m:['............','3.3.3.3.3.3.','#.#.#.#.#.#.','2.2.2.2.2.2.','#.#.#.#.#.#.','1.1.1.1.1.1.']},
+ {n:'Navezinha',m:['.....OO.....','....3333....','...333333...','..2.2222.2..','.2222222222.','22.222222.22','2...2..2...2']},
+ {n:'Chocolate',m:['............','333333333333','333333333333','333333333333','333333333333','3OO333333OO3']},
+ {n:'Bomba-Relógio',m:['............','BBBBBBBBBBBB','BBBBBBBBBBBB','333333333333','333333333333','OOOOOOOOOOOO']},
+ {n:'Labirinto',m:['............','333333333333','#..#..#..#..','222222222222','..#..#..#..#','111111111111']},
+ {n:'Pinheiro',m:['.....OO.....','....3333....','...222222...','..33333333..','.2222222222.','333333333333','.....##.....']},
+ {n:'Arena',m:['............','.##########.','.#33333333#.','.#3OOOOOO3#.','.#33333333#.','.##......##.','............']},
+ {n:'Ondas',m:['3...3...3...','.3.3.3.3.3.3','..3...3...3.','2...2...2...','.2.2.2.2.2.2','..2...2...2.','BBBBBBBBBBBB']},
+ {n:'Chefão Final',m:['B##########B','B3333333333B','3#OO3333OO#3','333333333333','2B22222222B2','222222222222','#1#1#1#1#1#1','111111111111']}
 ];
 
 // ---------- poderes ----------
@@ -107,8 +122,13 @@ const PODERES=[
  {id:'cola',e:'🧲',cor:'#3aa0ff',p:2,nome:'ÍMÃ!'},
  {id:'lento',e:'🐢',cor:'#4ccf6a',p:2,nome:'Bolinha lenta'},
  {id:'vida',e:'❤️',cor:'#ff3355',p:1,nome:'+1 VIDA!'},
- {id:'mini',e:'🐜',cor:'#9a9aaa',p:1.5,nome:'Ih, encolheu!'}
+ {id:'mini',e:'🐜',cor:'#9a9aaa',p:1.5,nome:'Ih, encolheu!'},
+ {id:'chuva',e:'🎱',cor:'#2a2a3a',p:2,nome:'CHUVA DE BOLAS! +8'},
+ {id:'dobra',e:'✖️',cor:'#00c8a0',p:2,nome:'BOLAS x2!'},
+ {id:'fogo',e:'🔥',cor:'#ff7a1a',p:1.5,nome:'BOLA DE FOGO!'},
+ {id:'escudo',e:'🛡️',cor:'#4ad0ff',p:1.5,nome:'ESCUDO!'}
 ];
+const MAX_BOLAS=60;
 function sorteiaPoder(bom){
     const l=bom?PODERES.filter(p=>p.id!=='mini'):PODERES, tot=l.reduce((a,p)=>a+p.p,0);
     let r=Math.random()*tot; for(const p of l){ r-=p.p; if(r<=0) return p; } return l[0];
@@ -159,7 +179,7 @@ function montaFase(i){
             tij.push({c,r,x:c*CW+1,y:TOPO+r*RH,w:CW-2,h:BH,hp,max:hp,t,fl:0});
         }
     });
-    vidas=3; perdidas=0; pontos=0; quedas=[]; tiros=[]; parts=[]; textos=[]; ef={grande:0,mini:0,laser:0,cola:0,lento:0};
+    vidas=3; perdidas=0; pontos=0; quedas=[]; tiros=[]; parts=[]; textos=[]; ef={grande:0,mini:0,laser:0,cola:0,lento:0,fogo:0,escudo:0};
     pad.x=GW/2; pad.w=pad.tw=110; velBase=430+i*12; semBater=0;
     novaBola();
 }
@@ -203,7 +223,7 @@ function pegaPoder(p){
     else if(p.id==='multi'){
         if(bolas.some(b=>b.presa)) lanca();
         const novas=[];
-        for(const b of bolas){ if(bolas.length+novas.length>=12) break;
+        for(const b of bolas){ if(bolas.length+novas.length>=MAX_BOLAS) break;
             for(const da of [-0.45,0.45]){ const a=Math.atan2(b.vx,-b.vy)+da; novas.push({x:b.x,y:b.y,sp:b.sp,vx:b.sp*Math.sin(a),vy:-b.sp*Math.abs(Math.cos(a)),presa:false,off:0}); } }
         bolas.push(...novas);
     }
@@ -211,11 +231,22 @@ function pegaPoder(p){
     else if(p.id==='cola') ef.cola=15;
     else if(p.id==='lento') ef.lento=10;
     else if(p.id==='vida') vidas=Math.min(5,vidas+1);
+    else if(p.id==='chuva'){ // sai um monte de bolinhas do Cogu
+        for(let i=0;i<8&&bolas.length<MAX_BOLAS;i++){ const a=-0.9+i*(1.8/7)+(Math.random()-0.5)*0.1; bolas.push({x:pad.x,y:PY-PH/2-R-2,sp:velBase,vx:velBase*Math.sin(a),vy:-velBase*Math.cos(a),presa:false,off:0}); }
+    }
+    else if(p.id==='dobra'){ // cada bolinha vira duas
+        if(bolas.some(b=>b.presa)) lanca();
+        const novas=[]; for(const b of bolas){ if(bolas.length+novas.length>=MAX_BOLAS) break; novas.push({x:b.x,y:b.y,sp:b.sp,vx:-b.vx||b.sp*0.5,vy:b.vy,presa:false,off:0}); }
+        bolas.push(...novas);
+    }
+    else if(p.id==='fogo') ef.fogo=8;
+    else if(p.id==='escudo') ef.escudo=12;
 }
 
 // ---------- física ----------
 function arrumaAngulo(b){
-    // não deixa a bolinha ficar indo quase reto pros lados (senão demora uma eternidade)
+    if(ef.escudo>0 && b.vy>0 && b.y+R>=PY+40){ b.y=PY+40-R; b.vy=-Math.abs(b.vy); som.metal(); } // escudo embaixo do Cogu
+    if(b.y>GH+R*3){ b.morta=true; return; }
     const sp=Math.hypot(b.vx,b.vy)||b.sp;
     if(Math.abs(b.vy)<sp*0.3){ b.vy=(b.vy<0?-1:1)*sp*0.3; b.vx=(b.vx<0?-1:1)*Math.sqrt(sp*sp-b.vy*b.vy); }
     const k=b.sp/Math.hypot(b.vx,b.vy); b.vx*=k; b.vy*=k;
@@ -242,6 +273,7 @@ function passoBola(b,h){
         const cx=Math.max(k.x,Math.min(k.x+k.w,b.x)), cy=Math.max(k.y,Math.min(k.y+k.h,b.y));
         const dx=b.x-cx, dy=b.y-cy, d2=dx*dx+dy*dy;
         if(d2>R*R) continue;
+        if(ef.fogo>0 && k.t!=='m'){ k.hp=1; acerta(k); continue; } // bola de fogo atravessa quebrando tudo
         if(d2===0) b.vy=-b.vy;
         else { const d=Math.sqrt(d2), nx=dx/d, ny=dy/d, vn=b.vx*nx+b.vy*ny; if(vn<0){ b.vx-=2*vn*nx; b.vy-=2*vn*ny; } b.x=cx+nx*R; b.y=cy+ny*R; }
         acerta(k); arrumaAngulo(b);
@@ -435,11 +467,12 @@ function desenha(){
         ctx.font='17px serif'; ctx.fillText(q.p.e,q.x,q.y+1);
     }
     ctx.fillStyle='#ff6aff'; for(const t of tiros) ctx.fillRect(t.x-2,t.y-10,4,14);
+    if(ef.escudo>0){ ctx.fillStyle='rgba(74,208,255,'+(ef.escudo<2&&Math.floor(agora*8)%2?0.25:0.7)+')'; ctx.fillRect(0,PY+40,GW,5); ctx.fillStyle='rgba(74,208,255,0.15)'; ctx.fillRect(0,PY+30,GW,10); }
     desenhaCogu();
     // bolinhas com rastro
     for(const b of bolas){
         for(let k=3;k>=1;k--){ ctx.fillStyle='rgba(255,230,120,'+(0.12*(4-k))+')'; ctx.beginPath(); ctx.arc(b.x-b.vx*k*0.012,b.y-b.vy*k*0.012,R*(1-k*0.15),0,6.283); ctx.fill(); }
-        const gb=ctx.createRadialGradient(b.x-3,b.y-3,1,b.x,b.y,R); gb.addColorStop(0,'#fff'); gb.addColorStop(1,'#ffd23a');
+        const gb=ctx.createRadialGradient(b.x-3,b.y-3,1,b.x,b.y,R); gb.addColorStop(0,'#fff'); gb.addColorStop(1,ef.fogo>0?'#ff5a0a':'#ffd23a');
         ctx.fillStyle=gb; ctx.beginPath(); ctx.arc(b.x,b.y,R,0,6.283); ctx.fill();
     }
     for(const p of parts){ ctx.globalAlpha=Math.min(1,p.v*2); ctx.fillStyle=p.c; ctx.fillRect(p.x-p.tam/2,p.y-p.tam/2,p.tam,p.tam); }

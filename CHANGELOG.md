@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+## v573 (2026-10-25)
+- 🧱 LANÇOU: Quebra-Blocos do Cogu na home, agora com 30 FASES (15 novas: Escada, Muralha, Sorriso, Chocolate, Bomba-Relógio, Arena, Chefão Final...)
+- Poderes novos: 🎱 Chuva de Bolas (+8 bolinhas), ✖️ Bolas x2 (cada bolinha vira duas), 🔥 Bola de Fogo (atravessa quebrando tudo) e 🛡️ Escudo (a bolinha não cai). Agora dá pra ter até 60 bolinhas!
+- 🍄 Chuva de Cogumelos 3: arrumado o bug dos cogumelos que atravessavam a cesta quando caíam rápido
+
 ## v572 (2026-10-25)
 - 🧱 JOGO NÚMERO 70 (ainda escondido): Quebra-Blocos do Cogu! Rebata a bolinha e quebre os tijolos em 15 fases (cogumelo, coração, invasor, fortaleza...). Poderes: 🍄 gigante, ⚡ 3 bolinhas, 🔫 laser, 🧲 ímã, 🐢 lenta, ❤️ vida e 🐜 que encolhe. Tijolos-bomba 💣 explodem em corrente
 
