@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v569 (2026-10-25)
+- 🍄 Botões do YouTube, TikTok e Instagram agora dão 1000 Cogu Coins cada (só uma vez por conta)
+
 ## v568 (2026-10-25)
 - 📢 Lá embaixo da home: botões do YouTube, TikTok e Instagram do Cogumelo Games! Cada um dá 10 Cogu Coins na primeira vez (só uma vez por conta)
 
