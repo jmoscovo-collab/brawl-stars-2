@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v563 (2026-10-24)
+- 🏰 LANÇOU: Defesa da Torre agora está na home! Compre soldadinhos, melhore eles e proteja a torre dos monstros
+
 ## v562 (2026-10-24)
 - 🎨 Defesa da Torre MAIS BONITA: grama com tufinhos, pedrinhas no caminho, moldura de madeira, caverna de onde saem os monstros, castelo novo com torrinhas e bandeira do Cogu, monstros com brilho e boquinha, tiros com rastro, raios e explosões brilhantes, pólen/areia/neve voando, sombras de nuvens passando e menus mais caprichados
 
