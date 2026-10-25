@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v567 (2026-10-25)
+- 🎨 Cogu vs Chefões: CRIAR CHEFÃO! Desenhe o seu chefão, dê um nome, escolha a vida e os ataques de cada fase (Anel, Espiral, Mira, Parede, Laser, Chuva, Bomba) e lute contra ele. Fica salvo em "Meus Chefões"
+
 ## v566 (2026-10-25)
 - 🔥 LANÇOU: Cogu vs Chefões agora está na home!
 - 🔊 Efeitos sonoros novos: o chefão RUGE quando chega, cada chefão tem o som de tiro dele, bip de aviso antes do laser, som dos tiros do Cogu e de quando acerta o chefão
