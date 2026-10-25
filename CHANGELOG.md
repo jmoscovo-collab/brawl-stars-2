@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v577 (2026-10-25)
+- 🎨 JOGO NOVO (ainda escondido): Pinta o Chão! Corra pintando o mapa com a sua cor e roube a tinta dos outros. Em 1 minuto ganha quem pintou mais. Poderes: 💣 bomba de tinta, ⚡ velocidade e 🖌️ pincel gigante. Contra 3 robôs (fácil, médio, difícil), 2 jogadores no mesmo teclado e ONLINE com até 4 (quem faltar vira robô)
+
 ## v576 (2026-10-25)
 - 🚂 JOGO NOVO (ainda escondido): Trem do Cogu! O trem não para: toque nos quadradinhos pra pôr os trilhos na frente dele antes que ele chegue. Pegue os passageiros 🙋 pra ganhar 3 estrelas. 12 fases (cada vez mais rápido e com mais pedras) e modo ♾️ Sem Fim com recorde
 
