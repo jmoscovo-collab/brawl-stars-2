@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v574 (2026-10-25)
+- 🧱 O jogo agora se chama só "Quebra-Blocos"
+
 ## v573 (2026-10-25)
 - 🧱 LANÇOU: Quebra-Blocos do Cogu na home, agora com 30 FASES (15 novas: Escada, Muralha, Sorriso, Chocolate, Bomba-Relógio, Arena, Chefão Final...)
 - Poderes novos: 🎱 Chuva de Bolas (+8 bolinhas), ✖️ Bolas x2 (cada bolinha vira duas), 🔥 Bola de Fogo (atravessa quebrando tudo) e 🛡️ Escudo (a bolinha não cai). Agora dá pra ter até 60 bolinhas!
