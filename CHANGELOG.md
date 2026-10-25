@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v564 (2026-10-25)
+- 🏷️ As características da pesquisa agora ficam escondidas num botãozinho "Características": clica e elas aparecem!
+
 ## v563 (2026-10-24)
 - 🏰 LANÇOU: Defesa da Torre agora está na home! Compre soldadinhos, melhore eles e proteja a torre dos monstros
 
