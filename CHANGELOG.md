@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v575 (2026-10-25)
+- 🧪 JOGO NOVO (ainda escondido): Laboratório Maluco! Misture 2 ou 3 ingredientes (🔥💧🌿⚡❄️🍄) no caldeirão e crie monstrinhos. 21 monstros normais + 6 SECRETOS com dicas no álbum. Modo Encomendas: faça os monstros que os clientes pedem em 1 minuto
+
 ## v574 (2026-10-25)
 - 🧱 O jogo agora se chama só "Quebra-Blocos"
 

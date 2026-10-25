@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>🧪 Laboratório Maluco — Cogumelo Games</title>
+<meta name="description" content="Laboratório Maluco: misture poções no caldeirão e crie monstrinhos! Complete o álbum e descubra as receitas secretas.">
+<script src="/letra.js"></script>
+<script src="/cogucoins.js?v=545"></script>
+<script src="/gamepad.js?v=358"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#1a0f2e;font-family:'Segoe UI',Arial,sans-serif;color:#fff;user-select:none;-webkit-user-select:none}
+#jogo{position:fixed;inset:0;display:flex;flex-direction:column}
+#topo{display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,0,0,.35);flex-wrap:wrap;justify-content:center}
+#topo .t{font-weight:bold;font-size:20px;margin-right:auto}
+.mini{border:2px solid rgba(255,255,255,.5);border-radius:12px;padding:6px 12px;font-weight:bold;font-size:15px;color:#fff;cursor:pointer;font-family:inherit;background:linear-gradient(#7a4aff,#3a1a9a)}
+.mini.ok{background:linear-gradient(#ffb03a,#c06a00)}
+#palco{flex:1;position:relative;min-height:0}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block}
+#hud{position:absolute;top:8px;left:0;right:0;text-align:center;font-weight:bold;font-size:18px;text-shadow:0 2px 4px #000;pointer-events:none}
+#base{background:linear-gradient(#5a3a1a,#3a240e);border-top:5px solid #8a5a2a;padding:8px 6px calc(10px + env(safe-area-inset-bottom))}
+#prateleira{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
+.ing{width:62px;height:72px;border-radius:14px;border:3px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);font-size:30px;cursor:pointer;color:#fff;font-family:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.ing small{font-size:11px;margin-top:4px;font-weight:bold}
+.ing.sel{border-color:#ffd23a;box-shadow:0 0 12px #ffd23a}
+.ing:active{transform:scale(.92)}
+#acoes{display:flex;justify-content:center;gap:10px;margin-top:8px}
+.grande{border:3px solid rgba(255,255,255,.5);border-radius:16px;padding:10px 18px;font-weight:bold;font-size:20px;color:#fff;cursor:pointer;font-family:inherit}
+.verde{background:linear-gradient(#4ccf6a,#1f8a3a)} .verm{background:linear-gradient(#ff4a6a,#a01a3a)}
+.grande:disabled{opacity:.45}
+.tela{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;overflow-y:auto;padding:16px 12px 60px;background:rgba(15,5,35,.94);z-index:5}
+.tela h2{font-size:30px;margin:6px 0;text-align:center}
+.sub{color:#e0d8ff;margin:6px 0 12px;text-align:center;max-width:520px;line-height:1.4;font-size:16px}
+#grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;width:100%;max-width:640px}
+.card{background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.2);border-radius:14px;padding:4px;text-align:center;cursor:pointer}
+.card.sec{border-color:#ffd23a;background:rgba(255,210,58,.1)}
+.card canvas{width:96px;height:96px;display:block;margin:0 auto}
+.card b{display:block;font-size:13px;min-height:16px}
+.card i{display:block;font-style:normal;font-size:15px;min-height:18px}
+.card .dica{font-size:11px;color:#ffd23a;line-height:1.2}
+.btn{display:block;width:280px;max-width:90vw;margin:6px auto;padding:13px;border-radius:16px;border:3px solid rgba(255,255,255,.5);color:#fff;font-weight:bold;font-size:19px;cursor:pointer;font-family:inherit;background:linear-gradient(#7a4aff,#3a1a9a)}
+#inicio{display:flex;background:radial-gradient(circle at 50% 20%,#4a2a8a,#140a2a 75%)}
+#inicio h1{font-size:40px;text-shadow:0 4px 0 #2a0a5a,0 0 20px rgba(160,255,120,.7);margin-top:10px;text-align:center}
+.voltar{color:#e0d8ff;margin-top:12px;font-size:14px}
+#pedido{position:absolute;top:62px;left:50%;transform:translateX(-50%);background:#fff8e0;color:#3a2a00;border-radius:16px;padding:6px 12px;display:none;align-items:center;gap:8px;font-weight:bold;box-shadow:0 4px 0 #b08a3a}
+#pedido canvas{width:70px;height:70px}
+</style>
+</head>
+<body>
+<div class="tela" id="inicio">
+  <h1>🧪 Laboratório Maluco</h1>
+  <div class="sub">Coloque <b>2 ou 3 ingredientes</b> no caldeirão e aperte <b>MISTURAR</b> pra criar um monstrinho! Cada mistura dá um monstro diferente. Complete o <b>álbum</b> e descubra as <b>receitas secretas</b> 🤫</div>
+  <div class="sub" id="progIni" style="font-size:20px;color:#ffd23a;font-weight:bold"></div>
+  <button class="btn" id="bLab" style="background:linear-gradient(#4ccf6a,#1f8a3a)">🧪 Entrar no laboratório</button>
+  <button class="btn" id="bEnc" style="background:linear-gradient(#ffb03a,#c06a00)">📦 Encomendas (1 minuto)</button>
+  <button class="btn" id="bAlbIni">📖 Álbum de monstros</button>
+  <div class="sub" style="font-size:14px">💻 Teclas 1 a 6 = ingredientes · Espaço/Enter = misturar · Backspace = esvaziar<br>🎮 Controle: ← → escolhe · ❌ coloca · ⬜ mistura · ↓ esvazia</div>
+  <a class="voltar" href="/">⬅ Voltar pro Cogumelo Games</a>
+</div>
+
+<div id="jogo">
+  <div id="topo">
+    <span class="t">🧪 Laboratório</span>
+    <button class="mini ok" id="bAlb">📖 Álbum <span id="cont"></span></button>
+    <button class="mini" id="bSair">🏠</button>
+  </div>
+  <div id="palco">
+    <canvas id="c"></canvas>
+    <div id="hud"></div>
+    <div id="pedido"><span>Quero um:</span><canvas id="pedC" width="140" height="140"></canvas><span id="pedN"></span></div>
+  </div>
+  <div id="base">
+    <div id="prateleira"></div>
+    <div id="acoes">
+      <button class="grande verm" id="bLimpa">🗑️</button>
+      <button class="grande verde" id="bMix">🧪 MISTURAR!</button>
+    </div>
+  </div>
+</div>
+
+<div class="tela" id="album">
+  <h2>📖 Álbum de Monstros</h2>
+  <div class="sub" id="albSub"></div>
+  <div id="grade"></div>
+  <button class="btn" id="bAlbVolta">⬅ Voltar</button>
+</div>
+
+<div class="tela" id="fimEnc" style="justify-content:center">
+  <h2>📦 Acabou o tempo!</h2>
+  <div class="sub" id="fimTxt" style="font-size:22px"></div>
+  <button class="btn" id="bEncDeNovo" style="background:linear-gradient(#ffb03a,#c06a00)">🔁 Jogar de novo</button>
+  <button class="btn" id="bEncSai">🏠 Início</button>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('c'), ctx=cv.getContext('2d');
+
+// ---------- ingredientes e monstros ----------
+const ING=[
+ {e:'🔥',n:'Fogo',cor:[255,90,42]},
+ {e:'💧',n:'Água',cor:[58,160,255]},
+ {e:'🌿',n:'Planta',cor:[76,207,74]},
+ {e:'⚡',n:'Raio',cor:[255,226,58]},
+ {e:'❄️',n:'Gelo',cor:[190,240,255]},
+ {e:'🍄',n:'Cogumelo',cor:[224,64,90]}
+];
+// receitas de 2 ingredientes (chave = números em ordem)
+const NOMES={
+ '00':'Fogaréu','01':'Vaporzinho','02':'Pimentossauro','03':'Faiscaroto','04':'Derretido','05':'Cogu-Chama',
+ '11':'Gotudo','12':'Sapolhinha','13':'Choquinho','14':'Pinguinzão','15':'Medusogu',
+ '22':'Folhudo','23':'Cactrovão','24':'Pinheirito','25':'Musgolino',
+ '33':'Trovãozão','34':'Granizão','35':'Cogu-Elétrico',
+ '44':'Geladinho','45':'Sorvetogu',
+ '55':'Cogumelão'
+};
+// receitas SECRETAS de 3 ingredientes
+const SECRETAS={
+ '555':{n:'Rei Cogumelo',x:'coroa',d:'O rei só come uma coisa... três vezes!'},
+ '035':{n:'Dragão Cogu',x:'asas',d:'Fogo, raio e o ingrediente da casa'},
+ '125':{n:'Capivara Mágica',x:'capi',d:'Água, planta e cogumelo: o lanche dela'},
+ '014':{n:'Arco-Íris Maluco',x:'arco',d:'Quente, molhado e gelado ao mesmo tempo'},
+ '000':{n:'Meteorão',x:'cometa',d:'Muito, muito, MUITO fogo'},
+ '234':{n:'Yeti Elétrico',x:'pelo',d:'Planta, raio e gelo da montanha'}
+};
+const TODOS=Object.keys(NOMES).concat(Object.keys(SECRETAS));
+const chave=r=>r.slice().sort((a,b)=>a-b).join('');
+const nomeDe=k=>NOMES[k]||(SECRETAS[k]&&SECRETAS[k].n)||'Gosma';
+function hashK(k){ let h=7; for(const ch of k) h=(h*31+ch.charCodeAt(0))>>>0; return h; }
+
+// ---------- save ----------
+let save={a:{},rec:0};
+try{ const s=JSON.parse(localStorage.getItem('lab_save')); if(s&&s.a) save=s; }catch(e){}
+function grava(){ try{ localStorage.setItem('lab_save',JSON.stringify(save)); }catch(e){} }
+const achados=()=>TODOS.filter(k=>save.a[k]).length;
+const achadosNormais=()=>Object.keys(NOMES).filter(k=>save.a[k]).length;
+function moedas(n){ try{ if(window.CoguCoins) CoguCoins.ganha(n); }catch(e){} }
+
+// ---------- som ----------
+let AC=null;
+function audio(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(AC&&AC.state==='suspended') AC.resume(); }
+function bip(f,d,tipo,vol,f2){ if(!AC) return; const o=AC.createOscillator(), g=AC.createGain(), t=AC.currentTime;
+    o.type=tipo||'sine'; o.frequency.setValueAtTime(f,t); if(f2) o.frequency.exponentialRampToValueAtTime(f2,t+d);
+    g.gain.setValueAtTime(vol||.15,t); g.gain.exponentialRampToValueAtTime(.001,t+d); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+d); }
+const som={
+    plop:()=>bip(300,.15,'sine',.2,700),
+    borbulha:()=>{ for(let i=0;i<6;i++) setTimeout(()=>bip(200+Math.random()*300,.08,'sine',.12,500),i*120); },
+    novo:()=>[523,659,784,1046].forEach((f,i)=>setTimeout(()=>bip(f,.18,'triangle',.18),i*110)),
+    secreto:()=>[523,659,784,1046,1318,1568].forEach((f,i)=>setTimeout(()=>bip(f,.22,'square',.1),i*100)),
+    velho:()=>bip(500,.2,'triangle',.15,650),
+    gosma:()=>bip(220,.5,'sawtooth',.12,60),
+    certo:()=>[784,1046].forEach((f,i)=>setTimeout(()=>bip(f,.15,'triangle',.18),i*90)),
+    errado:()=>bip(180,.3,'square',.1,120)
+};
+
+// ---------- desenho do monstro ----------
+const rgb=(c,k=1)=>`rgb(${Math.min(255,c[0]*k|0)},${Math.min(255,c[1]*k|0)},${Math.min(255,c[2]*k|0)})`;
+function corDe(k){
+    if(k==='gosma') return [130,150,60];
+    const s=SECRETAS[k];
+    if(s&&s.x==='capi') return [170,110,60];
+    if(s&&s.x==='pelo') return [235,240,255];
+    const c=[0,0,0]; for(const ch of k){ const i=ING[+ch].cor; c[0]+=i[0]; c[1]+=i[1]; c[2]+=i[2]; }
+    return c.map(v=>v/k.length);
+}
+function chama(c,x,y,s,t){
+    for(let i=0;i<3;i++){ const w=s*(1-i*.28), a=Math.sin(t*12+i*2)*s*.12;
+        c.fillStyle=['#ff4a1a','#ff9a1a','#ffe23a'][i];
+        c.beginPath(); c.moveTo(x-w*.5,y); c.quadraticCurveTo(x-w*.5,y-s*.9,x+a,y-s*1.5*(1-i*.15)); c.quadraticCurveTo(x+w*.5,y-s*.9,x+w*.5,y); c.closePath(); c.fill(); }
+}
+function folha(c,x,y,s,ang){
+    c.save(); c.translate(x,y); c.rotate(ang); c.fillStyle='#2fa83a'; c.strokeStyle='#1a6a20'; c.lineWidth=2;
+    c.beginPath(); c.moveTo(0,0); c.quadraticCurveTo(s*.5,-s*.5,0,-s*1.2); c.quadraticCurveTo(-s*.5,-s*.5,0,0); c.fill(); c.stroke();
+    c.beginPath(); c.moveTo(0,0); c.lineTo(0,-s); c.stroke(); c.restore();
+}
+function antena(c,x,y,s,t){
+    c.strokeStyle='#ffd23a'; c.lineWidth=4; c.lineJoin='round'; c.beginPath(); c.moveTo(x,y);
+    c.lineTo(x+s*.3,y-s*.4); c.lineTo(x-s*.2,y-s*.7); c.lineTo(x+s*.25,y-s*1.1); c.stroke();
+    c.fillStyle=(t*4|0)%2?'#fff':'#ffe23a'; c.beginPath(); c.arc(x+s*.25,y-s*1.15,s*.16,0,7); c.fill();
+}
+function chapeu(c,x,y,s){
+    c.fillStyle='#e0303a'; c.strokeStyle='#801018'; c.lineWidth=3;
+    c.beginPath(); c.ellipse(x,y,s*1.1,s*.75,0,Math.PI,0); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle='#fff'; [[-.5,-.3,.18],[.15,-.55,.2],[.6,-.2,.15]].forEach(p=>{ c.beginPath(); c.arc(x+p[0]*s,y+p[1]*s,p[2]*s,0,7); c.fill(); });
+}
+function cristal(c,x,y,s,ang){
+    c.save(); c.translate(x,y); c.rotate(ang); c.fillStyle='#d8f6ff'; c.strokeStyle='#6ac0e0'; c.lineWidth=2;
+    c.beginPath(); c.moveTo(-s*.25,0); c.lineTo(0,-s); c.lineTo(s*.25,0); c.closePath(); c.fill(); c.stroke(); c.restore();
+}
+// desenha o monstro da receita k, centrado em (x,y), com tamanho sz (~altura)
+function desenhaMonstro(c,k,x,y,sz,t,sombra){
+    const h=hashK(k), cor=corDe(k), cnt=[0,0,0,0,0,0];
+    if(k!=='gosma') for(const ch of k) cnt[+ch]++;
+    const sec=SECRETAS[k]||null, X=sec?sec.x:'';
+    c.save(); c.translate(x,y); c.scale(sz/100,sz/100);
+    if(sombra){ c.fillStyle='#000'; c.globalAlpha=.85; }
+    const pula=Math.abs(Math.sin(t*3+h%7))*6;
+    // sombra no chão
+    if(!sombra){ c.fillStyle='rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(0,46,34-pula,7,0,0,7); c.fill(); }
+    c.translate(0,-pula);
+    const forma=h%3, bw=[44,36,54][forma], bh=[40,48,34][forma], cy=44-bh;
+    const F=sombra?()=>'#000':rgb;
+    // aura dourada dos secretos
+    if(sec&&!sombra){ const g=c.createRadialGradient(0,cy,10,0,cy,90); g.addColorStop(0,'rgba(255,230,90,.55)'); g.addColorStop(1,'rgba(255,230,90,0)'); c.fillStyle=g; c.beginPath(); c.arc(0,cy,90,0,7); c.fill(); }
+    // coisas atrás do corpo
+    if(X==='asas'){ c.fillStyle=sombra?'#000':'#a02a2a'; for(const sx of [-1,1]){ c.beginPath(); c.moveTo(sx*bw*.6,cy-10); c.lineTo(sx*(bw+40),cy-50+Math.sin(t*8)*10); c.lineTo(sx*(bw+30),cy-10); c.lineTo(sx*(bw+38),cy+8); c.lineTo(sx*bw*.6,cy+10); c.fill(); } }
+    if(X==='cometa'&&!sombra){ for(let i=0;i<5;i++){ c.fillStyle=`rgba(255,${120+i*25},40,${.5-i*.08})`; c.beginPath(); c.arc(-bw-i*14,cy-i*10+Math.sin(t*10+i)*3,bw*.7-i*5,0,7); c.fill(); } }
+    if(cnt[4]&&X!=='pelo') for(let i=0;i<2+cnt[4]*2;i++){ const a=-2.4+i*(1.6/(1+cnt[4]*2)); if(!sombra) cristal(c,Math.cos(a)*bw*.9,cy+Math.sin(a)*bh*.9,18+cnt[4]*4,a+Math.PI/2); }
+    if(cnt[1]&&!sombra){ c.fillStyle=rgb([58,140,240]); for(const sx of [-1,1]){ c.beginPath(); c.moveTo(sx*bw*.8,cy); c.quadraticCurveTo(sx*(bw+22),cy-8+Math.sin(t*6)*5,sx*(bw+16),cy+18); c.closePath(); c.fill(); } }
+    // pés
+    c.fillStyle=F(cor,.6); c.beginPath(); c.ellipse(-bw*.45,42,12,7,0,0,7); c.ellipse(bw*.45,42,12,7,0,0,7); c.fill();
+    // bracinhos
+    c.strokeStyle=F(cor,.7); c.lineWidth=8; c.lineCap='round';
+    const ab=Math.sin(t*5+h)*8;
+    c.beginPath(); c.moveTo(-bw*.85,cy+6); c.lineTo(-bw-12,cy-4+ab); c.moveTo(bw*.85,cy+6); c.lineTo(bw+12,cy-4-ab); c.stroke();
+    // corpo
+    c.fillStyle=F(cor); c.strokeStyle=F(cor,.55); c.lineWidth=4;
+    c.beginPath(); c.ellipse(0,cy,bw,bh,0,0,7); c.fill(); c.stroke();
+    if(sombra){ c.restore(); return; }
+    if(X==='arco'){ c.save(); c.beginPath(); c.ellipse(0,cy,bw-2,bh-2,0,0,7); c.clip(); ['#ff3a3a','#ff9a1a','#ffe23a','#4ccf4a','#3aa0ff','#9a4aff'].forEach((co,i)=>{ c.fillStyle=co; c.fillRect(-bw,cy-bh+i*bh*2/6,bw*2,bh*2/6+1); }); c.restore(); }
+    if(X==='pelo'){ c.strokeStyle='#c8d4ff'; c.lineWidth=2; for(let i=0;i<22;i++){ const a=i/22*Math.PI*2; c.beginPath(); c.moveTo(Math.cos(a)*bw*.9,cy+Math.sin(a)*bh*.9); c.lineTo(Math.cos(a)*(bw+7),cy+Math.sin(a)*(bh+7)); c.stroke(); } }
+    // barriga
+    c.fillStyle='rgba(255,255,255,.25)'; c.beginPath(); c.ellipse(0,cy+bh*.35,bw*.55,bh*.45,0,0,7); c.fill();
+    // pintas de planta
+    if(cnt[2]){ c.fillStyle='rgba(30,120,40,.6)'; for(let i=0;i<3+cnt[2]*2;i++){ const a=(h>>i)%628/100; c.beginPath(); c.arc(Math.cos(a)*bw*.6,cy+Math.sin(a)*bh*.6,4,0,7); c.fill(); } }
+    // carinha
+    const nOlhos=X==='capi'?2:1+(h>>3)%3, oy=cy-bh*.25;
+    const pisca=((t+h%5)%4)<.12;
+    for(let i=0;i<nOlhos;i++){
+        const ox=nOlhos===1?0:(i-(nOlhos-1)/2)*bw*.55, r=nOlhos===1?13:9;
+        c.fillStyle='#fff'; c.strokeStyle='#222'; c.lineWidth=2;
+        if(pisca){ c.beginPath(); c.moveTo(ox-r,oy); c.lineTo(ox+r,oy); c.stroke(); continue; }
+        c.beginPath(); c.arc(ox,oy,r,0,7); c.fill(); c.stroke();
+        c.fillStyle='#111'; c.beginPath(); c.arc(ox+Math.sin(t*1.3)*r*.3,oy+2,r*.5,0,7); c.fill();
+        c.fillStyle='#fff'; c.beginPath(); c.arc(ox+Math.sin(t*1.3)*r*.3-2,oy-1,r*.18,0,7); c.fill();
+    }
+    // boca
+    const my=cy+bh*.25; c.strokeStyle='#3a0a0a'; c.lineWidth=3;
+    if(cnt[0]||cnt[3]){ c.fillStyle='#3a0a0a'; c.beginPath(); c.ellipse(0,my,14,8,0,0,Math.PI); c.fill();
+        c.fillStyle='#fff'; for(let i=-1;i<=1;i++){ c.beginPath(); c.moveTo(i*8-3,my); c.lineTo(i*8,my+5); c.lineTo(i*8+3,my); c.fill(); } }
+    else { c.beginPath(); c.arc(0,my-4,10,.2,Math.PI-.2); c.stroke();
+        if(cnt[5]){ c.fillStyle='#ff6a8a'; c.beginPath(); c.ellipse(3,my+6,5,4,0,0,7); c.fill(); } }
+    if(k==='gosma'){ c.fillStyle='rgba(120,160,40,.8)'; for(let i=0;i<4;i++){ c.beginPath(); c.ellipse(-bw*.6+i*bw*.4,cy+bh*.8+Math.sin(t*3+i)*4,5,10,0,0,7); c.fill(); } }
+    // coisas em cima da cabeça
+    const topo=cy-bh+4, tops=[];
+    if(cnt[0]&&X!=='cometa') tops.push('fogo'); if(cnt[2]) tops.push('folha'); if(cnt[3]) tops.push('raio'); if(cnt[5]&&X!=='coroa'&&X!=='capi') tops.push('cogu');
+    tops.forEach((tp,i)=>{
+        const px=tops.length===1?0:(i-(tops.length-1)/2)*bw*.6, py=topo+Math.abs(px)*.25;
+        if(tp==='fogo') chama(c,px,py+4,16+cnt[0]*6,t);
+        if(tp==='folha'){ folha(c,px,py,16+cnt[2]*4,-.4); if(cnt[2]>1) folha(c,px+4,py,14,.5); }
+        if(tp==='raio') antena(c,px,py,24+cnt[3]*6,t);
+        if(tp==='cogu') chapeu(c,px,py+2,14+cnt[5]*5);
+    });
+    if(X==='coroa'){ chapeu(c,0,topo+6,bw*.8); c.fillStyle='#ffd23a'; c.strokeStyle='#a07a00'; c.lineWidth=2; const cy2=topo-bw*.5;
+        c.beginPath(); c.moveTo(-18,cy2); c.lineTo(-18,cy2-18); c.lineTo(-9,cy2-8); c.lineTo(0,cy2-22); c.lineTo(9,cy2-8); c.lineTo(18,cy2-18); c.lineTo(18,cy2); c.closePath(); c.fill(); c.stroke(); }
+    if(X==='capi'){ c.fillStyle=rgb(cor,.7); c.beginPath(); c.arc(-bw*.55,topo+4,8,0,7); c.arc(bw*.55,topo+4,8,0,7); c.fill();
+        c.fillStyle='#3a2010'; c.beginPath(); c.ellipse(0,cy+2,10,6,0,0,7); c.fill();
+        chapeu(c,0,topo+2,13); c.strokeStyle='#8a5a2a'; c.lineWidth=4; c.beginPath(); c.moveTo(bw+12,cy-4-ab); c.lineTo(bw+22,cy-34-ab); c.stroke();
+        c.font='20px serif'; c.textAlign='center'; c.fillText('⭐',bw+24,cy-34-ab); }
+    if(X==='asas'){ c.fillStyle='#ffe23a'; for(const sx of [-1,1]){ c.beginPath(); c.moveTo(sx*bw*.3,topo+6); c.lineTo(sx*bw*.45,topo-14); c.lineTo(sx*bw*.6,topo+10); c.fill(); } }
+    c.restore();
+}
+
+// ---------- tela e caldeirão ----------
+let W=0,H=0,DPR=1;
+function resize(){ const r=cv.getBoundingClientRect(); DPR=Math.min(1.5,devicePixelRatio||1); W=r.width; H=r.height; cv.width=W*DPR; cv.height=H*DPR; }
+addEventListener('resize',resize);
+
+let pote=[], estado='parado', anim=0, resultado=null, voando=[], bolhas=[], selIng=0, modo='lab';
+function corPote(){ if(!pote.length) return [80,200,120]; const c=[0,0,0]; pote.forEach(i=>{ c[0]+=ING[i].cor[0]; c[1]+=ING[i].cor[1]; c[2]+=ING[i].cor[2]; }); return c.map(v=>v/pote.length); }
+
+function montaPrateleira(){
+    $('prateleira').innerHTML=ING.map((g,i)=>`<button class="ing${i===selIng?' sel':''}" data-i="${i}">${g.e}<small>${i+1} ${g.n}</small></button>`).join('');
+    $('prateleira').querySelectorAll('.ing').forEach(b=>b.onclick=()=>{ selIng=+b.dataset.i; marcaSel(); poe(selIng); });
+}
+function marcaSel(){ $('prateleira').querySelectorAll('.ing').forEach((b,i)=>b.classList.toggle('sel',i===selIng)); }
+function atualizaBotoes(){ $('bMix').disabled=pote.length<2||estado!=='parado'; $('cont').textContent=achados()+'/'+TODOS.length; }
+
+function poe(i){
+    audio();
+    if(estado==='mostra'){ estado='parado'; resultado=null; }
+    if(estado!=='parado'||pote.length>=3) return;
+    pote.push(i); som.plop();
+    voando.push({e:ING[i].e,t:0,x0:(0.15+i*0.14),i});
+    atualizaBotoes();
+}
+function limpa(){ if(estado==='borbulha') return; pote=[]; resultado=null; estado='parado'; atualizaBotoes(); }
+function mistura(){
+    audio();
+    if(estado!=='parado'||pote.length<2) return;
+    estado='borbulha'; anim=0; som.borbulha(); atualizaBotoes();
+}
+function terminaMistura(){
+    const k=chave(pote);
+    let tipo;
+    if(pote.length===3&&!SECRETAS[k]) tipo='gosma';
+    else if(save.a[k]) tipo='velho';
+    else tipo=SECRETAS[k]?'secreto':'novo';
+    const kk=tipo==='gosma'?'gosma':k;
+    resultado={k:kk,tipo,t:0};
+    if(tipo==='novo'){ save.a[k]=1; grava(); moedas(5); som.novo(); }
+    else if(tipo==='secreto'){ save.a[k]=1; grava(); moedas(20); som.secreto(); }
+    else if(tipo==='gosma') som.gosma(); else som.velho();
+    if(modo==='enc') confereEncomenda(kk);
+    pote=[]; estado='mostra'; anim=0; atualizaBotoes();
+}
+
+// ---------- encomendas ----------
+let enc={pontos:0,tempo:0,quer:null};
+function comecaEnc(){
+    if(Object.keys(save.a).length<3){ alert('Descubra pelo menos 3 monstros no laboratório antes! 🧪'); return; }
+    modo='enc'; enc={pontos:0,tempo:60,quer:null}; abreLab(); novaEncomenda();
+}
+function novaEncomenda(){
+    const l=TODOS.filter(k=>save.a[k]&&k!==enc.quer); enc.quer=l[Math.floor(Math.random()*l.length)]||Object.keys(save.a)[0];
+    $('pedN').textContent=nomeDe(enc.quer); $('pedido').style.display='flex';
+}
+function confereEncomenda(k){
+    if(k===enc.quer){ enc.pontos++; enc.tempo+=3; som.certo(); setTimeout(novaEncomenda,500); }
+    else { enc.tempo=Math.max(0,enc.tempo-3); setTimeout(som.errado,200); }
+}
+function acabaEnc(){
+    modo='lab'; $('pedido').style.display='none';
+    const rec=enc.pontos>(save.rec||0); if(rec){ save.rec=enc.pontos; grava(); }
+    if(enc.pontos) moedas(enc.pontos);
+    $('fimTxt').innerHTML=`Você entregou <b>${enc.pontos}</b> monstro${enc.pontos===1?'':'s'}! 📦<br>${rec?'🏆 RECORDE NOVO!':'Recorde: '+(save.rec||0)}<br><span style="color:#ffd23a">+${enc.pontos} 🍄 Cogu Coins</span>`;
+    abre('fimEnc');
+}
+
+// ---------- telas ----------
+function abre(id){ ['inicio','album','fimEnc'].forEach(t=>$(t).style.display=t===id?'flex':'none'); }
+function abreLab(){ abre(null); pote=[]; resultado=null; estado='parado'; montaPrateleira(); resize(); atualizaBotoes(); }
+function inicio(){ modo='lab'; $('pedido').style.display='none'; abre('inicio');
+    $('progIni').textContent='📖 '+achados()+' de '+TODOS.length+' monstros descobertos'+(save.rec?' · 📦 recorde '+save.rec:''); }
+let albumDe='inicio';
+function abreAlbum(de){
+    albumDe=de; abre('album');
+    const nn=achadosNormais(), dicas=Math.floor(nn/4);
+    $('albSub').innerHTML=`Você achou <b>${achados()}</b> de <b>${TODOS.length}</b>! Cada 4 monstros normais libera uma dica secreta 🤫`;
+    let i=0;
+    $('grade').innerHTML=TODOS.map(k=>{
+        const sec=!!SECRETAS[k], tem=!!save.a[k];
+        const rec=tem?[...k].map(ch=>ING[+ch].e).join(' + '):'';
+        let dica='';
+        if(sec&&!tem){ const idx=Object.keys(SECRETAS).indexOf(k); dica=idx<dicas?'💡 '+SECRETAS[k].d:'🔒 dica com '+(idx+1)*4+' monstros'; }
+        return `<div class="card${sec?' sec':''}"><canvas data-k="${k}" data-tem="${tem?1:0}" width="144" height="144"></canvas><b>${tem?nomeDe(k):'???'}</b><i>${rec}</i>${dica?'<div class="dica">'+dica+'</div>':''}</div>`;
+    }).join('');
+    desenhaAlbum(0);
+}
+function desenhaAlbum(t){
+    $('grade').querySelectorAll('canvas').forEach(c=>{ const g=c.getContext('2d'); g.clearRect(0,0,144,144); desenhaMonstro(g,c.dataset.k,72,94,90,t,c.dataset.tem!=='1'); });
+}
+
+$('bLab').onclick=()=>{ audio(); modo='lab'; abreLab(); };
+$('bEnc').onclick=()=>{ audio(); comecaEnc(); };
+$('bAlbIni').onclick=()=>abreAlbum('inicio');
+$('bAlb').onclick=()=>{ if(modo==='enc') return; abreAlbum('lab'); };
+$('bAlbVolta').onclick=()=>{ if(albumDe==='lab') abre(null); else inicio(); };
+$('bSair').onclick=()=>{ if(modo==='enc'){ enc.tempo=0; return; } inicio(); };
+$('bMix').onclick=mistura; $('bLimpa').onclick=limpa;
+$('bEncDeNovo').onclick=comecaEnc; $('bEncSai').onclick=inicio;
+
+addEventListener('keydown',e=>{
+    if($('inicio').style.display!=='none'||$('album').style.display==='flex'||$('fimEnc').style.display==='flex'){
+        if(e.key==='Enter'&&$('inicio').style.display!=='none'){ audio(); modo='lab'; abreLab(); }
+        return;
+    }
+    if(e.key>='1'&&e.key<='6'){ selIng=+e.key-1; marcaSel(); poe(selIng); }
+    else if(e.key==='ArrowLeft'){ selIng=(selIng+5)%6; marcaSel(); }
+    else if(e.key==='ArrowRight'){ selIng=(selIng+1)%6; marcaSel(); }
+    else if(e.code==='Space'){ e.preventDefault(); if(e.isTrusted) mistura(); else poe(selIng); }
+    else if(e.key==='Enter'){ if(e.isTrusted) mistura(); }
+    else if(e.key==='e'||e.key==='j') mistura();
+    else if(e.key==='Backspace'||e.key==='ArrowDown'||e.key==='Delete') limpa();
+});
+
+// ---------- loop ----------
+let ult=performance.now(), T=0;
+function loop(agora){
+    const dt=Math.min(.05,(agora-ult)/1000); ult=agora; T+=dt;
+    if($('album').style.display==='flex'){ desenhaAlbum(T); requestAnimationFrame(loop); return; }
+    if(modo==='enc'&&$('jogo').style.display!=='none'&&$('inicio').style.display==='none'&&$('fimEnc').style.display!=='flex'){
+        enc.tempo-=dt; if(enc.tempo<=0){ enc.tempo=0; acabaEnc(); }
+        else { const g=$('pedC').getContext('2d'); g.clearRect(0,0,140,140); desenhaMonstro(g,enc.quer,70,92,86,T,false); }
+    }
+    if(estado==='borbulha'){ anim+=dt; if(anim>1.3) terminaMistura(); }
+    if(estado==='mostra'&&resultado) resultado.t+=dt;
+    desenha(dt);
+    requestAnimationFrame(loop);
+}
+function desenha(dt){
+    if(!W){ resize(); if(!W) return; }
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    // parede do laboratório
+    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#2a1a4a'); g.addColorStop(1,'#140a26'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(255,255,255,.04)'; for(let y=0;y<H;y+=30) for(let x=(y/30%2)*30;x<W;x+=60) ctx.fillRect(x,y,58,28);
+    // frascos decorativos
+    const fr=['#ff5a2a','#3aa0ff','#4ccf4a','#ffe23a','#c04aff'];
+    for(let i=0;i<5;i++){ const fx=W*(.08+i*.21), fy=40; ctx.fillStyle='rgba(255,255,255,.12)'; ctx.fillRect(fx-10,fy-18,20,10);
+        ctx.fillStyle=fr[i]; ctx.globalAlpha=.5; ctx.beginPath(); ctx.arc(fx,fy+8,15,0,7); ctx.fill(); ctx.globalAlpha=1; }
+    ctx.fillStyle='#4a2a14'; ctx.fillRect(0,62,W,8);
+    // tamanho do caldeirão
+    const s=Math.min(W,H*1.2)/420, px=W/2, py=H-80*s;
+    const cor=corPote();
+    // fogo embaixo
+    for(let i=-2;i<=2;i++) chama(ctx,px+i*26*s,py+70*s,22*s,T+i);
+    // monstro saindo
+    if(estado==='mostra'&&resultado){
+        const r=resultado, sobe=Math.min(1,r.t*2.2), ms=Math.min(H*.55,170*s)*(.4+.6*sobe);
+        if(r.tipo==='secreto'||r.tipo==='novo'){ ctx.save(); ctx.translate(px,py-ms*.6); ctx.rotate(T*.6); ctx.fillStyle=r.tipo==='secreto'?'rgba(255,215,60,.25)':'rgba(255,255,255,.12)';
+            for(let i=0;i<10;i++){ ctx.rotate(Math.PI/5); ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-20*s,-260*s); ctx.lineTo(20*s,-260*s); ctx.fill(); } ctx.restore(); }
+        desenhaMonstro(ctx,r.k,px,py-30*s-ms*.55*sobe,ms,T,false);
+    }
+    // caldeirão
+    ctx.fillStyle='#2a2a34'; ctx.strokeStyle='#111'; ctx.lineWidth=4*s;
+    ctx.beginPath(); ctx.moveTo(px-110*s,py-30*s); ctx.quadraticCurveTo(px-120*s,py+70*s,px,py+72*s); ctx.quadraticCurveTo(px+120*s,py+70*s,px+110*s,py-30*s); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#3a3a48'; ctx.beginPath(); ctx.ellipse(px,py-30*s,118*s,24*s,0,0,7); ctx.fill(); ctx.stroke();
+    const tremor=estado==='borbulha'?Math.sin(T*40)*3*s:0;
+    ctx.fillStyle=rgb(cor); ctx.beginPath(); ctx.ellipse(px+tremor,py-30*s,104*s,17*s,0,0,7); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.25)'; ctx.beginPath(); ctx.ellipse(px-30*s,py-34*s,30*s,5*s,0,0,7); ctx.fill();
+    // bolhas
+    if(Math.random()<(estado==='borbulha'?.9:.12)) bolhas.push({x:px+(Math.random()-.5)*180*s,y:py-30*s,r:(3+Math.random()*(estado==='borbulha'?10:5))*s,v:(30+Math.random()*60)*s,t:0});
+    bolhas=bolhas.filter(b=>{ b.t+=dt; b.y-=b.v*dt; ctx.strokeStyle=rgb(cor,1.3); ctx.lineWidth=2; ctx.globalAlpha=Math.max(0,1-b.t); ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,7); ctx.stroke(); ctx.globalAlpha=1; return b.t<1; });
+    // fumaça da mistura
+    if(estado==='borbulha'){ for(let i=0;i<6;i++){ ctx.fillStyle=`rgba(${rgb(cor).slice(4,-1)},.35)`; ctx.beginPath(); ctx.arc(px+Math.sin(T*5+i)*60*s,py-60*s-((T*80+i*40)%160)*s,(20+i*4)*s,0,7); ctx.fill(); } }
+    // ingredientes voando
+    voando=voando.filter(v=>{ v.t+=dt*2.2; const a=Math.min(1,v.t), sx=W*v.x0, sy=H+10;
+        const x=sx+(px-sx)*a, y=sy+(py-40*s-sy)*a-Math.sin(a*Math.PI)*120*s;
+        ctx.font=(34*s|0)+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(v.e,x,y); return v.t<1; });
+    // o que tem no pote
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    for(let i=0;i<3;i++){ const x=px+(i-1)*56*s, y=py+20*s; ctx.fillStyle='rgba(255,255,255,.12)'; ctx.beginPath(); ctx.arc(x,y,22*s,0,7); ctx.fill();
+        if(pote[i]!==undefined){ ctx.font=(28*s|0)+'px serif'; ctx.fillText(ING[pote[i]].e,x,y+2*s); } }
+    // texto de cima
+    let txt='';
+    if(estado==='parado') txt=pote.length===0?'Escolha os ingredientes! 👇':pote.length===1?'Mais um! (ou dois 🤫)':'Aperte MISTURAR! 🧪';
+    if(estado==='borbulha') txt='Borbulhando... ♨️';
+    if(estado==='mostra'&&resultado){ const r=resultado;
+        txt=r.tipo==='novo'?'✨ NOVO! '+nomeDe(r.k)+' +5 🍄':r.tipo==='secreto'?'🌟 SECRETO!!! '+nomeDe(r.k)+' +20 🍄':r.tipo==='gosma'?'🤢 Eca! Virou gosma... tente outra':'Ah, o '+nomeDe(r.k)+' de novo 😄'; }
+    const hud=modo==='enc'?`⏱️ ${Math.ceil(enc.tempo)}s · 📦 ${enc.pontos}`+(estado==='mostra'?'<br><span style="font-size:15px">'+txt+'</span>':''):txt;
+    if(hud!==desenha.hud){ desenha.hud=hud; $('hud').innerHTML=hud; }
+}
+
+inicio();
+montaPrateleira();
+requestAnimationFrame(loop);
+// ganchos de teste
+window.__lab={poe,mistura,save:()=>save,terminaMistura,abreAlbum,chave};
+</script>
+</body>
+</html>
