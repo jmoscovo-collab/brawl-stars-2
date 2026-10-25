@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v572 (2026-10-25)
+- 🧱 JOGO NÚMERO 70 (ainda escondido): Quebra-Blocos do Cogu! Rebata a bolinha e quebre os tijolos em 15 fases (cogumelo, coração, invasor, fortaleza...). Poderes: 🍄 gigante, ⚡ 3 bolinhas, 🔫 laser, 🧲 ímã, 🐢 lenta, ❤️ vida e 🐜 que encolhe. Tijolos-bomba 💣 explodem em corrente
+
 ## v571 (2026-10-25)
 - 🏐 LANÇOU: Vôlei do Cogu na home!
 - 🌐 ONLINE: crie uma sala e mande o código pros amigos. 1v1 de lado ou 2v2 VISTO DE CIMA, num mapa maior, com guarda-sóis e um X mostrando onde a bola vai cair. Quem faltar vira robô

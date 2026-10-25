@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>🧱 Quebra-Blocos do Cogu — Cogumelo Games</title>
+<meta name="description" content="Quebra-Blocos do Cogu: rebata a bolinha e quebre todos os tijolos! 15 fases, poderes, bombas e laser.">
+<script src="/letra.js"></script>
+<script src="/cogucoins.js?v=545"></script>
+<script src="/gamepad.js?v=358"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#140a2a;font-family:'Segoe UI',Arial,sans-serif;color:#fff;user-select:none;-webkit-user-select:none;touch-action:none}
+#c{display:block;position:fixed;inset:0}
+.tela{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:16px 12px 60px;background:radial-gradient(circle at 50% 15%,#4a2a8a,#140a2a 75%);z-index:5;touch-action:pan-y}
+h1{font-size:40px;text-shadow:0 4px 0 #2a0a5a,0 0 20px rgba(160,120,255,.8);margin-top:10px;text-align:center}
+.sub{color:#e0d8ff;margin:8px 0 14px;text-align:center;max-width:520px;line-height:1.4;font-size:17px}
+.bal{background:#ffd23a;color:#5a2a00;border-radius:18px;padding:8px 16px;font-weight:bold;font-size:17px;margin:4px 0 14px;box-shadow:0 4px 0 #b07a00}
+.fases{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;max-width:420px}
+.fase{border-radius:14px;border:3px solid rgba(255,255,255,.5);padding:8px 2px;text-align:center;cursor:pointer;color:#fff;font-family:inherit;font-weight:bold;font-size:22px;background:linear-gradient(#7a4aff,#3a1a9a)}
+.fase small{display:block;font-size:11px;letter-spacing:-1px}
+.fase.trava{background:linear-gradient(#3a3a4a,#1a1a24);opacity:.55;cursor:default}
+.btn{display:block;width:280px;max-width:90vw;margin:6px auto;padding:14px;border-radius:16px;border:3px solid rgba(255,255,255,.5);color:#fff;font-weight:bold;font-size:20px;cursor:pointer;font-family:inherit}
+.f{background:linear-gradient(#4ccf6a,#1f8a3a)} .x{background:linear-gradient(#b04aff,#5a1aa0)} .d{background:linear-gradient(#ff4a6a,#a01a3a)}
+.ajuda{font-size:14px;color:#e0d8ff;margin-top:16px;text-align:center;max-width:500px;line-height:1.6}
+.voltar{color:#e0d8ff;margin-top:12px;font-size:14px}
+#fim,#pausaT{display:none;background:rgba(10,0,30,.7);justify-content:center}
+.caixa{background:#2a1a5a;border:3px solid #ffd76a;border-radius:20px;padding:22px 26px;text-align:center;max-width:420px;margin-top:40px}
+.caixa h2{font-size:30px}
+.caixa p{margin:8px 0;font-size:18px}
+#pausa{position:fixed;top:10px;right:10px;z-index:4;width:46px;height:46px;border-radius:12px;border:2px solid rgba(255,255,255,.5);background:rgba(0,0,0,.35);color:#fff;font-size:22px;display:none;cursor:pointer}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<button id="pausa">⏸</button>
+
+<div class="tela" id="menu">
+  <h1>🧱 Quebra-Blocos do Cogu</h1>
+  <div class="sub">Rebata a bolinha com o Cogu e quebre <b>todos os tijolos</b>! Pegue os poderes que caem: 🍄 gigante, ⚡ 3 bolinhas, 🔫 laser, 🧲 ímã, 🐢 lenta e ❤️ vida. Fuja do 🐜!</div>
+  <div id="estrelas" class="bal"></div>
+  <div class="fases" id="fases"></div>
+  <div class="ajuda">📱 Arraste o dedo pra mexer · solte pra lançar a bolinha<br>💻 Mouse ou ← → · <b>Espaço</b> lança<br>🎮 Controle: direcional + X<br>💣 Tijolo-bomba explode os vizinhos · ⭐ dourado sempre solta poder · ⬜ metal não quebra</div>
+  <a class="voltar" href="/">⬅ Voltar pro Cogumelo Games</a>
+</div>
+
+<div class="tela" id="fim">
+  <div class="caixa">
+    <h2 id="fimT"></h2>
+    <p id="fimE" style="font-size:36px"></p>
+    <p id="fimP"></p>
+    <p id="fimC" style="color:#ffd76a"></p>
+    <button class="btn f" id="bProx">➡ Próxima fase</button>
+    <button class="btn d" id="bDeNovo">🔁 Jogar de novo</button>
+    <button class="btn x" id="bMenu">🏠 Fases</button>
+  </div>
+</div>
+
+<div class="tela" id="pausaT">
+  <div class="caixa">
+    <h2>⏸ Pausado</h2>
+    <button class="btn f" id="bVolta">▶ Continuar</button>
+    <button class="btn x" id="bSai">🏠 Fases</button>
+  </div>
+</div>
+
+<script>
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+const $=id=>document.getElementById(id);
+const TOQUE=matchMedia('(pointer:coarse)').matches || ('ontouchstart' in window);
+const GW=600, COLS=12, CW=50, BH=22, RH=26, TOPO=78, CAMPO_Y=64;
+const R=9, PH=18, VMAX=820;
+let GH=900, W=0, H=0, DPR=1, S=1, OX=0, OY=0, PY=820;
+function resize(){
+    DPR=Math.min(1.5,window.devicePixelRatio||1); W=innerWidth; H=innerHeight;
+    cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px';
+    GH=Math.max(800,Math.min(1150,GW*H/W)); S=Math.min(W/GW,H/GH); OX=(W-GW*S)/2; OY=(H-GH*S)/2;
+    PY=GH-115;
+}
+addEventListener('resize',resize); resize();
+
+// ---------- as fases (12 colunas) ----------
+// . vazio · 1 2 3 = vida do tijolo · # metal (não quebra) · B bomba · O dourado (solta poder)
+const FASES=[
+ {n:'Primeiro Tijolo',m:['............','.1111111111.','.1111111111.','.1111111111.','.1111111111.']},
+ {n:'Cogumelo',m:['....2222....','..22222222..','.2212222122.','.2222222222.','....1111....','....1111....','....1111....']},
+ {n:'Listras',m:['333333333333','............','222222222222','.O........O.','111111111111','111111111111']},
+ {n:'Pirâmide',m:['.....11.....','....1221....','...123321...','..12333321..','.1233OO3321.','122222222221']},
+ {n:'Primeiro Metal',m:['111111111111','1#1#1#1#1#1#','222222222222','............','.BB......BB.','.11..OO..11.']},
+ {n:'Coração',m:['..33....33..','.3333..3333.','.3333333333.','.2222222222.','..22222222..','...111111...','....1OO1....','.....11.....']},
+ {n:'Xadrez',m:['1.2.3.1.2.3.','.1.2.3.1.2.3','1.2.3.1.2.3.','.1.2.3.1.2.3','B.O.B.O.B.O.']},
+ {n:'Fortaleza',m:['############','#3333333333#','#2222222222#','#2.O....O.2#','#1111111111#','............','.##......##.']},
+ {n:'Invasor',m:['..1......1..','...1....1...','..22222222..','.22.2222.22.','222222222222','2.22222222.2','2.2......2.2','...33..33...']},
+ {n:'Reação em Cadeia',m:['BBBBBBBBBBBB','333333333333','B3B3B3B3B3B3','222222222222','111111111111']},
+ {n:'Diamante',m:['.....##.....','....#33#....','...#3OO3#...','..#332233#..','...#3333#...','....#33#....','.....11.....']},
+ {n:'Arco-íris',m:['333333333333','3..........3','3.22222222.3','3.2......2.3','3.2.1OO1.2.3','3.2......2.3','3.22222222.3','3..........3']},
+ {n:'Zigue-zague',m:['............','............','333333333...','######......','...222222222','......######','111111111...']},
+ {n:'Cara de Cogu',m:['...333333...','.3333333333.','33.33333.333','333333333333','.....22.....','...222222...','...2B22B2...','...222222...']},
+ {n:'O Chefão',m:['B3333333333B','3#33#33#33#3','333333333333','2OO22222OO22','222222222222','#1#1#1#1#1#1','111111111111']}
+];
+
+// ---------- poderes ----------
+const PODERES=[
+ {id:'grande',e:'🍄',cor:'#ff4a4a',p:3,nome:'COGU GIGANTE!'},
+ {id:'multi',e:'⚡',cor:'#ffd23a',p:3,nome:'3 BOLINHAS!'},
+ {id:'laser',e:'🔫',cor:'#ff6aff',p:2,nome:'LASER!'},
+ {id:'cola',e:'🧲',cor:'#3aa0ff',p:2,nome:'ÍMÃ!'},
+ {id:'lento',e:'🐢',cor:'#4ccf6a',p:2,nome:'Bolinha lenta'},
+ {id:'vida',e:'❤️',cor:'#ff3355',p:1,nome:'+1 VIDA!'},
+ {id:'mini',e:'🐜',cor:'#9a9aaa',p:1.5,nome:'Ih, encolheu!'}
+];
+function sorteiaPoder(bom){
+    const l=bom?PODERES.filter(p=>p.id!=='mini'):PODERES, tot=l.reduce((a,p)=>a+p.p,0);
+    let r=Math.random()*tot; for(const p of l){ r-=p.p; if(r<=0) return p; } return l[0];
+}
+
+// ---------- save ----------
+let save={est:[],lib:0,bonus:false};
+try{ const s=JSON.parse(localStorage.getItem('blocos_save')); if(s&&s.est) save=s; }catch(e){}
+function grava(){ try{ localStorage.setItem('blocos_save',JSON.stringify(save)); }catch(e){} }
+
+// ---------- som ----------
+let AC=null;
+function audio(){ try{ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); }catch(e){} }
+function bip(f,d,tipo,vol,f2){
+    if(!AC) return;
+    try{ const o=AC.createOscillator(), g=AC.createGain(), t=AC.currentTime;
+        o.type=tipo||'square'; o.frequency.setValueAtTime(f,t); if(f2) o.frequency.exponentialRampToValueAtTime(f2,t+d);
+        g.gain.setValueAtTime(vol||0.08,t); g.gain.exponentialRampToValueAtTime(0.001,t+d);
+        o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+d); }catch(e){}
+}
+let notaQuebra=0;
+const som={
+    pad:()=>bip(330,0.07,'triangle',0.1,440),
+    parede:()=>bip(220,0.04,'square',0.03),
+    tijolo:()=>bip(500,0.05,'square',0.05),
+    quebra:()=>{ notaQuebra=(notaQuebra+1)%8; bip([523,587,659,698,784,880,988,1046][notaQuebra],0.08,'square',0.06); },
+    metal:()=>bip(1500,0.06,'triangle',0.05,1200),
+    bum:()=>bip(100,0.4,'sawtooth',0.12,30),
+    poder:()=>{ bip(660,0.1,'square',0.06,990); setTimeout(()=>bip(990,0.15,'square',0.06,1320),90); },
+    laser:()=>bip(1400,0.05,'sawtooth',0.02,700),
+    perde:()=>bip(300,0.5,'triangle',0.12,60),
+    vence:()=>{ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>bip(f,0.25,'square',0.08),i*130)); },
+    fimJogo:()=>{ [392,330,262,196].forEach((f,i)=>setTimeout(()=>bip(f,0.3,'triangle',0.1),i*170)); }
+};
+
+// ---------- estado ----------
+let estado='menu', fase=0, tij=[], bolas=[], quedas=[], tiros=[], parts=[], textos=[];
+let pad={x:GW/2,w:110,tw:110,pulo:0}, vidas=3, perdidas=0, pontos=0, ef={}, tiroT=0, shake=0, semBater=0, velBase=430;
+const estrelasFundo=[]; for(let i=0;i<60;i++) estrelasFundo.push({x:Math.random()*GW,y:Math.random()*1150,t:Math.random()*2+0.5,b:Math.random()*6});
+
+function montaFase(i){
+    fase=i; tij=[];
+    FASES[i].m.forEach((linha,r)=>{
+        for(let c=0;c<COLS;c++){
+            const ch=linha[c]||'.'; if(ch==='.') continue;
+            let t='n', hp=1;
+            if(ch==='#'){ t='m'; hp=1e9; } else if(ch==='B') t='b'; else if(ch==='O') t='o'; else hp=+ch||1;
+            tij.push({c,r,x:c*CW+1,y:TOPO+r*RH,w:CW-2,h:BH,hp,max:hp,t,fl:0});
+        }
+    });
+    vidas=3; perdidas=0; pontos=0; quedas=[]; tiros=[]; parts=[]; textos=[]; ef={grande:0,mini:0,laser:0,cola:0,lento:0};
+    pad.x=GW/2; pad.w=pad.tw=110; velBase=430+i*12; semBater=0;
+    novaBola();
+}
+function novaBola(){ bolas=[{x:pad.x,y:PY-PH/2-R,vx:0,vy:0,sp:velBase,presa:true,off:0}]; }
+function comeca(i){ audio(); montaFase(i); estado='jogo'; mostra(null); texto(GW/2,GH*0.55,'FASE '+(i+1)+': '+FASES[i].n,'#fff',2,30); }
+function lanca(){
+    for(const b of bolas){
+        if(!b.presa) continue;
+        let a=(b.off/(pad.w/2))*0.9; if(Math.abs(a)<0.15) a=(Math.random()<0.5?-1:1)*(0.2+Math.random()*0.2);
+        b.vx=b.sp*Math.sin(a); b.vy=-b.sp*Math.cos(a); b.presa=false;
+    }
+}
+function texto(x,y,s,c,v,tam){ textos.push({x,y,s,c,v:v||1,tam:tam||24}); }
+function particulas(x,y,n,c,vel){ for(let i=0;i<n&&parts.length<350;i++){ const a=Math.random()*6.283, s=(vel||160)*(0.3+Math.random()); parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-60,v:0.4+Math.random()*0.4,c,tam:2+Math.random()*4}); } }
+
+// ---------- tijolos ----------
+function corTij(k){ if(k.t==='m') return '#8a90a8'; if(k.t==='b') return '#e8402a'; if(k.t==='o') return '#ffc823'; return ['','#4ccf6a','#3aa0ff','#b04aff'][k.max]; }
+function acerta(k){
+    k.fl=1;
+    if(k.t==='m'){ som.metal(); return; }
+    semBater=0; k.hp--; pontos+=10;
+    if(k.hp<=0) quebra(k); else som.tijolo();
+}
+function quebra(k){
+    const i=tij.indexOf(k); if(i<0) return;
+    tij.splice(i,1); pontos+=50; som.quebra();
+    particulas(k.x+k.w/2,k.y+k.h/2,10,corTij(k));
+    if(k.t==='o'||Math.random()<0.12){ const p=sorteiaPoder(k.t==='o'); quedas.push({x:k.x+k.w/2,y:k.y+k.h/2,p}); }
+    if(k.t==='b'){
+        shake=9; som.bum(); particulas(k.x+k.w/2,k.y+k.h/2,26,'#ffb03a',320);
+        // explode os vizinhos (e outras bombas explodem também = reação em cadeia!)
+        tij.filter(o=>o.t!=='m'&&Math.abs(o.c-k.c)<=1&&Math.abs(o.r-k.r)<=1).forEach(o=>{ o.hp=0; quebra(o); });
+    }
+}
+
+// ---------- poderes ----------
+function pegaPoder(p){
+    som.poder(); texto(pad.x,PY-50,p.e+' '+p.nome,p.cor,1.2,24); pontos+=100;
+    if(p.id==='grande'){ pad.tw=165; ef.grande=15; ef.mini=0; }
+    else if(p.id==='mini'){ pad.tw=70; ef.mini=10; ef.grande=0; }
+    else if(p.id==='multi'){
+        if(bolas.some(b=>b.presa)) lanca();
+        const novas=[];
+        for(const b of bolas){ if(bolas.length+novas.length>=12) break;
+            for(const da of [-0.45,0.45]){ const a=Math.atan2(b.vx,-b.vy)+da; novas.push({x:b.x,y:b.y,sp:b.sp,vx:b.sp*Math.sin(a),vy:-b.sp*Math.abs(Math.cos(a)),presa:false,off:0}); } }
+        bolas.push(...novas);
+    }
+    else if(p.id==='laser') ef.laser=10;
+    else if(p.id==='cola') ef.cola=15;
+    else if(p.id==='lento') ef.lento=10;
+    else if(p.id==='vida') vidas=Math.min(5,vidas+1);
+}
+
+// ---------- física ----------
+function arrumaAngulo(b){
+    // não deixa a bolinha ficar indo quase reto pros lados (senão demora uma eternidade)
+    const sp=Math.hypot(b.vx,b.vy)||b.sp;
+    if(Math.abs(b.vy)<sp*0.3){ b.vy=(b.vy<0?-1:1)*sp*0.3; b.vx=(b.vx<0?-1:1)*Math.sqrt(sp*sp-b.vy*b.vy); }
+    const k=b.sp/Math.hypot(b.vx,b.vy); b.vx*=k; b.vy*=k;
+}
+function passoBola(b,h){
+    b.x+=b.vx*h; b.y+=b.vy*h;
+    if(b.x<R){ b.x=R; b.vx=Math.abs(b.vx); som.parede(); }
+    if(b.x>GW-R){ b.x=GW-R; b.vx=-Math.abs(b.vx); som.parede(); }
+    if(b.y<CAMPO_Y+R){ b.y=CAMPO_Y+R; b.vy=Math.abs(b.vy); som.parede(); }
+    if(b.y>GH+R*3){ b.morta=true; return; }
+    // Cogu (a raquete)
+    const topo=PY-PH/2;
+    if(b.vy>0 && b.y+R>=topo && b.y-R<=PY+PH/2 && b.x>=pad.x-pad.w/2-R && b.x<=pad.x+pad.w/2+R){
+        const t=Math.max(-1,Math.min(1,(b.x-pad.x)/(pad.w/2))), a=t*1.1;
+        b.sp=Math.min(VMAX,b.sp*1.008);
+        b.vx=b.sp*Math.sin(a); b.vy=-b.sp*Math.cos(a); b.y=topo-R;
+        if(ef.cola>0){ b.presa=true; b.off=b.x-pad.x; }
+        pad.pulo=1; som.pad();
+        return;
+    }
+    // tijolos
+    for(const k of tij){
+        if(b.x+R<k.x||b.x-R>k.x+k.w||b.y+R<k.y||b.y-R>k.y+k.h) continue;
+        const cx=Math.max(k.x,Math.min(k.x+k.w,b.x)), cy=Math.max(k.y,Math.min(k.y+k.h,b.y));
+        const dx=b.x-cx, dy=b.y-cy, d2=dx*dx+dy*dy;
+        if(d2>R*R) continue;
+        if(d2===0) b.vy=-b.vy;
+        else { const d=Math.sqrt(d2), nx=dx/d, ny=dy/d, vn=b.vx*nx+b.vy*ny; if(vn<0){ b.vx-=2*vn*nx; b.vy-=2*vn*ny; } b.x=cx+nx*R; b.y=cy+ny*R; }
+        acerta(k); arrumaAngulo(b);
+        break;
+    }
+}
+function update(dt){
+    // Cogu segue o comando
+    pad.w+=(pad.tw-pad.w)*Math.min(1,dt*8);
+    if(teclas.esq) pad.x-=760*dt; if(teclas.dir) pad.x+=760*dt;
+    pad.x=Math.max(pad.w/2,Math.min(GW-pad.w/2,pad.x));
+    pad.pulo=Math.max(0,pad.pulo-dt*6);
+    for(const k in ef){ if(ef[k]>0){ ef[k]-=dt; if(ef[k]<=0){ ef[k]=0;
+        if((k==='grande'&&ef.mini<=0)||(k==='mini'&&ef.grande<=0)) pad.tw=110;
+        if(k==='cola') lanca(); } } }
+    if(ef.laser>0){ tiroT-=dt; if(tiroT<=0){ tiroT=0.3; tiros.push({x:pad.x-pad.w/2+10,y:PY-12},{x:pad.x+pad.w/2-10,y:PY-12}); som.laser(); } }
+    // bolinhas
+    const fator=ef.lento>0?0.65:1;
+    for(const b of bolas){
+        if(b.presa){ b.x=pad.x+b.off; b.y=PY-PH/2-R; continue; }
+        const n=Math.max(1,Math.ceil(b.sp*fator*dt/(R*0.5)));
+        for(let i=0;i<n;i++){ passoBola(b,dt*fator/n); if(b.morta||b.presa) break; }
+    }
+    bolas=bolas.filter(b=>!b.morta);
+    if(!bolas.length){
+        vidas--; perdidas++; som.perde(); shake=12;
+        if(vidas<=0){ fimDeJogo(); return; }
+        texto(GW/2,GH*0.55,'Ops! Restam '+vidas+' ❤️','#ff6a8a',1.5,32);
+        for(const k in ef) ef[k]=0; pad.tw=110; quedas=[]; tiros=[]; novaBola();
+    }
+    // se ficar muito tempo sem acertar tijolo (presa no metal), dá uma entortadinha
+    semBater+=dt;
+    if(semBater>10){ semBater=0; for(const b of bolas) if(!b.presa){ const a=(Math.random()-0.5)*0.8, c=Math.cos(a), s=Math.sin(a), vx=b.vx*c-b.vy*s; b.vy=b.vx*s+b.vy*c; b.vx=vx; arrumaAngulo(b); } }
+    // poderes caindo
+    for(let i=quedas.length-1;i>=0;i--){
+        const q=quedas[i]; q.y+=170*dt;
+        if(q.y+14>=PY-PH/2 && q.y-14<=PY+PH/2 && Math.abs(q.x-pad.x)<pad.w/2+14){ pegaPoder(q.p); quedas.splice(i,1); continue; }
+        if(q.y>GH+20) quedas.splice(i,1);
+    }
+    // laser
+    for(let i=tiros.length-1;i>=0;i--){
+        const t=tiros[i]; t.y-=900*dt;
+        const k=tij.find(k=>t.x>=k.x&&t.x<=k.x+k.w&&t.y>=k.y&&t.y<=k.y+k.h);
+        if(k){ acerta(k); tiros.splice(i,1); continue; }
+        if(t.y<CAMPO_Y) tiros.splice(i,1);
+    }
+    for(const k of tij) k.fl=Math.max(0,k.fl-dt*5);
+    if(!tij.some(k=>k.t!=='m')) venceu();
+}
+function efeitos(dt){
+    for(let i=parts.length-1;i>=0;i--){ const p=parts[i]; p.v-=dt; p.vy+=400*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if(p.v<=0) parts.splice(i,1); }
+    for(let i=textos.length-1;i>=0;i--){ const t=textos[i]; t.v-=dt; t.y-=24*dt; if(t.v<=0) textos.splice(i,1); }
+    shake=Math.max(0,shake-dt*40);
+}
+
+// ---------- fim ----------
+function venceu(){
+    estado='fim'; som.vence();
+    const est=perdidas===0?3:perdidas===1?2:1, antes=save.est[fase]||0;
+    let moedas=0, extra='';
+    if(est>antes){ moedas+=est-antes; save.est[fase]=est; }
+    save.lib=Math.max(save.lib,fase+1);
+    if(fase===FASES.length-1&&!save.bonus){ save.bonus=true; moedas+=10; extra=' · 🏆 ZEROU! +10 bônus'; }
+    grava();
+    if(moedas){ try{ if(window.CoguCoins) CoguCoins.ganha(moedas); }catch(e){} }
+    $('fimT').textContent='🎉 Fase '+(fase+1)+' completa!';
+    $('fimE').textContent='⭐'.repeat(est)+'☆'.repeat(3-est);
+    $('fimP').textContent=pontos.toLocaleString('pt-BR')+' pontos'+(est<3?' · passe sem perder vida pra ganhar 3 ⭐':'');
+    $('fimC').textContent=(moedas?'+'+moedas+' 🍄 Cogu Coins':'')+extra;
+    $('bProx').style.display=fase<FASES.length-1?'block':'none';
+    mostra('fim');
+}
+function fimDeJogo(){
+    estado='fim'; som.fimJogo();
+    $('fimT').textContent='💔 Acabaram as vidas!';
+    $('fimE').textContent='';
+    $('fimP').textContent='Faltaram '+tij.filter(k=>k.t!=='m').length+' tijolos. Tenta de novo! 💪';
+    $('fimC').textContent='';
+    $('bProx').style.display='none';
+    mostra('fim');
+}
+
+// ---------- telas ----------
+function mostra(id){
+    ['menu','fim','pausaT'].forEach(t=>$(t).style.display=t===id?'flex':'none');
+    $('pausa').style.display=id===null?'block':'none';
+}
+function menu(){
+    estado='menu';
+    const tot=save.est.reduce((a,b)=>a+(b||0),0);
+    $('estrelas').textContent='⭐ '+tot+' / '+FASES.length*3+' estrelas';
+    $('fases').innerHTML=FASES.map((f,i)=>{ const trava=i>save.lib, e=save.est[i]||0;
+        return `<button class="fase${trava?' trava':''}" data-i="${i}" title="${f.n}">${trava?'🔒':i+1}<small>${trava?'':'⭐'.repeat(e)+'☆'.repeat(3-e)}</small></button>`; }).join('');
+    mostra('menu');
+}
+$('fases').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b||b.classList.contains('trava')) return; comeca(+b.dataset.i); });
+$('bProx').onclick=()=>comeca(Math.min(FASES.length-1,fase+1));
+$('bDeNovo').onclick=()=>comeca(fase);
+$('bMenu').onclick=menu;
+function pausar(){ if(estado!=='jogo') return; estado='pausa'; mostra('pausaT'); }
+$('pausa').onclick=pausar;
+$('bVolta').onclick=()=>{ estado='jogo'; mostra(null); ultimo=performance.now(); };
+$('bSai').onclick=menu;
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) pausar(); });
+
+// ---------- controles ----------
+const teclas={};
+addEventListener('keydown',e=>{
+    audio();
+    if(e.code==='ArrowLeft'||e.code==='KeyA'){ teclas.esq=true; e.preventDefault(); }
+    if(e.code==='ArrowRight'||e.code==='KeyD'){ teclas.dir=true; e.preventDefault(); }
+    if(e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'){ e.preventDefault(); if(estado==='jogo') lanca(); }
+    if(e.code==='Escape'||e.code==='KeyP'){ if(estado==='jogo') pausar(); else if(estado==='pausa') $('bVolta').onclick(); }
+    if(e.code==='Enter'&&estado==='fim') ($('bProx').style.display!=='none'?$('bProx'):$('bDeNovo')).onclick();
+});
+addEventListener('keyup',e=>{
+    if(e.code==='ArrowLeft'||e.code==='KeyA') teclas.esq=false;
+    if(e.code==='ArrowRight'||e.code==='KeyD') teclas.dir=false;
+});
+let dedo=null;
+cv.addEventListener('touchstart',e=>{ e.preventDefault(); audio(); const t=e.changedTouches[0]; if(!dedo) dedo={id:t.identifier,x:t.clientX}; },{passive:false});
+cv.addEventListener('touchmove',e=>{
+    e.preventDefault(); if(!dedo||estado!=='jogo') return;
+    for(const t of e.changedTouches) if(t.identifier===dedo.id){ pad.x+=(t.clientX-dedo.x)/S*1.3; dedo.x=t.clientX; }
+},{passive:false});
+cv.addEventListener('touchend',e=>{ for(const t of e.changedTouches) if(dedo&&t.identifier===dedo.id){ dedo=null; if(estado==='jogo') lanca(); } });
+cv.addEventListener('touchcancel',()=>dedo=null);
+cv.addEventListener('mousemove',e=>{ if(estado==='jogo') pad.x=(e.clientX-OX)/S; });
+cv.addEventListener('mousedown',()=>{ audio(); if(estado==='jogo') lanca(); });
+
+// ---------- desenho ----------
+function desenhaTij(k){
+    const c=corTij(k);
+    ctx.fillStyle=c; ctx.fillRect(k.x,k.y,k.w,k.h);
+    ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.fillRect(k.x,k.y,k.w,5);
+    ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.fillRect(k.x,k.y+k.h-4,k.w,4);
+    if(k.t==='m'){ ctx.fillStyle='#d0d4e0'; [[5,5],[k.w-5,5],[5,k.h-5],[k.w-5,k.h-5]].forEach(p=>{ ctx.beginPath(); ctx.arc(k.x+p[0],k.y+p[1],2,0,6.283); ctx.fill(); }); }
+    else if(k.t==='b'||k.t==='o'){ ctx.font='15px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(k.t==='b'?'💣':'⭐',k.x+k.w/2,k.y+k.h/2+1); }
+    if(k.t==='n'&&k.hp<k.max){ // rachaduras
+        ctx.strokeStyle='rgba(0,0,0,0.45)'; ctx.lineWidth=1.5; ctx.beginPath();
+        ctx.moveTo(k.x+k.w*0.3,k.y+2); ctx.lineTo(k.x+k.w*0.45,k.y+k.h*0.5); ctx.lineTo(k.x+k.w*0.35,k.y+k.h-2);
+        if(k.max-k.hp>1){ ctx.moveTo(k.x+k.w*0.7,k.y+2); ctx.lineTo(k.x+k.w*0.6,k.y+k.h*0.6); ctx.lineTo(k.x+k.w*0.75,k.y+k.h-2); }
+        ctx.stroke();
+    }
+    if(k.fl>0){ ctx.fillStyle='rgba(255,255,255,'+k.fl*0.7+')'; ctx.fillRect(k.x,k.y,k.w,k.h); }
+}
+function desenhaCogu(){
+    const w=pad.w, x=pad.x, y=PY-pad.pulo*4;
+    if(ef.cola>0){ ctx.fillStyle='rgba(58,160,255,0.35)'; ctx.beginPath(); ctx.ellipse(x,y,w/2+10,PH,0,0,6.283); ctx.fill(); }
+    // cabinho
+    ctx.fillStyle='#fff3dc'; ctx.fillRect(x-w*0.18,y,w*0.36,16);
+    // chapéu
+    const g=ctx.createLinearGradient(0,y-PH,0,y+PH/2); g.addColorStop(0,'#ff6a6a'); g.addColorStop(1,'#c81a2a');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(x,y+PH/2,w/2,PH+4,0,Math.PI,0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#fff';
+    [[-0.32,-0.5,5],[0,-0.95,5],[0.3,-0.55,6],[-0.12,0.05,3.5],[0.42,0.1,3.5]].forEach(p=>{ ctx.beginPath(); ctx.arc(x+p[0]*w/2,y+PH/2+p[1]*PH,p[2],0,6.283); ctx.fill(); });
+    // olhinhos olhando pra bolinha
+    const b=bolas[0]||{x,y:0};
+    [-1,1].forEach(s=>{ const ex=x+s*9, ey=y+11, d=Math.hypot(b.x-ex,b.y-ey)||1;
+        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ex,ey,4.5,0,6.283); ctx.fill();
+        ctx.fillStyle='#1a1a2a'; ctx.beginPath(); ctx.arc(ex+(b.x-ex)/d*2,ey+(b.y-ey)/d*2,2.2,0,6.283); ctx.fill(); });
+    if(ef.laser>0){ ctx.fillStyle='#ff6aff'; ctx.fillRect(x-w/2+6,y-12,8,14); ctx.fillRect(x+w/2-14,y-12,8,14); }
+}
+function desenha(){
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    ctx.fillStyle='#140a2a'; ctx.fillRect(0,0,W,H);
+    if(estado==='menu') return;
+    const sx=shake?(Math.random()-0.5)*shake:0, sy=shake?(Math.random()-0.5)*shake:0;
+    ctx.translate(OX+sx*S,OY+sy*S); ctx.scale(S,S);
+    const g=ctx.createLinearGradient(0,0,0,GH); g.addColorStop(0,'#2a1a5a'); g.addColorStop(1,'#0a0618');
+    ctx.fillStyle=g; ctx.fillRect(0,0,GW,GH);
+    const agora=performance.now()/1000;
+    for(const s of estrelasFundo){ if(s.y>GH) continue; ctx.fillStyle='rgba(255,255,255,'+(0.3+0.3*Math.sin(agora*2+s.b))+')'; ctx.fillRect(s.x,s.y,s.t,s.t); }
+    // cogumelos no fundo
+    ctx.fillStyle='rgba(120,80,200,0.18)';
+    [[80,GH-10,70],[300,GH+10,110],[520,GH-5,80]].forEach(m=>{ ctx.beginPath(); ctx.ellipse(m[0],m[1]-m[2]*0.7,m[2],m[2]*0.55,0,Math.PI,0); ctx.fill(); ctx.fillRect(m[0]-m[2]*0.2,m[1]-m[2]*0.7,m[2]*0.4,m[2]*0.7); });
+    // HUD
+    ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(0,0,GW,CAMPO_Y);
+    ctx.fillStyle='#fff'; ctx.font='bold 20px "Segoe UI",Arial'; ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.fillText('Fase '+(fase+1),12,22);
+    ctx.font='16px "Segoe UI",Arial'; ctx.fillStyle='#ffd76a'; ctx.fillText('⭐ '+pontos.toLocaleString('pt-BR'),12,46);
+    ctx.font='20px serif'; ctx.textAlign='center'; ctx.fillText('❤️'.repeat(vidas),GW/2,32);
+    ctx.textAlign='right'; ctx.font='18px serif';
+    let ix=GW-70; for(const p of PODERES){ if(ef[p.id]>0){ ctx.globalAlpha=ef[p.id]<2&&Math.floor(agora*8)%2?0.3:1; ctx.fillText(p.e,ix,32); ix-=28; } } ctx.globalAlpha=1;
+    tij.forEach(desenhaTij);
+    // poderes caindo
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    for(const q of quedas){
+        ctx.fillStyle=q.p.cor; ctx.beginPath(); ctx.arc(q.x,q.y,15,0,6.283); ctx.fill();
+        ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+        ctx.font='17px serif'; ctx.fillText(q.p.e,q.x,q.y+1);
+    }
+    ctx.fillStyle='#ff6aff'; for(const t of tiros) ctx.fillRect(t.x-2,t.y-10,4,14);
+    desenhaCogu();
+    // bolinhas com rastro
+    for(const b of bolas){
+        for(let k=3;k>=1;k--){ ctx.fillStyle='rgba(255,230,120,'+(0.12*(4-k))+')'; ctx.beginPath(); ctx.arc(b.x-b.vx*k*0.012,b.y-b.vy*k*0.012,R*(1-k*0.15),0,6.283); ctx.fill(); }
+        const gb=ctx.createRadialGradient(b.x-3,b.y-3,1,b.x,b.y,R); gb.addColorStop(0,'#fff'); gb.addColorStop(1,'#ffd23a');
+        ctx.fillStyle=gb; ctx.beginPath(); ctx.arc(b.x,b.y,R,0,6.283); ctx.fill();
+    }
+    for(const p of parts){ ctx.globalAlpha=Math.min(1,p.v*2); ctx.fillStyle=p.c; ctx.fillRect(p.x-p.tam/2,p.y-p.tam/2,p.tam,p.tam); }
+    ctx.globalAlpha=1;
+    for(const t of textos){
+        ctx.globalAlpha=Math.min(1,t.v*2); ctx.font='bold '+t.tam+'px "Segoe UI",Arial';
+        ctx.lineWidth=5; ctx.strokeStyle='rgba(0,0,0,0.6)'; ctx.strokeText(t.s,t.x,t.y); ctx.fillStyle=t.c; ctx.fillText(t.s,t.x,t.y);
+    }
+    ctx.globalAlpha=1;
+    if(estado==='jogo'&&bolas.some(b=>b.presa)){ ctx.font='bold 20px "Segoe UI",Arial'; ctx.fillStyle='rgba(255,255,255,'+(0.6+0.4*Math.sin(agora*5))+')'; ctx.fillText(TOQUE?'Solte o dedo pra lançar!':'Clique ou Espaço pra lançar!',GW/2,PY-70); }
+}
+
+// ---------- loop ----------
+let ultimo=performance.now();
+function loop(t){
+    requestAnimationFrame(loop);
+    if(TOQUE && t-ultimo<30) return; // 30fps no celular
+    let dt=(t-ultimo)/1000; ultimo=t; dt=Math.min(dt,0.05);
+    if(estado==='jogo') update(dt);
+    if(estado!=='pausa') efeitos(dt);
+    desenha();
+}
+requestAnimationFrame(loop);
+menu();
+</script>
+</body>
+</html>
