@@ -11,7 +11,7 @@
   window.__cgRadio = true;
 
   var LS = 'cg_radio';             // 'on' | 'off'
-  var VOL = 0.16;
+  var VOL = 0.32;            // o Davi pediu mais alta (era 0.16)
   var MAIOR = [0, 2, 4, 5, 7, 9, 11], MENOR = [0, 2, 3, 5, 7, 8, 10],
       DORICO = [0, 2, 3, 5, 7, 9, 10], MIXO = [0, 2, 4, 5, 7, 9, 10];
 

@@ -1,8 +1,11 @@
 # Changelog - Cogumelo Games (site)
 
+## v582 (2026-10-25)
+- 🔊 Música de fundo do site mais ALTA (o dobro do volume)
 
 ## v581 (2026-10-25)
 - 🎵 O site agora tem MÚSICA DE FUNDO na página inicial e na Minha Conta! São 30 músicas (Cogumelo Feliz, Corrida do Kart, Chefão Final, Capivara na Lagoa...) tocando em ordem aleatória, uma atrás da outra. Quando você entra num jogo a música para. Botão 🎵 no canto pra desligar e ⏭ pra pular a música
+
 ## v580 (2026-10-25)
 - 🖼️ TODOS os jogos ganharam capa desenhada ocupando o card inteiro: cenário do jogo + o personagem pulando + coisinhas do jogo em volta (e a capivara agora é desenhada, aparece em todo aparelho!)
 - ⬜ Fundo branco arrumado: agora os cards, a pesquisa e os botões também ficam claros. E a escolha vai junto com a sua conta
