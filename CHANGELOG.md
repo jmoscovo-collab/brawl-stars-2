@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v580 (2026-10-25)
+- 🖼️ TODOS os jogos ganharam capa desenhada ocupando o card inteiro: cenário do jogo + o personagem pulando + coisinhas do jogo em volta (e a capivara agora é desenhada, aparece em todo aparelho!)
+- ⬜ Fundo branco arrumado: agora os cards, a pesquisa e os botões também ficam claros. E a escolha vai junto com a sua conta
+
 ## v579 (2026-10-25)
 - ☢️ Arena Cogumelo 2: raridade NOVA ☢️ EXÓTICO — a MELHOR de todas, acima da Ultra! Só tem 1 lutador: a CAPIVARA MUTANTE, o lutador mais roubado do jogo (muita vida, muito dano, rápida, metralhadora + super de cura). Sai só na 💝 Caixa MEGA, bem raro!
 

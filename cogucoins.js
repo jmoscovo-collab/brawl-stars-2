@@ -325,7 +325,7 @@
    em outro aparelho. Quem joga SEM conta perde tudo depois de 15 min. */
 (function () {
   var API = 'https://y67msybrr8.execute-api.sa-east-1.amazonaws.com';
-  var EXTRAS = ['cg_cogucoins', 'cg_cogu_hist', 'cg_favoritos'];   // chaves cg_ que também viajam
+  var EXTRAS = ['cg_cogucoins', 'cg_cogu_hist', 'cg_favoritos', 'cg_fundo'];   // chaves cg_ que também viajam
   var TS = 'cg_nuvem_ts';
   function ls(k){ try { return localStorage.getItem(k); } catch (e) { return null; } }
   function set(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }

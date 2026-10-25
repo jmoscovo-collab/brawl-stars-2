@@ -148,28 +148,38 @@
         a[href="/ladrao/"]    { box-shadow:0 0 22px rgba(68,136,255,0.45); }
         a[href="/chuva/"]     { box-shadow:0 0 20px rgba(153,204,68,0.4); }
         .game-card:hover      { box-shadow:0 0 34px rgba(255,255,255,0.25) !important; }
-        /* foto do jogo no lugar do emoji (o emoji fica escondido) */
-        .game-foto { display:block; width:100%; aspect-ratio:16/10; object-fit:cover; border-radius:14px; margin:0 0 14px; background:rgba(0,0,0,0.3); border:2px solid rgba(255,255,255,0.15); }
+        /* capa do jogo ocupando o card inteiro (capas.js); nome e JOGAR ficam por cima */
+        .game-card.com-capa { position:relative; overflow:hidden; min-height:300px; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; padding:20px; }
+        .game-card.com-capa .capa { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; background:#223; }
+        .game-card.com-capa .capa-sombra { position:absolute; inset:0; z-index:0; background:linear-gradient(to bottom, rgba(0,0,0,0) 45%, rgba(0,0,0,.75)); }
+        .game-card.com-capa > *:not(.capa):not(.capa-sombra) { position:relative; z-index:1; }
+        .game-card.com-capa .game-icon { display:none; }
+        .game-card.com-capa .game-name { text-shadow:0 2px 8px #000; margin-bottom:0; }
+        .game-card.com-capa .play-btn { margin-top:10px; }
         /* etiquetas do lado do JOGAR: escondidas (o texto continua valendo pras Características) */
         .game-tag { display:none !important; }
         /* descrição do card escondida: fica só a foto, o nome e o JOGAR (pedido do Davi 25/10) */
         .game-desc { display:none !important; }
         /* fundo branco (escolhe em Conta > ⚙️ > Fundo) */
-        html.fundo-branco body { background:#f2f2f7; }
+        html.fundo-branco body { background:#f2f2f7 !important; }
+        html.fundo-branco .game-card { background:#fff !important; border-color:#d8d8e4 !important; box-shadow:0 4px 18px rgba(0,0,0,.12) !important; }
+        html.fundo-branco .game-card:not(.com-capa) .game-name { color:#222; }
+        html.fundo-branco #busca, html.fundo-branco #caracsAbre, html.fundo-branco #btnConta { background:#fff !important; color:#222 !important; border-color:#ccc !important; }
         html.fundo-branco .subtitle { color:#555; }
         html.fundo-branco .footer, html.fundo-branco .footer span { color:#777; }
         html.fundo-branco #redes > div:first-child { color:#b07a00 !important; }
     </style>
 <script>try{ if(localStorage.getItem('cg_fundo')==='branco') document.documentElement.classList.add('fundo-branco'); }catch(e){}</script>
-<script src="/cogucoins.js?v=546"></script>
+<script src="/cogucoins.js?v=547"></script>
 <script src="/letra.js"></script>
+<script src="/capas.js?v=2"></script>
 </head>
 <body>
     <a id="btnConta" href="/conta/" style="position:fixed; top:14px; right:16px; z-index:10; text-decoration:none; color:#fff; font-weight:bold; font-size:14px; background:rgba(20,20,50,0.9); border:2px solid #444; border-radius:14px; padding:8px 16px;">👤 Entrar</a>
     <div class="header">
         <div class="logo">🍄</div>
         <div class="title">COGUMELO GAMES</div>
-        <div class="subtitle">JOGOS ONLINE GRÁTIS <span style="color:#00ff88; font-weight:bold; border:1px solid rgba(0,255,136,0.4); border-radius:10px; padding:2px 8px; margin-left:6px; font-size:12px">v579</span></div>
+        <div class="subtitle">JOGOS ONLINE GRÁTIS <span style="color:#00ff88; font-weight:bold; border:1px solid rgba(0,255,136,0.4); border-radius:10px; padding:2px 8px; margin-left:6px; font-size:12px">v580</span></div>
     </div>
 
     <input id="busca" type="search" placeholder="🔍 Pesquisar jogo..." autocomplete="off"
@@ -859,17 +869,7 @@
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
     <script>
         initStats('home');
-        // foto de cada jogo (/fotos/<pasta>.svg) no lugar do emoji. Jogo novo com foto: põe a pasta nessa lista
-        const COM_FOTO = ['voador'];
-        document.querySelectorAll('.game-card').forEach(c => {
-            const m = (c.getAttribute('href')||'').match(/^\/([a-z0-9-]+)\/$/), ic = c.querySelector('.game-icon');
-            if (!m || !ic || COM_FOTO.indexOf(m[1]) < 0) return;
-            const img = document.createElement('img');
-            img.className = 'game-foto'; img.loading = 'lazy'; img.alt = (c.querySelector('.game-name')||{}).textContent || '';
-            img.src = '/fotos/' + m[1] + '.svg?v=1';
-            img.onerror = () => { img.remove(); ic.style.display = ''; };
-            ic.style.display = 'none'; ic.before(img);
-        });
+        cgCapas();   // capas desenhadas de cada jogo (capas.js)
         // barra de pesquisa: filtra os cards pelo nome
         const cardsEscondidos = new Set();
         document.querySelectorAll('.game-card').forEach(c => {
@@ -906,7 +906,7 @@
                 return !extra || card._caracs.has(extra);
             };
             let n = 0;
-            cardsJogo.forEach(card => { const ok = passa(card); card.style.display = ok ? 'block' : 'none'; if (ok) n++; });
+            cardsJogo.forEach(card => { const ok = passa(card); card.style.display = ok ? '' : 'none'; if (ok) n++; });
             document.querySelectorAll('#caracs button[data-c]').forEach(b => {
                 const on = escolhidas.has(b.dataset.c);
                 const qt = on ? n : cardsJogo.filter(card => passa(card, b.dataset.c)).length;
