@@ -77,7 +77,7 @@ h1{font-size:40px;text-shadow:0 4px 0 #2a4a2a,0 0 20px rgba(255,210,60,.7);margi
 
 <div class="tela" id="menu">
   <h1>🏰 Defesa da Torre</h1>
-  <div class="sub">Os monstros querem destruir a sua torre! Toque na grama pra <b>comprar soldadinhos</b>, toque neles pra <b>melhorar</b> e aguente <b>30 ondas</b>. A cada onda vencida você libera soldadinhos novos!</div>
+  <div class="sub">Os monstros querem destruir a sua torre! Toque na grama pra <b>comprar soldadinhos</b>, toque neles pra <b>melhorar</b> e aguente as <b>ondas infinitas</b> ♾️ (vencer 30 ganha troféu!). A cada onda vencida você libera soldadinhos novos!</div>
   <div id="botoes"></div>
   <button class="btn x" id="btnProg">📂 Progressos salvos</button>
   <button class="btn cz" id="btnTop" style="font-size:16px;width:220px">🏆 Top ondas</button>
@@ -332,7 +332,11 @@ function fimOnda(){
   const bonus=20+onda*4; din+=bonus; som('moeda');
   if(onda>save.melhor[mi]){ save.melhor[mi]=onda; gravaSave(); }
   const novos=ORDEM.filter(k=>TIPOS[k].onda===onda+1);
-  if(onda>=ONDAS&&!infinito){ fimJogo(true); return; }
+  if(onda>=ONDAS&&!infinito){ // venceu as 30: comemora e as ondas continuam pra sempre
+    infinito=true; save.vit[mi]=(save.vit[mi]||0)+1; gravaSave();
+    try{ if(window.CoguCoins) CoguCoins.ganha(40); }catch(e){}
+    aviso('🏆 VOCÊ VENCEU AS 30 ONDAS! +40 Cogu Coins. Agora é INFINITO! ♾️',4); hud(true); return;
+  }
   if(novos.length===1) aviso('🎉 NOVO SOLDADINHO: '+TIPOS[novos[0]].ic+' '+TIPOS[novos[0]].nome+'!',3.5);
   else if(novos.length) aviso('🎉 '+novos.length+' SOLDADINHOS NOVOS! '+[...new Set(novos.map(k=>TIPOS[k].ic))].join(''),3.5);
   else aviso('✅ Onda '+onda+' vencida! +$'+bonus,1.8);
@@ -625,8 +629,7 @@ function hud(forca){
   if(!forca&&sig===hudSig) return; hudSig=sig;
   document.getElementById('hVida').textContent='❤️ '+vidas;
   document.getElementById('hDin').textContent='💰 '+din;
-  const curto=innerWidth<520;
-  document.getElementById('hOnda').textContent='🌊 '+onda+(infinito||curto?'':'/'+ONDAS);
+  document.getElementById('hOnda').textContent='🌊 '+onda+(infinito?' ♾️':'');
   const bo=document.getElementById('btnOnda');
   bo.disabled=ondaAtiva; bo.textContent=(ondaAtiva?'⚔️ Onda ':'▶ ONDA ')+(ondaAtiva?onda:onda+1);
   document.getElementById('btnVel').textContent=vel+'x';

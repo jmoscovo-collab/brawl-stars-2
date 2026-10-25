@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v561 (2026-10-24)
+- 🏰 Defesa da Torre: ONDAS INFINITAS ♾️! Vencer a onda 30 dá troféu e +40 Cogu Coins, mas o jogo não para: as ondas continuam pra sempre
+
 ## v560 (2026-10-24)
 - 🍄 Chuva de Cogumelos 3 agora é 3D! A grama tem folhinhas e flores até o horizonte, a cesta é de palha trançada (e pula quando pega um cogumelo) e os cogumelos, os dourados, os venenosos e os corações são 3D e giram caindo
 
