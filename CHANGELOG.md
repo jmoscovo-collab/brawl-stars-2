@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v584 (2026-10-25)
+- 🌌 Fundo da página inicial virou o ESPAÇO: estrelas piscando, planetinhas andando (alguns com anel e lua), estrelas cadentes e nuvens coloridas
+- 🍄 Logo novo: um cogumelo desenhado visto de cima, com carinha, flutuando, com um anel de planeta a 45 graus e brilhinhos em volta
+
 ## v583 (2026-10-25)
 - ⬛ Toda vez que você entra no site o fundo começa PRETO. O fundo branco (na Minha Conta) agora só vale até você fechar o site
 
