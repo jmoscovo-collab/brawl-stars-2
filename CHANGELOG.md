@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v568 (2026-10-25)
+- 📢 Lá embaixo da home: botões do YouTube, TikTok e Instagram do Cogumelo Games! Cada um dá 10 Cogu Coins na primeira vez (só uma vez por conta)
+
 ## v567 (2026-10-25)
 - 🎨 Cogu vs Chefões: CRIAR CHEFÃO! Desenhe o seu chefão, dê um nome, escolha a vida e os ataques de cada fase (Anel, Espiral, Mira, Parede, Laser, Chuva, Bomba) e lute contra ele. Fica salvo em "Meus Chefões"
 
