@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v583 (2026-10-25)
+- ⬛ Toda vez que você entra no site o fundo começa PRETO. O fundo branco (na Minha Conta) agora só vale até você fechar o site
+
 ## v582 (2026-10-25)
 - 🔊 Música de fundo do site mais ALTA (o dobro do volume)
 
