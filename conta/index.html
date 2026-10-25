@@ -58,7 +58,7 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
 #overlayPerfil .fotoGrande { width:120px; height:120px; aspect-ratio:1/1; flex:none; border-radius:50%; object-fit:cover; border:4px solid #00ccff;
     background:#111130; display:flex; align-items:center; justify-content:center; font-size:72px; margin:0 auto 12px; }
 </style>
-<script src="/cogucoins.js?v=545"></script>
+<script src="/cogucoins.js?v=546"></script>
 <script src="/letra.js"></script>
 </head>
 <body>
@@ -73,6 +73,8 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
     <div class="dica">Troca TODAS as letras do site e dos jogos (50 idiomas).</div>
     <button class="cinza" onclick="abreLetra()" style="margin-top:10px">✍️ Letra</button>
     <div class="dica">Letra de celular ou letra de mão — vale no site todo.</div>
+    <button class="cinza" id="btnFundo" onclick="trocaFundo()" style="margin-top:10px">🎨 Fundo: ⬛ Preto</button>
+    <div class="dica">Fundo da página inicial: preto ou branco.</div>
     <button class="cinza" onclick="pedeCodigo()" style="margin-top:10px">🔑 Códigos secretos</button>
     <div class="dica" id="dicaPs5">Códigos secretos podem te dar recompensas... 🤫</div>
 </div>
@@ -733,6 +735,7 @@ function abreOpcoes(){
     const p = document.getElementById('painelOpcoes');
     p.style.display = (p.style.display==='block') ? 'none' : 'block';
     atualizaBtnMascote();
+    atualizaBtnFundo();
 }
 function alternaMascote(){
     if(mascoteEstaEscondido()){
@@ -746,6 +749,15 @@ function alternaMascote(){
     if(typeof salvarProgresso==='function') salvarProgresso(false);
 }
 window.abreOpcoes = abreOpcoes; window.alternaMascote = alternaMascote;
+function fundoBranco(){ try{ return localStorage.getItem('cg_fundo') === 'branco'; }catch(e){ return false; } }
+function atualizaBtnFundo(){ document.getElementById('btnFundo').textContent = fundoBranco() ? '🎨 Fundo: ⬜ Branco' : '🎨 Fundo: ⬛ Preto'; }
+function trocaFundo(){
+    const branco = !fundoBranco();
+    try{ if(branco) localStorage.setItem('cg_fundo', 'branco'); else localStorage.removeItem('cg_fundo'); }catch(e){}
+    atualizaBtnFundo();
+    aviso(branco ? '⬜ Fundo BRANCO na página inicial!' : '⬛ Fundo PRETO na página inicial!', true);
+}
+window.trocaFundo = trocaFundo;
 
 // ============ CÓDIGOS SECRETOS (🔑) ============
 function pedeCodigo(){

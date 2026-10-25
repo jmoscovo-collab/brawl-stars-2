@@ -458,3 +458,37 @@
   // painel ADM do Davi (abre digitando "adm" e colocando o código secreto)
   try { var sa = document.createElement('script'); sa.src = '/adm.js?t=' + Math.floor(Date.now() / 600000); /* muda a cada 10 min: o painel atualiza sozinho */ sa.async = true; (document.head || document.documentElement).appendChild(sa); } catch (e) {}
 })();
+
+/* === 🎃 EVENTO DE HALLOWEEN (até 02/11) ===
+   Cada partida que você joga SEM abandonar (ficar 2 min jogando no mesmo jogo) conta 1.
+   Os prêmios (Cogu Coins) são pegos no botão 🎃 da página inicial. */
+(function () {
+  var FIM = new Date(2026, 10, 3).getTime();        // acaba no fim do dia 02/11/2026
+  var K = 'halloween_partidas';                     // sem "cg_" = sobe junto com a conta
+  var PRECISA = 120;                                // segundos jogando = 1 partida completa
+  var FORA = /^\/(conta|loja|cogucoins|excluir-conta|privacidade|politica)/;
+  function partidas() { try { return parseInt(localStorage.getItem(K) || '0', 10) || 0; } catch (e) { return 0; } }
+  window.cgHalloween = { partidas: partidas, ativo: function () { return Date.now() < FIM; }, PRECISA: PRECISA };
+  if (Date.now() >= FIM || location.pathname === '/' || FORA.test(location.pathname)) return;
+
+  var jogado = 0, contou = false;
+  var t = setInterval(function () {
+    if (document.hidden) return;                    // aba escondida não conta
+    jogado += 5;
+    if (jogado < PRECISA || contou) return;
+    contou = true; clearInterval(t);
+    var n = partidas() + 1;
+    try { localStorage.setItem(K, String(n)); } catch (e) {}
+    try {
+      var d = document.createElement('a');
+      d.href = '/#halloween';
+      d.textContent = '🎃 +1 partida no Evento de Halloween! (' + n + ' no total)';
+      d.style.cssText = 'position:fixed; left:50%; top:14px; transform:translateX(-50%); z-index:2147481600;' +
+        'background:#ff7a00; color:#fff; font:bold 15px Arial,Helvetica,sans-serif; padding:10px 18px;' +
+        'border-radius:16px; box-shadow:0 4px 16px rgba(0,0,0,.5); text-decoration:none; transition:opacity .6s;';
+      document.body.appendChild(d);
+      setTimeout(function () { d.style.opacity = '0'; }, 4000);
+      setTimeout(function () { d.remove(); }, 4700);
+    } catch (e) {}
+  }, 5000);
+})();

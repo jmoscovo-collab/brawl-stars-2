@@ -148,8 +148,20 @@
         a[href="/ladrao/"]    { box-shadow:0 0 22px rgba(68,136,255,0.45); }
         a[href="/chuva/"]     { box-shadow:0 0 20px rgba(153,204,68,0.4); }
         .game-card:hover      { box-shadow:0 0 34px rgba(255,255,255,0.25) !important; }
+        /* foto do jogo no lugar do emoji (o emoji fica escondido) */
+        .game-foto { display:block; width:100%; aspect-ratio:16/10; object-fit:cover; border-radius:14px; margin:0 0 14px; background:rgba(0,0,0,0.3); border:2px solid rgba(255,255,255,0.15); }
+        /* etiquetas do lado do JOGAR: escondidas (o texto continua valendo pras Características) */
+        .game-tag { display:none !important; }
+        /* descrição do card escondida: fica só a foto, o nome e o JOGAR (pedido do Davi 25/10) */
+        .game-desc { display:none !important; }
+        /* fundo branco (escolhe em Conta > ⚙️ > Fundo) */
+        html.fundo-branco body { background:#f2f2f7; }
+        html.fundo-branco .subtitle { color:#555; }
+        html.fundo-branco .footer, html.fundo-branco .footer span { color:#777; }
+        html.fundo-branco #redes > div:first-child { color:#b07a00 !important; }
     </style>
-<script src="/cogucoins.js?v=545"></script>
+<script>try{ if(localStorage.getItem('cg_fundo')==='branco') document.documentElement.classList.add('fundo-branco'); }catch(e){}</script>
+<script src="/cogucoins.js?v=546"></script>
 <script src="/letra.js"></script>
 </head>
 <body>
@@ -157,13 +169,14 @@
     <div class="header">
         <div class="logo">🍄</div>
         <div class="title">COGUMELO GAMES</div>
-        <div class="subtitle">JOGOS ONLINE GRÁTIS <span style="color:#00ff88; font-weight:bold; border:1px solid rgba(0,255,136,0.4); border-radius:10px; padding:2px 8px; margin-left:6px; font-size:12px">v577</span></div>
+        <div class="subtitle">JOGOS ONLINE GRÁTIS <span style="color:#00ff88; font-weight:bold; border:1px solid rgba(0,255,136,0.4); border-radius:10px; padding:2px 8px; margin-left:6px; font-size:12px">v578</span></div>
     </div>
 
     <input id="busca" type="search" placeholder="🔍 Pesquisar jogo..." autocomplete="off"
         style="width:100%; max-width:500px; margin:-20px auto 30px; display:block; padding:14px 22px; font-size:17px;
                border-radius:30px; border:2px solid #444; background:rgba(20,20,50,0.9); color:#fff; outline:none;">
     <button id="caracsAbre" style="display:block; margin:-18px auto 26px; border:2px solid #444; border-radius:20px; padding:7px 16px; font-size:15px; font-weight:bold; cursor:pointer; background:rgba(20,20,50,0.9); color:#fff; font-family:inherit;">🏷️ Características ▾</button>
+    <button id="btnHalloween" style="display:block; margin:-18px auto 26px; border:2px solid #ff7a00; border-radius:20px; padding:8px 18px; font-size:16px; font-weight:bold; cursor:pointer; background:linear-gradient(135deg,#ff7a00,#6a1b9a); color:#fff; font-family:inherit; box-shadow:0 0 18px rgba(255,122,0,.6);">🎃 Evento de Halloween</button>
     <div id="caracs" style="max-width:820px; margin:-18px auto 26px; display:none; flex-wrap:wrap; justify-content:center; gap:8px; padding:0 10px;"></div>
     <div id="caracsMsg" style="display:none; text-align:center; color:#ffd23a; margin:-14px 0 20px; font-weight:bold;"></div>
     <div class="games-grid">
@@ -846,6 +859,17 @@
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
     <script>
         initStats('home');
+        // foto de cada jogo (/fotos/<pasta>.svg) no lugar do emoji. Jogo novo com foto: põe a pasta nessa lista
+        const COM_FOTO = ['voador'];
+        document.querySelectorAll('.game-card').forEach(c => {
+            const m = (c.getAttribute('href')||'').match(/^\/([a-z0-9-]+)\/$/), ic = c.querySelector('.game-icon');
+            if (!m || !ic || COM_FOTO.indexOf(m[1]) < 0) return;
+            const img = document.createElement('img');
+            img.className = 'game-foto'; img.loading = 'lazy'; img.alt = (c.querySelector('.game-name')||{}).textContent || '';
+            img.src = '/fotos/' + m[1] + '.svg?v=1';
+            img.onerror = () => { img.remove(); ic.style.display = ''; };
+            ic.style.display = 'none'; ic.before(img);
+        });
         // barra de pesquisa: filtra os cards pelo nome
         const cardsEscondidos = new Set();
         document.querySelectorAll('.game-card').forEach(c => {
@@ -941,6 +965,60 @@
                 window.addEventListener('cogucoins', pinta);
             }
         })();
+    </script>
+    <script>
+    // 🎃 EVENTO DE HALLOWEEN: prêmios por partidas completas (contadas no cogucoins.js)
+    (function(){
+        var H = window.cgHalloween;
+        var btn = document.getElementById('btnHalloween');
+        if(!H || !H.ativo()){ btn.style.display = 'none'; return; }
+        var PREMIOS = [[1,5],[2,5],[3,20],[5,40],[7,60],[10,100],[15,150],[20,300]]; // [partidas, Cogu Coins]
+        function pegos(){ try { return JSON.parse(localStorage.getItem('halloween_pegos') || '[]'); } catch(e){ return []; } }
+        function prontos(){ var n = H.partidas(), p = pegos(); return PREMIOS.filter(function(r){ return n >= r[0] && p.indexOf(r[0]) < 0; }).length; }
+        function pintaBtn(){ var k = prontos(); btn.textContent = '🎃 Evento de Halloween' + (k ? ' (' + k + ' 🎁)' : ''); }
+        pintaBtn();
+
+        function abre(){
+            var velho = document.getElementById('hwModal'); if(velho) velho.remove();
+            var n = H.partidas(), p = pegos();
+            var prox = PREMIOS.filter(function(r){ return n < r[0]; })[0];
+            var m = document.createElement('div');
+            m.id = 'hwModal';
+            m.style.cssText = 'position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.75); display:flex; align-items:center; justify-content:center; padding:16px;';
+            var linhas = PREMIOS.map(function(r){
+                var feito = p.indexOf(r[0]) >= 0, pode = n >= r[0] && !feito;
+                var dir = feito ? '<span style="color:#7dff9a">✅ Pego</span>'
+                    : pode ? '<button data-p="'+r[0]+'" style="border:none; border-radius:10px; padding:7px 14px; font-weight:bold; font-size:15px; cursor:pointer; background:#ffcc33; color:#3a1a00; font-family:inherit;">Pegar!</button>'
+                    : '<span style="opacity:.6">🔒 ' + n + '/' + r[0] + '</span>';
+                return '<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 12px; margin:6px 0; border-radius:12px; background:'+(pode?'rgba(255,140,0,.35)':'rgba(255,255,255,.07)')+'">'+
+                    '<span>'+(r[1]>=100?'🎁':'🍬')+' <b>'+r[0]+' partida'+(r[0]>1?'s':'')+'</b> → '+r[1]+' 🍄</span>'+dir+'</div>';
+            }).join('');
+            m.innerHTML = '<div style="background:linear-gradient(160deg,#2a1240,#3d1a00); border:3px solid #ff7a00; border-radius:20px; padding:20px; max-width:420px; width:100%; max-height:90vh; overflow:auto; color:#fff; text-align:center;">'+
+                '<div style="font-size:44px">🎃👻🦇</div>'+
+                '<div style="font-size:22px; font-weight:bold; color:#ffa040">EVENTO DE HALLOWEEN</div>'+
+                '<div style="font-size:14px; opacity:.85; margin:6px 0 12px">Jogue qualquer jogo por <b>2 minutos sem sair</b> = 1 partida! Quanto mais partidas, maior o prêmio. Vai até <b>02/11</b>.</div>'+
+                '<div style="font-size:18px; font-weight:bold; margin-bottom:6px">Suas partidas: <span style="color:#ffcc33">'+n+'</span></div>'+
+                (prox ? '<div style="font-size:13px; opacity:.8; margin-bottom:8px">Faltam '+(prox[0]-n)+' pro próximo prêmio!</div>' : '<div style="font-size:13px; color:#7dff9a; margin-bottom:8px">Você completou o evento! 🏆</div>')+
+                '<div style="text-align:left">'+linhas+'</div>'+
+                '<button id="hwFecha" style="margin-top:14px; font-size:16px; font-weight:bold; padding:10px 28px; border:none; border-radius:14px; cursor:pointer; background:#ff7a00; color:#fff; font-family:inherit;">Fechar</button></div>';
+            document.body.appendChild(m);
+            m.onclick = function(e){ if(e.target === m) m.remove(); };
+            m.querySelector('#hwFecha').onclick = function(){ m.remove(); };
+            m.querySelectorAll('button[data-p]').forEach(function(b){
+                b.onclick = function(){
+                    var alvo = +b.getAttribute('data-p'), lista = pegos();
+                    if(lista.indexOf(alvo) >= 0 || H.partidas() < alvo) return;
+                    var r = PREMIOS.filter(function(x){ return x[0] === alvo; })[0];
+                    lista.push(alvo);
+                    try { localStorage.setItem('halloween_pegos', JSON.stringify(lista)); } catch(e){}
+                    if(window.CoguCoins) window.CoguCoins.ganha(r[1]);
+                    pintaBtn(); abre();
+                };
+            });
+        }
+        btn.onclick = abre;
+        if(location.hash === '#halloween') abre();
+    })();
     </script>
     <script>
     // 🎴 PACOTINHO DIÁRIO: 1 presente por dia com moedas de um jogo aleatório!

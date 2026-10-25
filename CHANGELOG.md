@@ -1,5 +1,12 @@
 # Changelog - Cogumelo Games (site)
 
+## v578 (2026-10-25)
+- 🎃 EVENTO DE HALLOWEEN (até 02/11)! Botão novo na página inicial. Jogue qualquer jogo por 2 minutos sem sair = 1 partida. Prêmios em Cogu Coins: 1 partida = 5, 3 = 20, 5 = 40, 10 = 100... até 20 partidas = 300!
+- 🧟 Zumbi: mapa novo 🎃 Halloween — céu roxo, janelas laranja, abóboras brilhando na rua e zumbis com cabeça de abóbora
+- 🖼️ Capa com desenho no lugar do emoji (começando pelo Cogumelo Voador)
+- ⬜⬛ Conta > ⚙️ Opções: escolha fundo branco ou preto na página inicial
+- Os cards dos jogos ficaram mais limpos: só a foto, o nome e o botão JOGAR
+
 ## v577 (2026-10-25)
 - 🎨 JOGO NOVO (ainda escondido): Pinta o Chão! Corra pintando o mapa com a sua cor e roube a tinta dos outros. Em 1 minuto ganha quem pintou mais. Poderes: 💣 bomba de tinta, ⚡ velocidade e 🖌️ pincel gigante. Contra 3 robôs (fácil, médio, difícil), 2 jogadores no mesmo teclado e ONLINE com até 4 (quem faltar vira robô)
 
