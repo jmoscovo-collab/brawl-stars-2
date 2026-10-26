@@ -548,3 +548,25 @@
     var js = leJ(KJ, []); if (js.indexOf(pasta) < 0) { js.push(pasta); gravaJ(KJ, js); }
   }, 5000);
 })();
+
+/* === ⏱️ TEMPO EM CADA JOGO ===
+   Os jogos antigos já contam o tempo pelo stats.js (initStats). Este pedaço conta nos que
+   NÃO usam o stats.js (Arena 2, Kart, Torre...), só com o jogo aparecendo na tela.
+   Fica no mesmo lugar ('cogumelo_playtime', sobe junto com a conta) e aparece no perfil. */
+(function () {
+  var pasta = (location.pathname.split('/')[1] || '').toLowerCase();
+  if (!pasta || /^(conta|loja|cogucoins|comunidade|excluir-conta|privacidade|politica|sugestoes|controle|assets)$/.test(pasta)) return;
+  var ultimo = Date.now();
+  setInterval(function () {
+    var agora = Date.now(), dt = Math.round((agora - ultimo) / 1000);
+    ultimo = agora;
+    if (document.hidden || dt <= 0 || dt > 30) return;            // aba escondida ou computador dormindo: não conta
+    try { if (typeof currentGame !== 'undefined' && currentGame) return; } catch (e) {}   // esse jogo já conta pelo stats.js
+    try {
+      var t = JSON.parse(localStorage.getItem('cogumelo_playtime') || '{}');
+      t[pasta] = (t[pasta] || 0) + dt;
+      t.total = (t.total || 0) + dt;
+      localStorage.setItem('cogumelo_playtime', JSON.stringify(t));
+    } catch (e) {}
+  }, 5000);
+})();

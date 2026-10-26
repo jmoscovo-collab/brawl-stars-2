@@ -58,7 +58,7 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
 #overlayPerfil .fotoGrande { width:120px; height:120px; aspect-ratio:1/1; flex:none; border-radius:50%; object-fit:cover; border:4px solid #00ccff;
     background:#111130; display:flex; align-items:center; justify-content:center; font-size:72px; margin:0 auto 12px; }
 </style>
-<script src="/cogucoins.js?v=549"></script>
+<script src="/cogucoins.js?v=550"></script>
 <script src="/letra.js"></script>
 </head>
 <body>
@@ -69,6 +69,7 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
         border:2px solid #444; border-radius:14px; padding:14px; width:250px">
     <button class="cinza" id="btnEsconderMascote" onclick="alternaMascote()" style="margin-top:0">🙈 Esconder mascote</button>
     <div class="dica">O mascote é o bichinho que dá dicas e torce por você nos jogos.</div>
+    <button class="cinza" onclick="abreTempos()" style="margin-top:10px">⏱️ Meu tempo nos jogos</button>
     <button class="cinza" onclick="abreIdiomas()" style="margin-top:10px">🌍 Idiomas</button>
     <div class="dica">Troca TODAS as letras do site e dos jogos (50 idiomas).</div>
     <button class="cinza" onclick="abreLetra()" style="margin-top:10px">✍️ Letra</button>
@@ -98,6 +99,7 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
     </div>
     <button class="roxo" onclick="abreTrocaFoto()">🖼️ Trocar foto</button>
     <button style="background:linear-gradient(135deg,#ff8800,#ffcc44); color:#3a2200" onclick="abreMascotes()">🍄 Mascote</button>
+    <button style="background:linear-gradient(135deg,#00c6ff,#0072ff)" onclick="abreTempos()">⏱️ Meu tempo nos jogos</button>
     <button class="cinza" onclick="abreTrocaNome()">✏️ Mudar meu nome</button>
     <div id="painelNome" style="display:none; margin-top:6px">
         <input id="novoNomeConta" placeholder="Novo nome (2 a 20 letras)" maxlength="20">
@@ -136,6 +138,16 @@ a.voltar { color:#888; text-decoration:none; margin-top:10px; display:inline-blo
         <p style="color:#889; font-size:13px; margin-bottom:10px">O mascote escolhido aparece nos jogos te dando dicas e torcendo por você! Complete missões pra desbloquear os outros.</p>
         <div id="listaMascotes"></div>
         <button class="cinza" onclick="fechaMascotes()">Fechar</button>
+    </div>
+</div>
+
+<div id="overlayTempos" style="position:fixed; inset:0; background:rgba(0,0,10,0.85); display:none; align-items:center; justify-content:center; z-index:60; padding:16px" onclick="if(event.target===this)fechaTempos()">
+    <div class="card" style="margin:0; max-height:85vh; overflow:auto">
+        <h2>⏱️ Meu tempo nos jogos</h2>
+        <div id="tempoTotal" style="font-size:22px; font-weight:bold; color:#ffcc33; margin:4px 0 2px"></div>
+        <div style="color:#889; font-size:13px; margin-bottom:10px">Tempo jogando em cada jogo do Cogumelo Games neste aparelho e na sua conta</div>
+        <div id="listaTempos" style="text-align:left"></div>
+        <button class="cinza" onclick="fechaTempos()">Fechar</button>
     </div>
 </div>
 
@@ -677,6 +689,55 @@ async function trocaNome(){
     } catch(e){ aviso('😕 '+e.message); }
 }
 window.abreTrocaNome = abreTrocaNome; window.trocaNome = trocaNome;
+
+// ============ ⏱️ TEMPO EM CADA JOGO ============
+// vem do 'cogumelo_playtime' (stats.js nos jogos antigos + cogucoins.js nos novos), em segundos por pasta
+const NOMES_JOGOS = {
+    brawl:'🤖 Arena Cogumelo', capivara:'🐾 Capivara Run', clicker:'🍄 Cogumelo Clicker', corrida:'🏎️ Turbo Racing', space:'🚗 Street Drive',
+    labirinto:'👻 Labirinto Assombrado', zombie:'🧟 Zombie Survival', parkour:'🍄 Parkour do Cogumelo', ninja:'🗡️ Cogumelo Ninja', prisao:'🏃 Fuga da Prisão 3D',
+    dino:'🦖 Fuga do Dino', furacao:'🌪️ Furacão.io', desenha:'🎨 Desenha e Adivinha', estaciona:'🚗 Estacionamento Maluco', quiz:'❓ Perguntas e Respostas',
+    minijogos:'🎲 Minijogos', emojiquiz:'😂 Quiz de Emoji', pais:'🌍 Adivinha o País', golf:'⛳ Golf Maluco', boliche:'🎳 Boliche do Cogumelo',
+    aviao:'✈️ Corrida no Céu', voador:'🍄 Cogumelo Voador', sorte:'🎰 Sorte do Cogumelo', ladrao:'🚓 Polícia VS Ladrão', laser:'🔴 Desvia do Laser',
+    piso:'🟦 Piso Certo', chuva:'🍄 Chuva de Cogumelos', chuva2:'⛈️ Chuva de Cogumelos 2', cogumelo:'🍄 Chuva de Cogumelos 3', luta:'🥊 Luta de Capivara',
+    parkour2d:'🍄 Cogumelo Parkour', pescaria:'🎣 Pescaria Maluca', caindo:'🪂 Capivara Caindo', caboguerra:'💪 Cabo de Guerra', salsicha:'🌭 Salsicha Comilão',
+    meteoros:'☄️ Chuva de Meteoros', capivara2:'👤 Capivara Run 2', 'capivara-pet':'🐾 Cuidar da Capivara', barbeiro:'💈 Barbeiro Maluco', pescaria2:'🎣 Pescaria Maluca 2',
+    penaltis:'⚽ Pênaltis', figurinhas:'🏆 Álbum de Figurinhas', cavando:'⛏️ Cavando Fundo', cozinha:'🍳 Cozinha da Capivara', merge:'🍄 Merge Cogumelo',
+    spcity:'🌆 Mega SP', cidade:'🏙️ Cidade Capivara', tesouro:'🗺️ Caça ao Tesouro', tubarao:'🦈 Tubarão Faminto', portas:'🚪 Portas Misteriosas',
+    piano:'🎹 Piano Mágico', kart:'🏁 Cogumelo Kart', piratas:'🏴‍☠️ Batalha Pirata', bolas:'⚔️ Bola vs Bola', capibalao:'🎈 Capivara no Balão',
+    armas:'🔫 Cogumelo Armas', invasao:'👾 Invasão Pixel', ovos:'🥚 Ovo de Dragão', arena2:'🥊 Arena Cogumelo 2', arqueiro:'🏹 Arqueiro Maluco',
+    polvo:'🐙 Polvo Fujão', cogurock:'🎸 Cogu Rock', torre:'🏰 Defesa da Torre', chefoes:'🔥 Cogu vs Chefões', volei:'🏐 Vôlei do Cogu',
+    blocos:'🧱 Quebra-Blocos', capyio:'🐾 Capy.io', capydash:'🐾 Capy Dash', ilha:'🏝️ Ilha', lab:'🧪 Laboratório Maluco', trem:'🚂 Trem do Cogu',
+    pinta:'🎨 Pinta o Chão', fps:'🔫 FPS', 'pai-recur':'⏳ Retroceder', 'pai-rpg':'🗡️ RPG'
+};
+const NAO_E_JOGO = ['total','home','conta','comunidade','cogucoins','loja'];
+function formataTempo(seg){
+    seg = Math.floor(seg);
+    const h = Math.floor(seg/3600), m = Math.floor(seg%3600/60), s = seg%60;
+    if(h) return h + 'h ' + m + 'min';
+    if(m) return m + 'min ' + s + 's';
+    return s + 's';
+}
+function abreTempos(){
+    let t = {};
+    try { t = JSON.parse(localStorage.getItem('cogumelo_playtime') || '{}') || {}; } catch(e){}
+    const lista = Object.keys(t).filter(k => NAO_E_JOGO.indexOf(k) < 0 && t[k] >= 1).map(k => [k, t[k]]).sort((a, b) => b[1] - a[1]);
+    const total = lista.reduce((a, x) => a + x[1], 0), maior = lista.length ? lista[0][1] : 1;
+    document.getElementById('tempoTotal').textContent = '🎮 Total: ' + formataTempo(total) + ' em ' + lista.length + ' jogo' + (lista.length === 1 ? '' : 's');
+    const caixa = document.getElementById('listaTempos');
+    caixa.innerHTML = '';
+    if(!lista.length) caixa.innerHTML = '<div style="text-align:center; color:#aab; padding:14px">Você ainda não jogou nada... bora jogar! 🎮</div>';
+    lista.forEach(([k, seg], i) => {
+        const a = document.createElement('a');
+        a.href = '/' + k + '/';
+        a.style.cssText = 'display:block; text-decoration:none; color:#fff; background:rgba(255,255,255,.07); border-radius:12px; padding:8px 12px; margin:6px 0';
+        const medalha = ['🥇','🥈','🥉'][i] || (i + 1) + 'º';
+        a.innerHTML = '<div style="display:flex; justify-content:space-between; gap:10px; font-size:15px"><span>' + medalha + ' ' + (NOMES_JOGOS[k] || k) + '</span><b style="color:#7dff9a; white-space:nowrap">' + formataTempo(seg) + '</b></div>' +
+            '<div style="height:6px; border-radius:4px; background:rgba(255,255,255,.12); margin-top:5px"><div style="height:100%; width:' + Math.max(2, Math.round(seg / maior * 100)) + '%; border-radius:4px; background:linear-gradient(90deg,#00c6ff,#7dff9a)"></div></div>';
+        caixa.appendChild(a);
+    });
+    document.getElementById('overlayTempos').style.display = 'flex';
+}
+function fechaTempos(){ document.getElementById('overlayTempos').style.display = 'none'; }
 
 // ============ MASCOTES ============
 function abreMascotes(){
