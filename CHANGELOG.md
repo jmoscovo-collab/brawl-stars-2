@@ -1,6 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v600 (2026-10-26)
+- ☢️ Arena 2: a CAPIVARA MUTANTE ficou mais forte! Cada tiro da rajada é MAIS LARGO que o anterior e cada tiro dá 3.500 de dano (no nível 1) até 5.000 (no nível máximo)
+
 ## v599 (2026-10-26)
 - ⏱️ Minha Conta: botão MEU TEMPO NOS JOGOS! Mostra quanto tempo você jogou em cada jogo (do que mais jogou pro que menos jogou, com 🥇🥈🥉) e o TOTAL de tudo junto. Também fica no menu ⚙️
 - Agora TODOS os jogos contam o tempo (antes os mais novos, tipo Arena 2, Kart e Torre, não contavam). Só conta com o jogo aparecendo na tela

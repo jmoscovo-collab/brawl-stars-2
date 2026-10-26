@@ -609,6 +609,16 @@ function tiro(f,a,o){
     tiros.push({x:f.x+Math.cos(a)*f.r*0.8, y:f.y+Math.sin(a)*f.r*0.8, vx:Math.cos(a)*o.v, vy:Math.sin(a)*o.v, dist:0,
         max:o.max, dmg:o.dmg, r:o.r, cor:o.cor, tipo:o.tipo||'', dono:f, exp:o.exp||null, sup:!!o.sup, rot:0});
 }
+// tiros da metralhadora (tipo rajada). ☢️ A Capivara Mutante é especial: cada tiro da rajada é MAIS LARGO
+// que o anterior e dá 3.500 de dano (no nível 1) até 5.000 (no nível máximo, 15)
+function tiroRajada(f,q){
+    if(f.b.id==='capimut'){
+        const dmg=3500+Math.round((clamp(f.nv||1,1,15)-1)/14*1500);
+        tiro(f,q.a+(Math.random()-0.5)*0.04,{v:1000,max:f.b.alc,dmg,r:9+(q.i||0)*6,cor:'#7dff3a'});
+        return;
+    }
+    tiro(f,q.a+(Math.random()-0.5)*0.06,{v:1000,max:f.b.alc,dmg:330*f.k,r:7,cor:'#ffe14a'});
+}
 function lob(f,tx,ty,o){
     tx=clamp(tx,10,MW-10); ty=clamp(ty,10,MH-10);
     tiros.push({lob:{sx:f.x,sy:f.y,tx,ty,t:0,T:o.T}, x:f.x,y:f.y,r:16,cor:o.cor,dono:f,exp:{rad:o.rad,dmg:o.dmg,sup:!!o.sup},sup:!!o.sup,dmg:0,grande:!!o.sup});
@@ -620,7 +630,7 @@ function ataque(f,a,d){
         case 'espingarda': for(let i=0;i<6;i++) tiro(f,a+(i/5-0.5)*0.55+(Math.random()-0.5)*0.06,{v:950,max:b.alc,dmg:310*k,r:8,cor:c}); break;
         case 'fogo': for(let i=-2;i<=2;i++) tiro(f,a+i*0.08+(Math.random()-0.5)*0.05,{v:600+Math.random()*100,max:b.alc,dmg:270*k,r:11,cor:'#ff9a2a',tipo:'fogo'}); break;
         case 'sniper': tiro(f,a,{v:1150,max:b.alc,dmg:1150*k,r:9,cor:'#dbe9ff',tipo:'estrela'}); break;
-        case 'rajada': for(let i=0;i<4;i++) f.fila.push({t:i*0.08,a}); break;
+        case 'rajada': for(let i=0;i<4;i++) f.fila.push({t:i*0.08,a,i}); break;
         case 'onda': tiro(f,a,{v:600,max:b.alc,dmg:950*k,r:22,cor:'rgba(106,240,255,.8)',tipo:'onda'}); break;
         case 'bomba': { const dd=clamp(d||b.alc,80,b.alc); lob(f,f.x+Math.cos(a)*dd,f.y+Math.sin(a)*dd,{rad:75,dmg:1000*k,T:0.5,cor:'#333'}); break; }
         case 'laser': for(const sg of [-1,1]){ const px=-Math.sin(a)*8*sg, py=Math.cos(a)*8*sg; f.x+=px; f.y+=py; tiro(f,a,{v:1600,max:b.alc,dmg:340*k,r:6,cor:'#39ff88',tipo:'laser'}); f.x-=px; f.y-=py; } break;
@@ -917,7 +927,7 @@ function update(dt){
             if(f.morto<=0){ f.morto=0; f.hp=f.maxhp; f.x=f.spawnX; f.y=f.spawnY; f.ammo=3; f.reveal=1; f.ai.lx=f.x; f.ai.ly=f.y; }
             continue;
         }
-        for(let i=f.fila.length-1;i>=0;i--){ const q=f.fila[i]; q.t-=dt; if(q.t<=0){ f.fila.splice(i,1); if(luta&&f.hp>0) tiro(f,q.a+(Math.random()-0.5)*0.06,{v:1000,max:f.b.alc,dmg:330*f.k,r:7,cor:'#ffe14a'}); } }
+        for(let i=f.fila.length-1;i>=0;i--){ const q=f.fila[i]; q.t-=dt; if(q.t<=0){ f.fila.splice(i,1); if(luta&&f.hp>0) tiroRajada(f,q); } }
         if(f.remoto) continue;
         f.ammo=Math.min(3,f.ammo+dt/f.b.rel);
         if(f.hp>0 && agora-f.ultDano>3 && agora-f.ultAtk>3) f.hp=Math.min(f.maxhp,f.hp+f.maxhp*0.13*dt);
