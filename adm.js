@@ -6,7 +6,7 @@
    Banir e dar coisas pra outros jogadores precisa do servidor (só o Julio mexe). */
 (function () {
   if (window.cgAdm) return;
-  var HASH = '740039111479ca345679b69c20d4f072a1aec6b828f0753cf1a3524ea82f9043';
+  var HASH = '2ac33e66e2a7e2941dd4b3f627daad37937f53e9f7107570959ea845a423b27e';
   var MAX = 1e12;
   var painel = null;
 

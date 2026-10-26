@@ -1,6 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v592 (2026-10-25)
+- 🔐 Código novo do painel ADM
+
 ## v591 (2026-10-25)
 - 🛠️ Painel ADM: agora dá pra se dar 🍬 Doces de Halloween (ou INFINITOS ♾️). Na lojinha aparece ∞
 
