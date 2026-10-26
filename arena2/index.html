@@ -138,6 +138,7 @@ addEventListener('resize',resize); resize();
 
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const fmt=n=>Math.floor(n).toLocaleString('pt-BR');
+const HALLOWEEN=Date.now()<new Date(2026,10,3).getTime();   // 🎃 evento até 02/11: mapa assombrado + lutadores exclusivos na loja
 function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 function hashStr(s){ let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
 function escurece(hex,k){ const n=parseInt(hex.slice(1),16); const r=Math.round(((n>>16)&255)*k), g=Math.round(((n>>8)&255)*k), b=Math.round((n&255)*k); return 'rgb('+Math.min(255,r)+','+Math.min(255,g)+','+Math.min(255,b)+')'; }
@@ -202,7 +203,11 @@ const LUT=[
     fazLutador('draco','Draco',3,'fogo','bola',{pele:'#3fc46a',roupa:'#ff9a2a',cab:'chifres',orelha:'',olhos:'bravo',extra:'asas',forma:'',esc:1}),
     fazLutador('ninja','Ninja',4,'sniper','roda',{pele:'#ffd2a8',roupa:'#2a2a3a',cab:'',orelha:'',olhos:'mascara',extra:'',forma:'',esc:1}),
     // ☢️ EXÓTICO: o único da raridade e o lutador MAIS ROUBADO do jogo (só sai na Caixa MEGA, bem raro)
-    Object.assign(fazLutador('capimut','Capivara Mutante',7,'rajada','cura',{pele:'#7dff3a',roupa:'#1a3a1a',cab:'espinhos',orelha:'urso',olhos:'bravo',extra:'chamas',forma:'alto',esc:1.25},6500,262),{m:1.5})
+    Object.assign(fazLutador('capimut','Capivara Mutante',7,'rajada','cura',{pele:'#7dff3a',roupa:'#1a3a1a',cab:'espinhos',orelha:'urso',olhos:'bravo',extra:'chamas',forma:'alto',esc:1.25},6500,262),{m:1.5}),
+    // 🎃 EXCLUSIVOS DE HALLOWEEN: só saem na loja durante o evento (nunca em caixa)
+    Object.assign(fazLutador('hw_bruxa','Bruxa Cogumelo',4,'bomba','lob',{pele:'#8fdf6a',roupa:'#3a1060',cab:'bruxa',orelha:'',olhos:'bravo',extra:'capa',forma:'',esc:1}),{hw:true}),
+    Object.assign(fazLutador('hw_abobora','Cabeça de Abóbora',5,'fogo','bola',{pele:'#ff7a00',roupa:'#2a1a3a',cab:'abobora',orelha:'',olhos:'abobora',extra:'chamas',forma:'quadrado',esc:1.08},5000),{hw:true}),
+    Object.assign(fazLutador('hw_vampiro','Conde Vampiro',6,'laser','dash',{pele:'#e8e0f0',roupa:'#1a0a1a',cab:'vampiro',orelha:'',olhos:'bravo',extra:'capa',forma:'alto',esc:1.05},4200,245),{hw:true})
 ];
 (function geraLutadores(){
     const R=rng(20261022);
@@ -295,7 +300,15 @@ function desenhaBoneco(g,l,x,y,s,ang,t,anda){
     g.fill(); g.stroke();
     // olhos
     const ox=lado*0.12*s, ey=hy-0.02*s;
-    if(L.olhos==='robo'){ g.fillStyle='#1a1a2a'; rr(g,x-0.42*s,ey-0.14*s,0.84*s,0.28*s,0.12*s); g.fill(); g.fillStyle='#3affff'; g.fillRect(x-0.32*s+ox,ey-0.05*s,0.64*s,0.1*s); }
+    if(L.olhos==='abobora'){
+        // 🎃 cara entalhada de abóbora, brilhando
+        g.fillStyle='rgba(255,'+Math.round(210+Math.sin(t*9)*30)+',70,1)';
+        for(const sg of [-1,1]){ g.beginPath(); g.moveTo(x+sg*0.34*s+ox,ey+0.08*s); g.lineTo(x+sg*0.08*s+ox,ey+0.08*s); g.lineTo(x+sg*0.21*s+ox,ey-0.18*s); g.closePath(); g.fill(); }
+        g.beginPath(); g.moveTo(x-0.36*s+ox,hy+0.18*s);
+        for(let k=0;k<6;k++) g.lineTo(x+(-0.3+k*0.12)*s+ox,hy+(k%2?0.18:0.26)*s);
+        g.lineTo(x+0.36*s+ox,hy+0.18*s); g.quadraticCurveTo(x+ox,hy+0.48*s,x-0.36*s+ox,hy+0.18*s); g.fill();
+    }
+    else if(L.olhos==='robo'){ g.fillStyle='#1a1a2a'; rr(g,x-0.42*s,ey-0.14*s,0.84*s,0.28*s,0.12*s); g.fill(); g.fillStyle='#3affff'; g.fillRect(x-0.32*s+ox,ey-0.05*s,0.64*s,0.1*s); }
     else {
         if(L.olhos==='mascara'){ g.fillStyle='#1a1a2a'; g.fillRect(x-0.58*s,ey-0.2*s,1.16*s,0.36*s); }
         for(const sg of [-1,1]){
@@ -308,11 +321,21 @@ function desenhaBoneco(g,l,x,y,s,ang,t,anda){
         if(L.olhos==='oculos'){ g.strokeStyle='#111'; g.lineWidth=0.06*s; for(const sg of [-1,1]){ g.beginPath(); g.arc(x+sg*0.2*s+ox,ey,0.17*s,0,7); g.stroke(); } g.beginPath(); g.moveTo(x-0.03*s+ox,ey); g.lineTo(x+0.03*s+ox,ey); g.stroke(); }
     }
     // boca
-    g.strokeStyle='rgba(0,0,0,.7)'; g.lineWidth=0.05*s; g.beginPath(); g.arc(x+ox,hy+0.2*s,0.12*s,0.2,Math.PI-0.2); g.stroke();
+    if(L.olhos!=='abobora'){ g.strokeStyle='rgba(0,0,0,.7)'; g.lineWidth=0.05*s; g.beginPath(); g.arc(x+ox,hy+0.2*s,0.12*s,0.2,Math.PI-0.2); g.stroke(); }
     // chapéu / topo
     const topo=L.forma==='alto'?hy-0.7*s:hy-0.55*s;
     g.lineWidth=0.05*s; g.strokeStyle='rgba(0,0,0,.45)';
     switch(L.cab){
+        // 🎃 chapéus de Halloween
+        case 'abobora': g.fillStyle='#3f7d2a'; rr(g,x-0.07*s,topo-0.22*s,0.14*s,0.3*s,0.04*s); g.fill(); g.stroke();
+            g.fillStyle='#5aa83a'; g.beginPath(); g.ellipse(x+0.2*s,topo-0.1*s,0.18*s,0.08*s,-0.4,0,7); g.fill(); break;
+        case 'bruxa': g.fillStyle='#3a1060'; g.beginPath(); g.ellipse(x,topo+0.1*s,0.9*s,0.17*s,0,0,7); g.fill(); g.stroke();
+            g.beginPath(); g.moveTo(x-0.48*s,topo+0.08*s); g.lineTo(x+0.48*s,topo+0.08*s); g.lineTo(x+0.25*s,topo-0.6*s);
+            g.quadraticCurveTo(x+0.45*s,topo-0.95*s,x+0.8*s,topo-0.9*s); g.quadraticCurveTo(x+0.2*s,topo-1.1*s,x+0.05*s,topo-0.55*s); g.closePath(); g.fill(); g.stroke();
+            g.fillStyle='#ff9a1a'; g.fillRect(x-0.45*s,topo-0.06*s,0.9*s,0.12*s); g.fillStyle='#ffe066'; g.fillRect(x-0.07*s,topo-0.08*s,0.14*s,0.16*s); break;
+        case 'vampiro': g.fillStyle='#14080f'; g.beginPath(); g.moveTo(x-0.6*s,hy-0.05*s); g.quadraticCurveTo(x-0.6*s,topo-0.25*s,x,topo-0.2*s);
+            g.quadraticCurveTo(x+0.6*s,topo-0.25*s,x+0.6*s,hy-0.05*s); g.lineTo(x+0.3*s,topo+0.15*s); g.lineTo(x,topo+0.38*s); g.lineTo(x-0.3*s,topo+0.15*s); g.closePath(); g.fill();
+            g.fillStyle='#fff'; for(const sg of [-1,1]){ g.beginPath(); g.moveTo(x+sg*0.05*s+ox,hy+0.27*s); g.lineTo(x+sg*0.15*s+ox,hy+0.27*s); g.lineTo(x+sg*0.1*s+ox,hy+0.42*s); g.closePath(); g.fill(); } break;
         case 'cogu': g.fillStyle='#ff4a4a'; g.beginPath(); g.ellipse(x,topo+0.05*s,0.78*s,0.42*s,0,Math.PI,0); g.closePath(); g.fill(); g.stroke();
             g.fillStyle='#fff'; for(const [a,b,r] of [[-0.4,-0.12,0.1],[0.05,-0.25,0.12],[0.42,-0.1,0.09]]){ g.beginPath(); g.arc(x+a*s,topo+b*s,r*s,0,7); g.fill(); } break;
         case 'coroa': g.fillStyle='#ffd23a'; g.beginPath(); g.moveTo(x-0.38*s,topo+0.05*s); g.lineTo(x-0.38*s,topo-0.3*s); g.lineTo(x-0.19*s,topo-0.12*s); g.lineTo(x,topo-0.36*s); g.lineTo(x+0.19*s,topo-0.12*s); g.lineTo(x+0.38*s,topo-0.3*s); g.lineTo(x+0.38*s,topo+0.05*s); g.closePath(); g.fill(); g.stroke(); break;
@@ -365,7 +388,7 @@ function textoTempo(){
     const d=Math.floor(ms/864e5), h=Math.floor(ms%864e5/36e5);
     return 'Temporada '+tempAtual()+' • acaba em '+d+'d '+h+'h';
 }
-function lutadorTemporada(rar){ const l=LUT.filter(x=>x.rar===rar); return l[(tempAtual()-1)%l.length]; }
+function lutadorTemporada(rar){ const l=LUT.filter(x=>x.rar===rar&&!x.hw); return l[(tempAtual()-1)%l.length]; }
 
 // ===== RECOMPENSAS =====
 const VALOR_REP=[50,80,120,200,300,500,800,2000]; // ouro se já tiver o lutador
@@ -381,7 +404,7 @@ function sorteiaLutador(pesos,R){
     for(let i=0;i<pesos.length;i++){ x-=pesos[i]; if(x<=0){ rar=i; break; } }
     for(const d of [0,-1,1,-2,2,-3,3,-4,4,-5,5,-6,6]){
         const r=rar+d; if(r<0||r>7) continue;
-        const l=LUT.filter(x=>x.rar===r&&!save.tem[x.id]);
+        const l=LUT.filter(x=>x.rar===r&&!save.tem[x.id]&&!x.hw);
         if(l.length) return l[Math.floor(R()*l.length)].id;
     }
     return null;
@@ -463,9 +486,15 @@ function passePronto(){
 const PRECO_GEMA=[30,50,80,120,200,350,600], PRECO_OURO=[300,500,800,1200];
 function ofertasHoje(){
     const d=hoje(), R=rng(hashStr('loja'+d));
-    const alto=LUT.filter(l=>l.rar>=3&&l.rar<7), baixo=LUT.filter(l=>l.rar<=3&&l.rar>=1);
+    const alto=LUT.filter(l=>l.rar>=3&&l.rar<7&&!l.hw), baixo=LUT.filter(l=>l.rar<=3&&l.rar>=1&&!l.hw);
     const l1=alto[Math.floor(R()*alto.length)], l2=baixo[Math.floor(R()*baixo.length)];
-    return [
+    // 🎃 no Halloween a loja ganha um presente grátis e os 3 lutadores exclusivos
+    const hw=HALLOWEEN?[
+        {id:'hwpres',tit:'🎃 Presente de Halloween',ic:'🎃',rec:{caixa:'grande'},preco:0,moeda:'ouro'},
+        {id:'hwbruxa',tit:'🧙 Exclusivo de Halloween',lut:'hw_bruxa',rec:{lut:'hw_bruxa'},preco:150,moeda:'gemas'},
+        {id:'hwabobora',tit:'🎃 Exclusivo de Halloween',lut:'hw_abobora',rec:{lut:'hw_abobora'},preco:300,moeda:'gemas'},
+        {id:'hwvampiro',tit:'🧛 Exclusivo de Halloween',lut:'hw_vampiro',rec:{lut:'hw_vampiro'},preco:500,moeda:'gemas'}]:[];
+    return hw.concat([
         {id:'gratis',tit:'🎁 Presente do dia',ic:'🎁',rec:{ouro:50},preco:0,moeda:'ouro'},
         {id:'l1',tit:'⭐ Lutador em destaque',lut:l1.id,rec:{lut:l1.id},preco:PRECO_GEMA[l1.rar],moeda:'gemas'},
         {id:'l2',tit:'🔥 Lutador do dia',lut:l2.id,rec:{lut:l2.id},preco:PRECO_OURO[l2.rar],moeda:'ouro'},
@@ -474,7 +503,7 @@ function ofertasHoje(){
         {id:'cx3',tit:'💝 Caixa MEGA',ic:'💝',rec:{caixa:'mega'},preco:80,moeda:'gemas',rep:true},
         {id:'ouro',tit:'💰 Saco de Ouro (-50%!)',ic:'💰',rec:{ouro:1000},preco:60,moeda:'gemas'},
         {id:'troca',tit:'💱 Trocar Cogu Coins',ic:'💎',rec:{gemas:50},preco:500,moeda:'cc',rep:true}
-    ];
+    ]);
 }
 function checaLoja(){ const d=hoje(); if(save.loja.dia!==d){ save.loja={dia:d,c:[]}; salva(); } }
 const lojaPronta=()=>{ checaLoja(); return !save.loja.c.includes('gratis'); };
@@ -510,7 +539,11 @@ const MAPAS=[
     '..#....bb...','.##.........','..........~.','....bb..~~~.','.#..bb......','.#......#...','.###....#...','............']},
     {nome:'⚽ Estádio',chao:['#5fbf5a','#56b451'],parede:['#e0e0e0','#9a9a9a'],liq:'#3a8fd0',estadio:true,meio:[
     '............','............','....##......','...........b','.bb........b','#bb.........','............','............',
-    '............','............','#bb.........','.bb........b','...........b','....##......','............','............']}
+    '............','............','#bb.........','.bb........b','...........b','....##......','............','............']},
+    // 🎃 paredes = lápides, moitas = plantação de abóbora, ~ = gosma verde
+    {nome:'🎃 Cemitério Assombrado',chao:['#3a2a44','#33253d'],parede:['#8a8a98','#5a5a68'],liq:'#5aff3a',hw:true,meio:[
+    '............','.bb...#.....','.bb.........','.....~~...bb','.....~~...bb','.##.........','.......bb...','..#....bb.#.',
+    '..#....bb.#.','.......bb...','.##.........','.....~~...bb','.....~~...bb','.bb.........','.bb...#.....','............']}
 ];
 let grid=[], mapaSujo=true, MAPA=MAPAS[0];
 function montaMapa(i){ MAPA=MAPAS[i||0]; grid=MAPA.meio.map(l=>(l+l.split('').reverse().join('')).split('')); mapaSujo=true; }
@@ -549,7 +582,7 @@ function novoLutador(id, x, y, bot, nv){
 }
 function novaLuta(modo, extra){
     let bId; do{ bId=LUT[Math.floor(Math.random()*LUT.length)].id; }while(bId===save.esc);
-    const pNv=nivel(save.esc), mapas=modo==='bola'?[4]:[0,1,2,3];
+    const pNv=nivel(save.esc), mapas=modo==='bola'?[4]:HALLOWEEN?[0,1,2,3,5,5,5]:[0,1,2,3];   // no Halloween o cemitério sai bastante
     jogo={modo, M:MODOS[modo], dif:save.dif, pId:save.esc, pNv, bId, bNv:clamp(pNv+DIF[save.dif].nv,1,15), pV:0, bV:0, round:0,
         mapa:mapas[Math.floor(Math.random()*mapas.length)], st:{dano:0,supers:0,ko:0}, online:false, host:true};
     if(extra) Object.assign(jogo,extra);
@@ -1008,7 +1041,28 @@ function desenhaMapa(){
     }
     for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
         const x=c*T,y=r*T, k=grid[r][c];
-        if(k==='#'){
+        if(Mp.hw && k==='#'){
+            // lápide com cruz
+            g.fillStyle='#2a1f33'; g.fillRect(x,y,T,T);
+            g.fillStyle=Mp.parede[1]; g.beginPath(); g.moveTo(x+8,y+T-2); g.lineTo(x+8,y+20); g.arc(x+T/2,y+20,T/2-8,Math.PI,0); g.lineTo(x+T-8,y+T-2); g.fill();
+            g.fillStyle=Mp.parede[0]; g.beginPath(); g.moveTo(x+11,y+T-6); g.lineTo(x+11,y+20); g.arc(x+T/2,y+20,T/2-11,Math.PI,0); g.lineTo(x+T-11,y+T-6); g.fill();
+            g.fillStyle='#4a4a58'; g.fillRect(x+T/2-2,y+14,4,18); g.fillRect(x+T/2-7,y+19,14,4);
+        } else if(Mp.hw && k==='b'){
+            // plantação de abóbora (dá pra se esconder igual moita)
+            g.fillStyle='#24401f'; g.fillRect(x,y,T,T);
+            g.fillStyle='#2f5a28'; for(const [ox,oy] of [[10,12],[38,10],[24,26],[12,40],[40,40]]){ g.beginPath(); g.ellipse(x+ox,y+oy,9,6,ox/10,0,7); g.fill(); }
+            g.fillStyle='#ff7a00'; g.beginPath(); g.ellipse(x+25,y+30,13,10,0,0,7); g.fill();
+            g.strokeStyle='#c45200'; g.lineWidth=2; g.beginPath(); g.ellipse(x+25,y+30,5,10,0,0,7); g.stroke();
+            g.fillStyle='#ffe066'; g.beginPath(); g.moveTo(x+18,y+29); g.lineTo(x+23,y+29); g.lineTo(x+20.5,y+24); g.fill();
+            g.beginPath(); g.moveTo(x+27,y+29); g.lineTo(x+32,y+29); g.lineTo(x+29.5,y+24); g.fill();
+            g.beginPath(); g.moveTo(x+17,y+33); g.quadraticCurveTo(x+25,y+40,x+33,y+33); g.quadraticCurveTo(x+25,y+36,x+17,y+33); g.fill();
+            g.fillStyle='#3f7d2a'; g.fillRect(x+23.5,y+17,3,5);
+        } else if(Mp.hw && k==='~'){
+            // gosma verde borbulhando
+            g.fillStyle='#2a6a1a'; g.fillRect(x,y,T,T);
+            g.fillStyle=Mp.liq; g.beginPath(); g.ellipse(x+T/2,y+T/2,T/2-2,T/2-4,0,0,7); g.fill();
+            g.fillStyle='rgba(220,255,200,.7)'; for(const [ox,oy,rr2] of [[16,18,4],[32,30,5],[22,36,3]]){ g.beginPath(); g.arc(x+ox,y+oy,rr2,0,7); g.fill(); }
+        } else if(k==='#'){
             g.fillStyle=Mp.parede[1]; g.fillRect(x,y+8,T,T-8);
             g.fillStyle=Mp.parede[0]; g.fillRect(x,y,T,T-12);
             g.fillStyle='rgba(255,255,255,.15)'; g.fillRect(x+4,y+4,T-8,6);
@@ -1022,7 +1076,15 @@ function desenhaMapa(){
             for(const [ox,oy] of [[14,14],[36,14],[14,36],[36,36],[25,25]]){ g.beginPath(); g.arc(x+ox,y+oy,13,0,7); g.fill(); }
         }
     }
-    g.strokeStyle='#5a3a18'; g.lineWidth=8; g.strokeRect(4,4,MW-8,MH-8);
+    if(Mp.hw){
+        // teias de aranha nos cantos e abóboras na borda
+        g.strokeStyle='rgba(255,255,255,.35)'; g.lineWidth=1.5;
+        for(const [cx,cy,sx,sy] of [[8,8,1,1],[MW-8,8,-1,1],[8,MH-8,1,-1],[MW-8,MH-8,-1,-1]]){
+            for(let k=0;k<4;k++){ const a=k*Math.PI/6; g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+sx*Math.cos(a)*70,cy+sy*Math.sin(a)*70); g.stroke(); }
+            for(const rd of [25,45,65]){ g.beginPath(); for(let k=0;k<4;k++){ const a=k*Math.PI/6; const px=cx+sx*Math.cos(a)*rd, py=cy+sy*Math.sin(a)*rd; k?g.lineTo(px,py):g.moveTo(px,py); } g.stroke(); }
+        }
+    }
+    g.strokeStyle=Mp.hw?'#ff7a00':'#5a3a18'; g.lineWidth=8; g.strokeRect(4,4,MW-8,MH-8);
     mapaSujo=false;
 }
 function desenhaLutador(f, ehInimigo){
