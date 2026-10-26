@@ -1,6 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v602 (2026-10-26)
+- ⏱️ O tempo errado dos jogos foi zerado sozinho (uma vez só) e começou a contar de novo, agora certinho, só com o jogo na tela
+
 ## v601 (2026-10-26)
 - ⏱️ Arrumado o tempo nos jogos: os jogos mais antigos contavam o tempo até com a aba escondida (por isso apareceu 11 horas na Caça ao Tesouro!). Agora só conta com o jogo aparecendo na tela
 - 🔄 Botão pra zerar o tempo e começar a contar de novo, na tela do Meu tempo nos jogos

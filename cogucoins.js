@@ -554,6 +554,14 @@
    NÃO usam o stats.js (Arena 2, Kart, Torre...), só com o jogo aparecendo na tela.
    Fica no mesmo lugar ('cogumelo_playtime', sobe junto com a conta) e aparece no perfil. */
 (function () {
+  // até a v601 o stats.js contava com a aba escondida (ex.: 11h na Caça ao Tesouro sem jogar):
+  // zera UMA vez o tempo velho de todo mundo e começa a contar certo
+  try {
+    if (!localStorage.getItem('playtime_zerado_v602')) {
+      localStorage.setItem('cogumelo_playtime', '{}');
+      localStorage.setItem('playtime_zerado_v602', '1');
+    }
+  } catch (e) {}
   var pasta = (location.pathname.split('/')[1] || '').toLowerCase();
   if (!pasta || /^(conta|loja|cogucoins|comunidade|excluir-conta|privacidade|politica|sugestoes|controle|assets)$/.test(pasta)) return;
   var ultimo = Date.now();
