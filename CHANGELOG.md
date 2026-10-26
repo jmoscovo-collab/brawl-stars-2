@@ -1,6 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v596 (2026-10-25)
+- 🎃 Pescaria Maluca: noite de Halloween com lua cheia, estrelas e morcegos, água escura, abóbora brilhando no píer e o pescador de CHAPÉU DE BRUXA 🧙
+- 🏷️ Selo "EVENTO HALLOWEEN!!" na Pescaria Maluca
+
 ## v595 (2026-10-25)
 - 🎃 Chuva de Cogumelos: noite de Halloween com lua, morcegos e gramado roxo com abóboras. O cogumelo laranja vira ABÓBORA e o seu bonequinho ganha CHAPÉU DE BRUXA 🧙
 - 🏷️ Selo "EVENTO HALLOWEEN!!" na Chuva de Cogumelos

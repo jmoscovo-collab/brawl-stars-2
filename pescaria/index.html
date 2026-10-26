@@ -700,12 +700,31 @@ function soltaConfete(n){
 
 // ============ DESENHO ============
 let t=0;
+// 🎃 HALLOWEEN (até 02/11): noite com lua e morcegos, abóbora no píer e pescador de chapéu de bruxa
+const HALLOWEEN = Date.now() < new Date(2026, 10, 3).getTime();
 function desenha(){
     t+=0.016;
     // céu com sol e nuvens
     const g=ctx.createLinearGradient(0,0,0,H*0.55);
-    g.addColorStop(0,'#7ec8f0'); g.addColorStop(1,'#c8e8f8');
+    if(HALLOWEEN){ g.addColorStop(0,'#12051f'); g.addColorStop(1,'#5a2050'); }
+    else { g.addColorStop(0,'#7ec8f0'); g.addColorStop(1,'#c8e8f8'); }
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H*0.55);
+    if(HALLOWEEN){
+        // 🎃 noite de Halloween: estrelas, lua cheia laranja e morcegos
+        ctx.fillStyle='#fff';
+        for(let i=0;i<30;i++){ ctx.globalAlpha = Math.sin(t*2+i)>0.3?0.9:0.3; ctx.fillRect((i*137+50)%W, (i*61+15)%(H*0.4), 2, 2); }
+        ctx.globalAlpha=1;
+        ctx.save(); ctx.shadowColor='#ffb347'; ctx.shadowBlur=40; ctx.fillStyle='#ffcf6b';
+        ctx.beginPath(); ctx.arc(780,80,42,0,7); ctx.fill(); ctx.restore();
+        ctx.fillStyle='#0a0410';
+        for(let i=0;i<4;i++){
+            const bx=((t*40*(1+i*0.3)+i*260)%(W+80))-40, by=60+i*35+Math.sin(t*3+i)*10, asa=Math.sin(t*18+i)*6;
+            ctx.beginPath(); ctx.moveTo(bx,by);
+            ctx.quadraticCurveTo(bx-8,by-6-asa,bx-16,by-2+asa); ctx.quadraticCurveTo(bx-9,by+1,bx-4,by+4);
+            ctx.lineTo(bx,by+2); ctx.lineTo(bx+4,by+4);
+            ctx.quadraticCurveTo(bx+9,by+1,bx+16,by-2+asa); ctx.quadraticCurveTo(bx+8,by-6-asa,bx,by); ctx.fill();
+        }
+    } else {
     ctx.fillStyle='#ffdd44'; ctx.beginPath(); ctx.arc(780,80,42,0,7); ctx.fill();
     ctx.fillStyle='rgba(255,255,255,0.85)';
     for(let i=0;i<3;i++){
@@ -714,13 +733,14 @@ function desenha(){
         ctx.arc(nx,70+i*38,24,0,7); ctx.arc(nx+26,62+i*38,30,0,7); ctx.arc(nx+56,72+i*38,22,0,7);
         ctx.fill();
     }
+    }
     // montanhas
-    ctx.fillStyle='#4a7a5a';
+    ctx.fillStyle=HALLOWEEN?'#24122e':'#4a7a5a';
     ctx.beginPath(); ctx.moveTo(0,H*0.55); ctx.lineTo(160,180); ctx.lineTo(340,H*0.55); ctx.fill();
     ctx.beginPath(); ctx.moveTo(240,H*0.55); ctx.lineTo(460,150); ctx.lineTo(660,H*0.55); ctx.fill();
     // água
     const ag=ctx.createLinearGradient(0,H*0.55,0,H);
-    ag.addColorStop(0,'#2a6a9a'); ag.addColorStop(1,'#123a5a');
+    ag.addColorStop(0,HALLOWEEN?'#1e2e5a':'#2a6a9a'); ag.addColorStop(1,HALLOWEEN?'#0a1028':'#123a5a');
     ctx.fillStyle=ag; ctx.fillRect(0,H*0.55,W,H*0.45);
     // ondinhas
     ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=2;
@@ -736,11 +756,30 @@ function desenha(){
     ctx.fillStyle='#7a5230'; ctx.fillRect(0,H*0.62,220,18);
     ctx.fillRect(30,H*0.62+18,14,60); ctx.fillRect(150,H*0.62+18,14,60);
     ctx.fillStyle='#8a6240'; for(let x=0;x<220;x+=28) ctx.fillRect(x,H*0.62,24,18);
+    if(HALLOWEEN){
+        // abóbora com cara brilhando no píer
+        const ax=50, ay=H*0.62;
+        ctx.fillStyle='#ff7a00'; ctx.beginPath(); ctx.ellipse(ax,ay-12,16,12,0,0,7); ctx.fill();
+        ctx.strokeStyle='#c45200'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.ellipse(ax,ay-12,6,12,0,0,7); ctx.stroke();
+        ctx.fillStyle='#3f7d2a'; ctx.fillRect(ax-2,ay-29,4,6);
+        ctx.fillStyle='rgba(255,230,90,'+(0.75+Math.sin(t*8)*0.2)+')';
+        ctx.beginPath(); ctx.moveTo(ax-10,ay-13); ctx.lineTo(ax-4,ay-13); ctx.lineTo(ax-7,ay-19); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(ax+4,ay-13); ctx.lineTo(ax+10,ay-13); ctx.lineTo(ax+7,ay-19); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(ax-10,ay-9); ctx.quadraticCurveTo(ax,ay-2,ax+10,ay-9); ctx.quadraticCurveTo(ax,ay-5,ax-10,ay-9); ctx.fill();
+    }
     // pescador
     ctx.save(); ctx.translate(150, H*0.62);
     ctx.fillStyle='#3a5a8a'; ctx.fillRect(-14,-46,28,34);              // corpo
     ctx.fillStyle='#ffcc99'; ctx.beginPath(); ctx.arc(0,-56,12,0,7); ctx.fill(); // cabeça
+    if(HALLOWEEN){
+        // 🧙 chapéu de bruxa
+        ctx.fillStyle='#3a1060';
+        ctx.beginPath(); ctx.ellipse(0,-64,18,4,0,0,7); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-10,-65); ctx.lineTo(10,-65); ctx.lineTo(6,-82); ctx.quadraticCurveTo(10,-90,17,-89); ctx.quadraticCurveTo(4,-94,1,-81); ctx.closePath(); ctx.fill();
+        ctx.fillStyle='#ff9a1a'; ctx.fillRect(-9.5,-70,19,3);
+    } else {
     ctx.fillStyle='#cc4444'; ctx.beginPath(); ctx.arc(0,-62,12,Math.PI,0); ctx.fill(); ctx.fillRect(-16,-62,32,4); // chapéu
+    }
     ctx.fillStyle='#222'; ctx.fillRect(-12,-12,10,14); ctx.fillRect(2,-12,10,14); // pernas
     // vara
     ctx.strokeStyle = varaEq==='ouro'?'#ffd700':varaEq==='diamante'?'#88ffff':varaEq==='mistica'?'#cc66ff':'#8a5a2a';
