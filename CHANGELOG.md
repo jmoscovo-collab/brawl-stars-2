@@ -1,6 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v601 (2026-10-26)
+- ⏱️ Arrumado o tempo nos jogos: os jogos mais antigos contavam o tempo até com a aba escondida (por isso apareceu 11 horas na Caça ao Tesouro!). Agora só conta com o jogo aparecendo na tela
+- 🔄 Botão pra zerar o tempo e começar a contar de novo, na tela do Meu tempo nos jogos
+
 ## v600 (2026-10-26)
 - ☢️ Arena 2: a CAPIVARA MUTANTE ficou mais forte! Cada tiro da rajada é MAIS LARGO que o anterior e cada tiro dá 3.500 de dano (no nível 1) até 5.000 (no nível máximo)
 

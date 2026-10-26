@@ -95,6 +95,11 @@ function initStats(gameName) {
 
     setInterval(savePlayTime, 10000);
     window.addEventListener('beforeunload', savePlayTime);
+    // escondeu a aba: guarda o que jogou até agora; voltou: começa a contar de novo dali
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) contaTempo(true);
+        else playStartTime = Date.now();
+    });
 
     const visits = JSON.parse(localStorage.getItem('cogumelo_visits') || '{}');
     visits.total = (visits.total || 0) + 1;
@@ -107,11 +112,15 @@ function initStats(gameName) {
     incrementGlobalVisits();
 }
 
-function savePlayTime() {
+function savePlayTime() { contaTempo(false); }
+// só conta com o jogo aparecendo na tela: aba escondida ou computador dormindo (pulo grande) não conta.
+// acabouDeEsconder = a aba acabou de sumir, então o tempo até agora ainda vale.
+function contaTempo(acabouDeEsconder) {
     if (!playStartTime || !currentGame) return;
     const elapsed = Math.floor((Date.now() - playStartTime) / 1000);
     if (elapsed < 2) return;
     playStartTime = Date.now();
+    if ((document.hidden && !acabouDeEsconder) || elapsed > 30) return;
 
     const times = JSON.parse(localStorage.getItem('cogumelo_playtime') || '{}');
     times[currentGame] = (times[currentGame] || 0) + elapsed;
