@@ -1,6 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v590 (2026-10-25)
+- 🎃 Turbo Racing e Street Drive com ABÓBORAS de Halloween na beira da pista, com a cara brilhando (até 02/11)
+- 💎 Lojinha de Halloween: toda vez que as ofertas mudam, aparecem 1 ou 2 MEGA OFERTAS caras (150, 250 ou 400 🍬) que dão MUITA moeda
+
 ## v589 (2026-10-25)
 - 🎃 Capivara Run 1 e 2 com MAPA DE HALLOWEEN (até 02/11): céu de noite com lua cheia laranja, morcegos voando, árvores secas, chão assombrado com abóboras brilhando e lápides, plataformas com teia de aranha. Na Capivara Run 2, os cogumelos pra pegar viraram abóboras 🎃
 

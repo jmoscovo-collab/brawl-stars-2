@@ -671,6 +671,61 @@ function buildTrack() {
 }
 buildTrack();
 
+// 🎃 HALLOWEEN (até 02/11): abóboras com cara brilhando na beira da pista
+function criaAbobora3D() {
+    const g = new THREE.Group();
+    const corpo = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), new THREE.MeshStandardMaterial({ color: 0xff7a00, roughness: 0.6, emissive: 0x401800 }));
+    corpo.scale.set(1.25, 0.9, 1.25);
+    corpo.position.y = 0.85;
+    corpo.castShadow = true;
+    g.add(corpo);
+    const gomoMat = new THREE.MeshStandardMaterial({ color: 0xd85a00, roughness: 0.7 });
+    for (let k = 0; k < 4; k++) {
+        const gomo = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), gomoMat);
+        gomo.scale.set(0.35, 0.88, 1.27);
+        gomo.rotation.y = k * Math.PI / 4;
+        gomo.position.y = 0.85;
+        g.add(gomo);
+    }
+    const cabo = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 0.5, 6), new THREE.MeshStandardMaterial({ color: 0x3f7d2a }));
+    cabo.position.set(0, 1.85, 0);
+    cabo.rotation.z = 0.25;
+    g.add(cabo);
+    // cara entalhada (brilha no escuro)
+    const luz = new THREE.MeshBasicMaterial({ color: 0xffdd44 });
+    const olho = new THREE.ConeGeometry(0.22, 0.3, 3);
+    [-0.4, 0.4].forEach(ox => {
+        const o = new THREE.Mesh(olho, luz);
+        o.position.set(ox, 1.1, 1.08);
+        o.rotation.x = Math.PI / 2; o.rotation.y = Math.PI;
+        g.add(o);
+    });
+    const boca = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.18, 0.1), luz);
+    boca.position.set(0, 0.6, 1.1);
+    g.add(boca);
+    [-0.25, 0.25].forEach(dx => {
+        const dente = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.1), luz);
+        dente.position.set(dx, 0.74, 1.1);
+        g.add(dente);
+    });
+    return g;
+}
+if (Date.now() < new Date(2026, 10, 3).getTime()) {
+    for (let i = 3; i < TRACK_POINTS.length; i += 7) {
+        const p = TRACK_POINTS[i];
+        const dir = getTrackDir(i);
+        const nx = -Math.sin(dir), nz = Math.cos(dir);
+        const lado = (i % 14 === 3) ? -1 : 1;              // alterna: dentro e fora da pista
+        const dist = TRACK_WIDTH / 2 + 2.5;
+        const ab = criaAbobora3D();
+        const s = 1.1 + (i % 3) * 0.3;
+        ab.scale.set(s, s, s);
+        ab.position.set(p.x + nx * dist * lado, 0, p.z + nz * dist * lado);
+        ab.lookAt(p.x, 0, p.z);                             // a cara olha pra pista
+        scene.add(ab);
+    }
+}
+
 // ===== Arquibancadas com torcida (cores por mapa) =====
 let standsGroup = null;
 function buildStands(map) {

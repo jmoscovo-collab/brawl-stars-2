@@ -336,6 +336,51 @@ function createTree(track) {
     return group;
 }
 
+// 🎃 HALLOWEEN (até 02/11): abóboras com cara brilhando na beira da estrada
+const HALLOWEEN = Date.now() < new Date(2026, 10, 3).getTime();
+let aboboraTpl = null;
+function aboboraModelo() {           // monta uma vez; as outras são cópias (leve pro celular)
+    if (aboboraTpl) return aboboraTpl;
+    const g = new THREE.Group();
+    const corpo = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), new THREE.MeshStandardMaterial({ color: 0xd94f00, roughness: 0.6, emissive: 0x2a0c00 }));
+    corpo.scale.set(1.25, 0.9, 1.25);
+    corpo.position.y = 0.85;
+    corpo.castShadow = true;
+    g.add(corpo);
+    const gomoMat = new THREE.MeshStandardMaterial({ color: 0xb84000, roughness: 0.7 });
+    const gomoGeo = new THREE.SphereGeometry(1, 10, 8);
+    for (let k = 0; k < 4; k++) {
+        const gomo = new THREE.Mesh(gomoGeo, gomoMat);
+        gomo.scale.set(0.35, 0.88, 1.27);
+        gomo.rotation.y = k * Math.PI / 4;
+        gomo.position.y = 0.85;
+        g.add(gomo);
+    }
+    const cabo = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 0.5, 6), new THREE.MeshStandardMaterial({ color: 0x3f7d2a }));
+    cabo.position.set(0, 1.85, 0);
+    cabo.rotation.z = 0.25;
+    g.add(cabo);
+    const luz = new THREE.MeshBasicMaterial({ color: 0xffdd44 });
+    const olho = new THREE.ConeGeometry(0.22, 0.3, 3);
+    [-0.4, 0.4].forEach(ox => {
+        const o = new THREE.Mesh(olho, luz);
+        o.position.set(ox, 1.1, 1.08);
+        o.rotation.x = Math.PI / 2; o.rotation.y = Math.PI;
+        g.add(o);
+    });
+    const boca = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.18, 0.1), luz);
+    boca.position.set(0, 0.6, 1.1);
+    g.add(boca);
+    const denteGeo = new THREE.BoxGeometry(0.14, 0.14, 0.1);
+    [-0.25, 0.25].forEach(dx => {
+        const dente = new THREE.Mesh(denteGeo, luz);
+        dente.position.set(dx, 0.74, 1.1);
+        g.add(dente);
+    });
+    aboboraTpl = g;
+    return g;
+}
+
 function buildRoad(track) {
     roadSegments = [];
     for (let i = 0; i < VISIBLE_SEGMENTS; i++) {
@@ -398,6 +443,18 @@ function buildRoad(track) {
         const railR = railL.clone();
         railR.position.set(ROAD_WIDTH / 2 + 1, 0.4, z);
         group.add(railR);
+
+        // 🎃 Halloween: 2 abóboras por pedaço de estrada, olhando pra pista
+        if (HALLOWEEN) {
+            for (const side of [-1, 1]) {
+                const ab = aboboraModelo().clone();
+                const s = 0.9 + Math.random() * 0.6;
+                ab.scale.set(s, s, s);
+                ab.position.set(side * (ROAD_WIDTH / 2 + 2.2 + Math.random() * 1.5), 0, z + (Math.random() - 0.5) * ROAD_SEG_LEN);
+                ab.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2;
+                group.add(ab);
+            }
+        }
 
         for (let t = 0; t < 4; t++) {
             const tree = createTree(track);
