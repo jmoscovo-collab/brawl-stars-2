@@ -1,6 +1,11 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v594 (2026-10-25)
+- 🎃 Fuga do Dino: mapa NOITE DE HALLOWEEN (você começa nele e ele aparece bastante): abóboras com cara brilhando, lápides, árvores secas e ABÓBORAS GIGANTES como obstáculo
+- 🎃 Cogumelo Voador: noite com lua cheia, morcegos no lugar das nuvens, cemitério no chão, canos roxos com teia de aranha e abóboras
+- 🏷️ Selo "EVENTO HALLOWEEN!!" na Fuga do Dino e no Cogumelo Voador
+
 ## v593 (2026-10-25)
 - 🎃 Cogumelo Kart: pista nova NOITE DE HALLOWEEN! Céu de noite com lua cheia, campo de abóboras, abóboras gigantes com cara brilhando na beira da pista, árvores secas, muro e zebras laranja e preto
 - 🏷️ Selo "EVENTO HALLOWEEN!!" também nos cards da Capivara Run 1 e 2, Turbo Racing, Street Drive e Cogumelo Kart

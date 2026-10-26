@@ -352,6 +352,40 @@ for (var _m = 0; _m < NUM_MAPAS; _m++) {
   TEMAS.push({ arq: ARQ[_m % ARQ.length], tint: (_m === 0 ? 1 : (0.78 + ((_m * 29) % 44) / 100)) });
 }
 
+// 🎃 MAPA DE HALLOWEEN (até 02/11): começa nele e aparece bastante quando o mapa troca
+var HALLOWEEN = Date.now() < new Date(2026, 10, 3).getTime();
+function aboboraDino(r) {
+  var a = new THREE.Group();
+  var c = esfera(r, 0xe8650a); c.scale.set(1.2, 0.85, 1.2); c.position.y = r * 0.85; a.add(c);
+  var cabo = cil(r * 0.12, r * 0.16, r * 0.5, 0x3f7d2a, 5); cabo.position.y = r * 1.85; a.add(cabo);
+  var o1 = glowBox(r * 0.3, r * 0.3, 0.05, 0xffdd44); o1.position.set(-r * 0.4, r * 1.05, r * 1.18); a.add(o1);
+  var o2 = glowBox(r * 0.3, r * 0.3, 0.05, 0xffdd44); o2.position.set(r * 0.4, r * 1.05, r * 1.18); a.add(o2);
+  var bo = glowBox(r * 0.9, r * 0.18, 0.05, 0xffdd44); bo.position.set(0, r * 0.6, r * 1.18); a.add(bo);
+  return a;
+}
+var ARQ_HW = { nome: '🎃 Noite de Halloween', bg: 0x1a0a2e, fog: 0x1a0a2e, near: 18, far: 58, chao: 0x2a1a33, trilha: 0x4a2a1a,
+  decor: function (g, x, z, esc, j) {
+    if (j % 3 === 0) {                                   // abóbora com cara brilhando (olha pra trilha)
+      var ab = aboboraDino(0.5 * esc); ab.position.set(x, 0, z); ab.rotation.y = x < 0 ? Math.PI / 2 : -Math.PI / 2; g.add(ab);
+    } else if (j % 3 === 1) {                            // árvore seca e torta
+      var a = new THREE.Group(); var t = cil(0.2, 0.35, 3.4 * esc, 0x1a0f14, 5); t.position.y = 1.7 * esc; a.add(t);
+      var b1 = cil(0.08, 0.14, 1.6, 0x1a0f14, 4); b1.position.set(0.5, 2.6 * esc, 0); b1.rotation.z = -1; a.add(b1);
+      var b2 = cil(0.08, 0.14, 1.3, 0x1a0f14, 4); b2.position.set(-0.4, 2.1 * esc, 0); b2.rotation.z = 0.9; a.add(b2);
+      a.position.set(x, 0, z); g.add(a);
+    } else {                                             // lápide
+      var l = new THREE.Group(); var p = caixa(0.9, 1.1, 0.25, 0x6b6b78); p.position.y = 0.55; l.add(p);
+      var topo = cil(0.45, 0.45, 0.25, 0x6b6b78, 10); topo.rotation.x = Math.PI / 2; topo.position.y = 1.1; l.add(topo);
+      var cr = caixa(0.1, 0.5, 0.05, 0x44444f); cr.position.set(0, 0.9, 0.14); l.add(cr);
+      var cr2 = caixa(0.32, 0.1, 0.05, 0x44444f); cr2.position.set(0, 1.0, 0.14); l.add(cr2);
+      l.scale.setScalar(esc * 0.9); l.position.set(x, 0, z); l.rotation.y = x < 0 ? Math.PI / 2 : -Math.PI / 2; g.add(l);
+    }
+  },
+  hazard: function () { var g = new THREE.Group(); var ab = aboboraDino(1.05); g.add(ab); return g; }, ceu: false };
+if (HALLOWEEN) TEMAS.push({ arq: ARQ_HW, tint: 1 });
+var TEMA_HW = TEMAS.length - 1;
+function temaInicial() { return HALLOWEEN ? TEMA_HW : 0; }
+function sorteiaTema() { return (HALLOWEEN && Math.random() < 0.35) ? TEMA_HW : Math.floor(Math.random() * NUM_MAPAS); }
+
 var temaAtual = 0;
 var temaArq = ARQ[0];
 
@@ -383,7 +417,7 @@ function aplicaTema(idx) {
   montaSeg(chaoSegs[0], a, f);
   montaSeg(chaoSegs[1], a, f);
 }
-aplicaTema(0);
+aplicaTema(temaInicial());
 
 // ============ JOGADOR (capivara/explorador low-poly) ============
 var player = new THREE.Group();
@@ -648,7 +682,7 @@ function novaPartida() {
   arvoresCaindo = [];
   G.proxSpawn = -35;
   G.proxTema = 1000;               // a cada 1000m troca de lugar
-  aplicaTema(0);                    // ao morrer/começar volta pra primeira floresta
+  aplicaTema(temaInicial());        // ao morrer/começar volta pro primeiro mapa (no Halloween, o de Halloween)
   player.position.set(0, 0, 0);
   chaoSegs[0].position.z = 0; chaoSegs[1].position.z = -100;
   document.getElementById('boca-dino').classList.remove('fechando');
@@ -854,7 +888,7 @@ function loop() {
 
     // a cada 2000m: sorteia um dos 50 mapas (qualquer um pode aparecer)
     if (G.dist >= G.proxTema) {
-      aplicaTema(Math.floor(Math.random() * NUM_MAPAS));
+      aplicaTema(sorteiaTema());
       mostraAviso('🌍 Novo lugar: ' + temaArq.nome + '!');
       G.proxTema += 1000;
     }

@@ -242,10 +242,54 @@ function desenhaCogumelo(cx, cy, sk, angulo, abertura){
     ctx.restore();
 }
 
+// 🎃 HALLOWEEN (até 02/11): noite com lua, morcegos, cemitério no chão e canos assombrados
+const HALLOWEEN = Date.now() < new Date(2026, 10, 3).getTime();
+function aboboraVoador(x, y, s){
+    ctx.fillStyle='#ff7a00';
+    ctx.beginPath(); ctx.ellipse(x, y-9*s, 13*s, 10*s, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle='#c45200'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.ellipse(x, y-9*s, 5*s, 10*s, 0, 0, 7); ctx.stroke();
+    ctx.fillStyle='#3f7d2a'; ctx.fillRect(x-1.5*s, y-23*s, 3*s, 5*s);
+    ctx.fillStyle='rgba(255,230,90,'+(0.75+Math.sin(t*8+x)*0.2)+')';
+    ctx.beginPath(); ctx.moveTo(x-8*s,y-10*s); ctx.lineTo(x-3*s,y-10*s); ctx.lineTo(x-5.5*s,y-15*s); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x+3*s,y-10*s); ctx.lineTo(x+8*s,y-10*s); ctx.lineTo(x+5.5*s,y-15*s); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x-8*s,y-7*s); ctx.quadraticCurveTo(x,y-1*s,x+8*s,y-7*s); ctx.quadraticCurveTo(x,y-4*s,x-8*s,y-7*s); ctx.fill();
+}
+function fundoHalloween(){
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#12051f'); g.addColorStop(0.65,'#3a124a'); g.addColorStop(1,'#6a2a1a');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#fff';
+    for(let i=0;i<28;i++){ ctx.globalAlpha = Math.sin(t*2+i)>0.3?0.9:0.3; ctx.fillRect((i*137+50)%W, (i*89+20)%(H*0.6), 2, 2); }
+    ctx.globalAlpha = 1;
+    ctx.save(); ctx.shadowColor='#ffb347'; ctx.shadowBlur=40; ctx.fillStyle='#ffcf6b';
+    ctx.beginPath(); ctx.arc(W*0.78, 90, 44, 0, 7); ctx.fill(); ctx.restore();
+    // morcegos no lugar das nuvens
+    ctx.fillStyle='#0a0410';
+    for(let i=0;i<4;i++){
+        const bx = ((t*30*(1+i*0.4) + i*220) % (W+80)) - 40, by = 70+i*70+Math.sin(t*3+i)*12, asa = Math.sin(t*18+i)*6;
+        ctx.beginPath(); ctx.moveTo(bx,by);
+        ctx.quadraticCurveTo(bx-8,by-6-asa,bx-16,by-2+asa); ctx.quadraticCurveTo(bx-9,by+1,bx-4,by+4);
+        ctx.lineTo(bx,by+2); ctx.lineTo(bx+4,by+4);
+        ctx.quadraticCurveTo(bx+9,by+1,bx+16,by-2+asa); ctx.quadraticCurveTo(bx+8,by-6-asa,bx,by); ctx.fill();
+    }
+    // chão de cemitério
+    ctx.fillStyle='#4a2a5a'; ctx.fillRect(0,H-40,W,40);
+    ctx.fillStyle='#2a1a22'; ctx.fillRect(0,H-22,W,22);
+    const off = (t*60) % 160;
+    for(let x=-off; x<W+40; x+=160){
+        ctx.fillStyle='#6b6b78';
+        ctx.beginPath(); ctx.moveTo(x-9,H-40); ctx.lineTo(x-9,H-56); ctx.arc(x,H-56,9,Math.PI,0); ctx.lineTo(x+9,H-40); ctx.fill();
+        aboboraVoador(x+80, H-40, 0.8);
+    }
+}
+
 function desenha(){
     t += 0.016;
     if(batida > 0) batida = Math.max(0, batida - 0.07);
 
+    if(HALLOWEEN) fundoHalloween();
+    else {
     // céu
     const g = ctx.createLinearGradient(0,0,0,H);
     g.addColorStop(0,'#7ec8f0'); g.addColorStop(1,'#cfeadd');
@@ -259,6 +303,7 @@ function desenha(){
     // chão
     ctx.fillStyle='#4caf50'; ctx.fillRect(0,H-40,W,40);
     ctx.fillStyle='#6d4c2f'; ctx.fillRect(0,H-22,W,22);
+    }
 
     if(jogando){
         vy += GRAV; y += vy;
@@ -289,12 +334,20 @@ function desenha(){
 
     // canos (com cara de cano de cogumelo!)
     for(const c of (canos||[])){
-        ctx.fillStyle='#2e7d32';
+        ctx.fillStyle=HALLOWEEN?'#3a2050':'#2e7d32';
         ctx.fillRect(c.x, 0, LARG, c.topo);
         ctx.fillRect(c.x, c.topo+VAO, LARG, H-40-(c.topo+VAO));
-        ctx.fillStyle='#1b5e20';
+        ctx.fillStyle=HALLOWEEN?'#ff7a00':'#1b5e20';
         ctx.fillRect(c.x-5, c.topo-22, LARG+10, 22);
         ctx.fillRect(c.x-5, c.topo+VAO, LARG+10, 22);
+        if(HALLOWEEN){
+            // teia pendurada embaixo do cano de cima e abóbora em cima do cano de baixo
+            ctx.strokeStyle='rgba(255,255,255,0.45)'; ctx.lineWidth=1;
+            ctx.beginPath(); ctx.moveTo(c.x+LARG/2, c.topo); ctx.lineTo(c.x+LARG/2, c.topo+18);
+            ctx.moveTo(c.x+4, c.topo); ctx.quadraticCurveTo(c.x+LARG/2, c.topo+12, c.x+LARG-4, c.topo); ctx.stroke();
+            ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(c.x+LARG/2, c.topo+21, 4, 0, 7); ctx.fill();
+            aboboraVoador(c.x+LARG/2, c.topo+VAO, 0.9);
+        }
     }
     // moedinhas
     for(const m of (moedinhas||[])){
