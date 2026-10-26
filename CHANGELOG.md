@@ -1,6 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v589 (2026-10-25)
+- 🎃 Capivara Run 1 e 2 com MAPA DE HALLOWEEN (até 02/11): céu de noite com lua cheia laranja, morcegos voando, árvores secas, chão assombrado com abóboras brilhando e lápides, plataformas com teia de aranha. Na Capivara Run 2, os cogumelos pra pegar viraram abóboras 🎃
+
 ## v588 (2026-10-25)
 - 🎃 Selo "EVENTO HALLOWEEN!!" nos cards do Cogumelo Clicker e do Zombie Survival na página inicial (some sozinho depois do evento)
 

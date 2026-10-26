@@ -1601,6 +1601,97 @@ function drawPlayerSkin(pl) {
 }
 
 let frameCount = 0;
+// 🎃 MAPA DE HALLOWEEN (até 02/11): céu de noite com lua laranja, morcegos, chão assombrado e abóboras
+const HALLOWEEN = Date.now() < new Date(2026, 10, 3).getTime();
+function hwCeu(f) {
+    const grad = ctx.createLinearGradient(0, 0, 0, 500);
+    grad.addColorStop(0, '#12051f');
+    grad.addColorStop(0.6, '#3a124a');
+    grad.addColorStop(1, '#6a2a1a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 800, 500);
+    ctx.fillStyle = '#fff';
+    for (let i = 0; i < 30; i++) {
+        ctx.globalAlpha = Math.sin(f * 0.03 + i) > 0.3 ? 0.9 : 0.3;
+        ctx.fillRect((i * 137 + 50) % 800, (i * 89 + 20) % 260, 2, 2);
+    }
+    ctx.globalAlpha = 1;
+    // lua cheia laranja com brilho
+    ctx.save();
+    ctx.shadowColor = '#ffb347'; ctx.shadowBlur = 40;
+    ctx.fillStyle = '#ffcf6b';
+    ctx.beginPath(); ctx.arc(640, 95, 48, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = 'rgba(200,120,40,0.35)';
+    ctx.beginPath(); ctx.arc(625, 85, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(655, 110, 7, 0, Math.PI * 2); ctx.fill();
+    // morcegos voando
+    ctx.fillStyle = '#0a0410';
+    for (let i = 0; i < 4; i++) {
+        const bx = (f * (1.1 + i * 0.3) + i * 230) % 900 - 50;
+        const by = 60 + i * 38 + Math.sin(f * 0.05 + i * 2) * 14;
+        const asa = Math.sin(f * 0.3 + i) * 6;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.quadraticCurveTo(bx - 8, by - 6 - asa, bx - 16, by - 2 + asa);
+        ctx.quadraticCurveTo(bx - 9, by + 1, bx - 4, by + 4);
+        ctx.lineTo(bx, by + 2); ctx.lineTo(bx + 4, by + 4);
+        ctx.quadraticCurveTo(bx + 9, by + 1, bx + 16, by - 2 + asa);
+        ctx.quadraticCurveTo(bx + 8, by - 6 - asa, bx, by);
+        ctx.fill();
+    }
+    // árvores secas no fundo
+    ctx.strokeStyle = '#1a0a22'; ctx.lineCap = 'round';
+    [[90, 1], [330, 0.8], [520, 1.1]].forEach(([tx, s]) => {
+        ctx.lineWidth = 7 * s;
+        ctx.beginPath(); ctx.moveTo(tx, 450); ctx.lineTo(tx, 450 - 120 * s); ctx.stroke();
+        ctx.lineWidth = 3 * s;
+        ctx.beginPath(); ctx.moveTo(tx, 450 - 80 * s); ctx.lineTo(tx - 30 * s, 450 - 115 * s); ctx.lineTo(tx - 40 * s, 450 - 112 * s); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tx, 450 - 100 * s); ctx.lineTo(tx + 28 * s, 450 - 140 * s); ctx.stroke();
+    });
+}
+function hwAbobora(x, y, s, f, i) {
+    ctx.fillStyle = '#ff7a00';
+    ctx.beginPath(); ctx.ellipse(x, y - 9 * s, 12 * s, 9 * s, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#c45200'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(x, y - 9 * s, 5 * s, 9 * s, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#3f7d2a';
+    ctx.fillRect(x - 1.5 * s, y - 21 * s, 3 * s, 5 * s);
+    ctx.fillStyle = `rgba(255,230,90,${0.7 + Math.sin(f * 0.15 + i) * 0.25})`;
+    ctx.beginPath(); ctx.moveTo(x - 7 * s, y - 10 * s); ctx.lineTo(x - 3 * s, y - 10 * s); ctx.lineTo(x - 5 * s, y - 14 * s); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x + 3 * s, y - 10 * s); ctx.lineTo(x + 7 * s, y - 10 * s); ctx.lineTo(x + 5 * s, y - 14 * s); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x - 7 * s, y - 7 * s); ctx.quadraticCurveTo(x, y - 2 * s, x + 7 * s, y - 7 * s); ctx.quadraticCurveTo(x, y - 4.5 * s, x - 7 * s, y - 7 * s); ctx.fill();
+}
+function hwChao(x, y, w, h, f) {
+    ctx.fillStyle = '#2a1a22';
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = '#4a2a5a';
+    ctx.fillRect(x, y, w, 6);
+    ctx.fillStyle = '#6a3a7a';
+    for (let gx = x; gx < x + w; gx += 12) ctx.fillRect(gx, y - 3, 2, 5);
+    // lápides e abóboras em lugares fixos do chão
+    for (let px = Math.ceil(x / 140) * 140 + 40; px < x + w - 20; px += 140) {
+        if (Math.floor(px / 140) % 3 === 1) {
+            ctx.fillStyle = '#6b6b78';
+            ctx.beginPath(); ctx.moveTo(px - 10, y); ctx.lineTo(px - 10, y - 18); ctx.arc(px, y - 18, 10, Math.PI, 0); ctx.lineTo(px + 10, y); ctx.fill();
+            ctx.fillStyle = '#4a4a55';
+            ctx.fillRect(px - 1, y - 22, 2, 10); ctx.fillRect(px - 4, y - 19, 8, 2);
+        } else hwAbobora(px, y, 1, f, px);
+    }
+}
+function hwPlataforma(p) {
+    ctx.fillStyle = '#3a2a4a';
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.fillStyle = '#ff7a00';
+    ctx.fillRect(p.x, p.y, p.w, 3);
+    // teia de aranha no cantinho
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(p.x + p.w, p.y + 3); ctx.lineTo(p.x + p.w - 12, p.y + 14);
+    ctx.moveTo(p.x + p.w - 12, p.y + 3); ctx.quadraticCurveTo(p.x + p.w - 6, p.y + 7, p.x + p.w, p.y + 9);
+    ctx.stroke();
+}
+
 function draw() {
     frameCount++;
 
@@ -1643,6 +1734,8 @@ function draw() {
         ctx.fillText('💀', 100, 80);
         ctx.fillText('💀', 400, 60);
         ctx.fillText('💀', 680, 90);
+    } else if (HALLOWEEN) {
+        hwCeu(frameCount);
     } else {
         const grad = ctx.createLinearGradient(0, 0, 0, 500);
         grad.addColorStop(0, '#87ceeb');
@@ -1652,7 +1745,7 @@ function draw() {
     }
 
     // Clouds (not in lua mode)
-    if (gameMode !== 'lua') {
+    if (gameMode !== 'lua' && !(HALLOWEEN && gameMode !== 'hardcore')) {
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
         const co = (frameCount * 0.2) % 900;
         ctx.beginPath(); ctx.arc((150+co)%900-50,60,30,0,Math.PI*2); ctx.arc((180+co)%900-50,55,25,0,Math.PI*2); ctx.arc((200+co)%900-50,65,20,0,Math.PI*2); ctx.fill();
@@ -1682,6 +1775,8 @@ function draw() {
                 ctx.fillRect(p.x, p.y, p.w, p.h);
                 ctx.fillStyle = '#4a0000';
                 ctx.fillRect(p.x, p.y, p.w, 4);
+            } else if (HALLOWEEN) {
+                hwChao(p.x, p.y, p.w, p.h, frameCount);
             } else {
                 ctx.fillStyle = '#5d4037';
                 ctx.fillRect(p.x, p.y, p.w, p.h);
@@ -1701,6 +1796,8 @@ function draw() {
                 ctx.fillRect(p.x, p.y, p.w, p.h);
                 ctx.fillStyle = '#6d0000';
                 ctx.fillRect(p.x, p.y, p.w, 3);
+            } else if (HALLOWEEN) {
+                hwPlataforma(p);
             } else {
                 ctx.fillStyle = p.color;
                 ctx.fillRect(p.x, p.y, p.w, p.h);
@@ -1870,6 +1967,10 @@ function drawMenuAnimation() {
     menuAnimFrame++;
     const groundY = 430;
 
+    if (HALLOWEEN) {
+        hwCeu(menuAnimFrame);
+        hwChao(0, groundY, 800, 70, menuAnimFrame);
+    } else {
     // Sky
     const grad = ctx.createLinearGradient(0, 0, 0, 500);
     grad.addColorStop(0, '#87ceeb');
@@ -1882,7 +1983,9 @@ function drawMenuAnimation() {
     const co = (menuAnimFrame * 0.3) % 900;
     ctx.beginPath(); ctx.arc((100+co)%900-50,70,25,0,Math.PI*2); ctx.arc((130+co)%900-50,65,20,0,Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc((500+co*0.5)%900-50,50,30,0,Math.PI*2); ctx.arc((535+co*0.5)%900-50,45,22,0,Math.PI*2); ctx.fill();
+    }
 
+    if (!HALLOWEEN) {
     // Ground
     ctx.fillStyle = '#5d4037';
     ctx.fillRect(0, groundY, 800, 70);
@@ -1890,6 +1993,7 @@ function drawMenuAnimation() {
     ctx.fillRect(0, groundY, 800, 6);
     ctx.fillStyle = '#66bb6a';
     for (let gx = 0; gx < 800; gx += 12) ctx.fillRect(gx, groundY - 3, 2, 5);
+    }
 
     // Animate positions — cogumelo runs, capivara chases
     const speed = 2;
