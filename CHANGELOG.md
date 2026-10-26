@@ -1,6 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v588 (2026-10-25)
+- 🎃 Selo "EVENTO HALLOWEEN!!" nos cards do Cogumelo Clicker e do Zombie Survival na página inicial (some sozinho depois do evento)
+
 ## v587 (2026-10-25)
 - 🍄 Cogumelo Clicker: 4 EVOLUÇÕES novas (fora da loja): 💎 ULTRA (+100 mil por clique), 🌋 GIGA (+1 milhão), 🌌 CÓSMICO (+10 milhões) e 👑 LENDÁRIO (+100 milhões)
 - 🎃 EVOLUÇÃO DE HALLOWEEN: ABÓBORA ASSOMBRADA com 5 níveis! O cogumelo vira abóbora com a cara brilhando, o fundo vira noite com lua e morcegos, 👻 fantasmas giram em volta e clicam sozinhos, 😱 SUSTO (13% de chance de clique x13), 🌕 LUA CHEIA (a cada 45s, 10s com tudo x3) e no nível 5 ganha 🧙 chapéu de bruxa. Clique até x6! Só dá pra comprar até 02/11, mas quem comprar fica com ela pra sempre
