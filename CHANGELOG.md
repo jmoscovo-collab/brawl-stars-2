@@ -1,6 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v591 (2026-10-25)
+- 🛠️ Painel ADM: agora dá pra se dar 🍬 Doces de Halloween (ou INFINITOS ♾️). Na lojinha aparece ∞
+
 ## v590 (2026-10-25)
 - 🎃 Turbo Racing e Street Drive com ABÓBORAS de Halloween na beira da pista, com a cara brilhando (até 02/11)
 - 💎 Lojinha de Halloween: toda vez que as ofertas mudam, aparecem 1 ou 2 MEGA OFERTAS caras (150, 250 ou 400 🍬) que dão MUITA moeda

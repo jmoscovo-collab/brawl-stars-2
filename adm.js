@@ -216,6 +216,22 @@
     bc.onclick = function () { var n = Math.min(MAX, Math.max(0, Math.round(+qc.value || 0))); if (cc && n) { cc.ganha(n); try { if (window.cgNuvem) cgNuvem.salva(); } catch (e) {} } abre(); };
     lin.appendChild(bc); cx.appendChild(lin);
 
+    // 🍬 Doces do Evento de Halloween (enquanto o evento estiver valendo)
+    if (window.cgHalloween && window.cgHalloween.ativo()) {
+      cx.appendChild(secao('🍬 Doces de Halloween'));
+      var doces = function () { try { return Number(localStorage.getItem('halloween_doces')) || 0; } catch (e) { return 0; } };
+      var poe = function (n) { try { localStorage.setItem('halloween_doces', String(Math.max(0, n))); if (window.cgNuvem) cgNuvem.salva(); } catch (e) {} };
+      var ld = el('div', '');
+      ld.appendChild(el('span', 'margin-right:8px', 'Você tem: <b>' + (doces() >= 1e15 ? '∞' : doces().toLocaleString('pt-BR')) + '</b>'));
+      var qd = el('input', IN); qd.type = 'number'; qd.value = '1000'; ld.appendChild(qd);
+      var bd = el('button', BT, '➕ DAR');
+      bd.onclick = function () { var n = Math.min(MAX, Math.max(0, Math.round(+qd.value || 0))); if (n) poe(Math.min(9e15, doces() + n)); abre(); };
+      ld.appendChild(bd);
+      var bi = el('button', BT + ';background:#ff9a1a', '♾️ INFINITO');
+      bi.onclick = function () { poe(9e15); abre(); };
+      ld.appendChild(bi); cx.appendChild(ld);
+    }
+
     // save do jogo
     var s = achaSave();
     cx.appendChild(secao('🎮 Números do save deste jogo'));
