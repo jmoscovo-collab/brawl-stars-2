@@ -1,6 +1,12 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v586 (2026-10-25)
+- 🎃 Missões de Halloween agora são SEPARADAS POR JOGO! São 66 jogos, cada um com suas missões: jogar 3, 10 e 20 minutos, e nos jogos com moeda também ganhar moedas jogando
+- 🔍 Lugar pra escolher o jogo: digite o nome dele na busca ou toque no jogo. Os jogos com prêmio pra pegar 🎁 aparecem primeiro
+- Saíram as missões de "partida"
+- Quando você completa uma missão jogando, aparece um aviso no jogo. Tocou nele, vai direto pros seus Doces 🍬
+
 ## v585 (2026-10-25)
 - 🎃 Evento de Halloween ficou MUITO maior! Agora tem 18 📜 MISSÕES de vários jogos (Zumbi, Dino, Torre, Arena 2, Pescaria, Parkour, Turbo Racing...). Quanto mais difícil a missão, mais 🍬 DOCES você ganha (de 5 até 150!)
 - 🛒 LOJINHA DE HALLOWEEN: troque seus Doces por moedas de quase todos os jogos. As ofertas mudam a cada 3 horas e de vez em quando aparece PROMOÇÃO 🔥 com até 50% de desconto!
