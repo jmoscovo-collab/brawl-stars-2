@@ -1,6 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v587 (2026-10-25)
+- 🍄 Cogumelo Clicker: 4 EVOLUÇÕES novas (fora da loja): 💎 ULTRA (+100 mil por clique), 🌋 GIGA (+1 milhão), 🌌 CÓSMICO (+10 milhões) e 👑 LENDÁRIO (+100 milhões)
+- 🎃 EVOLUÇÃO DE HALLOWEEN: ABÓBORA ASSOMBRADA com 5 níveis! O cogumelo vira abóbora com a cara brilhando, o fundo vira noite com lua e morcegos, 👻 fantasmas giram em volta e clicam sozinhos, 😱 SUSTO (13% de chance de clique x13), 🌕 LUA CHEIA (a cada 45s, 10s com tudo x3) e no nível 5 ganha 🧙 chapéu de bruxa. Clique até x6! Só dá pra comprar até 02/11, mas quem comprar fica com ela pra sempre
+
 ## v586 (2026-10-25)
 - 🎃 Missões de Halloween agora são SEPARADAS POR JOGO! São 66 jogos, cada um com suas missões: jogar 3, 10 e 20 minutos, e nos jogos com moeda também ganhar moedas jogando
 - 🔍 Lugar pra escolher o jogo: digite o nome dele na busca ou toque no jogo. Os jogos com prêmio pra pegar 🎁 aparecem primeiro

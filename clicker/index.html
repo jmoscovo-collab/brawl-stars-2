@@ -160,7 +160,37 @@
         .loja-item .li-cost { color: #ff5722; font-weight: bold; font-size: 13px; }
         .loja-item.comprado .li-cost { color: #4caf50; }
         #loja-back { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 12px 40px; font-size: 18px; background: #ff9800; color: #fff; border: none; border-radius: 25px; cursor: pointer; font-family: monospace; z-index: 701; }
+        body { justify-content: safe center; overflow-y: auto; overflow-x: hidden; padding: 50px 0 20px; }
+        /* 🧬 EVOLUÇÕES novas (fora da loja) */
+        #evo-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 16px; max-width: 900px; padding: 0 10px; }
+        .evo-box { background: rgba(0,0,0,0.4); border: 3px solid #444; border-radius: 12px; padding: 10px 12px; text-align: center; width: 150px; cursor: pointer; transition: all 0.2s; font-family: monospace; }
+        .evo-box:hover { border-color: #ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.3); transform: scale(1.05); }
+        .evo-box.locked { opacity: 0.4; cursor: not-allowed; }
+        .evo-box.locked:hover { border-color: #444; box-shadow: none; transform: none; }
+        .evo-box .t { font-size: 15px; font-weight: bold; margin-bottom: 4px; }
+        .evo-box .d { color: #aaa; font-size: 11px; margin-bottom: 6px; }
+        .evo-box .c { color: #ff5722; font-size: 13px; font-weight: bold; }
+        .evo-box .l { color: #4caf50; font-size: 11px; margin-top: 4px; }
+        .evo-box.evo-hw { width: 230px; border-color: #ff7a00; background: linear-gradient(160deg, rgba(255,122,0,0.4), rgba(90,20,130,0.7)); box-shadow: 0 0 18px rgba(255,122,0,0.6); animation: hwPulsa 1.6s ease-in-out infinite; }
+        .evo-box.evo-hw.locked { opacity: 0.6; }
+        .evo-box.evo-hw .t { color: #ffb347; font-size: 16px; }
+        .evo-box.evo-hw .d { color: #f3d9ff; }
+        @keyframes hwPulsa { 50% { box-shadow: 0 0 32px rgba(180,70,255,0.9); } }
+        body.halloween { background: radial-gradient(circle at 80% 12%, rgba(255,240,180,0.25) 0 50px, transparent 52px), linear-gradient(135deg, #12051f 0%, #3a124a 50%, #2a0a05 100%); }
+        body.halloween.lua { background: radial-gradient(circle at 80% 12%, rgba(255,250,210,0.95) 0 70px, rgba(255,240,180,0.25) 72px, transparent 160px), linear-gradient(135deg, #2a1050 0%, #5a1e70 50%, #4a1a08 100%); }
+        body.halloween .title { color: #ffb347; }
+        .morcego { position: fixed; left: 0; font-size: 28px; pointer-events: none; z-index: 0; animation: voa linear infinite; }
+        @keyframes voa { 0% { transform: translate(-12vw, 0) scaleX(1); } 25% { transform: translate(25vw, -40px); } 50% { transform: translate(55vw, 20px); } 75% { transform: translate(85vw, -30px); } 100% { transform: translate(112vw, 0); } }
+        .fantasma { position: absolute; font-size: 30px; pointer-events: none; z-index: 2; filter: drop-shadow(0 0 8px rgba(200,180,255,0.9)); }
+        #lua-bar { color: #fff3b0; font-size: 15px; font-weight: bold; text-shadow: 1px 1px 0 #000; min-height: 18px; }
+        .click-effect.susto { color: #ff3355; font-size: 30px; }
+        #hw-anuncio { position: fixed; inset: 0; z-index: 9000; background: rgba(10,0,20,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; color: #fff; font-family: monospace; }
+        #hw-anuncio .big { font-size: 90px; animation: hwPulo 0.8s ease-in-out infinite; }
+        @keyframes hwPulo { 50% { transform: translateY(-14px) rotate(6deg); } }
         @media (max-width: 700px) {
+            .title { font-size: 22px; text-align: center; padding: 0 50px; }
+            .evo-box { width: 140px; }
+            .evo-box.evo-hw { width: 290px; }
             .game-area { flex-direction: column; gap: 14px; }
             #capivara { width: 150px; height: 150px; }
             #score { font-size: 36px; margin-bottom: 10px; }
@@ -242,8 +272,10 @@
             <div class="up-level" id="up-level2">Nível: 0</div>
         </div>
     </div>
+    <div id="evo-row"></div>
     <div id="click-power">Clique: +1</div>
     <div id="turbo-bar"></div>
+    <div id="lua-bar"></div>
     <button id="btn-academia">🏋️ ACADEMIA</button>
     <button id="btn-corrida">🏁 CORRIDA</button>
     <button id="btn-loja">🛒 LOJA</button>
@@ -289,6 +321,8 @@ let score = 0;
 let clickPower = 1;
 let upgradeLevel = 0;
 let upgradeCost = 100;
+let hwLvl = 0;          // 🎃 nível da evolução de Halloween (0 = não tem)
+let evoLv = {};         // 🧬 níveis das evoluções novas { ultra: 2, ... }
 let best = parseInt(localStorage.getItem('capivara_clicker_best') || '0');
 document.getElementById('best').textContent = `Recorde: ${best}`;
 
@@ -321,10 +355,92 @@ upgradeBox.addEventListener('click', () => {
 const capiDiv = document.getElementById('capivara');
 const scoreEl = document.getElementById('score');
 
-function drawCogumelo() {
+// 🎃 Cogumelo-Abóbora (evolução de Halloween): cabeça de abóbora com cara entalhada brilhando
+function drawAbobora(ctx, t) {
+    const pisca = 0.75 + Math.sin(t * 0.008) * 0.15 + Math.random() * 0.1;   // luz de vela tremendo
+    ctx.save();
+    ctx.translate(100, 105);
+    ctx.scale(3, 3);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath(); ctx.ellipse(0, 28, 14, 5, 0, 0, Math.PI*2); ctx.fill();
+
+    // Stem (com carinha de vampirinho)
+    ctx.fillStyle = '#efe6cc';
+    ctx.fillRect(-10, 5, 20, 24);
+    ctx.fillStyle = '#ddd2b4';
+    ctx.fillRect(-10, 5, 4, 24);
+
+    // Cap = abóbora, com brilho laranja em volta
+    ctx.shadowColor = hwLvl >= 5 ? '#c040ff' : '#ff7a00';
+    ctx.shadowBlur = 14 + Math.sin(t * 0.005) * 6;
+    ctx.fillStyle = '#ff7a00';
+    ctx.beginPath(); ctx.ellipse(0, -2, 22, 18, 0, Math.PI, 0); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#c45200';
+    ctx.beginPath(); ctx.ellipse(0, -2, 22, 5, 0, 0, Math.PI); ctx.fill();
+    // gomos da abóbora
+    ctx.strokeStyle = '#c45a00'; ctx.lineWidth = 1.2;
+    [7, 15].forEach(rx => { ctx.beginPath(); ctx.ellipse(0, -2, rx, 18, 0, Math.PI, 0); ctx.stroke(); });
+
+    // cara entalhada brilhando
+    ctx.fillStyle = `rgba(255,${Math.round(200 + pisca * 40)},80,${pisca})`;
+    ctx.shadowColor = '#ffdd33'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.moveTo(-12, -8); ctx.lineTo(-5, -8); ctx.lineTo(-8.5, -14); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(5, -8); ctx.lineTo(12, -8); ctx.lineTo(8.5, -14); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-13, -6.5);
+    ctx.lineTo(-9, -3.5); ctx.lineTo(-6, -5.5); ctx.lineTo(-3, -3); ctx.lineTo(0, -5.5); ctx.lineTo(3, -3); ctx.lineTo(6, -5.5); ctx.lineTo(9, -3.5); ctx.lineTo(13, -6.5);
+    ctx.quadraticCurveTo(0, -1, -13, -6.5); ctx.fill();
+    ctx.shadowBlur = 0;
+
+    if (hwLvl >= 5) {
+        // 🧙 chapéu de bruxa
+        ctx.fillStyle = '#3a1060';
+        ctx.beginPath(); ctx.ellipse(0, -17, 16, 3.5, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-9, -18); ctx.lineTo(9, -18); ctx.lineTo(6, -28); ctx.quadraticCurveTo(9, -33, 14, -33); ctx.quadraticCurveTo(5, -36, 2, -29); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#ff9a1a';
+        ctx.fillRect(-8.5, -21, 17, 2.5);
+        ctx.fillStyle = '#ffe066';
+        ctx.fillRect(-1.5, -21.5, 3, 3.5);
+    } else {
+        // cabinho verde da abóbora
+        ctx.fillStyle = '#3f7d2a';
+        ctx.save(); ctx.translate(0, -20); ctx.rotate(0.25); ctx.fillRect(-2, -6, 4, 7); ctx.restore();
+    }
+
+    // olhos brilhando
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-5, 12, 4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(5, 12, 4, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ff6a00';
+    ctx.beginPath(); ctx.arc(-5, 12, 2.4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(5, 12, 2.4, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#2a0a00';
+    ctx.beginPath(); ctx.arc(-5, 12, 1.1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(5, 12, 1.1, 0, Math.PI*2); ctx.fill();
+
+    // sorriso com dentinhos de vampiro
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.arc(0, 16, 5, 0.1, Math.PI - 0.1); ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.moveTo(-3.5, 20.3); ctx.lineTo(-1.5, 20.8); ctx.lineTo(-2.6, 23.5); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(3.5, 20.3); ctx.lineTo(1.5, 20.8); ctx.lineTo(2.6, 23.5); ctx.closePath(); ctx.fill();
+
+    ctx.fillStyle = 'rgba(190,90,255,0.35)';
+    ctx.beginPath(); ctx.arc(-9, 15, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(9, 15, 3, 0, Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = '#4a2a5a';
+    ctx.fillRect(-9, 27, 7, 5);
+    ctx.fillRect(2, 27, 7, 5);
+    ctx.restore();
+}
+
+function drawCogumelo(t) {
     const canvas = document.getElementById('capi-canvas');
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, 200, 200);
+    if (hwLvl > 0) { drawAbobora(ctx, t || 0); return; }
 
     ctx.save();
     ctx.translate(100, 105);
@@ -1302,9 +1418,160 @@ setInterval(() => {
 }, 1000);
 
 function updateClickPowerLabel() {
-    const total = clickPower * melhoriaMult() * comboMult();
+    const total = clickPower * melhoriaMult() * comboMult() * aboboraMult() * luaMult();
     document.getElementById('click-power').textContent = `Clique: +${total.toLocaleString()}`;
 }
+
+// === 🧬 EVOLUÇÕES NOVAS (fora da loja): igual UPGRADE/SUPER/MEGA, cada nível soma no clique ===
+const EVOLUCOES = [
+    { id: 'ultra',    t: '💎 ULTRA',    add: 100000,    base: 1000000,    cor: '#b388ff' },
+    { id: 'giga',     t: '🌋 GIGA',     add: 1000000,   base: 10000000,   cor: '#ff7043' },
+    { id: 'cosmico',  t: '🌌 CÓSMICO',  add: 10000000,  base: 100000000,  cor: '#40c4ff' },
+    { id: 'lendario', t: '👑 LENDÁRIO', add: 100000000, base: 1000000000, cor: '#ffd700' },
+];
+function evoCusto(e) { return e.base * ((evoLv[e.id] || 0) + 1); }
+
+// === 🎃 EVOLUÇÃO DE HALLOWEEN (5 níveis; dá pra comprar até 02/11, quem comprou fica pra sempre) ===
+const HW_FIM = new Date(2026, 10, 3).getTime();
+const HW_CUSTO = [666666, 6666666, 66666666, 666666666, 6666666666];
+const HW_FANTASMAS = [0, 1, 2, 2, 4, 5];
+const HW_DESC = [
+    'Vira COGUMELO-ABÓBORA! Clique x2, 👻 1 fantasma que clica sozinho e 😱 SUSTO: 13% de chance de x13!',
+    '👻👻 2 fantasmas e clique x3!',
+    '🌕 LUA CHEIA: a cada 45s, 10s com TUDO x3! E clique x4!',
+    '👻👻👻👻 4 fantasmas e clique x5!',
+    '🧙 CHAPÉU DE BRUXA, 5 fantasmas e clique x6!',
+];
+function aboboraMult() { return hwLvl ? hwLvl + 1 : 1; }
+function luaAtiva() { return hwLvl >= 3 && (Date.now() % 45000) < 10000; }
+function luaMult() { return luaAtiva() ? 3 : 1; }
+function cliqueDuplo() { try { return window.CoguCoins && window.CoguCoins.tem('clique_duplo') ? 2 : 1; } catch (e) { return 1; } }
+
+const evoRow = document.getElementById('evo-row');
+let evoEls = [];
+function renderEvos() {
+    evoRow.innerHTML = '';
+    evoEls = [];
+    if (hwLvl > 0 || Date.now() < HW_FIM) {
+        const el = document.createElement('div');
+        el.className = 'evo-box evo-hw';
+        const max = hwLvl >= HW_CUSTO.length;
+        el.innerHTML = `<div class="t">🎃 ABÓBORA ASSOMBRADA</div>` +
+            `<div class="d">${max ? 'Você tem TODOS os poderes de Halloween! 👻🦇🌕' : HW_DESC[hwLvl]}</div>` +
+            `<div class="c">${max ? '🏆 MÁXIMO!' : 'Custo: ' + HW_CUSTO[hwLvl].toLocaleString()}</div>` +
+            `<div class="l">Nível: ${hwLvl}/${HW_CUSTO.length}${!max && Date.now() < HW_FIM ? ' · só até 02/11!' : ''}</div>`;
+        el.onclick = () => {
+            if (hwLvl >= HW_CUSTO.length || Date.now() >= HW_FIM || score < HW_CUSTO[hwLvl]) return;
+            score -= HW_CUSTO[hwLvl];
+            hwLvl++;
+            scoreEl.textContent = score.toLocaleString();
+            aplicaHalloween();
+            anunciaHalloween();
+            renderEvos(); updateClickPowerLabel(); saveGame();
+        };
+        evoRow.appendChild(el);
+        evoEls.push({ el, custo: () => (hwLvl >= HW_CUSTO.length || Date.now() >= HW_FIM) ? Infinity : HW_CUSTO[hwLvl] });
+    }
+    EVOLUCOES.forEach(e => {
+        const el = document.createElement('div');
+        el.className = 'evo-box';
+        el.innerHTML = `<div class="t" style="color:${e.cor}">${e.t}</div><div class="d">+${e.add.toLocaleString()} por clique</div>` +
+            `<div class="c">Custo: ${evoCusto(e).toLocaleString()}</div><div class="l">Nível: ${evoLv[e.id] || 0}</div>`;
+        el.onclick = () => {
+            const c = evoCusto(e);
+            if (score < c) return;
+            score -= c;
+            evoLv[e.id] = (evoLv[e.id] || 0) + 1;
+            clickPower += e.add;
+            scoreEl.textContent = score.toLocaleString();
+            renderEvos(); updateClickPowerLabel(); saveGame();
+        };
+        evoRow.appendChild(el);
+        evoEls.push({ el, custo: () => evoCusto(e) });
+    });
+    updateEvos();
+}
+function updateEvos() { evoEls.forEach(o => o.el.classList.toggle('locked', score < o.custo())); }
+
+function anunciaHalloween() {
+    const d = document.createElement('div');
+    d.id = 'hw-anuncio';
+    d.innerHTML = `<div class="big">${hwLvl >= 5 ? '🧙' : '🎃'}</div>` +
+        `<div style="font-size:30px; font-weight:bold; color:#ffb347; margin:10px 0">EVOLUÇÃO DE HALLOWEEN<br>NÍVEL ${hwLvl}!</div>` +
+        `<div style="font-size:18px; max-width:420px; color:#f3d9ff">${HW_DESC[hwLvl - 1]}</div>` +
+        `<button style="margin-top:22px; font-size:20px; font-weight:bold; padding:12px 34px; border:none; border-radius:16px; cursor:pointer; background:linear-gradient(135deg,#ff7a00,#8a2be2); color:#fff; font-family:monospace">ASSUSTADOR! 👻</button>`;
+    d.querySelector('button').onclick = () => d.remove();
+    document.body.appendChild(d);
+}
+
+// visual de Halloween: fundo de noite, morcegos voando, fantasmas rodando em volta do cogumelo
+let fantasmaEls = [], hwLoopLigado = false;
+function aplicaHalloween() {
+    if (!hwLvl) return;
+    document.body.classList.add('halloween');
+    document.querySelector('.title').textContent = '🎃 Cogumelo Clicker Assombrado';
+    if (!document.querySelector('.morcego')) {
+        for (let i = 0; i < 5; i++) {
+            const b = document.createElement('div');
+            b.className = 'morcego';
+            b.textContent = '🦇';
+            b.style.top = (8 + i * 17) + 'vh';
+            b.style.animationDuration = (9 + i * 2.7) + 's';
+            b.style.animationDelay = (-i * 3.1) + 's';
+            document.body.appendChild(b);
+        }
+    }
+    while (fantasmaEls.length < HW_FANTASMAS[hwLvl]) {
+        const f = document.createElement('div');
+        f.className = 'fantasma';
+        f.textContent = '👻';
+        capiDiv.appendChild(f);
+        fantasmaEls.push(f);
+    }
+    if (!hwLoopLigado) { hwLoopLigado = true; requestAnimationFrame(hwLoop); }
+}
+let hwUltimoDesenho = 0;
+function hwLoop(t) {
+    requestAnimationFrame(hwLoop);
+    if (t - hwUltimoDesenho < 66) return;   // ~15 quadros por segundo é suficiente
+    hwUltimoDesenho = t;
+    drawCogumelo(t);
+    const r = capiDiv.clientWidth / 2, n = fantasmaEls.length;
+    fantasmaEls.forEach((f, i) => {
+        const a = t * 0.0015 + i * Math.PI * 2 / n;
+        f.style.left = (r + Math.cos(a) * (r + 25) - 15) + 'px';
+        f.style.top = (r + Math.sin(a) * (r * 0.7) - 18 + Math.sin(t * 0.004 + i) * 6) + 'px';
+    });
+}
+
+// 👻 fantasmas clicam sozinhos (2 vezes por segundo cada) + barra da Lua Cheia
+let fantasmaTique = 0;
+setInterval(() => {
+    if (!hwLvl) return;
+    const n = HW_FANTASMAS[hwLvl];
+    const ganho = clickPower * melhoriaMult() * cliqueDuplo() * aboboraMult() * luaMult() * n;
+    score += ganho;
+    speed += ESTEIRAS[currentEsteira].bonus * tenisBoost() * n;
+    scoreEl.textContent = score.toLocaleString();
+    if (score > best) { best = score; localStorage.setItem('capivara_clicker_best', best); document.getElementById('best').textContent = `Recorde: ${best.toLocaleString()}`; }
+    updateUpgradeBox(); updateUpgradeBox2(); updateUpgradeBox3(); updateEvos();
+    if (++fantasmaTique % 2 === 0 && fantasmaEls.length) {
+        const f = fantasmaEls[Math.floor(Math.random() * fantasmaEls.length)];
+        const ef = document.createElement('div');
+        ef.className = 'click-effect';
+        ef.textContent = `👻 +${(ganho / n).toLocaleString()}`;
+        ef.style.left = f.style.left; ef.style.top = f.style.top;
+        capiDiv.appendChild(ef);
+        setTimeout(() => ef.remove(), 800);
+    }
+    const lua = document.getElementById('lua-bar');
+    if (hwLvl >= 3) {
+        const ms = Date.now() % 45000;
+        lua.textContent = ms < 10000 ? `🌕 LUA CHEIA! TUDO x3! (${Math.ceil((10000 - ms) / 1000)}s)` : `🌑 Lua cheia em ${Math.ceil((45000 - ms) / 1000)}s`;
+        document.body.classList.toggle('lua', ms < 10000);
+    }
+    updateClickPowerLabel();
+}, 500);
 
 // === PERSISTÊNCIA (localStorage, prefixo capivara_clicker_) ===
 function saveGame() {
@@ -1312,7 +1579,7 @@ function saveGame() {
         localStorage.setItem('capivara_clicker_save', JSON.stringify({
             score, clickPower, upgradeLevel, upgradeCost,
             superLevel, superCost, megaLevel, megaCost,
-            speed, currentEsteira, tenisOwned, melhoriasOwned
+            speed, currentEsteira, tenisOwned, melhoriasOwned, evoLv, hwLvl
         }));
     } catch (e) {}
 }
@@ -1333,6 +1600,8 @@ function loadGame() {
         currentEsteira = Math.min(d.currentEsteira || 0, ESTEIRAS.length - 1);
         if (Array.isArray(d.tenisOwned)) tenisOwned = TENIS.map((_, i) => !!d.tenisOwned[i]);
         if (Array.isArray(d.melhoriasOwned)) melhoriasOwned = MELHORIAS.map((_, i) => !!d.melhoriasOwned[i]);
+        if (d.evoLv && typeof d.evoLv === 'object') evoLv = d.evoLv;
+        hwLvl = Math.min(HW_CUSTO.length, d.hwLvl || 0);
         scoreEl.textContent = score.toLocaleString();
         document.getElementById('up-level').textContent = `Nível: ${upgradeLevel}`;
         document.querySelector('.up-cost').textContent = `Custo: ${upgradeCost}`;
@@ -1347,13 +1616,18 @@ function loadGame() {
     } catch (e) {}
 }
 loadGame();
+renderEvos();
+aplicaHalloween();
+drawCogumelo();
 setInterval(saveGame, 5000);
 window.addEventListener('beforeunload', saveGame);
 
 // Click logic
 function doClick(x, y) {
     combo++;
-    const gain = clickPower * melhoriaMult() * comboMult() * ((function(){try{return window.CoguCoins && window.CoguCoins.tem('clique_duplo');}catch(e){return false;}})() ? 2 : 1);
+    let gain = clickPower * melhoriaMult() * comboMult() * cliqueDuplo() * aboboraMult() * luaMult();
+    const susto = hwLvl > 0 && Math.random() < 0.13;   // 😱 SUSTO: x13
+    if (susto) gain *= 13;
     score += gain;
     speed += ESTEIRAS[currentEsteira].bonus * tenisBoost() * comboMult();
     scoreEl.textContent = score.toLocaleString();
@@ -1370,10 +1644,12 @@ function doClick(x, y) {
     updateUpgradeBox();
     updateUpgradeBox2();
     updateUpgradeBox3();
+    updateEvos();
 
     const effect = document.createElement('div');
-    effect.className = 'click-effect';
-    effect.textContent = `+${gain.toLocaleString()}`;
+    effect.className = 'click-effect' + (susto ? ' susto' : '');
+    effect.textContent = susto ? `😱 SUSTO! +${gain.toLocaleString()}`
+        : (hwLvl ? ['🍬', '🦇', '🎃', '🍭'][Math.floor(Math.random() * 4)] + ' ' : '') + `+${gain.toLocaleString()}`;
     effect.style.left = (x - 10) + 'px';
     effect.style.top = (y - 20) + 'px';
     capiDiv.appendChild(effect);
