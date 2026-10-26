@@ -550,35 +550,62 @@ function drawShroomShape(x, y, r, cap, spots, stem){
   }
 }
 
+// 🎃 HALLOWEEN (até 02/11): noite, lua, morcegos, gramado roxo, cogumelo laranja vira abóbora e você ganha chapéu de bruxa
+var HALLOWEEN = Date.now() < new Date(2026, 10, 3).getTime();
+function aboboraChuva(x, y, r, brilha){
+  ctx.fillStyle = '#ff7a00';
+  ctx.beginPath(); ctx.ellipse(x, y - r*0.75, r*1.1, r*0.8, 0, 0, 7); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#c45200'; ctx.lineWidth = Math.max(1, r*0.1);
+  ctx.beginPath(); ctx.ellipse(x, y - r*0.75, r*0.45, r*0.8, 0, 0, 7); ctx.stroke();
+  ctx.fillStyle = '#3f7d2a'; ctx.fillRect(x - r*0.12, y - r*1.75, r*0.24, r*0.4);
+  ctx.fillStyle = brilha ? '#ffe066' : 'rgba(255,224,102,0.85)';
+  ctx.beginPath(); ctx.moveTo(x-r*0.65,y-r*0.85); ctx.lineTo(x-r*0.25,y-r*0.85); ctx.lineTo(x-r*0.45,y-r*1.2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x+r*0.25,y-r*0.85); ctx.lineTo(x+r*0.65,y-r*0.85); ctx.lineTo(x+r*0.45,y-r*1.2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x-r*0.65,y-r*0.6); ctx.quadraticCurveTo(x,y-r*0.1,x+r*0.65,y-r*0.6); ctx.quadraticCurveTo(x,y-r*0.35,x-r*0.65,y-r*0.6); ctx.fill();
+}
+
 function draw(){
   var s = S();
   // céu
   var g = ctx.createLinearGradient(0,0,0,GROUND);
-  g.addColorStop(0,'#6db9f2'); g.addColorStop(0.7,'#bfe6ff'); g.addColorStop(1,'#e6f6ff');
+  if(HALLOWEEN){ g.addColorStop(0,'#12051f'); g.addColorStop(0.7,'#3a124a'); g.addColorStop(1,'#6a2a1a'); }
+  else { g.addColorStop(0,'#6db9f2'); g.addColorStop(0.7,'#bfe6ff'); g.addColorStop(1,'#e6f6ff'); }
   ctx.fillStyle = g; ctx.fillRect(0,0,W,GROUND);
-  // sol
-  ctx.fillStyle = '#ffe45c';
+  // sol (no Halloween, lua cheia laranja)
+  if(HALLOWEEN){ ctx.save(); ctx.shadowColor = '#ffb347'; ctx.shadowBlur = 40*s; }
+  ctx.fillStyle = HALLOWEEN ? '#ffcf6b' : '#ffe45c';
   ctx.beginPath(); ctx.arc(W*0.85, H*0.12, 34*s, 0, 7); ctx.fill();
-  // nuvens
-  ctx.fillStyle = '#ffffffd9';
+  if(HALLOWEEN) ctx.restore();
+  // nuvens (no Halloween, morcegos)
+  ctx.fillStyle = HALLOWEEN ? '#0a0410' : '#ffffffd9';
   clouds.forEach(function(c){
     ctx.beginPath();
-    ctx.arc(c.x, c.y, 22*c.s, 0, 7);
-    ctx.arc(c.x+24*c.s, c.y+6*c.s, 18*c.s, 0, 7);
-    ctx.arc(c.x-24*c.s, c.y+6*c.s, 16*c.s, 0, 7);
+    if(HALLOWEEN){
+      var asa = Math.sin(elapsed*16 + c.y)*6*c.s, bx = c.x, by = c.y;
+      ctx.moveTo(bx,by);
+      ctx.quadraticCurveTo(bx-9*c.s,by-7*c.s-asa,bx-18*c.s,by-2*c.s+asa); ctx.quadraticCurveTo(bx-10*c.s,by+1,bx-4*c.s,by+5*c.s);
+      ctx.lineTo(bx,by+2*c.s); ctx.lineTo(bx+4*c.s,by+5*c.s);
+      ctx.quadraticCurveTo(bx+10*c.s,by+1,bx+18*c.s,by-2*c.s+asa); ctx.quadraticCurveTo(bx+9*c.s,by-7*c.s-asa,bx,by);
+    } else {
+      ctx.arc(c.x, c.y, 22*c.s, 0, 7);
+      ctx.arc(c.x+24*c.s, c.y+6*c.s, 18*c.s, 0, 7);
+      ctx.arc(c.x-24*c.s, c.y+6*c.s, 16*c.s, 0, 7);
+    }
     ctx.fill();
   });
-  // terra + gramado
-  ctx.fillStyle = '#8a5a2b'; ctx.fillRect(0, GROUND, W, H-GROUND);
-  ctx.fillStyle = '#6e4620';
+  // terra + gramado (no Halloween, gramado roxo com abóboras)
+  ctx.fillStyle = HALLOWEEN ? '#2a1a22' : '#8a5a2b'; ctx.fillRect(0, GROUND, W, H-GROUND);
+  ctx.fillStyle = HALLOWEEN ? '#1e1218' : '#6e4620';
   for(var i=0;i<W;i+=40*s) ctx.fillRect(i + (i/(40*s))%2*10*s, GROUND+20*s, 14*s, 8*s);
-  ctx.fillStyle = '#57b03c'; ctx.fillRect(0, GROUND-10*s, W, 22*s);
-  ctx.fillStyle = '#6cc94e';
+  ctx.fillStyle = HALLOWEEN ? '#4a2a5a' : '#57b03c'; ctx.fillRect(0, GROUND-10*s, W, 22*s);
+  ctx.fillStyle = HALLOWEEN ? '#6a3a7a' : '#6cc94e';
   for(var gx=0; gx<W; gx+=14*s){
     ctx.beginPath();
     ctx.moveTo(gx, GROUND+12*s); ctx.lineTo(gx+5*s, GROUND-16*s); ctx.lineTo(gx+10*s, GROUND+12*s);
     ctx.fill();
   }
+  if(HALLOWEEN) for(var ax=60*s; ax<W; ax+=230*s) aboboraChuva(ax, GROUND+10*s, 16*s, false);
 
   // cogumelos caindo
   shrooms.forEach(function(m){
@@ -589,6 +616,7 @@ function draw(){
       case 'verde':   drawShroomShape(wx, m.y, m.r, '#3fae3f', '#2a7a2a'); break;
       case 'laranja':
         ctx.shadowColor = '#ff9c1a'; ctx.shadowBlur = 16*s;
+        if(HALLOWEEN){ aboboraChuva(wx, m.y + m.r*0.5, m.r, true); break; }   // 🎃 no Halloween o laranja vira abóbora
         drawShroomShape(wx, m.y, m.r, '#ff7b1c', '#ffd23b'); break;
       case 'preto':
         ctx.shadowColor = '#ff0044'; ctx.shadowBlur = 10*s;
@@ -661,6 +689,14 @@ function draw(){
   ctx.fillStyle = '#fff';
   ctx.beginPath(); ctx.arc(px-7*s, py-38*s, 3.4*s, 0, 7); ctx.fill();
   ctx.beginPath(); ctx.arc(px+6*s, py-40*s, 2.8*s, 0, 7); ctx.fill();
+  if(HALLOWEEN){
+    // 🧙 chapéu de bruxa em cima do cogumelo
+    ctx.fillStyle = '#3a1060';
+    ctx.beginPath(); ctx.ellipse(px, py-46*s, 15*s, 3.5*s, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(px-9*s, py-47*s); ctx.lineTo(px+9*s, py-47*s); ctx.lineTo(px+5*s, py-62*s);
+    ctx.quadraticCurveTo(px+9*s, py-68*s, px+15*s, py-67*s); ctx.quadraticCurveTo(px+4*s, py-71*s, px+1*s, py-61*s); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ff9a1a'; ctx.fillRect(px-8.5*s, py-51*s, 17*s, 3*s);
+  }
   // escudo
   if(shieldT > 0){
     ctx.strokeStyle = '#4ac6ff'; ctx.lineWidth = 3*s; ctx.globalAlpha = 0.65 + Math.sin(elapsed*10)*0.2;

@@ -1,6 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v595 (2026-10-25)
+- 🎃 Chuva de Cogumelos: noite de Halloween com lua, morcegos e gramado roxo com abóboras. O cogumelo laranja vira ABÓBORA e o seu bonequinho ganha CHAPÉU DE BRUXA 🧙
+- 🏷️ Selo "EVENTO HALLOWEEN!!" na Chuva de Cogumelos
+
 ## v594 (2026-10-25)
 - 🎃 Fuga do Dino: mapa NOITE DE HALLOWEEN (você começa nele e ele aparece bastante): abóboras com cara brilhando, lápides, árvores secas e ABÓBORAS GIGANTES como obstáculo
 - 🎃 Cogumelo Voador: noite com lua cheia, morcegos no lugar das nuvens, cemitério no chão, canos roxos com teia de aranha e abóboras
