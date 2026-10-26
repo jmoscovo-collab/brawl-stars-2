@@ -461,28 +461,53 @@
 
 /* === 🎃 EVENTO DE HALLOWEEN (até 02/11) ===
    Cada partida que você joga SEM abandonar (ficar 2 min jogando no mesmo jogo) conta 1.
-   Os prêmios (Cogu Coins) são pegos no botão 🎃 da página inicial. */
+   Também anota pras MISSÕES: minutos jogados em cada jogo, moedas ganhas em alguns jogos
+   e quantos jogos diferentes você jogou. As missões e a lojinha ficam no botão 🎃 da home. */
 (function () {
   var FIM = new Date(2026, 10, 3).getTime();        // acaba no fim do dia 02/11/2026
   var K = 'halloween_partidas';                     // sem "cg_" = sobe junto com a conta
+  var KT = 'halloween_tempo';                       // { pasta: segundos jogados }
+  var KG = 'halloween_ganho';                       // { pasta: moedas ganhas }
+  var KJ = 'halloween_jogos';                       // [pastas onde completou partida]
   var PRECISA = 120;                                // segundos jogando = 1 partida completa
   var FORA = /^\/(conta|loja|cogucoins|excluir-conta|privacidade|politica)/;
+  // jogos com missão de moedas: pasta -> chave da moeda
+  var MOEDA = { dino: 'dino_moedas', zombie: 'zombie_coins', pescaria: 'pescaria_dinheiro', parkour2d: 'parkour2d_moedas', corrida: 'corrida_coins' };
   function partidas() { try { return parseInt(localStorage.getItem(K) || '0', 10) || 0; } catch (e) { return 0; } }
-  window.cgHalloween = { partidas: partidas, ativo: function () { return Date.now() < FIM; }, PRECISA: PRECISA };
+  function leJ(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } }
+  function gravaJ(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  window.cgHalloween = { partidas: partidas, ativo: function () { return Date.now() < FIM; }, PRECISA: PRECISA,
+    tempo: function () { return leJ(KT, {}); }, ganho: function () { return leJ(KG, {}); }, jogos: function () { return leJ(KJ, []); } };
   if (Date.now() >= FIM || location.pathname === '/' || FORA.test(location.pathname)) return;
+  var pasta = location.pathname.split('/')[1] || '';
+  if (!pasta) return;
+
+  function moedaAgora() {
+    try { return parseInt(localStorage.getItem(MOEDA[pasta]) || '0', 10) || 0; } catch (e) { return 0; }
+  }
+  var ultimo = MOEDA[pasta] ? moedaAgora() : 0;
+  // trocou Cogu Coins pela moeda do jogo? isso não conta como moeda ganha jogando
+  if (MOEDA[pasta]) window.addEventListener('cogucoins', function () { setTimeout(function () { ultimo = moedaAgora(); }, 50); });
 
   var jogado = 0, contou = false;
-  var t = setInterval(function () {
+  setInterval(function () {
     if (document.hidden) return;                    // aba escondida não conta
     jogado += 5;
+    var t = leJ(KT, {}); t[pasta] = (t[pasta] || 0) + 5; gravaJ(KT, t);
+    if (MOEDA[pasta]) {
+      var m = moedaAgora();
+      if (m > ultimo) { var g = leJ(KG, {}); g[pasta] = (g[pasta] || 0) + (m - ultimo); gravaJ(KG, g); }
+      ultimo = m;
+    }
     if (jogado < PRECISA || contou) return;
-    contou = true; clearInterval(t);
+    contou = true;
     var n = partidas() + 1;
     try { localStorage.setItem(K, String(n)); } catch (e) {}
+    var js = leJ(KJ, []); if (js.indexOf(pasta) < 0) { js.push(pasta); gravaJ(KJ, js); }
     try {
       var d = document.createElement('a');
       d.href = '/#halloween';
-      d.textContent = '🎃 +1 partida no Evento de Halloween! (' + n + ' no total)';
+      d.textContent = '🎃 +1 partida no Evento de Halloween! (' + n + ' no total) — veja suas missões 🍬';
       d.style.cssText = 'position:fixed; left:50%; top:14px; transform:translateX(-50%); z-index:2147481600;' +
         'background:#ff7a00; color:#fff; font:bold 15px Arial,Helvetica,sans-serif; padding:10px 18px;' +
         'border-radius:16px; box-shadow:0 4px 16px rgba(0,0,0,.5); text-decoration:none; transition:opacity .6s;';

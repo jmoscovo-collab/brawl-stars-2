@@ -1,5 +1,10 @@
 # Changelog - Cogumelo Games (site)
 
+
+## v585 (2026-10-25)
+- 🎃 Evento de Halloween ficou MUITO maior! Agora tem 18 📜 MISSÕES de vários jogos (Zumbi, Dino, Torre, Arena 2, Pescaria, Parkour, Turbo Racing...). Quanto mais difícil a missão, mais 🍬 DOCES você ganha (de 5 até 150!)
+- 🛒 LOJINHA DE HALLOWEEN: troque seus Doces por moedas de quase todos os jogos. As ofertas mudam a cada 3 horas e de vez em quando aparece PROMOÇÃO 🔥 com até 50% de desconto!
+- As partidas que você já tinha jogado continuam valendo pras missões
 ## v584 (2026-10-25)
 - 🌌 Fundo da página inicial virou o ESPAÇO: estrelas piscando, planetinhas andando (alguns com anel e lua), estrelas cadentes e nuvens coloridas
 - 🍄 Logo novo: um cogumelo desenhado visto de cima, com carinha, flutuando, com um anel de planeta a 45 graus e brilhinhos em volta

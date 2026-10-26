@@ -177,7 +177,7 @@
         html.fundo-branco #redes > div:first-child { color:#b07a00 !important; }
     </style>
 <script>try{ localStorage.removeItem('cg_fundo'); if(sessionStorage.getItem('cg_fundo')==='branco') document.documentElement.classList.add('fundo-branco'); }catch(e){}</script>  <!-- branco só vale nessa visita: entrou no site de novo = preto -->
-<script src="/cogucoins.js?v=547"></script>
+<script src="/cogucoins.js?v=548"></script>
 <script src="/letra.js"></script>
 <script src="/capas.js?v=2"></script>
 </head>
@@ -234,7 +234,7 @@
           <path class="logo-brilho b3" d="M196 160 l2 7 7 2 -7 2 -2 7 -2 -7 -7 -2 7 -2z" fill="#80d8ff"/>
         </svg></div>
         <div class="title">COGUMELO GAMES</div>
-        <div class="subtitle">JOGOS ONLINE GRÁTIS <span style="color:#00ff88; font-weight:bold; border:1px solid rgba(0,255,136,0.4); border-radius:10px; padding:2px 8px; margin-left:6px; font-size:12px">v584</span></div>
+        <div class="subtitle">JOGOS ONLINE GRÁTIS <span style="color:#00ff88; font-weight:bold; border:1px solid rgba(0,255,136,0.4); border-radius:10px; padding:2px 8px; margin-left:6px; font-size:12px">v585</span></div>
     </div>
 
     <input id="busca" type="search" placeholder="🔍 Pesquisar jogo..." autocomplete="off"
@@ -1022,57 +1022,211 @@
         })();
     </script>
     <script>
-    // 🎃 EVENTO DE HALLOWEEN: prêmios por partidas completas (contadas no cogucoins.js)
+    // 🎃 EVENTO DE HALLOWEEN: MISSÕES (ganha 🍬 Doces) + LOJINHA (gasta Doces em moedas dos jogos)
+    // O que você joga é anotado no cogucoins.js (partidas, minutos por jogo, moedas ganhas, jogos diferentes).
     (function(){
         var H = window.cgHalloween;
         var btn = document.getElementById('btnHalloween');
         if(!H || !H.ativo()){ btn.style.display = 'none'; return; }
-        var PREMIOS = [[1,5],[2,5],[3,20],[5,40],[7,60],[10,100],[15,150],[20,300]]; // [partidas, Cogu Coins]
-        function pegos(){ try { return JSON.parse(localStorage.getItem('halloween_pegos') || '[]'); } catch(e){ return []; } }
-        function prontos(){ var n = H.partidas(), p = pegos(); return PREMIOS.filter(function(r){ return n >= r[0] && p.indexOf(r[0]) < 0; }).length; }
-        function pintaBtn(){ var k = prontos(); btn.textContent = '🎃 Evento de Halloween' + (k ? ' (' + k + ' 🎁)' : ''); }
+
+        function leJ(k, d){ try { return JSON.parse(localStorage.getItem(k)) || d; } catch(e){ return d; } }
+        function gravaJ(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+        function doces(){ try { return parseInt(localStorage.getItem('halloween_doces') || '0', 10) || 0; } catch(e){ return 0; } }
+        function poeDoces(n){ try { localStorage.setItem('halloween_doces', String(Math.max(0, n))); } catch(e){} }
+
+        // ---- MISSÕES: [id, texto, tipo, alvo, doces, pasta] — da mais fácil pra mais difícil ----
+        var MISSOES = [
+            ['p1',  'Complete 1 partida (2 min em qualquer jogo)', 'partidas', 1, 5],
+            ['z3',  'Jogue 3 min no Zumbi 🧟', 'min', 3, 10, 'zombie'],
+            ['b3',  'Jogue 3 min no Quebra-Blocos 🧱', 'min', 3, 10, 'blocos'],
+            ['p3',  'Complete 3 partidas', 'partidas', 3, 15],
+            ['d200','Ganhe 200 moedas na Fuga do Dino 🦖', 'moedas', 200, 15, 'dino'],
+            ['j3',  'Jogue 3 jogos diferentes', 'jogos', 3, 20],
+            ['t5',  'Jogue 5 min na Defesa da Torre 🏰', 'min', 5, 20, 'torre'],
+            ['pe300','Ganhe 300 de dinheiro na Pescaria Maluca 🎣', 'moedas', 300, 25, 'pescaria'],
+            ['p5',  'Complete 5 partidas', 'partidas', 5, 25],
+            ['a10', 'Jogue 10 min na Arena Cogumelo 2 🥊', 'min', 10, 35, 'arena2'],
+            ['z500','Ganhe 500 moedas no Zumbi 🧟', 'moedas', 500, 35, 'zombie'],
+            ['tot30','Jogue 30 min no total (qualquer jogo)', 'mintotal', 30, 40],
+            ['j6',  'Jogue 6 jogos diferentes', 'jogos', 6, 45],
+            ['pk1000','Ganhe 1.000 moedas no Cogumelo Parkour 🍄', 'moedas', 1000, 50, 'parkour2d'],
+            ['p10', 'Complete 10 partidas', 'partidas', 10, 60],
+            ['c2000','Ganhe 2.000 moedas no Turbo Racing 🏎️', 'moedas', 2000, 70, 'corrida'],
+            ['j10', 'Jogue 10 jogos diferentes', 'jogos', 10, 90],
+            ['p20', 'Complete 20 partidas', 'partidas', 20, 150]
+        ];
+        function progresso(m){
+            var t = H.tempo(), v = 0;
+            if(m[2] === 'partidas') v = H.partidas();
+            else if(m[2] === 'jogos') v = H.jogos().length;
+            else if(m[2] === 'min') v = Math.floor((t[m[5]] || 0) / 60);
+            else if(m[2] === 'mintotal'){ for(var k in t) v += t[k]; v = Math.floor(v / 60); }
+            else if(m[2] === 'moedas') v = H.ganho()[m[5]] || 0;
+            return Math.min(v, m[3]);
+        }
+        function pegas(){ return leJ('halloween_missoes', []); }
+        function prontas(){ var p = pegas(); return MISSOES.filter(function(m){ return progresso(m) >= m[3] && p.indexOf(m[0]) < 0; }).length; }
+
+        // ---- LOJINHA: jogos que têm moeda [pasta, nome, chave, campo, taxa, emoji, nome da moeda] ----
+        var LOJA = [
+            ['zombie','Zumbi 🧟','zombie_coins',null,40,'🪙','moedas'], ['dino','Fuga do Dino 🦖','dino_moedas',null,40,'🪙','moedas'],
+            ['corrida','Turbo Racing 🏎️','corrida_coins',null,40,'🪙','moedas'], ['parkour2d','Cogumelo Parkour 🍄','parkour2d_moedas',null,40,'🪙','moedas'],
+            ['pescaria','Pescaria Maluca 🎣','pescaria_dinheiro',null,60,'💰','dinheiro'], ['pescaria2','Pescaria Maluca 2 🌊','pescaria2','din',120,'💰','dinheiro'],
+            ['brawl','Arena Cogumelo ⚔️','arenaCogumeloSave','gold',400,'🪙','moedas'], ['capivara','Capivara Run 🦫','capivara_run_progress','coins',40,'🪙','moedas'],
+            ['capivara2','Capivara Run 2 👤','capivara2_moedas',null,900,'🪙','moedas'], ['clicker','Cogumelo Clicker 👆','capivara_clicker_save','score',500,'👆','pontos'],
+            ['luta','Luta de Capivara 🥊','luta_moedas',null,40,'🪙','moedas'], ['voador','Cogumelo Voador 🪽','voador_moedas',null,40,'🪙','moedas'],
+            ['ladrao','Polícia VS Ladrão 🚓','ladrao_coins',null,300,'🪙','moedas'], ['figurinhas','Figurinhas 🏆','figurinhas_moedas',null,180,'🪙','moedas'],
+            ['cozinha','Cozinha da Capivara 🍳','cozinha_moedas',null,40,'🪙','moedas'], ['cavando','Cavando Fundo ⛏️','cavando_moedas',null,40,'🪙','moedas'],
+            ['penaltis','Pênaltis ⚽','penaltis_moedas',null,400,'🪙','moedas'], ['meteoros','Chuva de Meteoros ☄️','meteoros_moedas',null,900,'🪙','moedas'],
+            ['ninja','Cogumelo Ninja 🥷','ninja_cogumelos',null,2500,'🍄','cogumelos'], ['prisao','Fuga da Prisão 🏃','prisao_moedas',null,40,'🪙','moedas'],
+            ['golf','Golf Maluco ⛳','golf_coins',null,40,'🪙','moedas'], ['boliche','Boliche 🎳','boliche_coins',null,40,'🪙','moedas'],
+            ['barbeiro','Barbeiro Maluco 💈','barbeiro_coins',null,40,'🪙','moedas'], ['estaciona','Estacionamento Maluco 🚗','estaciona_coins',null,100,'🪙','moedas'],
+            ['furacao','Furacão.io 🌪️','furacao_moedas',null,60,'💰','moedas'], ['parkour','Parkour 3D 🍄','parkour_carteira',null,80,'💰','moedas'],
+            ['chuva','Chuva de Cogumelos 🍄','chuva_coins',null,40,'🪙','moedas'], ['chuva2','Chuva de Cogumelos 2 ⛈️','chuva2_coins',null,40,'🪙','moedas'],
+            ['cidade','Cidade Capivara 🏙️','cidade_moedas',null,40,'🪙','moedas'], ['tesouro','Caça ao Tesouro 🗺️','tesouro_moedas',null,40,'🪙','moedas'],
+            ['portas','Portas Misteriosas 🚪','portas_moedas',null,40,'🪙','moedas'], ['sorte','Sorte do Cogumelo 🎰','sorte_moedas',null,40,'🪙','moedas'],
+            ['laser','Desvia do Laser 🔴','laser_coins',null,40,'🪙','moedas'], ['caindo','Capivara Caindo 🪂','caindo_moedas',null,40,'🪙','moedas'],
+            ['quiz','Perguntas e Respostas 🧠','quiz_moedas',null,40,'🪙','moedas'], ['emojiquiz','Quiz de Emoji 😂','emojiquiz_moedas',null,40,'🪙','moedas'],
+            ['pais','Adivinha o País 🌍','pais_moedas',null,40,'🪙','moedas'], ['aviao','Corrida no Céu ✈️','avc_vitorias',null,20,'🏆','vitórias']
+        ];
+        var TRES_H = 3 * 60 * 60 * 1000, PRECOS = [15, 35, 70];
+        function periodo(){ return Math.floor(Date.now() / TRES_H); }
+        function ofertas(){   // mesmas ofertas pra todo mundo nas mesmas 3 horas
+            var s = periodo() * 7919 + 13;
+            function rnd(){ s = (s + 0x6D2B79F5) | 0; var t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
+            var lista = LOJA.slice(), saida = [];
+            for(var i = 0; i < 6; i++){
+                var j = Math.floor(rnd() * lista.length), g = lista.splice(j, 1)[0];
+                var tier = Math.floor(rnd() * 3), base = PRECOS[tier];
+                var qtd = Math.round(base * g[4] * 1.5 * (1 + 0.15 * tier));
+                var mag = Math.pow(10, Math.max(0, String(qtd).length - 2)); qtd = Math.round(qtd / mag) * mag;   // número redondinho
+                var desc = rnd() < 0.3 ? [30, 40, 50][Math.floor(rnd() * 3)] : 0;
+                saida.push({ i: i, g: g, qtd: Math.max(1, qtd), base: base, desc: desc, preco: desc ? Math.ceil(base * (100 - desc) / 100) : base });
+            }
+            return saida;
+        }
+        function comprados(){ var c = leJ('halloween_compras', {}); return c.p === periodo() ? (c.ids || []) : []; }
+        function marcaComprado(i){ var ids = comprados(); ids.push(i); gravaJ('halloween_compras', { p: periodo(), ids: ids }); }
+        function somaMoeda(g, n){   // grava a moeda do jogo do mesmo jeito que o coguloja.js
+            var CH = g[2], CAMPO = g[3], raw = null;
+            try { raw = localStorage.getItem(CH); } catch(e){ return false; }
+            try {
+                if(raw === null){
+                    if(CAMPO) return false;   // jogo com save completo: precisa jogar 1 vez antes
+                    localStorage.setItem(CH, String(n)); return true;
+                }
+                var v; try { v = JSON.parse(raw); } catch(e){ v = null; }
+                if(v !== null && typeof v === 'object' && CAMPO){ v[CAMPO] = (Number(v[CAMPO]) || 0) + n; localStorage.setItem(CH, JSON.stringify(v)); }
+                else if(typeof v === 'number') localStorage.setItem(CH, JSON.stringify(v + n));
+                else localStorage.setItem(CH, String((parseInt(raw, 10) || 0) + n));
+                return true;
+            } catch(e){ return false; }
+        }
+
+        function pintaBtn(){ var k = prontas(); btn.textContent = '🎃 Evento de Halloween' + (k ? ' (' + k + ' 🎁)' : ''); }
         pintaBtn();
+
+        var aba = 'missoes', relogio = null;
+        var BTN = 'border:none; border-radius:10px; padding:7px 14px; font-weight:bold; font-size:15px; cursor:pointer; font-family:inherit;';
+        function falta(){
+            var ms = (periodo() + 1) * TRES_H - Date.now(), h = Math.floor(ms / 3600000), mi = Math.floor(ms % 3600000 / 60000), se = Math.floor(ms % 60000 / 1000);
+            return h + 'h ' + (mi < 10 ? '0' : '') + mi + 'min ' + (se < 10 ? '0' : '') + se + 's';
+        }
+        function fecha(){ var m = document.getElementById('hwModal'); if(m) m.remove(); if(relogio){ clearInterval(relogio); relogio = null; } }
+        function avisa(txt){
+            var d = document.createElement('div');
+            d.textContent = txt;
+            d.style.cssText = 'position:fixed; left:50%; top:18px; transform:translateX(-50%); z-index:260; background:#ff7a00; color:#fff; font-weight:bold; font-size:16px; padding:10px 18px; border-radius:16px; box-shadow:0 4px 16px rgba(0,0,0,.5); text-align:center; max-width:90vw;';
+            document.body.appendChild(d); setTimeout(function(){ d.remove(); }, 2600);
+        }
 
         function abre(){
             var velho = document.getElementById('hwModal'); if(velho) velho.remove();
-            var n = H.partidas(), p = pegos();
-            var prox = PREMIOS.filter(function(r){ return n < r[0]; })[0];
+            if(relogio){ clearInterval(relogio); relogio = null; }
             var m = document.createElement('div');
             m.id = 'hwModal';
             m.style.cssText = 'position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.75); display:flex; align-items:center; justify-content:center; padding:16px;';
-            var linhas = PREMIOS.map(function(r){
-                var feito = p.indexOf(r[0]) >= 0, pode = n >= r[0] && !feito;
-                var dir = feito ? '<span style="color:#7dff9a">✅ Pego</span>'
-                    : pode ? '<button data-p="'+r[0]+'" style="border:none; border-radius:10px; padding:7px 14px; font-weight:bold; font-size:15px; cursor:pointer; background:#ffcc33; color:#3a1a00; font-family:inherit;">Pegar!</button>'
-                    : '<span style="opacity:.6">🔒 ' + n + '/' + r[0] + '</span>';
-                return '<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 12px; margin:6px 0; border-radius:12px; background:'+(pode?'rgba(255,140,0,.35)':'rgba(255,255,255,.07)')+'">'+
-                    '<span>'+(r[1]>=100?'🎁':'🍬')+' <b>'+r[0]+' partida'+(r[0]>1?'s':'')+'</b> → '+r[1]+' 🍄</span>'+dir+'</div>';
-            }).join('');
-            m.innerHTML = '<div style="background:linear-gradient(160deg,#2a1240,#3d1a00); border:3px solid #ff7a00; border-radius:20px; padding:20px; max-width:420px; width:100%; max-height:90vh; overflow:auto; color:#fff; text-align:center;">'+
-                '<div style="font-size:44px">🎃👻🦇</div>'+
-                '<div style="font-size:22px; font-weight:bold; color:#ffa040">EVENTO DE HALLOWEEN</div>'+
-                '<div style="font-size:14px; opacity:.85; margin:6px 0 12px">Jogue qualquer jogo por <b>2 minutos sem sair</b> = 1 partida! Quanto mais partidas, maior o prêmio. Vai até <b>02/11</b>.</div>'+
-                '<div style="font-size:18px; font-weight:bold; margin-bottom:6px">Suas partidas: <span style="color:#ffcc33">'+n+'</span></div>'+
-                (prox ? '<div style="font-size:13px; opacity:.8; margin-bottom:8px">Faltam '+(prox[0]-n)+' pro próximo prêmio!</div>' : '<div style="font-size:13px; color:#7dff9a; margin-bottom:8px">Você completou o evento! 🏆</div>')+
-                '<div style="text-align:left">'+linhas+'</div>'+
+            var abaCss = function(a){ return BTN + 'flex:1; padding:10px; font-size:16px; ' + (aba === a ? 'background:#ff7a00; color:#fff;' : 'background:rgba(255,255,255,.12); color:#ddd;'); };
+            var corpo = '';
+            if(aba === 'missoes'){
+                var p = pegas();
+                corpo = '<div style="font-size:13px; opacity:.85; margin:2px 0 8px">Complete missões jogando e ganhe <b>🍬 Doces</b>! Quanto mais difícil, mais doces. <b>1 partida</b> = jogar <b>2 minutos</b> num jogo sem sair.</div>' +
+                    MISSOES.map(function(ms){
+                        var v = progresso(ms), feito = p.indexOf(ms[0]) >= 0, pode = v >= ms[3] && !feito;
+                        var dir = feito ? '<span style="color:#7dff9a; white-space:nowrap">✅ Pego</span>'
+                            : pode ? '<button data-m="' + ms[0] + '" style="' + BTN + 'background:#ffcc33; color:#3a1a00; white-space:nowrap">Pegar!</button>'
+                            : '<span style="opacity:.7; white-space:nowrap">' + v.toLocaleString('pt-BR') + '/' + ms[3].toLocaleString('pt-BR') + '</span>';
+                        var barra = feito ? '' : '<div style="height:6px; border-radius:4px; background:rgba(255,255,255,.12); margin-top:5px"><div style="height:100%; width:' + Math.round(v / ms[3] * 100) + '%; border-radius:4px; background:linear-gradient(90deg,#ff7a00,#ffcc33)"></div></div>';
+                        var jogar = (ms[5] && !feito) ? ' <a href="/' + ms[5] + '/" style="color:#ffcc33; font-size:12px; white-space:nowrap">▶ jogar</a>' : '';
+                        return '<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 12px; margin:6px 0; border-radius:12px; background:' + (pode ? 'rgba(255,140,0,.35)' : 'rgba(255,255,255,.07)') + (feito ? '; opacity:.6' : '') + '">' +
+                            '<div style="flex:1; min-width:0"><div>' + ms[1] + jogar + '</div><div style="font-size:13px; color:#ffcc33; font-weight:bold">🍬 ' + ms[4] + ' doces</div>' + barra + '</div>' + dir + '</div>';
+                    }).join('');
+            } else {
+                var cp = comprados();
+                corpo = '<div style="font-size:13px; opacity:.85; margin:2px 0 4px">Troque seus 🍬 Doces por moedas dos jogos! As ofertas mudam a cada <b>3 horas</b>. Fique de olho nas <b style="color:#ff5a8a">PROMOÇÕES 🔥</b></div>' +
+                    '<div style="font-size:14px; font-weight:bold; margin-bottom:6px">⏰ Novas ofertas em <span id="hwRelogio" style="color:#ffcc33">' + falta() + '</span></div>' +
+                    '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px">' +
+                    ofertas().map(function(o){
+                        var ja = cp.indexOf(o.i) >= 0, pode = !ja && doces() >= o.preco;
+                        var preco = o.desc ? '<span style="text-decoration:line-through; opacity:.6; font-size:13px">🍬' + o.base + '</span> <b>🍬' + o.preco + '</b>' : '<b>🍬' + o.preco + '</b>';
+                        return '<div style="position:relative; padding:10px 8px; border-radius:14px; background:' + (o.desc ? 'linear-gradient(160deg,rgba(255,60,120,.35),rgba(255,255,255,.06))' : 'rgba(255,255,255,.08)') + '; border:2px solid ' + (o.desc ? '#ff5a8a' : 'rgba(255,255,255,.12)') + (ja ? '; opacity:.55' : '') + '">' +
+                            (o.desc ? '<div style="position:absolute; top:-10px; right:-6px; background:#ff2a6a; color:#fff; font-size:12px; font-weight:bold; padding:3px 8px; border-radius:10px; transform:rotate(6deg)">🔥 -' + o.desc + '%</div>' : '') +
+                            '<div style="font-size:13px; font-weight:bold">' + o.g[1] + '</div>' +
+                            '<div style="font-size:20px; font-weight:bold; color:#7dff9a; margin:6px 0">' + o.g[5] + ' ' + o.qtd.toLocaleString('pt-BR') + '</div>' +
+                            '<div style="font-size:12px; opacity:.75; margin-bottom:6px">' + o.g[6] + '</div>' +
+                            '<div style="margin-bottom:6px">' + preco + '</div>' +
+                            (ja ? '<div style="color:#7dff9a; font-weight:bold">✅ Comprado</div>'
+                                : '<button data-o="' + o.i + '" style="' + BTN + 'width:100%; background:' + (pode ? '#ffcc33; color:#3a1a00' : 'rgba(255,255,255,.15); color:#bbb') + '">Comprar</button>') +
+                            '</div>';
+                    }).join('') + '</div>';
+            }
+            m.innerHTML = '<div style="background:linear-gradient(160deg,#2a1240,#3d1a00); border:3px solid #ff7a00; border-radius:20px; padding:18px; max-width:460px; width:100%; max-height:90vh; overflow:auto; color:#fff; text-align:center;">' +
+                '<div style="font-size:40px">🎃👻🦇</div>' +
+                '<div style="font-size:22px; font-weight:bold; color:#ffa040">EVENTO DE HALLOWEEN</div>' +
+                '<div style="font-size:13px; opacity:.8; margin-bottom:8px">Vai até <b>02/11</b> · Suas partidas: <b style="color:#ffcc33">' + H.partidas() + '</b></div>' +
+                '<div style="font-size:24px; font-weight:bold; color:#ffcc33; margin-bottom:10px">🍬 ' + doces().toLocaleString('pt-BR') + ' Doces</div>' +
+                '<div style="display:flex; gap:8px; margin-bottom:8px"><button data-aba="missoes" style="' + abaCss('missoes') + '">📜 Missões' + (prontas() ? ' (' + prontas() + ')' : '') + '</button><button data-aba="loja" style="' + abaCss('loja') + '">🛒 Lojinha</button></div>' +
+                '<div style="text-align:left">' + corpo + '</div>' +
                 '<button id="hwFecha" style="margin-top:14px; font-size:16px; font-weight:bold; padding:10px 28px; border:none; border-radius:14px; cursor:pointer; background:#ff7a00; color:#fff; font-family:inherit;">Fechar</button></div>';
             document.body.appendChild(m);
-            m.onclick = function(e){ if(e.target === m) m.remove(); };
-            m.querySelector('#hwFecha').onclick = function(){ m.remove(); };
-            m.querySelectorAll('button[data-p]').forEach(function(b){
+            m.onclick = function(e){ if(e.target === m) fecha(); };
+            m.querySelector('#hwFecha').onclick = fecha;
+            m.querySelectorAll('button[data-aba]').forEach(function(b){ b.onclick = function(){ aba = b.getAttribute('data-aba'); abre(); }; });
+            m.querySelectorAll('button[data-m]').forEach(function(b){
                 b.onclick = function(){
-                    var alvo = +b.getAttribute('data-p'), lista = pegos();
-                    if(lista.indexOf(alvo) >= 0 || H.partidas() < alvo) return;
-                    var r = PREMIOS.filter(function(x){ return x[0] === alvo; })[0];
-                    lista.push(alvo);
-                    try { localStorage.setItem('halloween_pegos', JSON.stringify(lista)); } catch(e){}
-                    if(window.CoguCoins) window.CoguCoins.ganha(r[1]);
+                    var id = b.getAttribute('data-m'), lista = pegas();
+                    var ms = MISSOES.filter(function(x){ return x[0] === id; })[0];
+                    if(!ms || lista.indexOf(id) >= 0 || progresso(ms) < ms[3]) return;
+                    lista.push(id); gravaJ('halloween_missoes', lista);
+                    poeDoces(doces() + ms[4]);
+                    avisa('🍬 +' + ms[4] + ' Doces!');
                     pintaBtn(); abre();
                 };
             });
+            m.querySelectorAll('button[data-o]').forEach(function(b){
+                b.onclick = function(){
+                    var i = +b.getAttribute('data-o'), o = ofertas()[i];
+                    if(!o || comprados().indexOf(i) >= 0) return;
+                    if(doces() < o.preco){ avisa('Faltam 🍬 ' + (o.preco - doces()) + ' doces! Complete mais missões 📜'); return; }
+                    if(!somaMoeda(o.g, o.qtd)){ avisa('Jogue ' + o.g[1] + ' uma vez antes de comprar! 🎮'); return; }
+                    poeDoces(doces() - o.preco);
+                    marcaComprado(i);
+                    avisa('🎉 +' + o.qtd.toLocaleString('pt-BR') + ' ' + o.g[6] + ' no ' + o.g[1] + '!');
+                    abre();
+                };
+            });
+            if(aba === 'loja'){
+                var per = periodo();
+                relogio = setInterval(function(){
+                    if(!document.getElementById('hwModal')){ clearInterval(relogio); relogio = null; return; }
+                    if(periodo() !== per){ abre(); return; }   // virou o período: ofertas novas!
+                    var r = document.getElementById('hwRelogio'); if(r) r.textContent = falta();
+                }, 1000);
+            }
         }
         btn.onclick = abre;
         if(location.hash === '#halloween') abre();
+        else if(location.hash === '#halloween-loja'){ aba = 'loja'; abre(); }
     })();
     </script>
     <script>
