@@ -232,6 +232,17 @@
       ld.appendChild(bi); cx.appendChild(ld);
     }
 
+    // atalhos que o próprio jogo oferece (ex.: Arena 2 → dar todos os lutadores)
+    var atalhos = window.cgAdmJogo && window.cgAdmJogo.botoes;
+    if (Array.isArray(atalhos) && atalhos.length) {
+      cx.appendChild(secao('⚡ Atalhos deste jogo'));
+      atalhos.forEach(function (a) {
+        var b = el('button', BT + ';background:#7dff6a', a.txt);
+        b.onclick = function () { var r; try { r = a.fn(); } catch (e) { r = '❌ Deu erro'; } b.textContent = r || '✅ FEITO!'; };
+        cx.appendChild(b);
+      });
+    }
+
     // save do jogo
     var s = achaSave();
     cx.appendChild(secao('🎮 Números do save deste jogo'));

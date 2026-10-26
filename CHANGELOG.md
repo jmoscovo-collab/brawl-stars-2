@@ -1,6 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v598 (2026-10-26)
+- 🛠️ Painel ADM: atalho "DAR TODOS OS LUTADORES" no Arena Cogumelo 2
+
 ## v597 (2026-10-25)
 - 🎃 Arena Cogumelo 2 com HALLOWEEN (até 02/11)! Mapa novo CEMITÉRIO ASSOMBRADO: lápides no lugar das paredes, plantação de abóbora pra se esconder, gosma verde e teias de aranha
 - 🧙🎃🧛 3 LUTADORES EXCLUSIVOS na loja: Bruxa Cogumelo (Mítico, 150 💎), Cabeça de Abóbora (Lendário, 300 💎) e Conde Vampiro (Ultra, 500 💎). Eles nunca saem em caixa, só na loja durante o evento, e quem comprar fica com eles pra sempre
