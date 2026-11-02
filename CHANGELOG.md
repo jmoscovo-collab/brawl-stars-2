@@ -1,5 +1,7 @@
 # Changelog - Cogumelo Games (site)
 
+## v603 (2026-11-02)
+- 🔍 NOVO JOGO: Cogumelo Detetive! O Cogumelo Lendário sumiu do museu da Vila Cogumelo numa noite de tempestade. Explore museu, padaria, praça, rio, pousada e casa de força, converse com 6 suspeitos (cada um com álibi e segredo), junte as pistas no Quadro de Detetive e acuse o culpado — só uma chance, então escolha com cuidado! Tem Fácil (3 suspeitos), Médio e Difícil (segredos escondidos), culpado sorteado toda partida, e uma Lojinha pra trocar chapéu, lupa e casaco do Cogu. Por enquanto só por link direto, ainda não tem card na home.
 
 ## v602 (2026-10-26)
 - ⏱️ O tempo errado dos jogos foi zerado sozinho (uma vez só) e começou a contar de novo, agora certinho, só com o jogo na tela

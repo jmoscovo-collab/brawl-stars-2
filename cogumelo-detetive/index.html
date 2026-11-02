@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Cogumelo Detetive 🔍 — Cogumelo Games</title>
+<script src="/cogucoins.js?v=545"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#0a1a12; font-family:'Comic Sans MS','Baloo',system-ui,sans-serif; color:#fff; }
+  #mundo { position:fixed; inset:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#06110c; }
+  #jogo { display:block; background:#1c3a24; touch-action:none; }
+
+  .tela { position:fixed; inset:0; z-index:50; display:none; flex-direction:column; align-items:center; justify-content:center;
+          background:linear-gradient(160deg,#0d2518 0%,#133a22 45%,#0a1420 100%); padding:16px; text-align:center; overflow-y:auto; }
+  .tela.on { display:flex; }
+  .tela h1 { font-size:clamp(28px,7vw,48px); text-shadow:0 3px 0 #06260f, 0 0 20px rgba(255,210,80,.5); color:#ffd84a; margin-bottom:6px; }
+  .quote { font-style:italic; color:#bfe8c8; max-width:520px; font-size:15px; margin-bottom:18px; line-height:1.4; }
+  .btn { border:none; border-radius:16px; padding:14px 22px; font-size:18px; font-weight:bold; cursor:pointer;
+         font-family:inherit; color:#fff; background:linear-gradient(135deg,#2f9e55,#1b6b38); box-shadow:0 5px 0 #0c4a20;
+         transition:transform .07s; margin:6px; min-width:180px; }
+  .btn:active { transform:translateY(4px); box-shadow:0 1px 0 #0c4a20; }
+  .btn.ouro { background:linear-gradient(135deg,#ffcc33,#ff8844); box-shadow:0 5px 0 #a4560a; color:#301a00; }
+  .btn.roxo { background:linear-gradient(135deg,#9a4ae0,#5a1aa8); box-shadow:0 5px 0 #330a66; }
+  .btn.vermelho { background:linear-gradient(135deg,#e34a4a,#a81a1a); box-shadow:0 5px 0 #600a0a; }
+  .btn.pequeno { padding:9px 16px; font-size:14px; min-width:auto; }
+  .btn:disabled { opacity:.45; cursor:default; }
+  .painel-box { background:rgba(255,255,255,.07); border:2px solid rgba(255,255,255,.18); border-radius:20px;
+                padding:18px; max-width:560px; width:100%; box-shadow:0 10px 30px rgba(0,0,0,.4); }
+  .dificuldades { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:10px 0 18px; }
+  .dif-card { background:rgba(255,255,255,.08); border:3px solid rgba(255,255,255,.2); border-radius:16px; padding:14px;
+              width:150px; cursor:pointer; transition:.15s; }
+  .dif-card:hover, .dif-card.sel { border-color:#ffd84a; background:rgba(255,216,74,.12); transform:translateY(-3px); }
+  .dif-card .ic { font-size:30px; }
+  .dif-card b { display:block; font-size:16px; margin:4px 0; }
+  .dif-card span { font-size:12px; color:#bfe8c8; }
+  .saldo-topo { position:fixed; top:10px; right:10px; z-index:55; background:rgba(0,0,0,.55); border:2px solid #ffd84a;
+                border-radius:14px; padding:6px 12px; font-size:14px; font-weight:bold; color:#ffd84a; }
+
+  /* HUD em jogo */
+  #hud { position:fixed; top:0; left:0; right:0; z-index:40; display:none; justify-content:space-between; align-items:flex-start;
+         padding:10px; pointer-events:none; }
+  #hud.on { display:flex; }
+  #hud .lado { display:flex; flex-direction:column; gap:6px; pointer-events:auto; }
+  #localAtual { background:rgba(0,0,0,.55); border-radius:14px; padding:6px 14px; font-size:14px; font-weight:bold; color:#ffe58a; }
+  .hud-btn { border:none; border-radius:14px; padding:9px 14px; font-size:14px; font-weight:bold; cursor:pointer;
+             font-family:inherit; color:#fff; background:rgba(20,20,30,.72); border:2px solid rgba(255,255,255,.25); }
+  .hud-btn.dest { border-color:#ff6666; color:#ffb0b0; }
+
+  /* contexto / ações */
+  #acoesContexto { position:fixed; bottom:118px; left:0; right:0; z-index:40; display:flex; flex-direction:column;
+                   align-items:center; gap:8px; pointer-events:none; }
+  #acoesContexto .btn { pointer-events:auto; min-width:0; }
+
+  /* toasts */
+  #toasts { position:fixed; top:130px; left:50%; transform:translateX(-50%); z-index:30; display:flex; flex-direction:column;
+            gap:8px; align-items:center; pointer-events:none; width:min(92vw,520px); }
+  .toast { background:rgba(10,20,15,.92); border:2px solid #ffd84a; border-radius:14px; padding:10px 16px; font-size:14px;
+           box-shadow:0 6px 18px rgba(0,0,0,.4); animation:toastIn .25s ease; }
+  @keyframes toastIn { from{ opacity:0; transform:translateY(-10px); } to{ opacity:1; transform:translateY(0); } }
+
+  /* touch controls */
+  #touchControles { position:fixed; inset:0; z-index:35; display:none; pointer-events:none; }
+  #touchControles.on { display:block; }
+  .dpad { position:fixed; left:16px; bottom:16px; width:140px; height:140px; pointer-events:auto; }
+  .dbtn { position:absolute; width:46px; height:46px; background:rgba(255,255,255,.18); border:2px solid rgba(255,255,255,.4);
+          border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; color:#fff; }
+  .dbtn:active { background:rgba(255,255,255,.4); }
+  .dUp { left:47px; top:0; } .dDown { left:47px; top:94px; } .dLeft { left:0; top:47px; } .dRight { left:94px; top:47px; }
+
+  /* diálogo */
+  #dialogo { position:fixed; inset:0; z-index:55; display:none; align-items:flex-end; justify-content:center; padding:16px; }
+  #dialogo.on { display:flex; }
+  #dialogo .caixa { background:rgba(8,16,12,.96); border:3px solid #ffd84a; border-radius:20px; padding:16px; max-width:560px;
+                    width:100%; max-height:70vh; overflow-y:auto; }
+  #dialogo .nome { font-size:18px; font-weight:bold; color:#ffd84a; margin-bottom:8px; }
+  #dialogo p { font-size:15px; line-height:1.5; margin:8px 0; }
+  #dialogo p.fala-contra { background:rgba(255,80,80,.18); border-left:4px solid #ff5555; padding:8px; border-radius:8px; }
+
+  /* quadro de pistas */
+  #quadro { position:fixed; inset:0; z-index:56; display:none; align-items:center; justify-content:center; padding:14px;
+            background:rgba(0,0,0,.55); }
+  #quadro.on { display:flex; }
+  #quadro .caixa { background:#11261a; border:3px solid #6fbf7a; border-radius:20px; padding:18px; max-width:680px; width:100%;
+                   max-height:86vh; overflow-y:auto; }
+  #quadro h2 { color:#ffe58a; margin-bottom:8px; }
+  .secao { margin:12px 0; }
+  .secao h3 { color:#9ae0a8; font-size:15px; margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,.15); padding-bottom:3px; }
+  .pista-item { background:rgba(255,255,255,.06); border-radius:10px; padding:8px 10px; font-size:14px; margin:6px 0; }
+  .pista-item.decisiva { border:2px solid #ffd84a; background:rgba(255,216,74,.1); }
+  .cartao-suspeito { background:rgba(255,255,255,.06); border-radius:12px; padding:10px; margin:8px 0; text-align:left; }
+  .cartao-suspeito .cab { display:flex; align-items:center; gap:8px; font-weight:bold; }
+  .cartao-suspeito .em { font-size:22px; }
+  .cartao-suspeito p { font-size:13px; margin:4px 0 0; color:#dceccf; }
+  .cartao-suspeito p.alerta { color:#ff9a9a; font-weight:bold; }
+  .vazio { font-size:13px; color:#7fa88a; font-style:italic; }
+
+  /* acusação */
+  #telaAcusar { position:fixed; inset:0; z-index:57; display:none; align-items:center; justify-content:center; padding:14px;
+                background:rgba(0,0,0,.65); }
+  #telaAcusar.on { display:flex; }
+  .grid-sus { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin:14px 0; }
+  .sus-op { background:rgba(255,255,255,.08); border:3px solid rgba(255,255,255,.2); border-radius:14px; padding:12px;
+            cursor:pointer; text-align:center; }
+  .sus-op:hover { border-color:#ff6666; background:rgba(255,80,80,.12); }
+  .sus-op .em { font-size:34px; }
+  .sus-op b { display:block; font-size:13px; margin-top:4px; }
+
+  #confirmAcusar { position:fixed; inset:0; z-index:58; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.7); }
+  #confirmAcusar.on { display:flex; }
+
+  @media (max-width:560px) { .painel-box { padding:12px; } .dif-card { width:46%; } }
+</style>
+</head>
+<body>
+
+<div id="mundo"><canvas id="jogo"></canvas></div>
+
+<div class="saldo-topo" id="saldoTopo">🪙 0 &nbsp; ⭐ 0</div>
+
+<!-- TÍTULO -->
+<div class="tela on" id="telaTitulo">
+  <h1>🔍 Cogumelo Detetive</h1>
+  <p class="quote">"A luz apagou. O cogumelo sumiu. E todo mundo tem um segredo. Cabe a você, Cogu, descobrir a verdade!"</p>
+  <div class="painel-box">
+    <p style="margin-bottom:10px; font-size:14px; color:#cfead6;">Escolha a dificuldade do caso de hoje:</p>
+    <div class="dificuldades" id="listaDificuldades"></div>
+    <button class="btn ouro" id="btnComecar">▶ COMEÇAR O CASO</button>
+    <br>
+    <button class="btn roxo pequeno" id="btnLoja">🛒 LOJA DO COGU</button>
+    <button class="btn pequeno" id="btnComoJogar">❓ COMO JOGAR</button>
+  </div>
+</div>
+
+<!-- COMO JOGAR -->
+<div class="tela" id="telaComo">
+  <div class="painel-box" style="text-align:left">
+    <h2 style="color:#ffd84a; margin-bottom:10px; text-align:center">❓ Como jogar</h2>
+    <p style="font-size:14px; line-height:1.6;">
+      🚶 <b>Explore</b> a Vila Cogumelo: museu, padaria, praça, rio, pousada e casa de força, achando pistas.<br><br>
+      🗣️ <b>Interrogue</b> os suspeitos e ouça os álibis deles.<br><br>
+      🗒️ <b>Compare</b> as pistas no Quadro de Detetive (botão no topo).<br><br>
+      🎯 <b>Acuse</b> quem você acha que é o culpado. Acertou, ganha estrelas e moedas. Errou, o ladrão foge!<br><br>
+      O culpado é sorteado toda vez, então dá pra jogar várias vezes.
+    </p>
+    <button class="btn" id="btnFecharComo" style="margin-top:14px">VOLTAR</button>
+  </div>
+</div>
+
+<!-- LOJA -->
+<div class="tela" id="telaLoja">
+  <div class="painel-box">
+    <h2 style="color:#ffd84a; margin-bottom:4px">🛒 Loja do Cogu</h2>
+    <p style="font-size:13px; color:#bfe8c8; margin-bottom:10px">Compre com moedas de pista (ganhas resolvendo casos). Só visual!</p>
+    <div id="listaLoja" style="display:flex; flex-direction:column; gap:14px; text-align:left;"></div>
+    <button class="btn" id="btnFecharLoja" style="margin-top:14px">VOLTAR</button>
+  </div>
+</div>
+
+<!-- FIM DE CASO -->
+<div class="tela" id="telaFim">
+  <div class="painel-box">
+    <div id="fimIcone" style="font-size:50px"></div>
+    <h2 id="fimTitulo" style="margin:8px 0"></h2>
+    <p id="fimTexto" style="font-size:15px; line-height:1.5; text-align:left; margin:10px 0"></p>
+    <p id="fimRecompensa" style="font-size:16px; font-weight:bold; color:#ffd84a; margin:10px 0"></p>
+    <button class="btn ouro" id="btnNovoCaso">🔁 NOVO CASO</button>
+    <button class="btn" id="btnMenuFim">🏠 MENU</button>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="lado">
+    <button class="hud-btn" id="btnQuadroHud">🗒️ Quadro</button>
+    <button class="hud-btn dest" id="btnMenuHud">🏠 Menu</button>
+  </div>
+  <div class="lado" style="align-items:flex-end">
+    <div id="localAtual">🍄 Vila Cogumelo</div>
+    <button class="hud-btn dest" id="btnAcusarHud">🎯 Acusar</button>
+  </div>
+</div>
+
+<div id="acoesContexto"></div>
+<div id="toasts"></div>
+
+<!-- controles de toque -->
+<div id="touchControles">
+  <div class="dpad">
+    <div class="dbtn dUp" data-dir="cima">⬆️</div>
+    <div class="dbtn dDown" data-dir="baixo">⬇️</div>
+    <div class="dbtn dLeft" data-dir="esq">⬅️</div>
+    <div class="dbtn dRight" data-dir="dir">➡️</div>
+  </div>
+</div>
+
+<!-- diálogo suspeito -->
+<div id="dialogo">
+  <div class="caixa">
+    <div class="nome" id="dialNome"></div>
+    <div id="dialCorpo"></div>
+    <button class="btn pequeno" id="btnFecharDialogo">OK, ANOTADO!</button>
+  </div>
+</div>
+
+<!-- quadro de pistas -->
+<div id="quadro">
+  <div class="caixa">
+    <h2>🗒️ Quadro de Detetive</h2>
+    <div class="secao">
+      <h3>📋 Pistas da cena</h3>
+      <div id="qGerais"></div>
+    </div>
+    <div class="secao">
+      <h3>🔎 Pista decisiva</h3>
+      <div id="qDecisiva"></div>
+    </div>
+    <div class="secao">
+      <h3>🕵️ Suspeitos</h3>
+      <div id="qSuspeitos"></div>
+    </div>
+    <button class="btn" id="btnFecharQuadro">FECHAR</button>
+  </div>
+</div>
+
+<!-- tela de acusar -->
+<div id="telaAcusar">
+  <div class="painel-box">
+    <h2 style="color:#ff8a8a">🎯 Quem é o culpado?</h2>
+    <p style="font-size:13px; color:#ffcccc">Você só tem UMA chance. Escolha com cuidado!</p>
+    <div class="grid-sus" id="gridAcusar"></div>
+    <button class="btn" id="btnCancelarAcusar">CANCELAR</button>
+  </div>
+</div>
+
+<div id="confirmAcusar">
+  <div class="painel-box">
+    <p id="confirmTexto" style="font-size:17px; margin-bottom:14px"></p>
+    <button class="btn vermelho" id="btnConfirmSim">SIM, ACUSAR!</button>
+    <button class="btn" id="btnConfirmNao">NÃO, ESPERA</button>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+// ===================== DADOS DO CASO =====================
+
+// fx/fy = posição em FRAÇÃO da tela (0..1), pra funcionar em qualquer formato de tela
+var LOCAIS = {
+  museu:   { nome:'Museu da Vila',    emoji:'🏛️', fx:0.50, fy:0.20, cor:'#7d8fbf' },
+  praca:   { nome:'Praça',            emoji:'🌳', fx:0.50, fy:0.50, cor:'#4f9c55' },
+  forca:   { nome:'Casa de Força',    emoji:'⚡', fx:0.20, fy:0.72, cor:'#b08a3a' },
+  padaria: { nome:'Padaria',          emoji:'🥖', fx:0.80, fy:0.72, cor:'#c08555' },
+  rio:     { nome:'Beira do Rio',     emoji:'🌊', fx:0.16, fy:0.32, cor:'#3b83ad' },
+  pousada: { nome:'Pousada',          emoji:'🏨', fx:0.84, fy:0.32, cor:'#9a6aa0' }
+};
+
+var PISTAS_GERAIS = {
+  museu: '🔨 O vidro da vitrine quebrou pra FORA — então foi quebrado por dentro do museu!',
+  forca: '💡 A chave de força foi DESLIGADA na mão — a luz não apagou por causa da tempestade!',
+  praca: '🔦 Tem uma lanterna esquecida, jogada no chão da praça.'
+};
+
+var SUSPEITOS = [
+  { id:'capivara', nome:'Dona Capivara', emoji:'🦫', cargo:'a guarda do museu', local:'museu', genero:'f',
+    alibi:'Eu tava fazendo a ronda lá fora, no jardim do museu, que nem toda noite.',
+    segredo:'Tá bom, confesso... cochilei um probrinho no banco do jardim. Será que isso conta?',
+    achado:'Tem uma folha seca grudada num casaco pendurado perto do banco, e a marca das ripas do banco tá bem fundo nas costas de quem ficou deitado ali.',
+    pista:'Na fechadura da vitrine quebrada tem lama que só existe lá no rio, e uns pelos marrons grudados no vidro.',
+    dica:'(parece pelo de capivara!)', localPista:'museu',
+    contraId:'sapo', contraFala:'Ô, moço, eu vi a Dona Capivara sim... só que dormindo que nem pedra no banco do jardim, não fazendo ronda nenhuma a noite toda!' },
+
+  { id:'sapo', nome:'Seu Sapo', emoji:'🐸', cargo:'o colecionador', local:'rio', genero:'m',
+    alibi:'Passei a noite inteirinha organizando a minha coleção, sem sair de casa.',
+    segredo:'Tá bom, tá bom... uma das peças da minha coleção é uma réplica do Cogumelo Lendário. Pintei ela de dourado eu mesmo. É falsa, juro!',
+    achado:'Escondida atrás de um pote na beira do rio tem uma réplica de cogumelo pintada de dourado — a tinta ainda nem secou direito.',
+    pista:'Tem pegadas molhadas saindo do museu até o rio, e um pouco de gosma verde grudada bem no canto da vitrine quebrada.',
+    dica:'(pegada e gosma de sapo!)', localPista:'museu',
+    contraId:'tico', contraFala:'Eu passei bem na frente da casa do Seu Sapo entregando pão, e tava tudo escuro lá dentro — nada de luz acesa organizando coleção nenhuma!' },
+
+  { id:'coruja', nome:'Dra. Coruja', emoji:'🦉', cargo:'a cientista', local:'forca', genero:'f',
+    alibi:'Fiquei lá em cima, no telhado da casa de força, de olho nas estrelas com meu telescópio.',
+    segredo:'Ai, você me pegou. Semana passada eu peguei escondida uma lasquinha pequena do Cogumelo Lendário, só pra estudar. Eu ia devolver, juro!',
+    achado:'Tem um potinho de vidro escondido atrás do telescópio, com uma lasquinha dourada brilhante lá dentro.',
+    pista:'Bem na janela alta do museu, que só quem voa alcança, tem uma pena cinza presa no vidro quebrado.',
+    dica:'(pena de coruja!)', localPista:'museu',
+    contraId:'capivara', contraFala:'Eu passo bem pertinho da casa de força na minha ronda, e essa noite tava tudo escuro e fechado — nenhuma luz de telescópio ligada.' },
+
+  { id:'tico', nome:'Ratinho Tico', emoji:'🐭', cargo:'o entregador', local:'padaria', genero:'m',
+    alibi:'Eu tava entregando pão lá na casa da Vovó Caracol.',
+    segredo:'Confesso... fiquei com tanta fome no caminho que comi metade dos pães. Fiz outros de novo depois, bem rapidinho!',
+    achado:'Atrás do balcão da padaria tem uma sacola de pão pela metade e migalhas escondidas numa gaveta.',
+    pista:'Tem uma trilha de migalhas que vai até um buraquinho bem baixinho na parede do museu.',
+    dica:'(migalhas de rato!)', localPista:'museu',
+    pista2:'No carrinho de entregas, escondido debaixo da lona, tem um brilho dourado.', localPista2:'padaria',
+    contraId:'vovo', contraFala:'Que pão? Ninguém veio aqui ontem! Que eu saiba, não.' },
+
+  { id:'vovo', nome:'Vovó Caracol', emoji:'🐌', cargo:'a mais velha da vila', local:'praca', genero:'f',
+    alibi:'Eu fiquei bem quietinha em casa esperando o Tico trazer meu pão.',
+    segredo:'Ah, sabia que fui eu que inventei a lenda da sorte do Cogumelo Lendário, nos meus tempos de mocinha? Há quase 80 aninhos!',
+    achado:'Debaixo do banco da praça tem um caderninho velho, cheio de rascunhos da lenda do Cogumelo Lendário.',
+    pista:'Tem um rastro de babinha brilhante no chão do museu que começa BEM antes da luz ter apagado — babinha de caracol não some rápido, e caracol é bem lentinho.',
+    dica:'(rastro de caracol, e começou antes da luz apagar!)', localPista:'museu',
+    contraId:'tico', contraFala:'Que isso, eu entreguei o pão na mão dela bem cedinho, e ela tava bem acordada, andando depressa de um lado pro outro — nada de cansada esperando sentadinha em casa!' },
+
+  { id:'raposa', nome:'Raposa Rubi', emoji:'🦊', cargo:'a recém-chegada', local:'pousada', genero:'f',
+    alibi:'Eu tava dormindo bem tranquila no meu quarto da pousada, a noite inteira.',
+    segredo:'Tá bom, vou contar: eu sou uma detetive de outra vila, disfarçada, investigando uns ladrões de cogumelo que agem por essa região.',
+    achado:'Escondida dentro da bota da Raposa tem uma credencial de detetive de outra vila, e um bloco de anotações sobre "ladrões de cogumelo".',
+    pista:'A janela do quarto da Raposa tá aberta, as botas dela têm lama igualzinha a do rio, e o mapa da vila sumiu da recepção.',
+    dica:'(lama do rio e mapa sumido!)', localPista:'pousada',
+    contraId:'capivara', contraFala:'Eu passei na ronda bem na frente da pousada, e o quarto da Raposa Rubi tava com a janela ABERTA e as luzes apagadas — estranho pra quem diz que dormia lá tranquila a noite toda.' }
+];
+
+var DIFICULDADES = {
+  facil:   { label:'Fácil',   emoji:'🟢', qtd:3, desc:'3 suspeitos, pistas bem claras', estrelas:1, moedas:50, coins:12 },
+  medio:   { label:'Médio',   emoji:'🟡', qtd:6, desc:'6 suspeitos pra investigar',       estrelas:2, moedas:90, coins:22 },
+  dificil: { label:'Difícil', emoji:'🔴', qtd:6, desc:'6 suspeitos, segredos escondidos', estrelas:3, moedas:160, coins:38 }
+};
+
+var ITENS_LOJA = [
+  { id:'chapeu_pardo',    tipo:'chapeu', nome:'Chapéu Pardo',         cor:'#8a5a2b', preco:0 },
+  { id:'chapeu_dourado',  tipo:'chapeu', nome:'Chapéu Dourado',       cor:'#e0b020', preco:150 },
+  { id:'chapeu_roxo',     tipo:'chapeu', nome:'Chapéu Roxo',          cor:'#7a3fd1', preco:100 },
+  { id:'chapeu_vermelho', tipo:'chapeu', nome:'Chapéu Vermelho',      cor:'#d13f3f', preco:100 },
+  { id:'lupa_prata',  tipo:'lupa', nome:'Lupa Prateada', cor:'#cfd8e3', preco:0 },
+  { id:'lupa_ouro',   tipo:'lupa', nome:'Lupa Dourada',  cor:'#ffd700', preco:120 },
+  { id:'lupa_rosa',   tipo:'lupa', nome:'Lupa Rosa',     cor:'#ff6fb0', preco:120 },
+  { id:'casaco_verde', tipo:'casaco', nome:'Casaco Verde',          cor:'#3f8f5a', preco:0 },
+  { id:'casaco_azul',  tipo:'casaco', nome:'Casaco Azul Detetive',  cor:'#2f5fb0', preco:200 }
+];
+
+// ===================== PROGRESSO (localStorage) =====================
+
+var CHAVE_PROGRESSO = 'cogumelo_detetive_progress';
+function progressoPadrao(){
+  return { moedas:0, estrelas:0, resolvidos:{facil:0,medio:0,dificil:0},
+    itens:['chapeu_pardo','lupa_prata','casaco_verde'],
+    equip:{ chapeu:'chapeu_pardo', lupa:'lupa_prata', casaco:'casaco_verde' } };
+}
+var progresso = carregarProgresso();
+function carregarProgresso(){
+  try {
+    var p = JSON.parse(localStorage.getItem(CHAVE_PROGRESSO) || 'null');
+    if(!p) return progressoPadrao();
+    var pad = progressoPadrao();
+    for(var k in pad) if(!(k in p)) p[k] = pad[k];
+    return p;
+  } catch(e){ return progressoPadrao(); }
+}
+function salvarProgresso(){
+  try { localStorage.setItem(CHAVE_PROGRESSO, JSON.stringify(progresso)); } catch(e){}
+  atualizaSaldoTopo();
+}
+function atualizaSaldoTopo(){
+  document.getElementById('saldoTopo').textContent = '🪙 ' + progresso.moedas + '   ⭐ ' + progresso.estrelas;
+}
+
+// ===================== ESTADO DO CASO =====================
+
+var estado = null; // criado em novoCaso()
+
+function embaralha(arr){
+  var a = arr.slice();
+  for(var i=a.length-1;i>0;i--){
+    var j = Math.floor(Math.random()*(i+1));
+    var t=a[i]; a[i]=a[j]; a[j]=t;
+  }
+  return a;
+}
+
+function novoCaso(dificuldade){
+  var ids = SUSPEITOS.map(function(s){ return s.id; });
+  var ativos;
+  if(dificuldade === 'facil') ativos = embaralha(ids).slice(0,3);
+  else ativos = ids.slice();
+  var culpadoId = ativos[Math.floor(Math.random()*ativos.length)];
+
+  estado = {
+    dificuldade: dificuldade,
+    ativos: ativos,
+    culpadoId: culpadoId,
+    visitados: {},
+    falados: {},
+    segredosSabidos: {},
+    pistaDecisivaAchada: false,
+    pistaDecisiva2Achada: false,
+    acusouErrado: {}
+  };
+}
+
+function suspeitoPorId(id){
+  for(var i=0;i<SUSPEITOS.length;i++) if(SUSPEITOS[i].id === id) return SUSPEITOS[i];
+  return null;
+}
+function suspeitosNoLocal(localId){
+  return estado.ativos.map(suspeitoPorId).filter(function(s){ return s.local === localId; });
+}
+
+// ===================== TOASTS =====================
+
+function toast(txt){
+  var el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = txt;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(function(){
+    el.style.transition = 'opacity .4s';
+    el.style.opacity = '0';
+    setTimeout(function(){ el.remove(); }, 420);
+  }, 3200);
+}
+
+// ===================== EXAMINAR / FALAR =====================
+
+function examinarLocal(localId){
+  var achados = [];
+  if(!estado.visitados[localId]){
+    estado.visitados[localId] = true;
+    if(PISTAS_GERAIS[localId]) achados.push(PISTAS_GERAIS[localId]);
+  }
+
+  var culpado = suspeitoPorId(estado.culpadoId);
+  if(culpado.localPista === localId && !estado.pistaDecisivaAchada){
+    estado.pistaDecisivaAchada = true;
+    var txt = '🔎 Pista decisiva: ' + culpado.pista;
+    if(estado.dificuldade === 'facil') txt += ' ' + culpado.dica;
+    achados.push(txt);
+  }
+  if(culpado.pista2 && culpado.localPista2 === localId && !estado.pistaDecisiva2Achada){
+    estado.pistaDecisiva2Achada = true;
+    achados.push('🔎 Mais uma pista: ' + culpado.pista2);
+  }
+
+  if(estado.dificuldade === 'dificil'){
+    suspeitosNoLocal(localId).forEach(function(s){
+      if(!estado.segredosSabidos[s.id]){
+        estado.segredosSabidos[s.id] = true;
+        achados.push('🔍 Achado escondido (' + s.emoji + ' ' + s.nome + '): ' + s.achado);
+      }
+    });
+  }
+
+  if(achados.length === 0){
+    toast('👀 Você já olhou tudo aqui por enquanto.');
+  } else {
+    achados.forEach(function(a){ toast(a); });
+  }
+}
+
+function falarComSuspeito(id){
+  var s = suspeitoPorId(id);
+  var culpado = suspeitoPorId(estado.culpadoId);
+  estado.falados[id] = true;
+
+  var linhas = [];
+  linhas.push({ texto: s.alibi });
+  if(estado.dificuldade !== 'dificil'){
+    linhas.push({ texto: s.segredo });
+    estado.segredosSabidos[id] = true;
+  } else {
+    linhas.push({ texto: 'Não, não tenho nada pra esconder... por que a pergunta?' });
+  }
+  if(culpado.contraId === id){
+    linhas.push({ texto: culpado.contraFala, contra:true });
+  }
+
+  abreDialogo(s.emoji + ' ' + s.nome + ', ' + s.cargo, linhas);
+}
+
+// ===================== DIÁLOGO =====================
+
+function abreDialogo(nome, linhas){
+  document.getElementById('dialNome').textContent = nome;
+  var corpo = document.getElementById('dialCorpo');
+  corpo.innerHTML = '';
+  linhas.forEach(function(l){
+    var p = document.createElement('p');
+    if(l.contra) p.className = 'fala-contra';
+    p.textContent = '💬 ' + l.texto;
+    corpo.appendChild(p);
+  });
+  document.getElementById('dialogo').classList.add('on');
+}
+document.getElementById('btnFecharDialogo').onclick = function(){
+  document.getElementById('dialogo').classList.remove('on');
+};
+
+// ===================== QUADRO DE PISTAS =====================
+
+function abreQuadro(){
+  var qg = document.getElementById('qGerais');
+  qg.innerHTML = '';
+  var algumaGeral = false;
+  Object.keys(estado.visitados).forEach(function(loc){
+    if(PISTAS_GERAIS[loc]){
+      algumaGeral = true;
+      var d = document.createElement('div');
+      d.className = 'pista-item';
+      d.textContent = PISTAS_GERAIS[loc];
+      qg.appendChild(d);
+    }
+  });
+  if(!algumaGeral) qg.innerHTML = '<div class="vazio">Explore a vila pra achar pistas...</div>';
+
+  var qd = document.getElementById('qDecisiva');
+  qd.innerHTML = '';
+  if(estado.pistaDecisivaAchada){
+    var culpado = suspeitoPorId(estado.culpadoId);
+    var d1 = document.createElement('div');
+    d1.className = 'pista-item decisiva';
+    d1.textContent = culpado.pista + (estado.dificuldade === 'facil' ? ' ' + culpado.dica : '');
+    qd.appendChild(d1);
+    if(estado.pistaDecisiva2Achada){
+      var d2 = document.createElement('div');
+      d2.className = 'pista-item decisiva';
+      d2.textContent = culpado.pista2;
+      qd.appendChild(d2);
+    }
+  } else {
+    qd.innerHTML = '<div class="vazio">Ainda não achou a pista decisiva...</div>';
+  }
+
+  var qs = document.getElementById('qSuspeitos');
+  qs.innerHTML = '';
+  var algum = false;
+  estado.ativos.map(suspeitoPorId).forEach(function(s){
+    if(!estado.falados[s.id] && !estado.segredosSabidos[s.id]) return;
+    algum = true;
+    var card = document.createElement('div');
+    card.className = 'cartao-suspeito';
+    var html = '<div class="cab"><span class="em">' + s.emoji + '</span><span>' + s.nome + ', ' + s.cargo + '</span></div>';
+    if(estado.falados[s.id]) html += '<p>💬 "' + s.alibi + '"</p>';
+    if(estado.segredosSabidos[s.id]) html += '<p>🤫 ' + s.segredo + '</p>';
+    var culpado = suspeitoPorId(estado.culpadoId);
+    if(culpado.contraId === s.id && estado.falados[s.id]){
+      html += '<p class="alerta">❗ "' + culpado.contraFala + '"</p>';
+    }
+    card.innerHTML = html;
+    qs.appendChild(card);
+  });
+  if(!algum) qs.innerHTML = '<div class="vazio">Converse com os suspeitos pra ouvir os álibis...</div>';
+
+  document.getElementById('quadro').classList.add('on');
+}
+document.getElementById('btnFecharQuadro').onclick = function(){ document.getElementById('quadro').classList.remove('on'); };
+document.getElementById('btnQuadroHud').onclick = abreQuadro;
+
+// ===================== ACUSAR =====================
+
+function abreTelaAcusar(){
+  var grid = document.getElementById('gridAcusar');
+  grid.innerHTML = '';
+  estado.ativos.map(suspeitoPorId).forEach(function(s){
+    var d = document.createElement('div');
+    d.className = 'sus-op';
+    d.innerHTML = '<div class="em">' + s.emoji + '</div><b>' + s.nome + '</b>';
+    d.onclick = function(){ confirmaAcusacao(s.id); };
+    grid.appendChild(d);
+  });
+  document.getElementById('telaAcusar').classList.add('on');
+}
+document.getElementById('btnAcusarHud').onclick = abreTelaAcusar;
+document.getElementById('btnCancelarAcusar').onclick = function(){ document.getElementById('telaAcusar').classList.remove('on'); };
+
+var acusadoPendente = null;
+function confirmaAcusacao(id){
+  acusadoPendente = id;
+  var s = suspeitoPorId(id);
+  document.getElementById('confirmTexto').textContent = 'Tem certeza que é ' + (s.genero==='f'?'a':'o') + ' ' + s.nome + '? Você só tem uma chance!';
+  document.getElementById('confirmAcusar').classList.add('on');
+}
+document.getElementById('btnConfirmNao').onclick = function(){ document.getElementById('confirmAcusar').classList.remove('on'); };
+document.getElementById('btnConfirmSim').onclick = function(){
+  document.getElementById('confirmAcusar').classList.remove('on');
+  document.getElementById('telaAcusar').classList.remove('on');
+  resolveCaso(acusadoPendente);
+};
+
+function resolveCaso(acusadoId){
+  var acertou = acusadoId === estado.culpadoId;
+  var culpado = suspeitoPorId(estado.culpadoId);
+  document.getElementById('hud').classList.remove('on');
+  document.getElementById('touchControles').classList.remove('on');
+  setSaldoTopoVisivel(true);
+
+  if(acertou){
+    var dif = DIFICULDADES[estado.dificuldade];
+    progresso.estrelas += dif.estrelas;
+    progresso.moedas += dif.moedas;
+    progresso.resolvidos[estado.dificuldade] = (progresso.resolvidos[estado.dificuldade]||0) + 1;
+    salvarProgresso();
+    if(window.CoguCoins) window.CoguCoins.ganha(dif.coins);
+
+    var elaEle = culpado.genero === 'f' ? 'ela' : 'ele';
+    var encurralado = culpado.genero === 'f' ? 'Encurralada' : 'Encurralado';
+    document.getElementById('fimIcone').textContent = '🎉';
+    document.getElementById('fimTitulo').textContent = 'CASO RESOLVIDO!';
+    document.getElementById('fimTexto').textContent =
+      'Era ' + culpado.nome + ' mesmo! ' + culpado.pista + ' ' + encurralado + ', ' + culpado.nome +
+      ' confessa: ' + elaEle + ' achou que, escondendo o Cogumelo Lendário um tempinho, toda aquela sorte ia ser só ' +
+      (culpado.genero === 'f' ? 'dela' : 'dele') + '. ' +
+      'O Cogumelo Lendário ✨ volta pro museu bem a tempo da festa, e a Vila Cogumelo inteira comemora o detetive Cogu! 🎉';
+    document.getElementById('fimRecompensa').textContent =
+      '+' + dif.estrelas + ' ⭐  +' + dif.moedas + ' 🪙  +' + dif.coins + ' 🍄 Cogu Coins';
+  } else {
+    var acusado = suspeitoPorId(acusadoId);
+    document.getElementById('fimIcone').textContent = '😢';
+    document.getElementById('fimTitulo').textContent = 'O LADRÃO FUGIU!';
+    document.getElementById('fimTexto').textContent =
+      acusado.nome + ' não tinha nada a ver com isso! Enquanto isso, o verdadeiro culpado, ' + culpado.nome +
+      ', aproveitou a confusão e fugiu pelo rio antes do amanhecer. A pista era: ' + culpado.pista;
+    document.getElementById('fimRecompensa').textContent = '';
+  }
+  document.getElementById('telaFim').classList.add('on');
+}
+
+document.getElementById('btnNovoCaso').onclick = function(){
+  document.getElementById('telaFim').classList.remove('on');
+  iniciarJogo(estado.dificuldade);
+};
+document.getElementById('btnMenuFim').onclick = function(){
+  document.getElementById('telaFim').classList.remove('on');
+  voltaMenu();
+};
+document.getElementById('btnMenuHud').onclick = voltaMenu;
+function voltaMenu(){
+  document.getElementById('hud').classList.remove('on');
+  document.getElementById('touchControles').classList.remove('on');
+  document.getElementById('acoesContexto').innerHTML = '';
+  document.getElementById('telaTitulo').classList.add('on');
+  setSaldoTopoVisivel(true);
+}
+function setSaldoTopoVisivel(v){
+  document.getElementById('saldoTopo').style.display = v ? '' : 'none';
+}
+
+// ===================== TELA TÍTULO / DIFICULDADE =====================
+
+var dificuldadeSelecionada = 'facil';
+function montaListaDificuldades(){
+  var box = document.getElementById('listaDificuldades');
+  box.innerHTML = '';
+  Object.keys(DIFICULDADES).forEach(function(key){
+    var d = DIFICULDADES[key];
+    var card = document.createElement('div');
+    card.className = 'dif-card' + (key === dificuldadeSelecionada ? ' sel' : '');
+    card.innerHTML = '<div class="ic">' + d.emoji + '</div><b>' + d.label + '</b><span>' + d.desc + '</span>';
+    card.onclick = function(){ dificuldadeSelecionada = key; montaListaDificuldades(); };
+    box.appendChild(card);
+  });
+}
+montaListaDificuldades();
+
+document.getElementById('btnComecar').onclick = function(){
+  document.getElementById('telaTitulo').classList.remove('on');
+  iniciarJogo(dificuldadeSelecionada);
+};
+document.getElementById('btnComoJogar').onclick = function(){
+  document.getElementById('telaTitulo').classList.remove('on');
+  document.getElementById('telaComo').classList.add('on');
+};
+document.getElementById('btnFecharComo').onclick = function(){
+  document.getElementById('telaComo').classList.remove('on');
+  document.getElementById('telaTitulo').classList.add('on');
+};
+
+// ===================== LOJA =====================
+
+function montaLoja(){
+  var box = document.getElementById('listaLoja');
+  box.innerHTML = '';
+  var grupos = { chapeu:'🎩 Chapéus', lupa:'🔍 Lupas', casaco:'🧥 Casacos' };
+  Object.keys(grupos).forEach(function(tipo){
+    var titulo = document.createElement('div');
+    titulo.style.cssText = 'font-weight:bold; color:#ffe58a; margin-top:6px';
+    titulo.textContent = grupos[tipo];
+    box.appendChild(titulo);
+    var linha = document.createElement('div');
+    linha.style.cssText = 'display:flex; gap:8px; flex-wrap:wrap';
+    ITENS_LOJA.filter(function(it){ return it.tipo === tipo; }).forEach(function(it){
+      var tem = progresso.itens.indexOf(it.id) >= 0;
+      var equipado = progresso.equip[tipo] === it.id;
+      var b = document.createElement('div');
+      b.style.cssText = 'background:rgba(255,255,255,.08); border:3px solid ' + (equipado ? '#ffd84a' : 'rgba(255,255,255,.2)') +
+        '; border-radius:12px; padding:10px; width:110px; text-align:center; cursor:pointer;';
+      b.innerHTML = '<div style="width:28px;height:28px;border-radius:50%;background:' + it.cor + ';margin:0 auto 6px;border:2px solid #fff"></div>' +
+        '<div style="font-size:12px">' + it.nome + '</div>' +
+        '<div style="font-size:12px;color:#ffd84a;margin-top:4px">' + (tem ? (equipado ? 'EQUIPADO' : 'USAR') : ('🪙 ' + it.preco)) + '</div>';
+      b.onclick = function(){
+        if(tem){
+          progresso.equip[tipo] = it.id;
+        } else if(progresso.moedas >= it.preco){
+          progresso.moedas -= it.preco;
+          progresso.itens.push(it.id);
+          progresso.equip[tipo] = it.id;
+        } else {
+          toast('🪙 Moedas insuficientes! Resolva mais casos.');
+          return;
+        }
+        salvarProgresso();
+        montaLoja();
+      };
+      linha.appendChild(b);
+    });
+    box.appendChild(linha);
+  });
+}
+document.getElementById('btnLoja').onclick = function(){
+  document.getElementById('telaTitulo').classList.remove('on');
+  montaLoja();
+  document.getElementById('telaLoja').classList.add('on');
+};
+document.getElementById('btnFecharLoja').onclick = function(){
+  document.getElementById('telaLoja').classList.remove('on');
+  document.getElementById('telaTitulo').classList.add('on');
+};
+
+atualizaSaldoTopo();
+
+// ===================== CANVAS / MOVIMENTO =====================
+
+var canvas = document.getElementById('jogo');
+var ctx = canvas.getContext('2d');
+// MUNDO_W/H = tamanho da tela em pixels CSS — o jogo ocupa a tela toda, sem tarja preta
+var MUNDO_W = window.innerWidth, MUNDO_H = window.innerHeight;
+function escalaAtual(){ return Math.min(MUNDO_W, MUNDO_H) / 600; }
+function posLocal(l){ return { x: l.fx * MUNDO_W, y: l.fy * MUNDO_H }; }
+
+function resize(){
+  var pr = Math.min(window.devicePixelRatio || 1, 1.5);
+  var antigoW = MUNDO_W, antigoH = MUNDO_H;
+  MUNDO_W = window.innerWidth;
+  MUNDO_H = window.innerHeight;
+  canvas.style.width = MUNDO_W + 'px';
+  canvas.style.height = MUNDO_H + 'px';
+  canvas.width = MUNDO_W * pr;
+  canvas.height = MUNDO_H * pr;
+  ctx.setTransform(pr, 0, 0, pr, 0, 0);
+  if(antigoW && antigoH && player.x != null){
+    player.x = player.x / antigoW * MUNDO_W;
+    player.y = player.y / antigoH * MUNDO_H;
+  }
+}
+window.addEventListener('resize', resize);
+
+var player = { x:null, y:null, raio:16 };
+function posicaoInicialJogador(){
+  player.x = 0.5 * MUNDO_W;
+  player.y = 0.90 * MUNDO_H;
+}
+posicaoInicialJogador();
+resize();
+var teclas = { cima:false, baixo:false, esq:false, dir:false };
+var tempo = 0;
+
+window.addEventListener('keydown', function(e){
+  var k = e.key;
+  if(k === 'ArrowUp' || k === 'w' || k === 'W') teclas.cima = true;
+  if(k === 'ArrowDown' || k === 's' || k === 'S') teclas.baixo = true;
+  if(k === 'ArrowLeft' || k === 'a' || k === 'A') teclas.esq = true;
+  if(k === 'ArrowRight' || k === 'd' || k === 'D') teclas.dir = true;
+  if(k === 'e' || k === 'E' || k === ' '){ acionaPrimeiraAcao(); }
+});
+window.addEventListener('keyup', function(e){
+  var k = e.key;
+  if(k === 'ArrowUp' || k === 'w' || k === 'W') teclas.cima = false;
+  if(k === 'ArrowDown' || k === 's' || k === 'S') teclas.baixo = false;
+  if(k === 'ArrowLeft' || k === 'a' || k === 'A') teclas.esq = false;
+  if(k === 'ArrowRight' || k === 'd' || k === 'D') teclas.dir = false;
+});
+
+// controles de toque
+var ehTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+document.querySelectorAll('.dbtn').forEach(function(btn){
+  var dir = btn.getAttribute('data-dir');
+  btn.addEventListener('touchstart', function(e){ e.preventDefault(); teclas[dir] = true; }, { passive:false });
+  btn.addEventListener('touchend', function(e){ e.preventDefault(); teclas[dir] = false; }, { passive:false });
+  btn.addEventListener('touchcancel', function(){ teclas[dir] = false; });
+});
+
+var localAtualId = null;
+function jogando(){ return estado !== null && document.getElementById('hud').classList.contains('on'); }
+
+function distancia(ax,ay,bx,by){ return Math.hypot(ax-bx, ay-by); }
+
+function atualiza(){
+  if(!jogando()) return;
+  var dx = 0, dy = 0;
+  if(teclas.cima) dy -= 1;
+  if(teclas.baixo) dy += 1;
+  if(teclas.esq) dx -= 1;
+  if(teclas.dir) dx += 1;
+  if(dx !== 0 || dy !== 0){
+    var mag = Math.hypot(dx,dy);
+    var vel = escalaAtual() * 3.2;
+    player.x += (dx/mag) * vel;
+    player.y += (dy/mag) * vel;
+    var margem = 24 * escalaAtual();
+    player.x = Math.max(margem, Math.min(MUNDO_W-margem, player.x));
+    player.y = Math.max(margem, Math.min(MUNDO_H-margem, player.y));
+  }
+  atualizaLocalAtual();
+  atualizaAcoesContexto();
+}
+
+function atualizaLocalAtual(){
+  var atual = null;
+  var raio = 95 * escalaAtual();
+  Object.keys(LOCAIS).forEach(function(id){
+    var p = posLocal(LOCAIS[id]);
+    if(distancia(player.x,player.y,p.x,p.y) < raio) atual = id;
+  });
+  if(atual !== localAtualId){
+    localAtualId = atual;
+    var el = document.getElementById('localAtual');
+    if(atual) el.textContent = LOCAIS[atual].emoji + ' ' + LOCAIS[atual].nome;
+    else el.textContent = '🍄 Vila Cogumelo';
+  }
+}
+
+var acoesAtuais = [];
+function atualizaAcoesContexto(){
+  var box = document.getElementById('acoesContexto');
+  var novas = [];
+  if(localAtualId){
+    novas.push({ tipo:'examinar', label:'🔍 Examinar ' + LOCAIS[localAtualId].nome, fn:function(){ examinarLocal(localAtualId); } });
+    var raioFala = 70 * escalaAtual();
+    suspeitosNoLocal(localAtualId).forEach(function(s){
+      var p = pontoSuspeito(s);
+      if(distancia(player.x,player.y, p.x, p.y) < raioFala){
+        novas.push({ tipo:'falar', id:s.id, label:'💬 Falar com ' + s.nome, fn:function(){ falarComSuspeito(s.id); } });
+      }
+    });
+  }
+  var chave = novas.map(function(n){ return n.label; }).join('|');
+  if(chave === acoesAtuais.__chave) return;
+  acoesAtuais = novas; acoesAtuais.__chave = chave;
+  box.innerHTML = '';
+  novas.forEach(function(n){
+    var b = document.createElement('button');
+    b.className = 'btn pequeno';
+    b.textContent = n.label;
+    b.onclick = n.fn;
+    box.appendChild(b);
+  });
+}
+function acionaPrimeiraAcao(){
+  if(acoesAtuais.length > 0) acoesAtuais[0].fn();
+}
+
+function pontoSuspeito(s){
+  var p = posLocal(LOCAIS[s.local]);
+  return { x: p.x, y: p.y + 60 * escalaAtual() };
+}
+
+// ===================== DESENHO =====================
+
+function desenha(){
+  ctx.clearRect(0,0,MUNDO_W,MUNDO_H);
+
+  // fundo grama
+  var g = ctx.createLinearGradient(0,0,0,MUNDO_H);
+  g.addColorStop(0,'#1f4428'); g.addColorStop(1,'#163420');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,MUNDO_W,MUNDO_H);
+
+  var s = escalaAtual();
+
+  // caminhos
+  ctx.strokeStyle = 'rgba(210,190,150,0.35)';
+  ctx.lineWidth = 22 * s;
+  ctx.lineCap = 'round';
+  var centro = { x:0.5*MUNDO_W, y:0.5*MUNDO_H };
+  Object.keys(LOCAIS).forEach(function(id){
+    var p = posLocal(LOCAIS[id]);
+    ctx.beginPath();
+    ctx.moveTo(centro.x, centro.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  });
+
+  // locais
+  Object.keys(LOCAIS).forEach(function(id){
+    var l = LOCAIS[id];
+    var p = posLocal(l);
+    var ativo = estado && localAtualId === id;
+    ctx.save();
+    ctx.shadowColor = ativo ? '#ffd84a' : 'transparent';
+    ctx.shadowBlur = ativo ? 24 : 0;
+    ctx.fillStyle = l.cor;
+    roundRect(ctx, p.x-65*s, p.y-45*s, 130*s, 90*s, 16*s);
+    ctx.fill();
+    ctx.restore();
+    ctx.font = (38*s) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(l.emoji, p.x, p.y+2*s);
+    ctx.font = 'bold ' + (13*s) + 'px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 4;
+    ctx.fillText(l.nome, p.x, p.y-55*s);
+    ctx.shadowBlur = 0;
+  });
+
+  // suspeitos ativos
+  if(estado){
+    estado.ativos.map(suspeitoPorId).forEach(function(sus){
+      var p = pontoSuspeito(sus);
+      var bounce = Math.sin(tempo/400 + sus.local.length) * 3 * s;
+      ctx.font = (30*s) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(sus.emoji, p.x, p.y + bounce);
+      ctx.font = 'bold ' + (11*s) + 'px Arial';
+      ctx.fillStyle = '#ffe58a';
+      ctx.fillText(sus.nome, p.x, p.y + 20*s + bounce);
+    });
+  }
+
+  desenhaJogador();
+}
+
+function roundRect(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y);
+  c.arcTo(x+w,y,x+w,y+h,r);
+  c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r);
+  c.arcTo(x,y,x+w,y,r);
+  c.closePath();
+}
+
+function desenhaJogador(){
+  var chapeuCor = itemCor('chapeu', progresso.equip.chapeu);
+  var casacoCor = itemCor('casaco', progresso.equip.casaco);
+  var lupaCor = itemCor('lupa', progresso.equip.lupa);
+
+  ctx.save();
+  ctx.translate(player.x, player.y);
+  ctx.scale(escalaAtual(), escalaAtual());
+  var x = 0, y = 0;
+
+  // sombra
+  ctx.fillStyle = 'rgba(0,0,0,.3)';
+  ctx.beginPath();
+  ctx.ellipse(x, y+16, 14, 5, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // corpo (casaco)
+  ctx.fillStyle = casacoCor;
+  ctx.beginPath();
+  ctx.ellipse(x, y+4, 13, 15, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // rosto
+  ctx.fillStyle = '#f2d9b0';
+  ctx.beginPath();
+  ctx.arc(x, y-6, 10, 0, Math.PI*2);
+  ctx.fill();
+
+  // olhos
+  ctx.fillStyle = '#222';
+  ctx.beginPath(); ctx.arc(x-4, y-7, 1.6, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+4, y-7, 1.6, 0, Math.PI*2); ctx.fill();
+
+  // chapéu (aba + copa)
+  ctx.fillStyle = chapeuCor;
+  ctx.beginPath();
+  ctx.ellipse(x, y-15, 15, 4, 0, 0, Math.PI*2);
+  ctx.fill();
+  roundRect(ctx, x-8, y-28, 16, 14, 4);
+  ctx.fill();
+
+  // lupa na mão
+  ctx.strokeStyle = lupaCor;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(x+13, y+4, 5, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x+17,y+8); ctx.lineTo(x+21,y+12);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function itemCor(tipo, id){
+  for(var i=0;i<ITENS_LOJA.length;i++) if(ITENS_LOJA[i].id === id) return ITENS_LOJA[i].cor;
+  return tipo === 'chapeu' ? '#8a5a2b' : (tipo === 'lupa' ? '#cfd8e3' : '#3f8f5a');
+}
+
+function loop(t){
+  tempo = t || 0;
+  atualiza();
+  desenha();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ===================== INÍCIO DE JOGO =====================
+
+function iniciarJogo(dificuldade){
+  novoCaso(dificuldade);
+  posicaoInicialJogador();
+  localAtualId = null;
+  acoesAtuais = [];
+  document.getElementById('acoesContexto').innerHTML = '';
+  document.getElementById('hud').classList.add('on');
+  if(ehTouch) document.getElementById('touchControles').classList.add('on');
+  setSaldoTopoVisivel(false);
+  toast('🔍 Caso aberto: ache as pistas e descubra quem levou o Cogumelo Lendário!');
+}
+
+})();
+</script>
+
+<script src="/stats.js?v=495"></script>
+<script>initStats('cogumelo-detetive');</script>
+<script src="/mascote.js"></script>
+<script src="/gamepad.js?v=358"></script>
+<script src="/idiomas.js"></script>
+<script src="/favoritos.js"></script>
+</body>
+</html>
