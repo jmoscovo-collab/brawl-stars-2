@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v605 (2026-11-03)
+- 🍄🔍 Cogumelo Detetive agora é 3D! A Vila Cogumelo virou um mundo 3D de verdade numa noite de tempestade: chuva, raios com trovão, postes acesos, rio, museu com colunas e a vitrine quebrada, fonte na praça e casinhas-cogumelo. Os 6 suspeitos aparecem em 3D e olham pro Cogu quando ele chega perto
+- 🚫 Tirada a escolha de dificuldade: todo caso agora tem os 6 suspeitos
+
 ## v604 (2026-11-03)
 - 🐕🔍 Jogo novo (ainda escondido, só pelo link /detetive/): CACHORRO DETETIVE! Alguém roubou um tesouro da cidade: ande pelas ruas, fareje as pistas e descubra quem é o ladrão. Cada caso fica mais difícil, com mais suspeitos
 

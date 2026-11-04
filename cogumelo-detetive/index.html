@@ -4,12 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Cogumelo Detetive 🔍 — Cogumelo Games</title>
-<script src="/cogucoins.js?v=545"></script>
+<!-- 3D: three 0.160.1 via importmap (mesmo do /cg3d.js) -->
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
+} }
+</script>
+<script src="/cogucoins.js?v=551"></script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
   html, body { width:100%; height:100%; overflow:hidden; background:#0a1a12; font-family:'Comic Sans MS','Baloo',system-ui,sans-serif; color:#fff; }
   #mundo { position:fixed; inset:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#06110c; }
-  #jogo { display:block; background:#1c3a24; touch-action:none; }
+  #jogo { display:block; width:100%; height:100%; background:#0c1626; touch-action:none; }
+  #telaTitulo { background:linear-gradient(180deg,rgba(6,16,12,.35) 0%,rgba(6,16,12,.15) 40%,rgba(6,16,12,.75) 100%); }
 
   .tela { position:fixed; inset:0; z-index:50; display:none; flex-direction:column; align-items:center; justify-content:center;
           background:linear-gradient(160deg,#0d2518 0%,#133a22 45%,#0a1420 100%); padding:16px; text-align:center; overflow-y:auto; }
@@ -27,13 +35,6 @@
   .btn:disabled { opacity:.45; cursor:default; }
   .painel-box { background:rgba(255,255,255,.07); border:2px solid rgba(255,255,255,.18); border-radius:20px;
                 padding:18px; max-width:560px; width:100%; box-shadow:0 10px 30px rgba(0,0,0,.4); }
-  .dificuldades { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:10px 0 18px; }
-  .dif-card { background:rgba(255,255,255,.08); border:3px solid rgba(255,255,255,.2); border-radius:16px; padding:14px;
-              width:150px; cursor:pointer; transition:.15s; }
-  .dif-card:hover, .dif-card.sel { border-color:#ffd84a; background:rgba(255,216,74,.12); transform:translateY(-3px); }
-  .dif-card .ic { font-size:30px; }
-  .dif-card b { display:block; font-size:16px; margin:4px 0; }
-  .dif-card span { font-size:12px; color:#bfe8c8; }
   .saldo-topo { position:fixed; top:10px; right:10px; z-index:55; background:rgba(0,0,0,.55); border:2px solid #ffd84a;
                 border-radius:14px; padding:6px 12px; font-size:14px; font-weight:bold; color:#ffd84a; }
 
@@ -109,7 +110,7 @@
   #confirmAcusar { position:fixed; inset:0; z-index:58; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.7); }
   #confirmAcusar.on { display:flex; }
 
-  @media (max-width:560px) { .painel-box { padding:12px; } .dif-card { width:46%; } }
+  @media (max-width:560px) { .painel-box { padding:12px; } }
 </style>
 </head>
 <body>
@@ -123,8 +124,6 @@
   <h1>🔍 Cogumelo Detetive</h1>
   <p class="quote">"A luz apagou. O cogumelo sumiu. E todo mundo tem um segredo. Cabe a você, Cogu, descobrir a verdade!"</p>
   <div class="painel-box">
-    <p style="margin-bottom:10px; font-size:14px; color:#cfead6;">Escolha a dificuldade do caso de hoje:</p>
-    <div class="dificuldades" id="listaDificuldades"></div>
     <button class="btn ouro" id="btnComecar">▶ COMEÇAR O CASO</button>
     <br>
     <button class="btn roxo pequeno" id="btnLoja">🛒 LOJA DO COGU</button>
@@ -314,10 +313,9 @@ var SUSPEITOS = [
     contraId:'capivara', contraFala:'Eu passei na ronda bem na frente da pousada, e o quarto da Raposa Rubi tava com a janela ABERTA e as luzes apagadas — estranho pra quem diz que dormia lá tranquila a noite toda.' }
 ];
 
+// sem escolher dificuldade (pedido do Davi): todo caso tem os 6 suspeitos
 var DIFICULDADES = {
-  facil:   { label:'Fácil',   emoji:'🟢', qtd:3, desc:'3 suspeitos, pistas bem claras', estrelas:1, moedas:50, coins:12 },
-  medio:   { label:'Médio',   emoji:'🟡', qtd:6, desc:'6 suspeitos pra investigar',       estrelas:2, moedas:90, coins:22 },
-  dificil: { label:'Difícil', emoji:'🔴', qtd:6, desc:'6 suspeitos, segredos escondidos', estrelas:3, moedas:160, coins:38 }
+  medio:   { label:'Normal', qtd:6, estrelas:2, moedas:90, coins:22 }
 };
 
 var ITENS_LOJA = [
@@ -373,9 +371,7 @@ function embaralha(arr){
 
 function novoCaso(dificuldade){
   var ids = SUSPEITOS.map(function(s){ return s.id; });
-  var ativos;
-  if(dificuldade === 'facil') ativos = embaralha(ids).slice(0,3);
-  else ativos = ids.slice();
+  var ativos = ids.slice();
   var culpadoId = ativos[Math.floor(Math.random()*ativos.length)];
 
   estado = {
@@ -637,26 +633,11 @@ function setSaldoTopoVisivel(v){
   document.getElementById('saldoTopo').style.display = v ? '' : 'none';
 }
 
-// ===================== TELA TÍTULO / DIFICULDADE =====================
-
-var dificuldadeSelecionada = 'facil';
-function montaListaDificuldades(){
-  var box = document.getElementById('listaDificuldades');
-  box.innerHTML = '';
-  Object.keys(DIFICULDADES).forEach(function(key){
-    var d = DIFICULDADES[key];
-    var card = document.createElement('div');
-    card.className = 'dif-card' + (key === dificuldadeSelecionada ? ' sel' : '');
-    card.innerHTML = '<div class="ic">' + d.emoji + '</div><b>' + d.label + '</b><span>' + d.desc + '</span>';
-    card.onclick = function(){ dificuldadeSelecionada = key; montaListaDificuldades(); };
-    box.appendChild(card);
-  });
-}
-montaListaDificuldades();
+// ===================== TELA TÍTULO =====================
 
 document.getElementById('btnComecar').onclick = function(){
   document.getElementById('telaTitulo').classList.remove('on');
-  iniciarJogo(dificuldadeSelecionada);
+  iniciarJogo('medio');
 };
 document.getElementById('btnComoJogar').onclick = function(){
   document.getElementById('telaTitulo').classList.remove('on');
@@ -720,41 +701,16 @@ document.getElementById('btnFecharLoja').onclick = function(){
 
 atualizaSaldoTopo();
 
-// ===================== CANVAS / MOVIMENTO =====================
+// ===================== MUNDO 3D: POSIÇÕES / MOVIMENTO =====================
+// O desenho 3D fica no <script type="module"> lá embaixo (window.DET3D).
+// Aqui é só a lógica: posições em metros (x = leste/oeste, y = eixo z do 3D, norte/sul).
 
-var canvas = document.getElementById('jogo');
-var ctx = canvas.getContext('2d');
-// MUNDO_W/H = tamanho da tela em pixels CSS — o jogo ocupa a tela toda, sem tarja preta
-var MUNDO_W = window.innerWidth, MUNDO_H = window.innerHeight;
-function escalaAtual(){ return Math.min(MUNDO_W, MUNDO_H) / 600; }
-function posLocal(l){ return { x: l.fx * MUNDO_W, y: l.fy * MUNDO_H }; }
+var MUNDO_LARG = 70, MUNDO_PROF = 60;
+function posLocal(l){ return { x:(l.fx-0.5)*MUNDO_LARG, y:(l.fy-0.5)*MUNDO_PROF }; }
 
-function resize(){
-  var pr = Math.min(window.devicePixelRatio || 1, 1.5);
-  var antigoW = MUNDO_W, antigoH = MUNDO_H;
-  MUNDO_W = window.innerWidth;
-  MUNDO_H = window.innerHeight;
-  canvas.style.width = MUNDO_W + 'px';
-  canvas.style.height = MUNDO_H + 'px';
-  canvas.width = MUNDO_W * pr;
-  canvas.height = MUNDO_H * pr;
-  ctx.setTransform(pr, 0, 0, pr, 0, 0);
-  if(antigoW && antigoH && player.x != null){
-    player.x = player.x / antigoW * MUNDO_W;
-    player.y = player.y / antigoH * MUNDO_H;
-  }
-}
-window.addEventListener('resize', resize);
-
-var player = { x:null, y:null, raio:16 };
-function posicaoInicialJogador(){
-  player.x = 0.5 * MUNDO_W;
-  player.y = 0.90 * MUNDO_H;
-}
-posicaoInicialJogador();
-resize();
+var player = { x:0, y:24, raio:0.6 };
+function posicaoInicialJogador(){ player.x = 0; player.y = 24; }
 var teclas = { cima:false, baixo:false, esq:false, dir:false };
-var tempo = 0;
 
 window.addEventListener('keydown', function(e){
   var k = e.key;
@@ -762,6 +718,7 @@ window.addEventListener('keydown', function(e){
   if(k === 'ArrowDown' || k === 's' || k === 'S') teclas.baixo = true;
   if(k === 'ArrowLeft' || k === 'a' || k === 'A') teclas.esq = true;
   if(k === 'ArrowRight' || k === 'd' || k === 'D') teclas.dir = true;
+  if(k.indexOf('Arrow') === 0 || k === ' ') e.preventDefault();
   if(k === 'e' || k === 'E' || k === ' '){ acionaPrimeiraAcao(); }
 });
 window.addEventListener('keyup', function(e){
@@ -783,35 +740,25 @@ document.querySelectorAll('.dbtn').forEach(function(btn){
 
 var localAtualId = null;
 function jogando(){ return estado !== null && document.getElementById('hud').classList.contains('on'); }
+// com diálogo/quadro/acusação aberto o Cogu fica parado
+function pausado(){
+  return ['dialogo','quadro','telaAcusar','confirmAcusar'].some(function(id){ return document.getElementById(id).classList.contains('on'); });
+}
 
 function distancia(ax,ay,bx,by){ return Math.hypot(ax-bx, ay-by); }
 
 function atualiza(){
   if(!jogando()) return;
-  var dx = 0, dy = 0;
-  if(teclas.cima) dy -= 1;
-  if(teclas.baixo) dy += 1;
-  if(teclas.esq) dx -= 1;
-  if(teclas.dir) dx += 1;
-  if(dx !== 0 || dy !== 0){
-    var mag = Math.hypot(dx,dy);
-    var vel = escalaAtual() * 3.2;
-    player.x += (dx/mag) * vel;
-    player.y += (dy/mag) * vel;
-    var margem = 24 * escalaAtual();
-    player.x = Math.max(margem, Math.min(MUNDO_W-margem, player.x));
-    player.y = Math.max(margem, Math.min(MUNDO_H-margem, player.y));
-  }
   atualizaLocalAtual();
   atualizaAcoesContexto();
 }
 
 function atualizaLocalAtual(){
-  var atual = null;
-  var raio = 95 * escalaAtual();
+  var atual = null, melhor = 10;                  // o lugar mais perto (até 10 m)
   Object.keys(LOCAIS).forEach(function(id){
     var p = posLocal(LOCAIS[id]);
-    if(distancia(player.x,player.y,p.x,p.y) < raio) atual = id;
+    var d = distancia(player.x,player.y,p.x,p.y);
+    if(d < melhor){ melhor = d; atual = id; }
   });
   if(atual !== localAtualId){
     localAtualId = atual;
@@ -827,11 +774,10 @@ function atualizaAcoesContexto(){
   var novas = [];
   if(localAtualId){
     novas.push({ tipo:'examinar', label:'🔍 Examinar ' + LOCAIS[localAtualId].nome, fn:function(){ examinarLocal(localAtualId); } });
-    var raioFala = 70 * escalaAtual();
     suspeitosNoLocal(localAtualId).forEach(function(s){
       var p = pontoSuspeito(s);
-      if(distancia(player.x,player.y, p.x, p.y) < raioFala){
-        novas.push({ tipo:'falar', id:s.id, label:'💬 Falar com ' + s.nome, fn:function(){ falarComSuspeito(s.id); } });
+      if(distancia(player.x,player.y, p.x, p.y) < 4){
+        novas.unshift({ tipo:'falar', id:s.id, label:'💬 Falar com ' + s.nome, fn:function(){ falarComSuspeito(s.id); } });
       }
     });
   }
@@ -848,141 +794,16 @@ function atualizaAcoesContexto(){
   });
 }
 function acionaPrimeiraAcao(){
+  if(!jogando() || pausado()) return;
   if(acoesAtuais.length > 0) acoesAtuais[0].fn();
 }
 
+// o suspeito fica na frente do lugar dele, virado pra praça
 function pontoSuspeito(s){
   var p = posLocal(LOCAIS[s.local]);
-  return { x: p.x, y: p.y + 60 * escalaAtual() };
-}
-
-// ===================== DESENHO =====================
-
-function desenha(){
-  ctx.clearRect(0,0,MUNDO_W,MUNDO_H);
-
-  // fundo grama
-  var g = ctx.createLinearGradient(0,0,0,MUNDO_H);
-  g.addColorStop(0,'#1f4428'); g.addColorStop(1,'#163420');
-  ctx.fillStyle = g;
-  ctx.fillRect(0,0,MUNDO_W,MUNDO_H);
-
-  var s = escalaAtual();
-
-  // caminhos
-  ctx.strokeStyle = 'rgba(210,190,150,0.35)';
-  ctx.lineWidth = 22 * s;
-  ctx.lineCap = 'round';
-  var centro = { x:0.5*MUNDO_W, y:0.5*MUNDO_H };
-  Object.keys(LOCAIS).forEach(function(id){
-    var p = posLocal(LOCAIS[id]);
-    ctx.beginPath();
-    ctx.moveTo(centro.x, centro.y);
-    ctx.lineTo(p.x, p.y);
-    ctx.stroke();
-  });
-
-  // locais
-  Object.keys(LOCAIS).forEach(function(id){
-    var l = LOCAIS[id];
-    var p = posLocal(l);
-    var ativo = estado && localAtualId === id;
-    ctx.save();
-    ctx.shadowColor = ativo ? '#ffd84a' : 'transparent';
-    ctx.shadowBlur = ativo ? 24 : 0;
-    ctx.fillStyle = l.cor;
-    roundRect(ctx, p.x-65*s, p.y-45*s, 130*s, 90*s, 16*s);
-    ctx.fill();
-    ctx.restore();
-    ctx.font = (38*s) + 'px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(l.emoji, p.x, p.y+2*s);
-    ctx.font = 'bold ' + (13*s) + 'px Arial';
-    ctx.fillStyle = '#fff';
-    ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 4;
-    ctx.fillText(l.nome, p.x, p.y-55*s);
-    ctx.shadowBlur = 0;
-  });
-
-  // suspeitos ativos
-  if(estado){
-    estado.ativos.map(suspeitoPorId).forEach(function(sus){
-      var p = pontoSuspeito(sus);
-      var bounce = Math.sin(tempo/400 + sus.local.length) * 3 * s;
-      ctx.font = (30*s) + 'px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(sus.emoji, p.x, p.y + bounce);
-      ctx.font = 'bold ' + (11*s) + 'px Arial';
-      ctx.fillStyle = '#ffe58a';
-      ctx.fillText(sus.nome, p.x, p.y + 20*s + bounce);
-    });
-  }
-
-  desenhaJogador();
-}
-
-function roundRect(c,x,y,w,h,r){
-  c.beginPath();
-  c.moveTo(x+r,y);
-  c.arcTo(x+w,y,x+w,y+h,r);
-  c.arcTo(x+w,y+h,x,y+h,r);
-  c.arcTo(x,y+h,x,y,r);
-  c.arcTo(x,y,x+w,y,r);
-  c.closePath();
-}
-
-function desenhaJogador(){
-  var chapeuCor = itemCor('chapeu', progresso.equip.chapeu);
-  var casacoCor = itemCor('casaco', progresso.equip.casaco);
-  var lupaCor = itemCor('lupa', progresso.equip.lupa);
-
-  ctx.save();
-  ctx.translate(player.x, player.y);
-  ctx.scale(escalaAtual(), escalaAtual());
-  var x = 0, y = 0;
-
-  // sombra
-  ctx.fillStyle = 'rgba(0,0,0,.3)';
-  ctx.beginPath();
-  ctx.ellipse(x, y+16, 14, 5, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  // corpo (casaco)
-  ctx.fillStyle = casacoCor;
-  ctx.beginPath();
-  ctx.ellipse(x, y+4, 13, 15, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  // rosto
-  ctx.fillStyle = '#f2d9b0';
-  ctx.beginPath();
-  ctx.arc(x, y-6, 10, 0, Math.PI*2);
-  ctx.fill();
-
-  // olhos
-  ctx.fillStyle = '#222';
-  ctx.beginPath(); ctx.arc(x-4, y-7, 1.6, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x+4, y-7, 1.6, 0, Math.PI*2); ctx.fill();
-
-  // chapéu (aba + copa)
-  ctx.fillStyle = chapeuCor;
-  ctx.beginPath();
-  ctx.ellipse(x, y-15, 15, 4, 0, 0, Math.PI*2);
-  ctx.fill();
-  roundRect(ctx, x-8, y-28, 16, 14, 4);
-  ctx.fill();
-
-  // lupa na mão
-  ctx.strokeStyle = lupaCor;
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.arc(x+13, y+4, 5, 0, Math.PI*2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x+17,y+8); ctx.lineTo(x+21,y+12);
-  ctx.stroke();
-
-  ctx.restore();
+  var d = Math.hypot(p.x, p.y);
+  if(d < 1) return { x: p.x, y: p.y + 7 };
+  return { x: p.x - p.x/d*7, y: p.y - p.y/d*7 };
 }
 
 function itemCor(tipo, id){
@@ -990,13 +811,16 @@ function itemCor(tipo, id){
   return tipo === 'chapeu' ? '#8a5a2b' : (tipo === 'lupa' ? '#cfd8e3' : '#3f8f5a');
 }
 
-function loop(t){
-  tempo = t || 0;
-  atualiza();
-  desenha();
-  requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
+// ponte pro módulo 3D
+window.DET = {
+  LOCAIS: LOCAIS, SUSPEITOS: SUSPEITOS, player: player, teclas: teclas,
+  posLocal: posLocal, pontoSuspeito: pontoSuspeito, jogando: jogando, pausado: pausado, atualiza: atualiza,
+  ativos: function(){ return estado ? estado.ativos : []; },
+  visitado: function(id){ return !!(estado && estado.visitados[id]); },
+  localAtual: function(){ return localAtualId; },
+  cores: function(){ return { chapeu:itemCor('chapeu', progresso.equip.chapeu), casaco:itemCor('casaco', progresso.equip.casaco), lupa:itemCor('lupa', progresso.equip.lupa) }; }
+};
+
 
 // ===================== INÍCIO DE JOGO =====================
 
@@ -1009,13 +833,596 @@ function iniciarJogo(dificuldade){
   document.getElementById('hud').classList.add('on');
   if(ehTouch) document.getElementById('touchControles').classList.add('on');
   setSaldoTopoVisivel(false);
+  if(window.DET3D) window.DET3D.inicio();
   toast('🔍 Caso aberto: ache as pistas e descubra quem levou o Cogumelo Lendário!');
 }
 
 })();
 </script>
 
-<script src="/stats.js?v=495"></script>
+<script type="module">
+// ===================== VILA COGUMELO EM 3D =====================
+// noite de tempestade: lua, chuva, raios, postes acesos. Modelos Kenney (/assets/models) + peças feitas aqui.
+import { THREE, criaCena, carregaModelo } from '/cg3d.js';
+
+const D = window.DET;
+const CELULAR = matchMedia('(pointer:coarse)').matches || ('ontouchstart' in window);
+const cena = criaCena({ canvas: document.getElementById('jogo'), container: document.getElementById('mundo'),
+  ceu: 'noite', sombras: !CELULAR, pixelRatioMax: 1.5 });
+const { scene, camera, renderer, luzSol: lua, luzAmbiente } = cena;
+scene.environment = null;                       // sem reflexo de "estúdio": é noite
+scene.fog = new THREE.Fog('#0c1626', 20, 80);
+renderer.toneMappingExposure = 1.25;
+lua.color.set('#a8bcff'); lua.intensity = 1.1; lua.position.set(-25, 45, -15);
+Object.assign(lua.shadow.camera, { left:-45, right:45, top:45, bottom:-45, far:150 });
+lua.shadow.camera.updateProjectionMatrix();
+luzAmbiente.color.set('#5a6a9a'); luzAmbiente.groundColor.set('#2a2418'); luzAmbiente.intensity = 1.0;
+const relampago = new THREE.DirectionalLight('#dfe8ff', 0); relampago.position.set(10, 50, 20); scene.add(relampago);
+camera.far = 300; camera.updateProjectionMatrix();
+
+// ---------- texturas feitas no canvas ----------
+function texCanvas(tam, desenha, rep){
+  const c = document.createElement('canvas'); c.width = c.height = tam;
+  desenha(c.getContext('2d'), tam);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+const texGrama = texCanvas(256, (g, s) => {
+  g.fillStyle = '#2e5a28'; g.fillRect(0, 0, s, s);
+  for(let i = 0; i < 2600; i++){
+    const v = Math.random();
+    g.fillStyle = v < .5 ? 'rgba(20,50,18,.6)' : v < .85 ? 'rgba(70,120,50,.55)' : 'rgba(110,140,60,.5)';
+    g.fillRect(Math.random()*s, Math.random()*s, 1 + Math.random()*2, 2 + Math.random()*4);
+  }
+}, 24);
+function pedras(cor1, cor2){
+  return (g, s) => {
+    g.fillStyle = '#3a3630'; g.fillRect(0, 0, s, s);
+    const n = 8, q = s / n;
+    for(let y = 0; y < n; y++) for(let x = 0; x < n; x++){
+      const ox = (y % 2) * q / 2, l = 30 + Math.random() * 25;
+      g.fillStyle = Math.random() < .5 ? cor1 : cor2;
+      g.globalAlpha = .75 + Math.random() * .25;
+      g.beginPath(); g.ellipse(x*q + ox + q/2, y*q + q/2, q*.44, q*.4, Math.random(), 0, 7); g.fill();
+      g.fillStyle = `rgba(255,255,255,${l/400})`;
+      g.beginPath(); g.ellipse(x*q + ox + q/2 - 3, y*q + q/2 - 3, q*.2, q*.15, 0, 0, 7); g.fill();
+    }
+    g.globalAlpha = 1;
+  };
+}
+const texPedra = texCanvas(256, pedras('#8a8478', '#6e6a62'), 1);
+const texTijolo = texCanvas(256, (g, s) => {
+  g.fillStyle = '#5a3a2a'; g.fillRect(0, 0, s, s);
+  const h = s / 8, w = s / 4;
+  for(let y = 0; y < 8; y++) for(let x = -1; x < 5; x++){
+    g.fillStyle = ['#8a4a32', '#9a5638', '#7a4030'][Math.floor(Math.random()*3)];
+    g.fillRect(x*w + (y % 2)*w/2 + 2, y*h + 2, w - 4, h - 4);
+  }
+}, 1);
+const texAgua = texCanvas(256, (g, s) => {
+  g.fillStyle = '#16324a'; g.fillRect(0, 0, s, s);
+  for(let i = 0; i < 300; i++){
+    g.strokeStyle = `rgba(150,190,230,${.08 + Math.random()*.15})`; g.lineWidth = 1 + Math.random()*2;
+    const x = Math.random()*s, y = Math.random()*s;
+    g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 8, y - 3, x + 16 + Math.random()*10, y); g.stroke();
+  }
+}, 4);
+
+const mat = (cor, extra) => new THREE.MeshStandardMaterial(Object.assign({ color: cor, roughness: .85 }, extra || {}));
+function malha(geo, m, x, y, z, sombra = true){
+  const o = new THREE.Mesh(geo, m); o.position.set(x || 0, y || 0, z || 0);
+  o.castShadow = sombra; o.receiveShadow = true; return o;
+}
+
+// ---------- chão, caminhos, rio ----------
+const chao = malha(new THREE.PlaneGeometry(240, 240), mat('#ffffff', { map: texGrama }), 0, 0, 0, false);
+chao.rotation.x = -Math.PI/2; scene.add(chao);
+
+function caminho(x1, z1, x2, z2, larg){
+  const dx = x2 - x1, dz = z2 - z1, comp = Math.hypot(dx, dz);
+  const t = texPedra.clone(); t.needsUpdate = true; t.repeat.set(larg/2.2, comp/2.2);
+  const m = malha(new THREE.PlaneGeometry(larg, comp), mat('#ffffff', { map: t, roughness: .7 }), (x1+x2)/2, .02, (z1+z2)/2, false);
+  m.rotation.x = -Math.PI/2; m.rotation.z = Math.atan2(-dx, -dz); scene.add(m);
+}
+const P = id => { const p = D.posLocal(D.LOCAIS[id]); return { x: p.x, z: p.y }; };
+['museu','forca','padaria','rio','pousada'].forEach(id => { const p = P(id); caminho(0, 0, p.x*.82, p.z*.82, 3.6); });
+caminho(0, 6, 0, 29, 3.6);                                  // estrada de entrada (de onde o Cogu chega)
+{ const t = texPedra.clone(); t.needsUpdate = true; t.repeat.set(7, 7);
+  const praca = malha(new THREE.CircleGeometry(9, 40), mat('#ffffff', { map: t, roughness: .7 }), 0, .03, 0, false);
+  praca.rotation.x = -Math.PI/2; scene.add(praca); }
+
+const RIO_X = -34;
+const agua = malha(new THREE.PlaneGeometry(9, 140), mat('#ffffff', { map: texAgua, roughness: .08, metalness: .35 }), RIO_X, .06, 0, false);
+agua.rotation.x = -Math.PI/2; texAgua.repeat.set(1, 14); scene.add(agua);
+for(const lado of [-1, 1]){                                  // margens de terra
+  const m = malha(new THREE.BoxGeometry(1.2, .35, 140), mat('#4a3a26'), RIO_X + lado*5, .12, 0, false); scene.add(m);
+}
+
+// ---------- colisão ----------
+const colisores = [];                                        // caixas {x1,x2,z1,z2}
+function colide(x1, z1, x2, z2){ colisores.push({ x1: Math.min(x1, x2), x2: Math.max(x1, x2), z1: Math.min(z1, z2), z2: Math.max(z1, z2) }); }
+// mede o modelo já com a escala/posição dos filhos (setFromObject sozinho usa matriz velha)
+function caixa(o){ o.updateMatrixWorld(true); return new THREE.Box3().setFromObject(o); }
+function colideObj(o, folga = .15){
+  const b = caixa(o);
+  colide(b.min.x + folga, b.min.z + folga, b.max.x - folga, b.max.z - folga);
+}
+const LIM = { x1: RIO_X + 5.5, x2: 37, z1: -29, z2: 29 };
+
+// ---------- modelos ----------
+const viraPara = (x, z, tx, tz) => Math.atan2(tx - x, tz - z);   // modelo Kenney olha pro +Z
+async function poe(path, { x = 0, z = 0, rot = 0, altura, largura, solido = false, y = 0 } = {}){
+  try{
+    const o = await carregaModelo(path);
+    const t = caixa(o).getSize(new THREE.Vector3());
+    const k = altura ? altura / (t.y || 1) : largura ? largura / (Math.max(t.x, t.z) || 1) : 1;
+    o.scale.multiplyScalar(k); o.rotation.y = rot; o.position.set(x, 0, z);
+    const b = caixa(o); o.position.y += y - b.min.y;
+    o.traverse(n => { if(n.isMesh){ n.castShadow = true; n.receiveShadow = true; } });
+    scene.add(o);
+    if(solido) colideObj(o);
+    return o;
+  }catch(e){
+    console.warn('modelo não carregou', path, e);
+    const o = malha(new THREE.BoxGeometry(largura || 2, altura || 2, largura || 2), mat('#777'), x, (altura || 2)/2, z);
+    scene.add(o); if(solido) colideObj(o); return o;
+  }
+}
+
+// placa com texto (sprite) — nome dos lugares e dos suspeitos
+function rotulo(txt, cor = '#ffe58a', larg = 4.2){
+  const c = document.createElement('canvas'); c.width = 512; c.height = 112;
+  const g = c.getContext('2d');
+  g.fillStyle = 'rgba(8,14,10,.72)'; g.beginPath(); g.roundRect(4, 4, 504, 104, 30); g.fill();
+  g.strokeStyle = cor; g.lineWidth = 5; g.stroke();
+  g.fillStyle = cor; g.font = 'bold 50px "Segoe UI Emoji","Apple Color Emoji",system-ui,sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, 256, 60);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, fog: false }));
+  s.scale.set(larg, larg * 112/512, 1); s.renderOrder = 5;
+  return s;
+}
+
+// poste de ferro com lampião de vidro e luz quente de verdade (no celular, menos luzes pra não pesar)
+let luzesPostes = 0;
+const ferro = mat('#24262c', { metalness: .7, roughness: .45 });
+const vidroPoste = new THREE.MeshStandardMaterial({ color: '#ffe2a0', emissive: '#ffb050', emissiveIntensity: 1.6 });
+function poste(x, z){
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  g.add(malha(new THREE.CylinderGeometry(.22, .3, .5, 8), ferro, 0, .25, 0));
+  g.add(malha(new THREE.CylinderGeometry(.07, .09, 3.6, 8), ferro, 0, 2.1, 0));
+  g.add(malha(new THREE.BoxGeometry(.38, .5, .38), vidroPoste, 0, 4.1, 0, false));
+  const teto = malha(new THREE.ConeGeometry(.36, .3, 4), ferro, 0, 4.5, 0); teto.rotation.y = Math.PI/4; g.add(teto);
+  g.add(malha(new THREE.BoxGeometry(.44, .06, .44), ferro, 0, 3.84, 0));
+  scene.add(g);
+  colide(x - .25, z - .25, x + .25, z + .25);
+  if(luzesPostes < (CELULAR ? 4 : 9)){
+    luzesPostes++;
+    const l = new THREE.PointLight('#ffb560', 30, 16, 1.6); l.position.set(x, 3.9, z); scene.add(l);
+  }
+}
+
+// ---------- os 6 lugares ----------
+const lugares = {};
+async function montaLugares(){
+  const tarefas = [];
+  // 🏛️ MUSEU: prédio de pedra com colunas, escadaria e a vitrine quebrada
+  {
+    const { x, z } = P('museu'), g = new THREE.Group(); g.position.set(x, 0, z);
+    const pedra = mat('#cfc6b4', { roughness: .9 }), escura = mat('#9a917e');
+    g.add(malha(new THREE.BoxGeometry(14, .6, 9), escura, 0, .3, 0));
+    g.add(malha(new THREE.BoxGeometry(12, 6, 7), pedra, 0, 3.6, -.5));
+    g.add(malha(new THREE.BoxGeometry(8, .4, .8), escura, 0, .2, 4.9));
+    g.add(malha(new THREE.BoxGeometry(8, .2, .8), escura, 0, .1, 5.7));
+    for(let i = -2; i <= 2; i++){
+      g.add(malha(new THREE.CylinderGeometry(.35, .42, 5.6, 14), pedra, i*2.6, 3.4, 3.6));
+      g.add(malha(new THREE.BoxGeometry(1, .3, 1), escura, i*2.6, .75, 3.6));
+      g.add(malha(new THREE.BoxGeometry(1, .3, 1), escura, i*2.6, 6.3, 3.6));
+    }
+    g.add(malha(new THREE.BoxGeometry(14, .6, 9), escura, 0, 6.8, 0));
+    // frontão triangular em cima das colunas
+    const tri = new THREE.Shape(); tri.moveTo(-7, 0); tri.lineTo(7, 0); tri.lineTo(0, 2.4); tri.lineTo(-7, 0);
+    const frontao = malha(new THREE.ExtrudeGeometry(tri, { depth: 9, bevelEnabled: false }), pedra, 0, 7.1, -4.5); g.add(frontao);
+    // porta e janelas iluminadas por dentro
+    const vidroLuz = new THREE.MeshStandardMaterial({ color: '#ffcf7a', emissive: '#ffb040', emissiveIntensity: .9 });
+    g.add(malha(new THREE.BoxGeometry(2.2, 3.4, .2), mat('#4a2e1a'), 0, 2.3, 3.0));
+    for(const jx of [-4, 4]) g.add(malha(new THREE.BoxGeometry(1.6, 2, .2), vidroLuz, jx, 3.6, 3.0, false));
+    // vitrine quebrada (cacos no chão) + fita de "cena do crime"
+    const caco = new THREE.MeshStandardMaterial({ color: '#cfe8ff', transparent: true, opacity: .6, roughness: .05, metalness: .5 });
+    for(let i = 0; i < 14; i++){
+      const c = malha(new THREE.TetrahedronGeometry(.12 + Math.random()*.12), caco, 3.2 + Math.random()*1.8, .1, 4.4 + Math.random()*1.4, false);
+      c.rotation.set(Math.random()*3, Math.random()*3, 0); g.add(c);
+    }
+    const fita = mat('#ffd400', { emissive: '#4a3a00' });
+    g.add(malha(new THREE.BoxGeometry(15, .12, .03), fita, 0, 1.1, 6.6, false));
+    for(const fx of [-7.5, 7.5]) g.add(malha(new THREE.CylinderGeometry(.06, .06, 1.2, 6), mat('#e8e8e8'), fx, .6, 6.6));
+    scene.add(g);
+    colide(x - 7, z - 4.5, x + 7, z + 4.6);
+    tarefas.push(poe('/assets/models/arena/statue.glb', { x: x - 5.2, z: z + 6.6, altura: 2.6, solido: true, rot: Math.PI }));
+    lugares.museu = { altura: 10 };
+  }
+  // ⚡ CASA DE FORÇA: tijolo, porta de metal, placa de perigo, telescópio no telhado e postes de luz
+  {
+    const { x, z } = P('forca'), g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = viraPara(x, z, 0, 0);
+    g.add(malha(new THREE.BoxGeometry(7, 4.6, 5.5), mat('#ffffff', { map: texTijolo }), 0, 2.3, 0));
+    g.add(malha(new THREE.BoxGeometry(7.6, .35, 6.1), mat('#3a3a40'), 0, 4.75, 0));
+    g.add(malha(new THREE.BoxGeometry(1.8, 3, .15), mat('#6a7078', { metalness: .7, roughness: .4 }), 0, 1.5, 2.8));
+    const placa = malha(new THREE.CircleGeometry(.5, 3), new THREE.MeshStandardMaterial({ color: '#ffd400', emissive: '#553f00' }), 0, 3.6, 2.82, false);
+    placa.rotation.z = Math.PI/2; g.add(placa);
+    const quadro = malha(new THREE.BoxGeometry(1.2, 1.4, .3), mat('#7a8088', { metalness: .6 }), 2.4, 2, 2.85); g.add(quadro);
+    const alavanca = malha(new THREE.BoxGeometry(.12, .6, .12), mat('#d0342a'), 2.4, 1.85, 3.05); alavanca.rotation.z = .9; g.add(alavanca);
+    const tele = malha(new THREE.CylinderGeometry(.18, .28, 2.2, 12), mat('#e8e8ee', { metalness: .5, roughness: .3 }), -1.6, 6, -.5);
+    tele.rotation.z = .9; g.add(tele);
+    for(const a of [0, 2.1, 4.2]){ const p = malha(new THREE.CylinderGeometry(.04, .04, 1.4, 5), mat('#333'), -1.6 + Math.cos(a)*.4, 5.3, -.5 + Math.sin(a)*.4); p.rotation.z = Math.cos(a)*.3; g.add(p); }
+    scene.add(g);
+    colide(x - 4.2, z - 4.2, x + 4.2, z + 4.2);
+    tarefas.push(poe('/assets/compat/electricity-pole.glb', { x: x - 6, z: z + 3, altura: 6.5 }));
+    tarefas.push(poe('/assets/compat/electricity-pole.glb', { x: x - 6, z: z - 6, altura: 6.5 }));
+    lugares.forca = { altura: 7.2 };
+  }
+  // 🥖 PADARIA: casinha com toldo vermelho, barraca de pão e caixotes
+  {
+    const { x, z } = P('padaria'), r = viraPara(x, z, 0, 0);
+    tarefas.push(poe('/assets/models/city-suburban/building-type-c.glb', { x, z, rot: r, largura: 8.5, solido: true }));
+    const fx = x - Math.sin(r)*-5.2, fz = z - Math.cos(r)*-5.2;
+    tarefas.push(poe('/assets/models/fantasy-town/stall-red.glb', { x: fx - 3.2, z: fz + .5, rot: r, altura: 2.6, solido: true }));
+    tarefas.push(poe('/assets/models/blocks/crate.glb', { x: fx + 3.3, z: fz, altura: .8, solido: true }));
+    tarefas.push(poe('/assets/models/blocks/crate.glb', { x: fx + 3.3, z: fz, altura: .8, y: .8 }));
+    lugares.padaria = { altura: 8 };
+  }
+  // 🏨 POUSADA: casarão de dois andares
+  {
+    const { x, z } = P('pousada'), r = viraPara(x, z, 0, 0);
+    tarefas.push(poe('/assets/models/city-suburban/building-type-q.glb', { x, z, rot: r, largura: 10, solido: true }));
+    lugares.pousada = { altura: 9 };
+  }
+  // 🌊 BEIRA DO RIO: casinha de barco do Seu Sapo, ponte e canoa
+  {
+    const { x, z } = P('rio');
+    tarefas.push(poe('/assets/models/boats/boat-house-a.glb', { x: x - 3, z, rot: Math.PI/2, largura: 7, solido: true }));
+    tarefas.push(poe('/assets/models/nature/bridge_wood.glb', { x: RIO_X, z: z + 9, rot: Math.PI/2, largura: 10, y: .1 }));
+    tarefas.push(poe('/assets/models/nature/canoe.glb', { x: RIO_X + 1, z: z - 6, largura: 3.5, y: .02 }));
+    for(let i = 0; i < 4; i++) tarefas.push(poe('/assets/models/nature/fence_simple.glb', { x: RIO_X + 5.6, z: z - 14 - i*2.2, rot: 0, largura: 2.2 }));
+    lugares.rio = { altura: 7 };
+  }
+  // 🌳 PRAÇA: fonte, bancos, árvores e a lanterna esquecida no chão
+  {
+    tarefas.push(poe('/assets/models/fantasy-town/fountain-round-detail.glb', { x: 0, z: 0, largura: 5, solido: true }));
+    for(const [bx, bz, r] of [[-5.5, -3, Math.PI/2], [5.5, -3, -Math.PI/2], [-5.5, 3.5, Math.PI/2], [5.5, 3.5, -Math.PI/2]])
+      tarefas.push(poe('/assets/models/graveyard/bench.glb', { x: bx, z: bz, rot: r, largura: 2.4, solido: true }));
+    const lanterna = new THREE.Group(); lanterna.position.set(3.5, .2, 6.2); lanterna.rotation.set(0, .7, Math.PI/2);
+    lanterna.add(malha(new THREE.CylinderGeometry(.14, .14, .7, 12), mat('#2a2a30', { metalness: .6, roughness: .4 })));
+    lanterna.add(malha(new THREE.CylinderGeometry(.22, .14, .22, 12), mat('#9aa0a8', { metalness: .8, roughness: .3 }), 0, .45, 0));
+    const feixe = new THREE.SpotLight('#fff2c0', 18, 9, .45, .6); feixe.position.set(3.5, .25, 6.2); feixe.target.position.set(6.5, 0, 7.5);
+    scene.add(lanterna, feixe, feixe.target);
+    lugares.praca = { altura: 5 };
+  }
+  // postes perto de cada lugar
+  for(const id of ['museu','forca','padaria','rio','pousada']){ const p = P(id); poste(p.x*.62 + 2.2, p.z*.62); }
+  poste(-3, 9.5); poste(3, -9.5); poste(2.4, 20);
+
+  // placas com o nome + lupa flutuando onde ainda não examinou
+  for(const id in D.LOCAIS){
+    const p = P(id), L = D.LOCAIS[id], h = lugares[id].altura;
+    const s = rotulo(L.emoji + " " + L.nome, "#ffe58a", 5.2); s.position.set(p.x, h + 1, p.z); scene.add(s);
+    lugares[id].placa = s;
+    const lupa = new THREE.Sprite(new THREE.SpriteMaterial({ map: emojiTex('🔍'), transparent: true, fog: false }));
+    lupa.scale.set(1.4, 1.4, 1); lupa.position.set(p.x, h + 2.6, p.z); scene.add(lupa);
+    lugares[id].lupa = lupa;
+  }
+  await Promise.all(tarefas);
+}
+function emojiTex(e){
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'); g.font = '100px "Segoe UI Emoji","Apple Color Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(e, 64, 72);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+// ---------- vila em volta: casas, cogumelos gigantes e floresta ----------
+function cogumeloGigante(x, z, h, cor){
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  g.add(malha(new THREE.CylinderGeometry(h*.12, h*.17, h*.7, 14), mat('#efe3c8'), 0, h*.35, 0));
+  const chapeu = malha(new THREE.SphereGeometry(h*.38, 20, 12, 0, Math.PI*2, 0, Math.PI/2), mat(cor, { roughness: .6 }), 0, h*.62, 0);
+  chapeu.scale.y = .8; g.add(chapeu);
+  for(let i = 0; i < 9; i++){
+    const a = Math.random()*Math.PI*2, b = .25 + Math.random()*.9;
+    const p = malha(new THREE.SphereGeometry(h*.05, 8, 6), mat('#fff8ea'), Math.sin(b)*Math.cos(a)*h*.37, h*.62 + Math.cos(b)*h*.3, Math.sin(b)*Math.sin(a)*h*.37, false);
+    p.scale.z = .4; p.lookAt(0, h*.62, 0); g.add(p);
+  }
+  if(h > 3){                                                    // casinha-cogumelo: porta e janelinha acesa
+    g.add(malha(new THREE.BoxGeometry(h*.12, h*.22, .1), mat('#5a3a1e'), 0, h*.11, h*.16));
+    g.add(malha(new THREE.CircleGeometry(h*.05, 12), new THREE.MeshStandardMaterial({ color: '#ffd27a', emissive: '#ffa030', emissiveIntensity: 1 }), 0, h*.4, h*.137, false));
+  }
+  scene.add(g); colide(x - h*.17, z - h*.17, x + h*.17, z + h*.17);
+}
+async function montaVila(){
+  const t = [];
+  const casas = [['a', -14, -26, 0], ['e', 13, -26, 0], ['h', 33, 4, -Math.PI/2], ['k', 31, 22, -Math.PI/2], ['m', -12, 26, Math.PI], ['b', 13, 26, Math.PI], ['f', -22, 25, Math.PI]];
+  for(const [tipo, x, z, r] of casas) t.push(poe(`/assets/models/city-suburban/building-type-${tipo}.glb`, { x, z, rot: r, largura: 7.5, solido: true }));
+  cogumeloGigante(-9, 12, 5.5, '#c8322a'); cogumeloGigante(10, 10, 4.2, '#d8562a'); cogumeloGigante(-26, 6, 6, '#b8242a');
+  cogumeloGigante(27, -22, 5, '#c8322a'); cogumeloGigante(-24, 18, 2.2, '#e0782a'); cogumeloGigante(8, -9, 1.6, '#c8322a');
+  // árvores dentro da vila
+  for(const [x, z] of [[-10, -12], [10, -12], [-12, -16], [14, -16], [12, 20], [-14, 19], [22, 26], [-30, -26], [33, -27]])
+    t.push(poe('/assets/models/nature/tree_oak_dark.glb', { x, z, altura: 6 + Math.random()*2, rot: Math.random()*6, solido: true }));
+  // floresta em volta (fora do limite, só de enfeite)
+  const tipos = ['tree_detailed_dark', 'tree_cone_dark', 'tree_default_dark', 'tree_oak_dark'];
+  for(let i = 0; i < 70; i++){
+    const a = i / 70 * Math.PI * 2, rr = 46 + Math.random()*14;
+    const x = Math.cos(a)*rr*1.1, z = Math.sin(a)*rr;
+    if(x < RIO_X + 6 && x > RIO_X - 6) continue;
+    t.push(poe(`/assets/models/nature/${tipos[i % 4]}.glb`, { x, z, altura: 7 + Math.random()*5, rot: Math.random()*6 }));
+  }
+  for(let i = 0; i < 26; i++){
+    const x = (Math.random() - .5)*68, z = (Math.random() - .5)*56;
+    if(Math.hypot(x, z) < 11 || x < RIO_X + 6) continue;
+    t.push(poe(`/assets/models/nature/${['flower_redA','flower_yellowB','flower_purpleC','grass_large','grass_leafs'][i % 5]}.glb`, { x, z, altura: .6 }));
+  }
+  await Promise.all(t);
+}
+
+// ---------- personagens ----------
+const flat = (cor, extra) => mat(cor, Object.assign({ flatShading: true, roughness: .75 }, extra || {}));
+function olho(r, x, y, z, g){
+  g.add(malha(new THREE.SphereGeometry(r, 12, 10), flat('#ffffff'), x, y, z, false));
+  g.add(malha(new THREE.SphereGeometry(r*.55, 10, 8), flat('#111111', { roughness: .2 }), x, y, z + r*.6, false));
+}
+// 🍄 o Cogu detetive (cores mudam com a lojinha)
+const cogu = new THREE.Group(); scene.add(cogu);
+const coguMat = { casaco: flat('#3f8f5a'), chapeu: flat('#8a5a2b'), lupa: mat('#cfd8e3', { metalness: .9, roughness: .25 }) };
+const pernas = [];
+{
+  for(const lx of [-.22, .22]){
+    const perna = new THREE.Group(); perna.position.set(lx, .7, 0);
+    perna.add(malha(new THREE.CylinderGeometry(.13, .13, .6, 8), flat('#2a2a34'), 0, -.3, 0));
+    perna.add(malha(new THREE.BoxGeometry(.3, .16, .42), flat('#3a2418'), 0, -.62, .08));
+    cogu.add(perna); pernas.push(perna);
+  }
+  cogu.add(malha(new THREE.CylinderGeometry(.42, .6, 1.05, 14), coguMat.casaco, 0, 1.2, 0));
+  cogu.add(malha(new THREE.CylinderGeometry(.47, .47, .1, 14), flat('#3a2418'), 0, 1.08, 0));
+  for(const by of [1.0, 1.3]) cogu.add(malha(new THREE.SphereGeometry(.05, 6, 6), flat('#e0c060'), 0, by + .2, .5, false));
+  cogu.add(malha(new THREE.CylinderGeometry(.38, .4, .6, 16), flat('#f2e2c2'), 0, 1.95, 0));
+  olho(.09, -.15, 2.0, .33, cogu); olho(.09, .15, 2.0, .33, cogu);
+  for(const cx of [-.25, .25]) cogu.add(malha(new THREE.SphereGeometry(.06, 8, 6), flat('#f0a0a0'), cx, 1.86, .33, false));
+  const chapeuCogu = malha(new THREE.SphereGeometry(.85, 22, 12, 0, Math.PI*2, 0, Math.PI/2), flat('#d8322a', { roughness: .55 }), 0, 2.2, 0);
+  chapeuCogu.scale.y = .75; cogu.add(chapeuCogu);
+  for(let i = 0; i < 8; i++){
+    const a = i/8*Math.PI*2 + .3, b = i % 2 ? .75 : 1.15;
+    const p = malha(new THREE.SphereGeometry(.12, 8, 6), flat('#fff8ea'), Math.sin(b)*Math.cos(a)*.83, 2.2 + Math.cos(b)*.62, Math.sin(b)*Math.sin(a)*.83, false);
+    p.scale.z = .35; p.lookAt(0, 2.2, 0); cogu.add(p);
+  }
+  cogu.add(malha(new THREE.CylinderGeometry(.62, .62, .05, 20), coguMat.chapeu, 0, 2.82, 0));
+  cogu.add(malha(new THREE.CylinderGeometry(.34, .4, .42, 16), coguMat.chapeu, 0, 3.04, 0));
+  cogu.add(malha(new THREE.CylinderGeometry(.405, .405, .1, 16), flat('#2a1a10'), 0, 2.9, 0));
+  // braço com a lupa
+  const braco = new THREE.Group(); braco.position.set(.55, 1.5, .1); braco.rotation.x = -.9;
+  braco.add(malha(new THREE.CylinderGeometry(.1, .1, .6, 8), coguMat.casaco, 0, -.3, 0));
+  const lupa = new THREE.Group(); lupa.position.set(0, -.75, 0);
+  lupa.add(malha(new THREE.CylinderGeometry(.04, .04, .35, 6), flat('#4a2e1a'), 0, .1, 0));
+  const aro = malha(new THREE.TorusGeometry(.2, .04, 8, 20), coguMat.lupa, 0, -.18, 0); lupa.add(aro);
+  const vidro = malha(new THREE.CircleGeometry(.19, 20), new THREE.MeshStandardMaterial({ color: '#bfe4ff', transparent: true, opacity: .35, roughness: 0, metalness: .2, side: THREE.DoubleSide }), 0, -.18, 0, false);
+  lupa.add(vidro); braco.add(lupa); cogu.add(braco);
+}
+function vesteCogu(){
+  const c = D.cores();
+  coguMat.casaco.color.set(c.casaco); coguMat.chapeu.color.set(c.chapeu); coguMat.lupa.color.set(c.lupa);
+}
+
+// suspeitos: capivara e raposa são modelos Kenney; o resto é feito aqui no mesmo estilo
+const fazBicho = {
+  sapo(){
+    const g = new THREE.Group(), verde = flat('#4a9a3a'), barriga = flat('#c8dc8a');
+    const corpo = malha(new THREE.SphereGeometry(.7, 14, 10), verde, 0, .65, 0); corpo.scale.set(1.15, .8, 1); g.add(corpo);
+    const b = malha(new THREE.SphereGeometry(.55, 12, 8), barriga, 0, .55, .3); b.scale.set(1, .8, .7); g.add(b);
+    for(const x of [-.32, .32]){ g.add(malha(new THREE.SphereGeometry(.2, 10, 8), verde, x, 1.15, .2)); olho(.14, x, 1.22, .3, g); }
+    const boca = malha(new THREE.TorusGeometry(.35, .03, 6, 16, Math.PI), flat('#2a4a1a'), 0, .8, .62); boca.rotation.z = Math.PI; g.add(boca);
+    for(const x of [-.6, .6]){ const p = malha(new THREE.SphereGeometry(.22, 8, 6), verde, x, .18, .35); p.scale.set(1.2, .5, 1.6); g.add(p); }
+    const mono = malha(new THREE.TorusGeometry(.17, .025, 6, 16), mat('#d8b040', { metalness: .8, roughness: .3 }), .32, 1.22, .44); g.add(mono);
+    return g;
+  },
+  coruja(){
+    const g = new THREE.Group(), pena = flat('#7a6e62'), clara = flat('#d8ccb8');
+    const corpo = malha(new THREE.SphereGeometry(.6, 14, 10), pena, 0, .95, 0); corpo.scale.set(1, 1.35, .95); g.add(corpo);
+    const jaleco = malha(new THREE.CylinderGeometry(.5, .66, .9, 14, 1, true), flat('#f4f4f8', { side: THREE.DoubleSide }), 0, .6, 0); g.add(jaleco);
+    for(const x of [-.24, .24]){ const d = malha(new THREE.CircleGeometry(.24, 14), clara, x, 1.35, .52, false); g.add(d);
+      g.add(malha(new THREE.SphereGeometry(.14, 10, 8), flat('#f0a020'), x, 1.36, .55, false));
+      g.add(malha(new THREE.SphereGeometry(.08, 8, 6), flat('#111'), x, 1.36, .66, false)); }
+    const bico = malha(new THREE.ConeGeometry(.08, .22, 6), flat('#e0a030'), 0, 1.18, .6); bico.rotation.x = Math.PI/2 + .5; g.add(bico);
+    for(const x of [-.35, .35]){ const t = malha(new THREE.ConeGeometry(.1, .35, 5), pena, x, 1.85, 0); t.rotation.z = -x*.8; g.add(t);
+      const asa = malha(new THREE.SphereGeometry(.3, 8, 6), pena, x*1.75, .95, -.05); asa.scale.set(.35, 1, .8); g.add(asa); }
+    for(const x of [-.2, .2]) g.add(malha(new THREE.BoxGeometry(.18, .06, .25), flat('#e0a030'), x, .04, .2));
+    return g;
+  },
+  tico(){
+    const g = new THREE.Group(), cinza = flat('#9a9aa4'), rosa = flat('#f0a8b8');
+    const corpo = malha(new THREE.SphereGeometry(.5, 12, 10), cinza, 0, .6, 0); corpo.scale.set(1, 1.15, .9); g.add(corpo);
+    g.add(malha(new THREE.SphereGeometry(.42, 12, 10), cinza, 0, 1.3, .1));
+    const focinho = malha(new THREE.ConeGeometry(.2, .4, 10), cinza, 0, 1.24, .5); focinho.rotation.x = Math.PI/2; g.add(focinho);
+    g.add(malha(new THREE.SphereGeometry(.07, 8, 6), rosa, 0, 1.24, .72));
+    olho(.08, -.16, 1.42, .38, g); olho(.08, .16, 1.42, .38, g);
+    for(const x of [-.36, .36]){ const o = malha(new THREE.SphereGeometry(.26, 12, 8), cinza, x, 1.72, 0); o.scale.z = .3; g.add(o);
+      const d = malha(new THREE.SphereGeometry(.18, 10, 8), rosa, x, 1.72, .05, false); d.scale.z = .3; g.add(d); }
+    const rabo = malha(new THREE.TorusGeometry(.4, .04, 6, 16, Math.PI*1.2), rosa, 0, .45, -.55); rabo.rotation.y = Math.PI/2; g.add(rabo);
+    g.add(malha(new THREE.CylinderGeometry(.36, .4, .22, 14), flat('#d0342a'), 0, 1.68, .05));
+    const aba = malha(new THREE.BoxGeometry(.5, .04, .35), flat('#d0342a'), 0, 1.6, .38); g.add(aba);
+    const saco = malha(new THREE.BoxGeometry(.45, .5, .3), flat('#c8a070'), .55, .6, .1); saco.rotation.z = -.2; g.add(saco);
+    g.add(malha(new THREE.CylinderGeometry(.07, .07, .5, 8), flat('#d8a050'), .55, .95, .1));
+    return g;
+  },
+  vovo(){
+    const g = new THREE.Group(), pele = flat('#c8b878'), concha = flat('#a8603a');
+    const corpo = malha(new THREE.CapsuleGeometry(.3, 1.2, 6, 12), pele, 0, .3, 0); corpo.rotation.x = Math.PI/2; g.add(corpo);
+    const pesc = malha(new THREE.CapsuleGeometry(.24, .6, 6, 12), pele, 0, .8, .7); pesc.rotation.x = .25; g.add(pesc);
+    for(const x of [-.12, .12]){ const h = malha(new THREE.CylinderGeometry(.03, .03, .45, 6), pele, x, 1.35, .82); h.rotation.z = -x*2; g.add(h); olho(.08, x*1.8, 1.58, .82, g); }
+    for(const x of [-.12, .12]) g.add(malha(new THREE.TorusGeometry(.1, .018, 6, 16), mat('#d8b040', { metalness: .8, roughness: .3 }), x*1.8, 1.58, .92));
+    // concha em espiral
+    const pts = []; for(let i = 0; i <= 60; i++){ const a = i/60*Math.PI*4.2, r = .62 - i/60*.5; pts.push(new THREE.Vector3(0, .95 + Math.sin(a)*r, -.15 + Math.cos(a)*r)); }
+    const tubo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 80, .2, 8, false);
+    g.add(malha(tubo, concha));
+    const lado = malha(new THREE.SphereGeometry(.6, 14, 10), flat('#c87a4a'), 0, .95, -.15); lado.scale.x = .55; g.add(lado);
+    const xale = malha(new THREE.TorusGeometry(.26, .08, 6, 14), flat('#8a3aa0'), 0, .95, .78); xale.rotation.x = Math.PI/2 - .3; g.add(xale);
+    return g;
+  }
+};
+const MODELO_BICHO = { capivara: '/assets/models/pets/animal-beaver.glb', raposa: '/assets/models/pets/animal-fox.glb' };
+const bichos = {};
+function montaSuspeitos(){
+  for(const s of D.SUSPEITOS){
+    // o grupo aparece na hora; o modelo Kenney entra no "corpo" quando terminar de carregar
+    const g = new THREE.Group(), corpo = new THREE.Group(); g.add(corpo);
+    if(MODELO_BICHO[s.id]){
+      carregaModelo(MODELO_BICHO[s.id]).then(o => {
+        const t = caixa(o).getSize(new THREE.Vector3());
+        o.scale.multiplyScalar(1.7 / (t.y || 1));
+        const b = caixa(o); o.position.y -= b.min.y;
+        o.traverse(n => { if(n.isMesh) n.castShadow = true; });
+        corpo.add(o);
+        if(s.id === 'capivara'){                            // quepe de guarda
+          corpo.add(malha(new THREE.CylinderGeometry(.32, .34, .22, 14), flat('#1f2a5a'), 0, 1.78, .1));
+          corpo.add(malha(new THREE.BoxGeometry(.5, .04, .3), flat('#111'), 0, 1.68, .35));
+        }
+      }).catch(() => corpo.add(malha(new THREE.CapsuleGeometry(.4, .8, 4, 10), flat(s.id === 'raposa' ? '#e07a2a' : '#8a6a4a'), 0, .8, 0)));
+    } else corpo.add(fazBicho[s.id]());
+    corpo.traverse(n => { if(n.isMesh){ n.castShadow = true; } });
+    const nome = rotulo(s.emoji + ' ' + s.nome, '#ffffff', 3.4); nome.position.y = 2.7; g.add(nome);
+    const fala = new THREE.Sprite(new THREE.SpriteMaterial({ map: emojiTex('💬'), transparent: true, fog: false }));
+    fala.scale.set(.9, .9, 1); fala.position.set(.9, 2.2, 0); fala.visible = false; g.add(fala);
+    g.userData = { fala, fase: Math.random()*6 };
+    const p = D.pontoSuspeito(s); g.position.set(p.x, 0, p.y);
+    g.rotation.y = viraPara(p.x, p.y, 0, 0);
+    scene.add(g); bichos[s.id] = g;
+  }
+}
+
+// ---------- chuva e raios ----------
+const NGOTAS = CELULAR ? 700 : 1800;
+const gotasPos = new Float32Array(NGOTAS * 6);
+for(let i = 0; i < NGOTAS; i++){
+  const x = (Math.random() - .5)*50, y = Math.random()*25, z = (Math.random() - .5)*50;
+  gotasPos.set([x, y, z, x + .08, y - .7, z], i*6);
+}
+const gotasGeo = new THREE.BufferGeometry(); gotasGeo.setAttribute('position', new THREE.BufferAttribute(gotasPos, 3));
+const chuva = new THREE.LineSegments(gotasGeo, new THREE.LineBasicMaterial({ color: '#9fb6d8', transparent: true, opacity: .45 }));
+chuva.frustumCulled = false; scene.add(chuva);
+let proxRaio = 6, raioT = 0;
+let ac = null;
+addEventListener('pointerdown', () => { try{ ac = ac || new (window.AudioContext || window.webkitAudioContext)(); ac.resume(); }catch(e){} }, true);
+function trovao(){
+  if(!ac || ac.state !== 'running') return;
+  const dur = 2.2, buf = ac.createBuffer(1, ac.sampleRate*dur, ac.sampleRate), d = buf.getChannelData(0);
+  let ult = 0; for(let i = 0; i < d.length; i++){ ult = (ult + (Math.random()*2 - 1)*.06) * .995; d[i] = ult*3; }
+  const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+  f.type = 'lowpass'; f.frequency.value = 220; src.buffer = buf;
+  g.gain.setValueAtTime(.0001, ac.currentTime); g.gain.exponentialRampToValueAtTime(.7, ac.currentTime + .15);
+  g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + dur);
+  src.connect(f); f.connect(g); g.connect(ac.destination); src.start();
+}
+
+// ---------- loop ----------
+const alvo = new THREE.Vector3(), camPos = new THREE.Vector3(28, 18, 34);
+let andando = 0, acumula = 0, contexto = 0, angTitulo = 0;
+function livre(x, z){
+  const r = D.player.raio;
+  if(x < LIM.x1 || x > LIM.x2 || z < LIM.z1 || z > LIM.z2) return false;
+  for(const c of colisores) if(x > c.x1 - r && x < c.x2 + r && z > c.z1 - r && z < c.z2 + r) return false;
+  return true;
+}
+function passo(dt, t){
+  const pl = D.player, jog = D.jogando();
+  // andar
+  let mx = 0, mz = 0;
+  if(jog && !D.pausado()){
+    const k = D.teclas;
+    if(k.cima) mz -= 1; if(k.baixo) mz += 1; if(k.esq) mx -= 1; if(k.dir) mx += 1;
+  }
+  const mag = Math.hypot(mx, mz);
+  if(mag){
+    const v = 7.5 * dt / mag;
+    if(livre(pl.x + mx*v, pl.y)) pl.x += mx*v;
+    if(livre(pl.x, pl.y + mz*v)) pl.y += mz*v;
+    const ang = Math.atan2(mx, mz);
+    let dif = ang - cogu.rotation.y; dif = Math.atan2(Math.sin(dif), Math.cos(dif));
+    cogu.rotation.y += dif * Math.min(1, dt*12);
+    andando += dt * 11;
+  } else andando *= .8;
+  const balanco = Math.sin(andando);
+  pernas[0].rotation.x = balanco * .7 * Math.min(1, mag); pernas[1].rotation.x = -balanco * .7 * Math.min(1, mag);
+  cogu.position.set(pl.x, Math.abs(Math.sin(andando)) * .12 * Math.min(1, mag), pl.y);
+  cogu.visible = jog;
+
+  // suspeitos: respiram, olham pro Cogu quando ele chega perto e mostram 💬
+  const ativos = D.ativos(), local = D.localAtual();
+  for(const id in bichos){
+    const b = bichos[id], s = D.SUSPEITOS.find(q => q.id === id);
+    b.visible = !jog || ativos.indexOf(id) >= 0;
+    b.children[0].position.y = Math.abs(Math.sin(t*2 + b.userData.fase)) * .06;
+    const dist = Math.hypot(pl.x - b.position.x, pl.y - b.position.z);
+    const perto = jog && dist < 4 && local === s.local;
+    b.userData.fala.visible = perto;
+    b.userData.fala.position.y = 2.2 + Math.sin(t*4)*.08;
+    if(jog && dist < 9){
+      let dif = viraPara(b.position.x, b.position.z, pl.x, pl.y) - b.rotation.y; dif = Math.atan2(Math.sin(dif), Math.cos(dif));
+      b.rotation.y += dif * Math.min(1, dt*4);
+    }
+  }
+  for(const id in lugares){
+    const l = lugares[id]; if(!l.lupa) continue;
+    l.lupa.visible = jog && !D.visitado(id);
+    // perto do lugar o nome já aparece no HUD: some a placa pra não tampar a vista
+    const p = P(id); l.placa.visible = !jog || Math.hypot(pl.x - p.x, pl.y - p.z) > 13;
+    l.lupa.position.y = l.altura + 2.6 + Math.sin(t*3)*.25;
+  }
+
+  // câmera: atrás do Cogu no jogo; dando a volta na vila na tela de título
+  if(jog){
+    alvo.set(pl.x, 1.6, pl.y);
+    camPos.lerp(new THREE.Vector3(pl.x, 10.5, pl.y + 13), Math.min(1, dt*3));
+  } else {
+    angTitulo += dt * .06;
+    alvo.set(0, 2, -4);
+    camPos.set(Math.sin(angTitulo)*34, 17, Math.cos(angTitulo)*34);
+  }
+  camera.position.copy(camPos); camera.lookAt(alvo);
+
+  // chuva cai em volta da câmera
+  chuva.position.set(alvo.x, 0, alvo.z);
+  const pos = gotasGeo.attributes.position.array, desce = dt * 26;
+  for(let i = 0; i < NGOTAS; i++){
+    const j = i*6; pos[j+1] -= desce; pos[j+4] -= desce;
+    if(pos[j+4] < 0){ pos[j+1] += 25; pos[j+4] += 25; }
+  }
+  gotasGeo.attributes.position.needsUpdate = true;
+  texAgua.offset.y -= dt * .08;
+
+  // relâmpago
+  proxRaio -= dt;
+  if(proxRaio <= 0){ raioT = .55; proxRaio = 9 + Math.random()*14; setTimeout(trovao, 500 + Math.random()*900); }
+  if(raioT > 0){ raioT -= dt; relampago.intensity = (raioT > .4 || (raioT > .15 && raioT < .25)) ? 3.5 : 0; }
+  else relampago.intensity = 0;
+
+  // botões de ação (10x por segundo, não a cada frame)
+  contexto += dt;
+  if(contexto > .1){ contexto = 0; D.atualiza(); }
+}
+// rAF começa antes do mundo carregar; celular a 30fps
+let ult = performance.now();
+renderer.setAnimationLoop(() => {
+  const agora = performance.now(), dt = Math.min(.1, (agora - ult)/1000);
+  if(CELULAR){ acumula += dt; ult = agora; if(acumula < 1/31) return; }
+  else ult = agora;
+  const d = CELULAR ? Math.min(.1, acumula) : dt; acumula = 0;
+  passo(d, agora/1000);
+  cena.render();
+});
+
+window.DET3D = { passo, scene, inicio(){ vesteCogu(); cogu.rotation.y = Math.PI; camPos.set(D.player.x, 10.5, D.player.y + 13); } };
+vesteCogu();
+montaLugares(); montaVila(); montaSuspeitos();
+</script>
+
+<script src="/stats.js?v=496"></script>
 <script>initStats('cogumelo-detetive');</script>
 <script src="/mascote.js"></script>
 <script src="/gamepad.js?v=358"></script>
