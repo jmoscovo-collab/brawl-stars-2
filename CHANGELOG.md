@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v604 (2026-11-03)
+- 🐕🔍 Jogo novo (ainda escondido, só pelo link /detetive/): CACHORRO DETETIVE! Alguém roubou um tesouro da cidade: ande pelas ruas, fareje as pistas e descubra quem é o ladrão. Cada caso fica mais difícil, com mais suspeitos
+
 ## v603 (2026-11-02)
 - 🔍 NOVO JOGO: Cogumelo Detetive! O Cogumelo Lendário sumiu do museu da Vila Cogumelo numa noite de tempestade. Explore museu, padaria, praça, rio, pousada e casa de força, converse com 6 suspeitos (cada um com álibi e segredo), junte as pistas no Quadro de Detetive e acuse o culpado — só uma chance, então escolha com cuidado! Tem Fácil (3 suspeitos), Médio e Difícil (segredos escondidos), culpado sorteado toda partida, e uma Lojinha pra trocar chapéu, lupa e casaco do Cogu. Por enquanto só por link direto, ainda não tem card na home.
 

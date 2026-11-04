@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>🐶 Cachorro Detetive — Cogumelo Games</title>
+<meta name="description" content="Cachorro Detetive: fareje pistas pela cidade, descubra quem é o ladrão e resolva todos os casos!">
+<script src="/letra.js"></script>
+<script src="/cogucoins.js?v=551"></script>
+<script src="/gamepad.js?v=358"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#2a2238;font-family:'Segoe UI',Arial,sans-serif;color:#fff;user-select:none;-webkit-user-select:none;touch-action:none}
+#c{display:block;position:fixed;inset:0}
+.tela{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;overflow-y:auto;padding:16px 12px 60px;background:radial-gradient(circle at 50% 15%,#6a4a2a,#1e1626 75%);z-index:5;touch-action:pan-y}
+.tela.fundo{background:rgba(10,6,20,.82)}
+h1{font-size:40px;margin-top:10px;text-align:center;text-shadow:3px 3px 0 #b5651d,0 0 20px rgba(255,220,120,.4)}
+h2{font-size:28px;text-align:center;margin:6px 0}
+.sub{color:#f4e8d0;margin:8px 0 12px;text-align:center;max-width:520px;line-height:1.4;font-size:17px}
+.btn{display:block;width:290px;max-width:90vw;margin:6px auto;padding:12px;border-radius:16px;border:3px solid rgba(255,255,255,.5);color:#fff;font-weight:bold;font-size:20px;cursor:pointer;font-family:inherit}
+.btn small{display:block;font-size:13px;font-weight:normal;opacity:.9}
+.r{background:linear-gradient(#ff5a4a,#a0241a)} .v{background:linear-gradient(#4ccf4a,#1f8a3a)} .y{background:linear-gradient(#ffc81a,#b07a00)} .x{background:linear-gradient(#7a6a9a,#3a2a5a)}
+.ajuda{font-size:15px;color:#f4e8d0;margin-top:14px;text-align:center;max-width:500px;line-height:1.6}
+.voltar{color:#f4e8d0;margin-top:12px;font-size:14px}
+.caixa{background:#3a2a1a;border:4px solid #ffd27a;border-radius:18px;padding:16px;max-width:440px;width:100%;margin:auto;text-align:center;font-size:20px;line-height:1.45}
+.caixa .grande{font-size:64px;margin-bottom:6px}
+#pistasLista{width:100%;max-width:640px;background:rgba(255,210,122,.12);border:2px solid #ffd27a;border-radius:12px;padding:8px 12px;font-size:15px;line-height:1.5;margin:6px 0}
+#cartas{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;width:100%;max-width:640px;margin:8px 0}
+.carta{background:#f6ead2;color:#3a2a1a;border-radius:14px;padding:8px 6px;text-align:center;border:3px solid #b5651d;position:relative}
+.carta.riscada{opacity:.4}
+.carta.riscada::after{content:'❌';position:absolute;top:28px;left:50%;transform:translateX(-50%);font-size:58px;pointer-events:none}
+.rosto{position:relative;width:76px;height:84px;margin:0 auto}
+.rosto .bicho{position:absolute;left:0;right:0;top:16px;font-size:50px;line-height:1}
+.rosto .chapeu{position:absolute;left:0;right:0;top:-6px;font-size:30px;line-height:1}
+.rosto .oculos{position:absolute;left:0;right:0;top:34px;font-size:26px;line-height:1}
+.roupa{height:10px;border-radius:6px;margin:2px 10px 4px;border:1px solid rgba(0,0,0,.3)}
+.carta b{font-size:16px;display:block}
+.carta .tr{font-size:12.5px;line-height:1.35;min-height:34px}
+.carta button{width:100%;margin-top:4px;padding:6px 2px;border-radius:10px;border:2px solid rgba(0,0,0,.25);font-weight:bold;font-size:14px;cursor:pointer;font-family:inherit;color:#fff}
+.bx{background:#8a7a9a} .ba{background:#d0342a}
+#hud{position:fixed;top:0;left:0;right:0;display:none;justify-content:space-between;align-items:flex-start;padding:8px 10px;z-index:3;pointer-events:none;font-weight:bold;font-size:17px;text-shadow:2px 2px 0 #000}
+#hud .bloco{background:rgba(0,0,0,.45);border-radius:12px;padding:6px 10px}
+#botoes{position:fixed;right:12px;bottom:14px;display:none;flex-direction:column;gap:10px;z-index:3}
+#botoes button{width:84px;height:84px;border-radius:50%;border:4px solid #fff;font-size:34px;cursor:pointer;color:#fff;font-weight:bold;line-height:1;font-family:inherit;touch-action:none}
+#botoes button small{display:block;font-size:11px}
+#bFaro{background:radial-gradient(#ffb04a,#c0601a)} #bQuadro{background:radial-gradient(#6aa0ff,#2a4aa0)}
+#bFaro.espera{filter:grayscale(1) brightness(.7)}
+#aviso{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:rgba(0,0,0,.7);border:2px solid #ffd27a;border-radius:14px;padding:8px 14px;font-size:16px;z-index:9;display:none;text-align:center;max-width:90vw;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div class="bloco" id="hEsq">Caso 1</div>
+  <div class="bloco" id="hDir">🦴🦴🦴</div>
+</div>
+<div id="botoes">
+  <button id="bQuadro">📋<small>suspeitos</small></button>
+  <button id="bFaro">👃<small>farejar</small></button>
+</div>
+<div id="aviso"></div>
+
+<div class="tela" id="tMenu" style="display:flex">
+  <div style="font-size:90px;margin-top:10px">🐕🔍</div>
+  <h1>Cachorro Detetive</h1>
+  <p class="sub">Alguém roubou um tesouro da cidade! 😱 Ande pelas ruas, <b>fareje as pistas</b> e descubra <b>quem é o ladrão</b>!</p>
+  <button class="btn v" id="bJogar">▶ Jogar<small id="bJogarSub">Caso 1</small></button>
+  <button class="btn x" id="bZerar" style="display:none">🔄 Começar do Caso 1</button>
+  <p class="sub" id="recorde"></p>
+  <div class="ajuda">
+    🕹️ <b>Andar:</b> setas / WASD — no celular, arraste o dedo na tela<br>
+    👃 <b>Farejar:</b> ESPAÇO ou F — mostra pra onde está a pista mais perto<br>
+    📋 <b>Suspeitos:</b> E ou Q — risque quem não foi e acuse o ladrão!<br>
+    ⚠️ Cuidado: algumas coisas no chão NÃO são pistas 🧦<br>
+    🦴 Você pode errar a acusação 2 vezes. Na 3ª o ladrão foge!
+  </div>
+  <a class="voltar" href="/">⬅ Voltar pro Cogumelo Games</a>
+</div>
+
+<div class="tela fundo" id="tMsg">
+  <div class="caixa">
+    <div class="grande" id="msgIcone">🐾</div>
+    <div id="msgTexto"></div>
+    <button class="btn y" id="bMsgOk" style="margin-top:12px">OK! 👍</button>
+  </div>
+</div>
+
+<div class="tela fundo" id="tQuadro">
+  <h2>📋 Quadro de Suspeitos</h2>
+  <div id="pistasLista"></div>
+  <div class="sub" style="font-size:14px;margin:2px 0">Toque em <b>❌ Riscar</b> em quem NÃO combina com as pistas. Quando tiver certeza, toque em <b>👉 FOI ELE!</b></div>
+  <div id="cartas"></div>
+  <button class="btn x" id="bFecharQuadro">⬅ Voltar a investigar</button>
+</div>
+
+<div class="tela" id="tFim">
+  <div class="grande" id="fimIcone" style="font-size:90px;margin-top:20px">🏆</div>
+  <h2 id="fimTitulo"></h2>
+  <p class="sub" id="fimTexto"></p>
+  <p class="sub" id="fimMoedas" style="color:#ffd76a"></p>
+  <button class="btn v" id="bProximo">▶ Próximo caso</button>
+  <button class="btn x" id="bMenu">🏠 Início</button>
+</div>
+
+<script>
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+const $=id=>document.getElementById(id);
+const TOQUE=matchMedia('(pointer:coarse)').matches||('ontouchstart' in window);
+
+// ===== dados dos suspeitos =====
+const BICHOS=[['🐱','Gato'],['🐰','Coelho'],['🐭','Rato'],['🦊','Raposa'],['🐷','Porco'],['🐸','Sapo'],['🐵','Macaco'],['🐻','Urso']];
+const CORES=[['vermelha','#e8332a'],['azul','#2f6ff0'],['verde','#2fb52f'],['amarela','#f5c81a']];
+const NOMES=['Tonico','Juju','Bolota','Pipoca','Fumaça','Biscoito','Zeca','Nina','Paçoca','Chico','Lulu','Tatá','Bidu','Fifi'];
+const TESOUROS=['o OSSO DE OURO 🦴','a COROA DO PREFEITO 👑','o BOLO DA VOVÓ 🎂','o TROFÉU DA CIDADE 🏆','o DIAMANTE AZUL 💎','a BOLA DE CRISTAL 🔮','o COGUMELO DOURADO 🍄'];
+const LIXO=[['🧦','Só uma meia fedida... isso NÃO é pista! 🤢'],['🍌','Uma casca de banana. Quase escorreguei! Não é pista.'],['🥫','Uma lata vazia... nada de pista aqui.'],['🦴','Um osso comum... (nhac!) 😋 Mas não é pista.'],['🎈','Um balão perdido. Não é pista!']];
+const rnd=n=>Math.floor(Math.random()*n);
+const emb=a=>{ for(let i=a.length-1;i>0;i--){ const j=rnd(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+
+// ===== cidade =====
+const MW=29, MH=21;          // ruas nas linhas/colunas múltiplas de 4
+let mapa=[], quadras=[];
+function ehRua(x,y){ return x>=0&&y>=0&&x<MW&&y<MH&&mapa[y][x]===0; }
+function criaCidade(){
+  mapa=[]; quadras=[];
+  for(let y=0;y<MH;y++){ mapa.push([]); for(let x=0;x<MW;x++) mapa[y].push((x%4===0||y%4===0)?0:1); }
+  const tipos=['casa','casa','casa','loja','parque','parque','lago','padaria','escola'];
+  for(let by=1;by<MH;by+=4) for(let bx=1;bx<MW;bx+=4){
+    quadras.push({x:bx,y:by,tipo:tipos[rnd(tipos.length)],cor:['#c0503a','#3a70c0','#c09a3a','#8a4ac0','#3aa07a'][rnd(5)]});
+  }
+}
+
+// ===== caso =====
+let caso=1, sus=[], culpado=null, pistas=[], achadas=[], vidas=3, riscados=new Set();
+function combina(s,p){
+  const v=s[p.campo];
+  return p.pos ? v===p.val : v!==p.val;
+}
+function textoPista(p){
+  if(p.campo==='cor') return p.pos
+    ? ['🧵',`Um fiapo de roupa <b>${CORES[p.val][0].toUpperCase()}</b> preso na cerca!<br>O ladrão usa roupa <b>${CORES[p.val][0]}</b>.`]
+    : ['👕',`Uma testemunha viu o ladrão correndo:<br>a roupa dele <b>NÃO era ${CORES[p.val][0]}</b>.`];
+  if(p.campo==='bicho') return p.pos
+    ? ['🐾',`Pegadas de <b>${BICHOS[p.val][1].toUpperCase()}</b>!<br>O ladrão é um <b>${BICHOS[p.val][1]}</b> ${BICHOS[p.val][0]}`]
+    : ['🔎',`Essas pegadas NÃO são de ${BICHOS[p.val][1].toLowerCase()} ${BICHOS[p.val][0]}<br>O ladrão <b>NÃO é ${BICHOS[p.val][1]}</b>.`];
+  if(p.campo==='chapeu') return p.val
+    ? ['🎩','Uma marca de chapéu na poeira!<br>O ladrão usa <b>CHAPÉU</b>.']
+    : ['💨','O vento estava forte e nenhum chapéu voou...<br>O ladrão <b>NÃO usa chapéu</b>.'];
+  return p.val
+    ? ['👓','Um pedacinho de lente de óculos!<br>O ladrão usa <b>ÓCULOS</b>.']
+    : ['📜','O ladrão leu um bilhete minúsculo sem problema...<br>Ele <b>NÃO usa óculos</b>.'];
+}
+function geraSuspeitos(n){
+  const vistos=new Set(), lista=[], nomes=emb(NOMES.slice());
+  while(lista.length<n){
+    const s={bicho:rnd(BICHOS.length),cor:rnd(CORES.length),chapeu:Math.random()<.5,oculos:Math.random()<.5};
+    const k=s.bicho+'-'+s.cor+'-'+s.chapeu+'-'+s.oculos;
+    if(vistos.has(k)) continue;
+    vistos.add(k); s.nome=nomes[lista.length]; s.id=lista.length; lista.push(s);
+  }
+  return lista;
+}
+// escolhe pistas verdadeiras até sobrar só o culpado (sempre dá: os suspeitos são todos diferentes)
+function geraPistas(){
+  const c=culpado, todas=[];
+  todas.push({campo:'cor',pos:true,val:c.cor},{campo:'chapeu',pos:true,val:c.chapeu},{campo:'oculos',pos:true,val:c.oculos},{campo:'bicho',pos:true,val:c.bicho});
+  for(let i=0;i<CORES.length;i++) if(i!==c.cor) todas.push({campo:'cor',pos:false,val:i});
+  for(let i=0;i<BICHOS.length;i++) if(i!==c.bicho) todas.push({campo:'bicho',pos:false,val:i});
+  let resto=sus.slice(); const escolhidas=[];
+  while(resto.length>1){
+    const uteis=emb(todas.filter(p=>!escolhidas.includes(p))).map(p=>({p,tira:resto.filter(s=>!combina(s,p)).length})).filter(o=>o.tira>0);
+    let o;
+    if(escolhidas.length>=3) o=uteis.sort((a,b)=>b.tira-a.tira)[0];         // muitas pistas já: pega a mais forte
+    else o=uteis.find(o=>!(o.p.campo==='bicho'&&o.p.pos)&&o.tira<resto.length-1) || uteis.find(o=>!(o.p.campo==='bicho'&&o.p.pos)) || uteis[0];
+    escolhidas.push(o.p); resto=resto.filter(s=>combina(s,o.p));
+  }
+  return emb(escolhidas);
+}
+// lugares das pistas: ruas alcançáveis (BFS) longe do começo e longe umas das outras
+function espalha(qtd){
+  const ini={x:MW>>1&~3,y:MH>>1&~3};
+  const dist={}, fila=[ini]; dist[ini.x+','+ini.y]=0;
+  while(fila.length){ const a=fila.shift(); for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const nx=a.x+dx, ny=a.y+dy, k=nx+','+ny; if(ehRua(nx,ny)&&dist[k]===undefined){ dist[k]=dist[a.x+','+a.y]+1; fila.push({x:nx,y:ny}); } } }
+  const cand=emb(Object.keys(dist).filter(k=>dist[k]>=5).map(k=>{ const [x,y]=k.split(',').map(Number); return {x,y}; }));
+  const out=[];
+  for(const c of cand){ if(out.length>=qtd) break; if(out.every(o=>Math.abs(o.x-c.x)+Math.abs(o.y-c.y)>=6)) out.push(c); }
+  for(const c of cand){ if(out.length>=qtd) break; if(!out.includes(c)) out.push(c); }
+  return {ini,lugares:out};
+}
+let itens=[], cao={x:0,y:0,vx:0,dir:1,anda:0}, tesouro='';
+function novoCaso(){
+  criaCidade();
+  sus=geraSuspeitos(Math.min(4+caso,10));
+  culpado=sus[rnd(sus.length)];
+  pistas=geraPistas();
+  const nLixo=Math.min(1+Math.floor(caso/2),4);
+  const {ini,lugares}=espalha(pistas.length+nLixo);
+  itens=[];
+  pistas.forEach((p,i)=>itens.push({x:lugares[i].x,y:lugares[i].y,pista:p,achado:false}));
+  for(let i=0;i<nLixo;i++){ const l=lugares[pistas.length+i]; if(l) itens.push({x:l.x,y:l.y,lixo:LIXO[rnd(LIXO.length)],achado:false}); }
+  achadas=[]; vidas=3; riscados=new Set();
+  cao={x:ini.x+.5,y:ini.y+.5,dir:1,anda:0};
+  tesouro=TESOUROS[(caso-1)%TESOUROS.length];
+  faro=0; faroEspera=0;
+  hud();
+  estado='msg';
+  mostraMsg('🚨',`<b>CASO ${caso}</b><br>Roubaram ${tesouro}!<br><br>São <b>${sus.length} suspeitos</b>. Ache as <b>${pistas.length} pistas</b> pela cidade e descubra quem foi! 🐶🔍`);
+}
+
+// ===== telas =====
+let estado='menu';
+function mostra(id){ for(const t of ['tMenu','tMsg','tQuadro','tFim']) $(t).style.display=t===id?'flex':'none';
+  const jogando=id===null||id==='tMsg'||id==='tQuadro';
+  $('hud').style.display=jogando?'flex':'none'; $('botoes').style.display=(id===null)?'flex':'none'; }
+let depoisMsg=null;
+function mostraMsg(icone,txt,depois){ $('msgIcone').textContent=icone; $('msgTexto').innerHTML=txt; depoisMsg=depois||null; estado='msg'; mostra('tMsg'); }
+$('bMsgOk').onclick=()=>{ const d=depoisMsg; depoisMsg=null; estado='jogo'; mostra(null); if(d) d(); };
+function hud(){
+  $('hEsq').innerHTML=`Caso ${caso} · 🔍 Pistas ${achadas.length}/${pistas.length}`;
+  $('hDir').textContent='🦴'.repeat(vidas)+'🖤'.repeat(3-vidas);
+}
+let avisoT=0;
+function aviso(t){ $('aviso').innerHTML=t; $('aviso').style.display='block'; avisoT=3; }
+
+function lerCaso(){ try{ return Math.max(1,parseInt(localStorage.getItem('detetive_caso'))||1); }catch(e){ return 1; } }
+function lerRecorde(){ try{ return parseInt(localStorage.getItem('detetive_recorde'))||0; }catch(e){ return 0; } }
+function menu(){
+  estado='menu'; mostra('tMenu');
+  const c=lerCaso(), r=lerRecorde();
+  $('bJogarSub').textContent=c>1?`Continuar no Caso ${c}`:'Caso 1';
+  $('bZerar').style.display=c>1?'block':'none';
+  $('recorde').innerHTML=r?`🏅 Casos resolvidos (recorde): <b>${r}</b>`:'';
+}
+$('bJogar').onclick=()=>{ caso=lerCaso(); novoCaso(); };
+$('bZerar').onclick=()=>{ try{ localStorage.setItem('detetive_caso','1'); }catch(e){} caso=1; novoCaso(); };
+$('bMenu').onclick=menu;
+$('bProximo').onclick=()=>{ caso=lerCaso(); novoCaso(); };
+
+// ===== quadro de suspeitos =====
+function traços(s){ return `roupa ${CORES[s.cor][0]}<br>${s.chapeu?'🎩 com chapéu':'sem chapéu'} · ${s.oculos?'👓 óculos':'sem óculos'}`; }
+function abreQuadro(){
+  if(estado!=='jogo') return;
+  estado='quadro'; mostra('tQuadro');
+  $('pistasLista').innerHTML=achadas.length
+    ? '<b>🔍 Pistas que você achou:</b><br>'+achadas.map(p=>{ const [ic,t]=textoPista(p); return ic+' '+t.replace(/<br>/g,' '); }).join('<br>')
+    : '🔍 Você ainda não achou nenhuma pista. Ande pela cidade e fareje! 👃';
+  const box=$('cartas'); box.innerHTML='';
+  for(const s of sus){
+    const d=document.createElement('div'); d.className='carta'+(riscados.has(s.id)?' riscada':'');
+    d.innerHTML=`<div class="rosto"><div class="bicho">${BICHOS[s.bicho][0]}</div>${s.chapeu?'<div class="chapeu">🎩</div>':''}${s.oculos?'<div class="oculos">👓</div>':''}</div>
+      <div class="roupa" style="background:${CORES[s.cor][1]}"></div>
+      <b>${BICHOS[s.bicho][1]} ${s.nome}</b><div class="tr">${traços(s)}</div>`;
+    const bx=document.createElement('button'); bx.className='bx'; bx.textContent=riscados.has(s.id)?'↩ Desriscar':'❌ Riscar';
+    bx.onclick=()=>{ riscados.has(s.id)?riscados.delete(s.id):riscados.add(s.id); abreQuadro2(); };
+    const ba=document.createElement('button'); ba.className='ba'; ba.textContent='👉 FOI ELE!';
+    ba.onclick=()=>acusa(s);
+    d.appendChild(bx); d.appendChild(ba); box.appendChild(d);
+  }
+}
+function abreQuadro2(){ const y=$('tQuadro').scrollTop; estado='jogo'; abreQuadro(); $('tQuadro').scrollTop=y; }
+function fechaQuadro(){ if(estado!=='quadro') return; estado='jogo'; mostra(null); }
+$('bFecharQuadro').onclick=fechaQuadro;
+$('bQuadro').onclick=abreQuadro;
+
+function acusa(s){
+  if(s===culpado){
+    som('vitoria');
+    const ganho=Math.min(5+caso*2,25);
+    try{ if(window.CoguCoins) CoguCoins.ganha(ganho); }catch(e){}
+    const prox=caso+1;
+    try{ localStorage.setItem('detetive_caso',String(prox)); if(caso>lerRecorde()) localStorage.setItem('detetive_recorde',String(caso)); }catch(e){}
+    estado='fim'; mostra('tFim');
+    $('fimIcone').textContent='🏆';
+    $('fimTitulo').textContent='CASO RESOLVIDO! 🎉';
+    $('fimTexto').innerHTML=`Foi o <b>${BICHOS[s.bicho][1]} ${s.nome}</b> ${BICHOS[s.bicho][0]}!<br>Você recuperou ${tesouro}!<br>${achadas.length<pistas.length?'Uau, nem precisou de todas as pistas! 🧠':'Que faro de detetive! 🐶'}`;
+    $('fimMoedas').textContent=`+${ganho} Cogu Coins 🪙`;
+    $('bProximo').textContent=`▶ Caso ${prox}`;
+    return;
+  }
+  vidas--; riscados.add(s.id); som('erro'); hud();
+  if(vidas<=0){
+    estado='fim'; mostra('tFim');
+    $('fimIcone').textContent='🏃💨';
+    $('fimTitulo').textContent='O LADRÃO FUGIU! 😭';
+    $('fimTexto').innerHTML=`Era o <b>${BICHOS[culpado.bicho][1]} ${culpado.nome}</b> ${BICHOS[culpado.bicho][0]} (roupa ${CORES[culpado.cor][0]}, ${culpado.chapeu?'com':'sem'} chapéu, ${culpado.oculos?'com':'sem'} óculos).<br>Dica: ache TODAS as pistas antes de acusar!`;
+    $('fimMoedas').textContent='';
+    $('bProximo').textContent=`🔁 Tentar o Caso ${caso} de novo`;
+    return;
+  }
+  abreQuadro2();
+  aviso(`❌ Não foi o ${s.nome}! Ele tem álibi. Restam ${vidas} 🦴`);
+}
+
+// ===== som =====
+let ac=null;
+function audio(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(ac&&ac.state==='suspended') ac.resume(); }
+function bip(f,t,d,tipo,vol){ if(!ac) return; const o=ac.createOscillator(), g=ac.createGain(); o.type=tipo||'sine'; o.frequency.setValueAtTime(f,ac.currentTime+t); g.gain.setValueAtTime(vol||.15,ac.currentTime+t); g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+t+d); o.connect(g); g.connect(ac.destination); o.start(ac.currentTime+t); o.stop(ac.currentTime+t+d+.05); }
+function som(q){
+  if(q==='pista'){ bip(660,0,.12); bip(880,.1,.12); bip(1100,.2,.2); }
+  else if(q==='lixo'){ bip(300,0,.15,'triangle'); bip(220,.12,.2,'triangle'); }
+  else if(q==='faro'){ bip(500,0,.06,'triangle',.1); bip(540,.09,.06,'triangle',.1); bip(500,.18,.06,'triangle',.1); }
+  else if(q==='erro'){ bip(200,0,.3,'square',.08); bip(150,.25,.4,'square',.08); }
+  else if(q==='vitoria'){ [523,659,784,1046].forEach((f,i)=>bip(f,i*.13,.25)); }
+}
+addEventListener('pointerdown',audio,{capture:true});
+addEventListener('keydown',audio,{capture:true});
+
+// ===== controles =====
+const tec={};
+addEventListener('keydown',e=>{
+  tec[e.code]=true;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+  if(e.repeat) return;
+  if(estado==='jogo'){
+    if(e.code==='Space'||e.code==='KeyF') farejar();
+    if(e.code==='KeyE'||e.code==='KeyQ') abreQuadro();
+  } else if(estado==='quadro'){
+    if(e.code==='KeyE'||e.code==='KeyQ'||e.code==='Escape') fechaQuadro();
+  } else if(estado==='msg'){
+    if(e.code==='Enter') $('bMsgOk').onclick();
+  } else if(estado==='menu'){
+    if(e.code==='Enter') $('bJogar').onclick();
+  }
+});
+addEventListener('keyup',e=>{ tec[e.code]=false; });
+let joy=null;
+cv.addEventListener('pointerdown',e=>{ joy={x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,id:e.pointerId}; });
+addEventListener('pointermove',e=>{ if(joy&&e.pointerId===joy.id){ joy.x=e.clientX; joy.y=e.clientY; } });
+addEventListener('pointerup',e=>{ if(joy&&e.pointerId===joy.id) joy=null; });
+addEventListener('pointercancel',()=>{ joy=null; });
+$('bFaro').addEventListener('pointerdown',e=>{ e.preventDefault(); farejar(); });
+function direcao(){
+  let x=0,y=0;
+  if(tec.KeyA||tec.ArrowLeft) x-=1; if(tec.KeyD||tec.ArrowRight) x+=1;
+  if(tec.KeyW||tec.ArrowUp) y-=1; if(tec.KeyS||tec.ArrowDown) y+=1;
+  if(joy){ const dx=joy.x-joy.x0, dy=joy.y-joy.y0, d=Math.hypot(dx,dy); if(d>8){ x=dx/Math.max(d,40); y=dy/Math.max(d,40); } }
+  const d=Math.hypot(x,y); if(d>1){ x/=d; y/=d; }
+  return {x,y};
+}
+
+// ===== farejar =====
+let faro=0, faroEspera=0, faroAlvo=null;
+function farejar(){
+  if(estado!=='jogo'||faroEspera>0) return;
+  const falta=itens.filter(i=>i.pista&&!i.achado);
+  if(!falta.length){ aviso('👃 Não sinto mais cheiro de pista! Abra o 📋 e acuse o ladrão!'); faroEspera=1.5; return; }
+  faroAlvo=falta.reduce((a,b)=>Math.hypot(a.x+.5-cao.x,a.y+.5-cao.y)<Math.hypot(b.x+.5-cao.x,b.y+.5-cao.y)?a:b);
+  faro=2.5; faroEspera=4; som('faro');
+}
+
+// ===== jogo =====
+function bloqueado(x,y){ return !ehRua(Math.floor(x),Math.floor(y)); }
+const R=.28;
+function livre(x,y){ return !bloqueado(x-R,y-R)&&!bloqueado(x+R,y-R)&&!bloqueado(x-R,y+R)&&!bloqueado(x+R,y+R); }
+function atualiza(dt){
+  if(avisoT>0){ avisoT-=dt; if(avisoT<=0) $('aviso').style.display='none'; }
+  if(estado!=='jogo') return;
+  if(faro>0) faro-=dt;
+  if(faroEspera>0){ faroEspera-=dt; $('bFaro').classList.toggle('espera',faroEspera>0); }
+  const d=direcao(), v=4.6*dt;
+  if(d.x||d.y){
+    const nx=cao.x+d.x*v, ny=cao.y+d.y*v;
+    if(livre(nx,cao.y)) cao.x=nx;
+    if(livre(cao.x,ny)) cao.y=ny;
+    // ajuda a virar a esquina: escorrega pro meio da rua
+    if(d.x&&!d.y&&!livre(cao.x+Math.sign(d.x)*.1,cao.y)){ const cy=Math.floor(cao.y)+.5; cao.y+=Math.sign(cy-cao.y)*Math.min(Math.abs(cy-cao.y),v*.8); }
+    if(d.y&&!d.x&&!livre(cao.x,cao.y+Math.sign(d.y)*.1)){ const cx=Math.floor(cao.x)+.5; cao.x+=Math.sign(cx-cao.x)*Math.min(Math.abs(cx-cao.x),v*.8); }
+    if(d.x) cao.dir=d.x>0?1:-1;
+    cao.anda+=dt*10;
+  }
+  for(const it of itens){
+    if(it.achado) continue;
+    if(Math.hypot(it.x+.5-cao.x,it.y+.5-cao.y)<.6){
+      it.achado=true; joy=null; for(const k in tec) tec[k]=false;
+      if(it.pista){
+        achadas.push(it.pista); hud(); som('pista');
+        const [ic,t]=textoPista(it.pista);
+        const fim=achadas.length===pistas.length?'<br><br>🎉 Você achou TODAS as pistas!<br>Agora abra o <b>📋 Suspeitos</b> e acuse o ladrão!':'';
+        mostraMsg(ic,'<b>PISTA!</b><br>'+t+fim);
+      } else { som('lixo'); mostraMsg(it.lixo[0],it.lixo[1]); }
+      break;
+    }
+  }
+}
+
+// ===== desenho =====
+let W=0,H=0,T=48,DPR=1;
+function redim(){ DPR=Math.min(devicePixelRatio||1,1.5); W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px'; T=Math.max(38,Math.min(64,Math.min(W,H)/8)); }
+addEventListener('resize',redim); redim();
+let tempo=0;
+function emoji(e,x,y,s){ ctx.fillStyle='#000'; ctx.font=s+'px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(e,x,y); }
+const EMQ={casa:'🏠',loja:'🏪',parque:'🌳',lago:'🦆',padaria:'🥖',escola:'🏫'};
+function desenha(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.fillStyle='#4a8a3a'; ctx.fillRect(0,0,W,H);
+  if(!mapa.length) return;
+  const ox=W/2-cao.x*T, oy=H/2-cao.y*T;
+  const x0=Math.max(0,Math.floor(-ox/T)-1), x1=Math.min(MW,Math.ceil((W-ox)/T)+1);
+  const y0=Math.max(0,Math.floor(-oy/T)-1), y1=Math.min(MH,Math.ceil((H-oy)/T)+1);
+  // fora da cidade: grama escura
+  ctx.fillStyle='#2f5a26'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#4a8a3a'; ctx.fillRect(ox,oy,MW*T,MH*T);
+  // ruas
+  for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++) if(mapa[y][x]===0){
+    const px=ox+x*T, py=oy+y*T;
+    ctx.fillStyle='#d8c8a8'; ctx.fillRect(px,py,T+1,T+1);
+    ctx.fillStyle='#6a6a72'; ctx.fillRect(px+T*.08,py+T*.08,T*.84+ (ehRua(x+1,y)?T*.16:0),T*.84+(ehRua(x,y+1)?T*.16:0));
+    if(ehRua(x-1,y)) ctx.fillRect(px-1,py+T*.08,T*.1,T*.84);
+    if(ehRua(x,y-1)) ctx.fillRect(px+T*.08,py-1,T*.84,T*.1);
+    ctx.fillStyle='rgba(255,255,255,.55)';
+    if(y%4===0&&x%4!==0) ctx.fillRect(px+T*.3,py+T*.47,T*.4,T*.06);
+    if(x%4===0&&y%4!==0) ctx.fillRect(px+T*.47,py+T*.3,T*.06,T*.4);
+  }
+  // quadras
+  for(const q of quadras){
+    const px=ox+q.x*T, py=oy+q.y*T, s=3*T;
+    if(px>W||py>H||px+s<0||py+s<0) continue;
+    if(q.tipo==='parque'){ ctx.fillStyle='#5aa848'; ctx.fillRect(px+4,py+4,s-8,s-8); emoji('🌳',px+s*.27,py+s*.3,T*.9); emoji('🌲',px+s*.72,py+s*.35,T*.9); emoji('🌷',px+s*.5,py+s*.75,T*.6); emoji('🌳',px+s*.25,py+s*.75,T*.7); }
+    else if(q.tipo==='lago'){ ctx.fillStyle='#5aa848'; ctx.fillRect(px+4,py+4,s-8,s-8); ctx.fillStyle='#3a9ae0'; ctx.beginPath(); ctx.ellipse(px+s/2,py+s/2,s*.38,s*.3,0,0,7); ctx.fill(); emoji('🦆',px+s*.45+Math.sin(tempo)*T*.3,py+s*.5,T*.7); }
+    else { ctx.fillStyle='#e8dcc8'; ctx.fillRect(px+6,py+6,s-12,s-12); ctx.fillStyle=q.cor; ctx.fillRect(px+10,py+10,s-20,s*.35);
+      ctx.fillStyle='rgba(0,0,0,.15)'; ctx.fillRect(px+10,py+10+s*.35,s-20,4);
+      emoji(EMQ[q.tipo],px+s/2,py+s*.62,T*1.4); }
+  }
+  // itens no chão (pista ou lixo: parecem iguais até chegar perto!)
+  for(const it of itens){
+    if(it.achado) continue;
+    const px=ox+(it.x+.5)*T, py=oy+(it.y+.5)*T;
+    if(px<-T||py<-T||px>W+T||py>H+T) continue;
+    const pulsa=1+Math.sin(tempo*4+it.x)*.15;
+    ctx.fillStyle='rgba(255,230,120,.25)'; ctx.beginPath(); ctx.arc(px,py,T*.42*pulsa,0,7); ctx.fill();
+    emoji('❓',px,py,T*.5*pulsa);
+    emoji('✨',px+T*.25,py-T*.25,T*.3);
+  }
+  // seta do faro
+  if(faro>0&&faroAlvo){
+    const ang=Math.atan2(faroAlvo.y+.5-cao.y,faroAlvo.x+.5-cao.x);
+    ctx.save(); ctx.translate(W/2,H/2); ctx.rotate(ang); ctx.globalAlpha=Math.min(1,faro);
+    ctx.fillStyle='#ffb04a'; ctx.strokeStyle='#5a2a00'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(T*1.6,0); ctx.lineTo(T*1.05,-T*.32); ctx.lineTo(T*1.05,T*.32); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
+    for(let i=1;i<=4;i++){ const a=(tempo*2+i)%4/4; ctx.globalAlpha=(1-a)*.6*Math.min(1,faro); emoji('💨',W/2+Math.cos(ang)*T*(.6+a*1.4),H/2+Math.sin(ang)*T*(.6+a*1.4),T*.35); }
+    ctx.globalAlpha=1;
+  }
+  // cachorro (o emoji olha pra esquerda, então vira quando anda pra direita)
+  const pul=Math.abs(Math.sin(cao.anda))*T*.08;
+  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(W/2,H/2+T*.32,T*.32,T*.1,0,0,7); ctx.fill();
+  ctx.save(); ctx.translate(W/2,H/2-pul); if(cao.dir>0) ctx.scale(-1,1);
+  emoji('🐕',0,0,T*.85); ctx.restore();
+  emoji('🔍',W/2+cao.dir*T*.38,H/2-T*.28-pul,T*.4);
+}
+
+let ult=performance.now(), acumula=0;
+const PASSO=TOQUE?1/30:0;
+function loop(t){
+  requestAnimationFrame(loop);
+  const dt=Math.min(.05,(t-ult)/1000);
+  if(PASSO){ acumula+=dt; ult=t; if(acumula<PASSO) return; const d=acumula; acumula=0; tempo+=d; atualiza(Math.min(.05,d)); desenha(); return; }
+  ult=t; tempo+=dt; atualiza(dt); desenha();
+}
+requestAnimationFrame(loop);
+menu();
+</script>
+</body>
+</html>
