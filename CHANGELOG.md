@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v612 (2026-11-04)
+- 🚀 Jogo novo (ainda escondido, só pelo link /espacial/): **Cogumelo Espacial**! Pilote a nave-cogumelo pela galáxia: quebre meteoros, derrube discos voadores e pegue ✨ esporos. Encheu a barra? Aparece o 👾 CHEFÃO do planeta! São 6 planetas (Lua Cogumelo, Marte Picante, Planeta Gelado, Selva Verde, Anéis Dourados e Buraco Roxo), cada um com um chefão diferente, e no final o ♾️ Modo Infinito. Tem 💥 bomba de esporos e 🔧 Oficina pra melhorar a nave
+
 ## v611 (2026-11-04)
 - 🐉 Jogo novo (ainda escondido, só pelo link /monstro/): **Cria o seu Monstro**! Monte o monstro escolhendo corpo, olhos, boca, chifres/antenas/coroa, asas, rabo e cor. Cada parte dá um ataque diferente e a cor dá o elemento (🔥💧🌿⚡). Treine pegando comidas, vença batalhas (chefão a cada 5!), leve monstros selvagens pra casa e misture 2 monstros pra nascer um filhote 🧬
 
