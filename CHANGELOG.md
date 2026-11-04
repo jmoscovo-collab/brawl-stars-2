@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v610 (2026-11-04)
+- 🎨 TODAS as capas dos jogos da página inicial agora são DESENHOS de verdade (nada de emoji flutuando!): Cogu, capivara, robô, fantasma, zumbi, dinossauro, tubarão, carros, avião, navio pirata, dragão, castelo e mais de 100 desenhos novos
+
 ## v609 (2026-11-04)
 - 🎨 Capa nova desenhada pro Cogumelo Detetive: o Cogu de chapéu e lupa na frente do museu, numa noite de tempestade com raio e chuva
 
