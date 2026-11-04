@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v607 (2026-11-03)
+- ❓ Cogumelo Detetive: o "Como jogar" explica o museu, os dias, o ônibus e o relógio
+
 ## v606 (2026-11-03)
 - 🏛️ Cogumelo Detetive: agora dá pra ENTRAR no museu! Lá dentro tem quadros, a vitrine quebrada, cordão de veludo e as marcas que o ladrão deixou
 - 📅 Cada caso é um DIA numa cidade nova (Vila Cogumelo, Rua das Amoras, Cidade Orvalho com neblina, Vale dos Fungos com neve...) e o nome da cidade aparece antes de começar
