@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v627 (2026-11-04)
+- ⚽ O jogo Cogu Futebol foi escondido da página inicial a pedido do Davi
+
 ## v616 (2026-11-04)
 - ⚽ Jogo novo LANÇADO: **Cogu Futebol**! Futebol 11 contra 11 visto de cima, num campo com as medidas de verdade: passe pro amigo, drible, chute segurando pra ir mais forte (e mirando no canto!), goleiro que defende e espalma, lateral, escanteio, tiro de meta, dois tempos com troca de lado e fôlego pra correr. Escolha entre 8 times (Cogumelos FC, Tubarões, Capivaras, Dragões...), 3 dificuldades e jogue a 🏆 Copa Cogumelo: quartas, semi e FINAL com gol de ouro
 
