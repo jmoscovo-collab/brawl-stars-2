@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v613 (2026-11-04)
+- 🚀 LANÇADO: Cogumelo Espacial agora está na página inicial com o selo NOVO!
+
 ## v612 (2026-11-04)
 - 🚀 Jogo novo (ainda escondido, só pelo link /espacial/): **Cogumelo Espacial**! Pilote a nave-cogumelo pela galáxia: quebre meteoros, derrube discos voadores e pegue ✨ esporos. Encheu a barra? Aparece o 👾 CHEFÃO do planeta! São 6 planetas (Lua Cogumelo, Marte Picante, Planeta Gelado, Selva Verde, Anéis Dourados e Buraco Roxo), cada um com um chefão diferente, e no final o ♾️ Modo Infinito. Tem 💥 bomba de esporos e 🔧 Oficina pra melhorar a nave
 
