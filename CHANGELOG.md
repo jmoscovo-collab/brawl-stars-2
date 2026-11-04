@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v608 (2026-11-03)
+- 🚀 LANÇADO: Cogumelo Detetive 3D agora está na página inicial com o selo NOVO!
+
 ## v607 (2026-11-03)
 - ❓ Cogumelo Detetive: o "Como jogar" explica o museu, os dias, o ônibus e o relógio
 
