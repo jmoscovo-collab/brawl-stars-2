@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v611 (2026-11-04)
+- 🐉 Jogo novo (ainda escondido, só pelo link /monstro/): **Cria o seu Monstro**! Monte o monstro escolhendo corpo, olhos, boca, chifres/antenas/coroa, asas, rabo e cor. Cada parte dá um ataque diferente e a cor dá o elemento (🔥💧🌿⚡). Treine pegando comidas, vença batalhas (chefão a cada 5!), leve monstros selvagens pra casa e misture 2 monstros pra nascer um filhote 🧬
+
 ## v610 (2026-11-04)
 - 🎨 TODAS as capas dos jogos da página inicial agora são DESENHOS de verdade (nada de emoji flutuando!): Cogu, capivara, robô, fantasma, zumbi, dinossauro, tubarão, carros, avião, navio pirata, dragão, castelo e mais de 100 desenhos novos
 
