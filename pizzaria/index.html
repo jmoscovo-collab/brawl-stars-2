@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Pizzaria Maluca — Cogumelo Games</title>
+<meta name="description" content="Pizzaria Maluca: monte pizzas doidas (com chocolate, minhoca de goma e sorvete!), asse no ponto certo e entregue antes do cliente ficar bravo. Jogo grátis do Cogumelo Games.">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { background:linear-gradient(180deg,#5a1a0a 0%,#2a0d06 100%); min-height:100vh; font-family:Arial,sans-serif; color:#fff;
+    display:flex; flex-direction:column; align-items:center; padding:8px 8px 20px; user-select:none; }
+h1 { font-size:28px; margin:4px 0 2px; text-align:center; background:linear-gradient(to right,#ffe14a,#ff7a2a,#ff3a5a); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.sub { color:#e8c8a8; font-size:14px; margin-bottom:8px; text-align:center; }
+.tela { display:none; width:100%; max-width:560px; flex-direction:column; align-items:center; }
+.tela.on { display:flex; }
+button { font-family:inherit; font-size:16px; font-weight:bold; padding:10px 16px; border:none; border-radius:12px; cursor:pointer;
+    background:linear-gradient(135deg,#ffe14a,#ff9a2a); color:#3a1a00; box-shadow:0 3px 0 rgba(0,0,0,0.4); }
+button:active { transform:translateY(2px); box-shadow:none; }
+button.verde { background:linear-gradient(135deg,#7dff6a,#2fd0a0); color:#06281a; }
+button.cinza { background:#5a3a2a; color:#fff; }
+button.vermelho { background:linear-gradient(135deg,#ff5a3a,#c81a1a); color:#fff; }
+button:disabled { opacity:0.4; cursor:default; transform:none; }
+.linha { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin:8px 0; }
+a.voltar { color:#c9a; text-decoration:none; margin-top:14px; font-size:14px; }
+#hud { display:flex; justify-content:space-between; width:100%; font-weight:bold; font-size:15px; background:rgba(0,0,0,0.35); border-radius:10px; padding:6px 10px; }
+#clientes { display:flex; gap:6px; width:100%; margin:8px 0; min-height:138px; }
+.cli { flex:1; background:#fff6e0; color:#3a1a00; border-radius:12px; padding:5px; text-align:center; cursor:pointer; position:relative; border:3px solid transparent; min-width:0; }
+.cli.vazio { background:rgba(255,255,255,0.08); color:#c9a; display:flex; align-items:center; justify-content:center; font-size:13px; cursor:default; }
+.cli.pode { border-color:#7dff6a; box-shadow:0 0 12px #7dff6a; animation:pisca 0.8s infinite alternate; }
+@keyframes pisca { to { box-shadow:0 0 2px #7dff6a; } }
+.cli .rosto { font-size:30px; line-height:1.1; }
+.cli .nome { font-size:11px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cli .pedido { font-size:17px; line-height:1.25; min-height:22px; word-break:break-word; }
+.cli .molho { display:inline-block; width:14px; height:14px; border-radius:50%; vertical-align:middle; border:2px solid #3a1a00; }
+.cli .pac { height:7px; background:#ddd; border-radius:4px; overflow:hidden; margin-top:3px; }
+.cli .pac div { height:100%; background:#3ac44a; }
+.cli .tag { position:absolute; top:-8px; left:50%; transform:translateX(-50%); font-size:10px; background:#ff3a5a; color:#fff; padding:1px 6px; border-radius:8px; white-space:nowrap; }
+#mesa { position:relative; width:min(78vw,260px); height:min(78vw,260px); }
+#pizzaCv { width:100%; height:100%; display:block; }
+#forno { position:absolute; inset:0; background:rgba(40,10,0,0.88); border-radius:50%; display:none; flex-direction:column; align-items:center; justify-content:center; gap:10px; }
+#forno.on { display:flex; }
+#barraForno { width:80%; height:24px; border-radius:12px; position:relative; overflow:hidden; border:3px solid #fff;
+    background:linear-gradient(90deg,#f4d8a0 0%,#f4d8a0 var(--a),#3ac44a var(--a),#3ac44a var(--b),#5a2a0a var(--b)); }
+#ponteiro { position:absolute; top:-2px; bottom:-2px; width:6px; background:#fff; box-shadow:0 0 6px #000; left:0; }
+#estadoPizza { font-weight:bold; font-size:15px; min-height:20px; text-align:center; margin:4px 0; }
+#molhos, #ingredientes { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin:4px 0; }
+.ing { font-size:26px; padding:6px 8px; background:#fff6e0; border-radius:12px; min-width:50px; box-shadow:0 3px 0 rgba(0,0,0,0.4); }
+.ing small { display:block; font-size:9px; color:#7a4a2a; }
+.mol { padding:8px 12px; font-size:14px; color:#fff; }
+#loja { display:flex; flex-direction:column; gap:8px; width:min(94vw,440px); }
+.up { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.08); border-radius:12px; padding:8px 10px; }
+.up .ic { font-size:28px; }
+.up .tx { flex:1; font-size:14px; }
+.up .tx small { color:#e8c8a8; display:block; }
+.caixa { background:rgba(60,20,8,0.97); border:3px solid #ff9a2a; border-radius:18px; padding:16px; max-width:440px; width:100%; text-align:center; margin-top:4vh; }
+.caixa ul { text-align:left; padding-left:20px; color:#f4e0c8; font-size:14px; line-height:1.55; }
+.grande { font-size:42px; }
+#voa { position:fixed; pointer-events:none; font-weight:bold; font-size:22px; text-shadow:0 2px 4px #000; transition:transform 1s, opacity 1s; z-index:9; }
+</style>
+<script src="/cogucoins.js?v=551"></script>
+</head>
+<body>
+<h1>🍕 Pizzaria Maluca</h1>
+
+<!-- ======== MENU ======== -->
+<div class="tela on" id="telaMenu">
+    <div class="sub">Os clientes pedem pizzas DOIDAS! Monte, asse no ponto e entregue antes deles ficarem bravos 😡</div>
+    <div class="grande">🍄👨‍🍳🍕</div>
+    <div id="menuInfo" style="font-size:16px; font-weight:bold; margin:8px 0; text-align:center"></div>
+    <div class="linha">
+        <button class="verde" onclick="comecaDia()" id="btJogar">▶️ Abrir a pizzaria</button>
+    </div>
+    <div class="linha">
+        <button onclick="abreLoja()">🛒 Melhorias</button>
+        <button class="cinza" onclick="abreComoJogar()">❓ Como jogar</button>
+    </div>
+    <a class="voltar" href="/">← Voltar pros jogos</a>
+</div>
+
+<!-- ======== JOGO ======== -->
+<div class="tela" id="telaJogo">
+    <div id="hud"><span id="hudDia"></span><span id="hudTempo"></span><span id="hudGrana"></span></div>
+    <div id="clientes"></div>
+    <div id="mesa">
+        <canvas id="pizzaCv" width="300" height="300"></canvas>
+        <div id="forno">
+            <div style="font-size:20px; font-weight:bold">🔥 No forno!</div>
+            <div id="barraForno"><div id="ponteiro"></div></div>
+            <button class="vermelho" onclick="tiraDoForno()" id="btTirar">🧤 TIRAR!</button>
+            <div style="font-size:12px; color:#e8c8a8">tire quando estiver no VERDE</div>
+        </div>
+    </div>
+    <div id="estadoPizza"></div>
+    <div id="molhos"></div>
+    <div id="ingredientes"></div>
+    <div class="linha">
+        <button class="cinza" onclick="lixo()">🗑️ Lixo</button>
+        <button class="vermelho" onclick="assar()" id="btAssar">🔥 Assar</button>
+    </div>
+</div>
+
+<!-- ======== LOJA ======== -->
+<div class="tela" id="telaLoja">
+    <div class="sub">Gaste o dinheiro da pizzaria pra melhorar tudo!</div>
+    <div id="lojaGrana" style="font-size:18px; font-weight:bold; color:#ffe14a; margin-bottom:8px"></div>
+    <div id="loja"></div>
+    <div class="linha"><button class="cinza" onclick="abreMenu()">↩️ Voltar</button></div>
+</div>
+
+<div class="tela" id="telaMsg"><div class="caixa" id="msgCaixa"></div></div>
+
+<script src="/stats.js?v=496"></script>
+<script>
+if (window.initStats) initStats('pizzaria');
+
+/* ================= DADOS ================= */
+var SAVE_KEY = 'pizzaria_save';
+var dados = { dia: 1, grana: 0, recorde: 0, up: { paciencia: 0, forno: 0, gorjeta: 0, caixa: 0 } };
+try { var dd = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (dd && dd.up) dados = dd; } catch (e) {}
+function salva() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(dados)); } catch (e) {} }
+
+var MOLHOS = [
+    { id: 'tomate', nome: 'Tomate', cor: '#d8321a', dia: 1 },
+    { id: 'choco', nome: 'Chocolate', cor: '#5a2a10', dia: 3 },
+    { id: 'verde', nome: 'Gosma Verde', cor: '#5ac83a', dia: 5 }
+];
+var INGS = [
+    { id: 'queijo', e: '🧀', nome: 'queijo', dia: 1 }, { id: 'cogu', e: '🍄', nome: 'cogumelo', dia: 1 },
+    { id: 'bacon', e: '🥓', nome: 'bacon', dia: 1 }, { id: 'calab', e: '🌭', nome: 'salsicha', dia: 1 },
+    { id: 'abacaxi', e: '🍍', nome: 'abacaxi', dia: 2 }, { id: 'pimenta', e: '🌶️', nome: 'pimenta', dia: 2 },
+    { id: 'morango', e: '🍓', nome: 'morango', dia: 3 }, { id: 'bala', e: '🍬', nome: 'bala', dia: 3 },
+    { id: 'peixe', e: '🐟', nome: 'peixe', dia: 4 }, { id: 'banana', e: '🍌', nome: 'banana', dia: 4 },
+    { id: 'minhoca', e: '🐛', nome: 'minhoca de goma', dia: 5 }, { id: 'sorvete', e: '🍦', nome: 'sorvete', dia: 6 },
+    { id: 'olho', e: '👁️', nome: 'olho de geleia', dia: 7 }, { id: 'brocolis', e: '🥦', nome: 'brócolis', dia: 7 }
+];
+var CLIENTES = [
+    ['🍄', 'Cogu'], ['🐸', 'Sapinho'], ['🐶', 'Totó'], ['🐱', 'Mimi'], ['🐵', 'Macaco'], ['🐷', 'Porquinho'],
+    ['🦊', 'Raposa'], ['🐼', 'Panda'], ['🐙', 'Polvo'], ['👽', 'Alien'], ['🤖', 'Robô'], ['🧙', 'Mago'],
+    ['🦖', 'Dino'], ['👻', 'Fantasma'], ['🐻', 'Urso'], ['🦄', 'Unicórnio']
+];
+var UPS = [
+    { id: 'paciencia', ic: '🪑', nome: 'Cadeiras fofinhas', desc: 'clientes esperam mais', max: 5, preco: function (n) { return 60 + n * 60; } },
+    { id: 'forno', ic: '🔥', nome: 'Forno chique', desc: 'zona verde maior', max: 4, preco: function (n) { return 80 + n * 70; } },
+    { id: 'gorjeta', ic: '🎵', nome: 'Musiquinha', desc: 'clientes dão mais gorjeta', max: 5, preco: function (n) { return 70 + n * 60; } },
+    { id: 'caixa', ic: '💰', nome: 'Cardápio caro', desc: 'pizza vale mais', max: 5, preco: function (n) { return 90 + n * 80; } }
+];
+
+/* ================= TELAS ================= */
+function mostra(id) { ['telaMenu', 'telaJogo', 'telaLoja', 'telaMsg'].forEach(function (t) { document.getElementById(t).classList.toggle('on', t === id); }); }
+function meta(dia) { return dia <= 10 ? 40 + (dia - 1) * 25 : 265 + (dia - 10) * 10; }
+function abreMenu() {
+    document.getElementById('menuInfo').innerHTML = '📅 Dia ' + dados.dia + ' · 💵 $' + dados.grana + '<br><small style="color:#e8c8a8">🏆 maior dia: ' + Math.max(dados.recorde, dados.dia - 1) + '</small>';
+    mostra('telaMenu');
+}
+function abreLoja() {
+    document.getElementById('lojaGrana').textContent = '💵 $' + dados.grana;
+    var o = document.getElementById('loja'); o.innerHTML = '';
+    UPS.forEach(function (u) {
+        var n = dados.up[u.id] || 0, preco = u.preco(n), cheio = n >= u.max, d = document.createElement('div'); d.className = 'up';
+        d.innerHTML = '<div class="ic">' + u.ic + '</div><div class="tx"><b>' + u.nome + '</b> ' + '🟧'.repeat(n) + '⬜'.repeat(u.max - n) + '<small>' + u.desc + '</small></div>';
+        var bt = document.createElement('button'); bt.textContent = cheio ? 'MÁX' : '$' + preco; bt.disabled = cheio || dados.grana < preco;
+        bt.onclick = function () { dados.grana -= preco; dados.up[u.id] = n + 1; salva(); som('caixa'); abreLoja(); };
+        d.appendChild(bt); o.appendChild(d);
+    });
+    mostra('telaLoja');
+}
+function msg(h) { document.getElementById('msgCaixa').innerHTML = h; mostra('telaMsg'); }
+function abreComoJogar() {
+    msg('<h2>❓ Como jogar</h2><ul>' +
+        '<li>🧑‍🍳 Os clientes chegam com um <b>pedido</b>: o molho (bolinha colorida) e os ingredientes</li>' +
+        '<li>1️⃣ Toque no <b>molho</b> certo</li><li>2️⃣ Toque nos <b>ingredientes</b> (×2 = toque 2 vezes!)</li>' +
+        '<li>3️⃣ Aperte <b>🔥 Assar</b> e toque <b>TIRAR!</b> quando o ponteiro estiver no <b style="color:#3ac44a">VERDE</b></li>' +
+        '<li>4️⃣ Toque no <b>cliente</b> que pediu aquela pizza pra entregar</li>' +
+        '<li>⏳ A barrinha é a paciência. Se acabar, o cliente vai embora bravo 😡</li>' +
+        '<li>💵 Junte a <b>meta do dia</b> pra passar pro dia seguinte. Cada dia aparecem ingredientes mais MALUCOS 🐛🍦👁️</li>' +
+        '<li>🛒 Use o dinheiro nas <b>Melhorias</b></li>' +
+        '<li>⌨️ No PC: teclas 1-9 ingredientes, Q/W/E molhos, Espaço assar/tirar</li></ul>' +
+        '<div class="linha"><button class="verde" onclick="abreMenu()">Bora cozinhar! 🍕</button></div>');
+}
+
+/* ================= SOM ================= */
+var AC = null;
+function som(t) {
+    try {
+        if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+        var c = { pop: ['sine', 500, 800, 0.08, 0.08], caixa: ['triangle', 880, 1760, 0.1, 0.25], bravo: ['sawtooth', 200, 90, 0.1, 0.4],
+            forno: ['sawtooth', 80, 120, 0.05, 0.3], ding: ['sine', 1200, 1200, 0.12, 0.3], lixo: ['square', 200, 60, 0.06, 0.2] }[t];
+        var o = AC.createOscillator(), g = AC.createGain(), n = AC.currentTime;
+        o.type = c[0]; o.frequency.setValueAtTime(c[1], n); o.frequency.exponentialRampToValueAtTime(c[2], n + c[4]);
+        g.gain.setValueAtTime(c[3], n); g.gain.exponentialRampToValueAtTime(0.001, n + c[4]);
+        o.connect(g); g.connect(AC.destination); o.start(n); o.stop(n + c[4]);
+    } catch (e) {}
+}
+function voa(txt, el, cor) {
+    var r = el.getBoundingClientRect(), d = document.createElement('div'); d.id = 'voa'; d.textContent = txt; d.style.color = cor || '#ffe14a';
+    d.style.left = (r.left + r.width / 2 - 30) + 'px'; d.style.top = (r.top + 10) + 'px'; document.body.appendChild(d);
+    requestAnimationFrame(function () { d.style.transform = 'translateY(-60px)'; d.style.opacity = 0; });
+    setTimeout(function () { d.remove(); }, 1100);
+}
+
+/* ================= DIA ================= */
+var D = null; // estado do dia
+function disponiveis(lista) { return lista.filter(function (x) { return x.dia <= dados.dia; }); }
+function comecaDia() {
+    D = { tempo: 90, grana: 0, meta: meta(dados.dia), clientes: [null, null, null], chegada: 1, atendidos: 0, bravos: 0, fim: false,
+        pizza: novaPizza(), forno: null };
+    montaBotoes(); mostra('telaJogo'); desenhaPizza(); atualizaClientes(); hud();
+}
+function novaPizza() { return { molho: null, ings: [], assada: null, pos: [] }; }
+
+function novoPedido() {
+    var dia = dados.dia, ings = disponiveis(INGS), mols = disponiveis(MOLHOS);
+    var nTipos = Math.min(4, 1 + Math.floor(Math.random() * (1 + Math.min(3, Math.floor(dia / 2)))));
+    var esc = ings.slice().sort(function () { return Math.random() - 0.5; }).slice(0, nTipos);
+    var ped = {};
+    esc.forEach(function (i) { ped[i.id] = dia >= 3 && Math.random() < 0.35 ? 2 + (dia >= 6 && Math.random() < 0.3 ? 1 : 0) : 1; });
+    var cl = CLIENTES[Math.floor(Math.random() * CLIENTES.length)];
+    var apressado = dia >= 2 && Math.random() < 0.2;
+    var pac = (40 + nTipos * 6) * (1 + dados.up.paciencia * 0.15) * (apressado ? 0.6 : 1) * Math.max(0.7, 1 - dia * 0.03);
+    return { rosto: cl[0], nome: cl[1], molho: mols[Math.floor(Math.random() * mols.length)].id, ped: ped, pac: pac, pacMax: pac, apressado: apressado };
+}
+
+function montaBotoes() {
+    var m = document.getElementById('molhos'); m.innerHTML = '';
+    disponiveis(MOLHOS).forEach(function (x, i) {
+        var b = document.createElement('button'); b.className = 'mol'; b.style.background = x.cor; b.textContent = x.nome + ' (' + 'QWE'[i] + ')';
+        b.onclick = function () { poeMolho(x.id); }; m.appendChild(b);
+    });
+    var g = document.getElementById('ingredientes'); g.innerHTML = '';
+    disponiveis(INGS).forEach(function (x, i) {
+        var b = document.createElement('button'); b.className = 'ing'; b.innerHTML = x.e + (i < 9 ? '<small>' + (i + 1) + '</small>' : '<small>&nbsp;</small>');
+        b.title = x.nome; b.onclick = function () { poeIng(x.id); }; g.appendChild(b);
+    });
+}
+
+function poeMolho(id) {
+    var p = D.pizza; if (p.assada || D.forno) return;
+    p.molho = id; som('pop'); desenhaPizza();
+}
+function poeIng(id) {
+    var p = D.pizza; if (p.assada || D.forno) return;
+    if (p.ings.length >= 14) return;
+    p.ings.push(id);
+    var a = Math.random() * 7, r = Math.sqrt(Math.random()) * 95;
+    p.pos.push({ x: 150 + Math.cos(a) * r, y: 150 + Math.sin(a) * r, rot: (Math.random() - 0.5) * 0.8 });
+    som('pop'); desenhaPizza();
+}
+function lixo() { if (D.forno) return; D.pizza = novaPizza(); som('lixo'); desenhaPizza(); atualizaClientes(); }
+
+function zona() { var l = 0.18 + dados.up.forno * 0.04; return [0.55 - l / 2, 0.55 + l / 2]; }
+function assar() {
+    var p = D.pizza; if (D.forno || p.assada) return;
+    if (!p.molho && !p.ings.length) { document.getElementById('estadoPizza').textContent = '👆 Coloque molho e ingredientes primeiro!'; return; }
+    var z = zona();
+    var bf = document.getElementById('barraForno'); bf.style.setProperty('--a', (z[0] * 100) + '%'); bf.style.setProperty('--b', (z[1] * 100) + '%');
+    D.forno = { t: 0, dur: 3.2 };
+    document.getElementById('forno').classList.add('on'); som('forno');
+}
+function tiraDoForno() {
+    if (!D.forno) return;
+    var v = D.forno.t / D.forno.dur, z = zona();
+    D.pizza.assada = v < z[0] - 0.12 ? 'crua' : v < z[0] ? 'quase' : v <= z[1] ? 'perfeita' : v <= z[1] + 0.12 ? 'tostada' : 'queimada';
+    D.forno = null; document.getElementById('forno').classList.remove('on');
+    som(D.pizza.assada === 'perfeita' ? 'ding' : 'pop');
+    desenhaPizza(); atualizaClientes();
+}
+
+function nota(cli, p) { // 0..1
+    var acertos = 0, total = 1, k;
+    if (p.molho === cli.molho) acertos++;
+    var tem = {}; p.ings.forEach(function (i) { tem[i] = (tem[i] || 0) + 1; });
+    for (k in cli.ped) { total += cli.ped[k]; acertos += Math.min(cli.ped[k], tem[k] || 0); }
+    var extra = 0; for (k in tem) extra += Math.max(0, tem[k] - (cli.ped[k] || 0));
+    var n = Math.max(0, (acertos - extra * 0.7) / total);
+    var mult = { crua: 0.3, quase: 0.8, perfeita: 1, tostada: 0.8, queimada: 0.2 }[p.assada] || 0;
+    return n * mult;
+}
+function entrega(i) {
+    var cli = D.clientes[i], p = D.pizza; if (!cli || !p.assada || D.fim) return;
+    var n = nota(cli, p), el = document.querySelectorAll('.cli')[i];
+    var base = 8 + Object.keys(cli.ped).reduce(function (s, k) { return s + cli.ped[k] * 3; }, 0);
+    base = Math.round(base * (1 + dados.up.caixa * 0.15));
+    var gorj = Math.round(base * (cli.pac / cli.pacMax) * (0.3 + dados.up.gorjeta * 0.12) * (cli.apressado ? 2 : 1));
+    var ganho = 0, txt;
+    if (n >= 0.95) { ganho = base + gorj; txt = '😍 PERFEITA! +$' + ganho; }
+    else if (n >= 0.6) { ganho = Math.round(base * n); txt = '🙂 +$' + ganho; }
+    else if (n >= 0.3) { ganho = Math.round(base * n * 0.5); txt = '😕 +$' + ganho; }
+    else { txt = '🤢 Eca!'; D.bravos++; }
+    D.grana += ganho; D.atendidos++;
+    voa(txt, el, ganho ? '#7dff6a' : '#ff5a5a'); som(ganho ? 'caixa' : 'bravo');
+    D.clientes[i] = null; D.chegada = 1 + Math.random() * 2;
+    D.pizza = novaPizza(); desenhaPizza(); atualizaClientes(); hud();
+}
+
+function fimDoDia() {
+    D.fim = true; D.forno = null; document.getElementById('forno').classList.remove('on');
+    var passou = D.grana >= D.meta, coins = Math.min(60, Math.round(D.grana / 4));
+    dados.grana += D.grana;
+    var txt = '<h2>🌙 Fim do dia ' + dados.dia + '</h2><div class="grande">' + (passou ? '🎉' : '😢') + '</div>' +
+        '<p>💵 Você ganhou <b>$' + D.grana + '</b> (meta: $' + D.meta + ')</p><p>🍕 ' + D.atendidos + ' pizzas · 😡 ' + D.bravos + ' clientes bravos</p>';
+    if (passou) {
+        dados.dia++; if (dados.dia - 1 > dados.recorde) dados.recorde = dados.dia - 1;
+        var novos = INGS.filter(function (x) { return x.dia === dados.dia; }).map(function (x) { return x.e; })
+            .concat(MOLHOS.filter(function (x) { return x.dia === dados.dia; }).map(function (x) { return '🥫 ' + x.nome; }));
+        txt += '<p>✅ Meta batida! Amanhã é o <b>dia ' + dados.dia + '</b></p>' + (novos.length ? '<p>🆕 Ingredientes novos: <b>' + novos.join(' ') + '</b></p>' : '');
+    } else txt += '<p>Não bateu a meta... tente o dia de novo! O dinheiro fica com você 💪</p>';
+    salva();
+    if (coins && window.CoguCoins) CoguCoins.ganha(coins);
+    txt += '<p>🍄 +' + coins + ' Cogu Coins</p><div class="linha"><button class="verde" onclick="comecaDia()">▶️ ' + (passou ? 'Próximo dia' : 'Tentar de novo') + '</button>' +
+        '<button onclick="abreLoja()">🛒 Melhorias</button><button class="cinza" onclick="D=null;abreMenu()">🏠 Menu</button></div>';
+    msg(txt);
+}
+
+/* ================= DESENHO ================= */
+var pc = document.getElementById('pizzaCv').getContext('2d');
+function desenhaPizza() {
+    var c = pc, p = D ? D.pizza : novaPizza();
+    c.clearRect(0, 0, 300, 300);
+    // tábua
+    c.fillStyle = '#a8742a'; c.beginPath(); c.arc(150, 150, 146, 0, 7); c.fill();
+    c.strokeStyle = '#8a5a1a'; c.lineWidth = 2; for (var i = 1; i < 5; i++) { c.beginPath(); c.arc(150, 150, i * 30, 0, 7); c.stroke(); }
+    // massa
+    var cor = { crua: '#f4e0b0', quase: '#f0c878', perfeita: '#e8a848', tostada: '#b8742a', queimada: '#3a2010' }[p.assada] || '#f8e8c0';
+    c.fillStyle = cor; c.beginPath(); c.arc(150, 150, 128, 0, 7); c.fill();
+    c.fillStyle = 'rgba(0,0,0,0.08)'; c.beginPath(); c.arc(150, 150, 128, 0, 7); c.arc(150, 150, 112, 0, 7, true); c.fill();
+    if (p.molho) {
+        var m = MOLHOS.filter(function (x) { return x.id === p.molho; })[0];
+        c.fillStyle = m.cor; c.globalAlpha = p.assada === 'queimada' ? 0.4 : 1;
+        c.beginPath(); for (var k = 0; k < 24; k++) { var a = k / 24 * Math.PI * 2, r = 106 + Math.sin(k * 3.7) * 4; c[k ? 'lineTo' : 'moveTo'](150 + Math.cos(a) * r, 150 + Math.sin(a) * r); }
+        c.closePath(); c.fill(); c.globalAlpha = 1;
+    }
+    c.font = '30px Arial'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    p.ings.forEach(function (id, n) {
+        var ing = INGS.filter(function (x) { return x.id === id; })[0], q = p.pos[n];
+        c.save(); c.translate(q.x, q.y); c.rotate(q.rot); if (p.assada === 'queimada') c.globalAlpha = 0.5; c.fillText(ing.e, 0, 0); c.restore();
+    });
+    if (p.assada === 'queimada') { c.fillStyle = 'rgba(40,40,40,0.5)'; c.beginPath(); c.arc(150, 150, 128, 0, 7); c.fill(); }
+    var est = document.getElementById('estadoPizza');
+    est.textContent = p.assada ? ({ crua: '😬 Ficou crua...', quase: '🙂 Quase no ponto', perfeita: '🤩 No ponto PERFEITO!', tostada: '🙂 Um pouco tostada', queimada: '🔥 QUEIMOU!' }[p.assada] + ' → toque no cliente pra entregar')
+        : (p.molho || p.ings.length ? 'Monte a pizza e aperte 🔥 Assar' : '👆 Escolha o molho');
+    document.getElementById('btAssar').disabled = !!p.assada;
+}
+function atualizaClientes() {
+    var box = document.getElementById('clientes'); box.innerHTML = '';
+    D.clientes.forEach(function (cl, i) {
+        var d = document.createElement('div');
+        if (!cl) { d.className = 'cli vazio'; d.textContent = '🪑 vazio'; box.appendChild(d); return; }
+        d.className = 'cli' + (D.pizza.assada ? ' pode' : '');
+        var mol = MOLHOS.filter(function (x) { return x.id === cl.molho; })[0];
+        var ped = Object.keys(cl.ped).map(function (k) { var e = INGS.filter(function (x) { return x.id === k; })[0].e; return cl.ped[k] > 1 ? e + '<small>×' + cl.ped[k] + '</small>' : e; }).join(' ');
+        d.innerHTML = (cl.apressado ? '<div class="tag">⚡ com pressa! gorjeta x2</div>' : '') + '<div class="rosto">' + cl.rosto + '</div><div class="nome">' + cl.nome + '</div>' +
+            '<div class="pedido"><span class="molho" style="background:' + mol.cor + '" title="' + mol.nome + '"></span> ' + ped + '</div><div class="pac"><div></div></div>';
+        d.onclick = function () { entrega(i); };
+        box.appendChild(d);
+    });
+    pintaPaciencia();
+}
+function pintaPaciencia() {
+    var els = document.querySelectorAll('.cli');
+    D.clientes.forEach(function (cl, i) {
+        if (!cl || !els[i]) return; var b = els[i].querySelector('.pac div'); if (!b) return;
+        var f = cl.pac / cl.pacMax; b.style.width = (f * 100) + '%'; b.style.background = f > 0.5 ? '#3ac44a' : f > 0.25 ? '#ffb03a' : '#ff3a3a';
+        els[i].querySelector('.rosto').textContent = f > 0.25 ? cl.rosto : '😡';
+    });
+}
+function hud() {
+    document.getElementById('hudDia').textContent = '📅 Dia ' + dados.dia;
+    document.getElementById('hudTempo').textContent = '⏰ ' + Math.max(0, Math.ceil(D.tempo)) + 's';
+    document.getElementById('hudGrana').textContent = '💵 $' + D.grana + ' / $' + D.meta;
+}
+
+/* ================= LOOP ================= */
+function passo(dt) {
+    if (!D || D.fim) return;
+    D.tempo -= dt;
+    if (D.forno) {
+        D.forno.t += dt;
+        document.getElementById('ponteiro').style.left = Math.min(100, D.forno.t / D.forno.dur * 100) + '%';
+        if (D.forno.t >= D.forno.dur) tiraDoForno();
+    }
+    // chegada de clientes
+    D.chegada -= dt;
+    if (D.chegada <= 0 && D.tempo > 8) {
+        var vaga = D.clientes.indexOf(null);
+        if (vaga >= 0) { D.clientes[vaga] = novoPedido(); atualizaClientes(); som('ding'); }
+        D.chegada = Math.max(3, 9 - dados.dia * 0.6) + Math.random() * 3;
+    }
+    var mudou = false;
+    D.clientes.forEach(function (cl, i) {
+        if (!cl) return; cl.pac -= dt;
+        if (cl.pac <= 0) { voa('😡 Foi embora!', document.querySelectorAll('.cli')[i], '#ff5a5a'); D.clientes[i] = null; D.bravos++; som('bravo'); mudou = true; }
+    });
+    if (mudou) atualizaClientes();
+    if (D.tempo <= 0) fimDoDia();
+}
+var ult = performance.now(), acHud = 0;
+function loop(t) {
+    requestAnimationFrame(loop);
+    var dt = Math.min(0.1, (t - ult) / 1000); ult = t;
+    if (!D || D.fim || !document.getElementById('telaJogo').classList.contains('on')) return;
+    passo(dt);
+    acHud += dt; if (acHud > 0.25 && D && !D.fim) { acHud = 0; hud(); pintaPaciencia(); }
+}
+window.addEventListener('keydown', function (e) {
+    if (!D || D.fim) return;
+    var k = e.key.toLowerCase(), ings = disponiveis(INGS), mols = disponiveis(MOLHOS);
+    if (k >= '1' && k <= '9' && ings[+k - 1]) poeIng(ings[+k - 1].id);
+    var mi = 'qwe'.indexOf(k); if (mi >= 0 && mols[mi]) poeMolho(mols[mi].id);
+    if (k === ' ') { e.preventDefault(); if (D.forno) tiraDoForno(); else assar(); }
+    if (k === 'backspace' || k === 'delete') lixo();
+});
+
+/* ================= COMEÇO ================= */
+if (!localStorage.getItem(SAVE_KEY)) { salva(); abreComoJogar(); } else abreMenu();
+requestAnimationFrame(loop);
+window._pizzaTeste = { D: function () { return D; }, dados: function () { return dados; }, passo: passo, nota: nota, entrega: entrega };
+</script>
+<script src="/mascote.js"></script>
+<script src="/gamepad.js?v=358"></script>
+<script src="/idiomas.js"></script>
+<script src="/telacheia.js"></script>
+</body>
+</html>

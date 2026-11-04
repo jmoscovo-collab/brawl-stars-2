@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v614 (2026-11-04)
+- 🍕 Jogo novo LANÇADO: **Pizzaria Maluca**! Os clientes (Cogu, Polvo, Alien, Dino, Fantasma...) pedem pizzas doidas: molho de tomate, chocolate ou gosma verde, com queijo, abacaxi, bala, peixe, minhoca de goma, sorvete e até olho de geleia! Monte a pizza, asse no ponto (tire do forno no VERDE!) e entregue antes da paciência acabar. Cada dia tem uma meta e ingredientes novos, e tem a lojinha de Melhorias
+- 🐉 LANÇADO: Cria o seu Monstro agora está na página inicial!
+
 ## v613 (2026-11-04)
 - 🚀 LANÇADO: Cogumelo Espacial agora está na página inicial com o selo NOVO!
 

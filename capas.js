@@ -47,7 +47,7 @@
     blocos: ['espaco', 'blocos', ['bolinha', 'explosao', 'estrela']], lab: ['roxo', 'frasco', ['explosao', 'frasco:#ff5ad0', 'estrela']],
     trem: ['grama', 'trem', ['arvore', 'moeda', 'nuvem']], pinta: ['palco', 'pincel', ['paleta', 'estrela', 'cogu']],
     detetive: ['cidade', 'lupa', ['osso', 'interrogacao', 'estrela']], monstro: ['roxo', 'monstro', ['ovo', 'fogo', 'estrela']],
-    espacial: ['espaco', 'foguete', ['planeta', 'meteoro', 'alien']]
+    espacial: ['espaco', 'foguete', ['planeta', 'meteoro', 'alien']], pizzaria: ['cozinha', 'pizza', ['cogu', 'fogo', 'moeda']]
   };
   var CEN = { // [céu em cima, céu embaixo, chão, enfeite]
     ceu: ['#3aa0ff', '#bfe6ff', '#4cc44c', 'nuvens'], noite: ['#0b0420', '#3a1a5a', '#1e1530', 'lua'],
@@ -411,6 +411,7 @@
     },
     vara: function (g) { li(g, -50, 50, 30, -50, '#8a5a2a', 7); li(g, 30, -50, 44, 20, '#ccc', 2); g.beginPath(); g.arc(40, 24, 6, 0, Math.PI); g.stroke(); ci(g, 44, 10, 6, '#e83a3a'); ci(g, -30, 26, 9, '#3a3a4a'); },
     coroa: function (g) { po(g, [-44, 30, -48, -24, -24, 0, 0, -36, 24, 0, 48, -24, 44, 30], '#ffcc22'); re(g, -44, 22, 88, 14, '#ffcc22', 2); [-24, 0, 24].forEach(function (x, i) { ci(g, x, 29, 5, ['#e83a3a', '#3a8aff', '#3ac46a'][i]); }); ci(g, -48, -26, 6, '#fff'); ci(g, 48, -26, 6, '#fff'); ci(g, 0, -38, 6, '#fff'); },
+    pizza: function (g) { ci(g, 0, 0, 52, '#e8a848'); ci(g, 0, 0, 42, '#d8321a'); [[-18, -16], [16, -20], [22, 12], [-8, 22], [-24, 8], [4, -2]].forEach(function (p, i) { ci(g, p[0], p[1], 8, i % 2 ? '#ffd84a' : '#c83a2a'); }); },
     melancia: function (g) { g.beginPath(); g.arc(0, -10, 50, 0, Math.PI); g.closePath(); pinta(g, '#3ab84a'); g.beginPath(); g.arc(0, -10, 42, 0, Math.PI); g.closePath(); pinta(g, '#ff4a6a'); [[-20, 6], [0, 14], [20, 6], [-8, 24], [10, 24]].forEach(function (p) { el(g, p[0], p[1], 3, 5, '#1e1a2a'); }); },
     coracao: function (g) { g.beginPath(); g.moveTo(0, 42); g.bezierCurveTo(-60, 0, -40, -54, 0, -24); g.bezierCurveTo(40, -54, 60, 0, 0, 42); pinta(g, '#ff3a6a'); brilho(g, -20, -22, 9); },
     salsicha: function (g) { g.rotate(-.3); re(g, -50, -12, 100, 24, '#c84a2a', 12); g.beginPath(); g.moveTo(-36, -2); g.quadraticCurveTo(-18, -10, 0, -2); g.quadraticCurveTo(18, 6, 36, -2); g.strokeStyle = '#ffd23a'; g.lineWidth *= 1.4; g.stroke(); g.lineWidth /= 1.4; },
