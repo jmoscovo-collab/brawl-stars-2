@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v609 (2026-11-04)
+- 🎨 Capa nova desenhada pro Cogumelo Detetive: o Cogu de chapéu e lupa na frente do museu, numa noite de tempestade com raio e chuva
+
 ## v608 (2026-11-03)
 - 🚀 LANÇADO: Cogumelo Detetive 3D agora está na página inicial com o selo NOVO!
 

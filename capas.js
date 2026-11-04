@@ -4,7 +4,7 @@
    Cenários: ceu noite mar espaco cidade deserto grama arena cozinha palco caverna roxo pista praia.
    Pra usar um desenho pronto (svg/jpg) em vez do gerado: coloque em FOTOS. */
 (function () {
-  var FOTOS = { voador: '/fotos/voador.svg?v=2' };
+  var FOTOS = { voador: '/fotos/voador.svg?v=2', 'cogumelo-detetive': '/fotos/cogumelo-detetive.svg?v=1' };
   var CAPAS = {
     cogucoins: ['palco', '🍄', '⭐💰🎁'], comunidade: ['ceu', '🏗️', '🧱🎮🍄'], brawl: ['arena', '🤖', '💥⭐🍄'],
     capivara: ['grama', '§', '🐾🌳⭐'], clicker: ['roxo', '🍄', '👆✨⭐'], corrida: ['pista', '🏎️', '🏁💨🏆'],
