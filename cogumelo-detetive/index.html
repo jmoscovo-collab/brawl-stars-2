@@ -42,6 +42,27 @@
   #hud { position:fixed; top:0; left:0; right:0; z-index:40; display:none; justify-content:space-between; align-items:flex-start;
          padding:10px; pointer-events:none; }
   #hud.on { display:flex; }
+  #hud .lado:first-child { margin-top:44px; }
+  #relogio { position:fixed; top:10px; left:10px; z-index:45; display:none; background:rgba(0,0,0,.6); border:2px solid #ffd84a;
+             border-radius:14px; padding:5px 12px; font-size:18px; font-weight:bold; color:#ffe58a; font-variant-numeric:tabular-nums; }
+  #relogio.on { display:block; }
+  #cartaoCidade { position:fixed; inset:0; z-index:48; display:none; flex-direction:column; align-items:center; justify-content:center;
+                  background:radial-gradient(circle, rgba(0,0,0,.55), rgba(0,0,0,.2) 70%); pointer-events:none; text-align:center; padding:16px; }
+  #cartaoCidade.on { display:flex; animation:cidadeEntra 3.4s ease forwards; }
+  #cartaoCidade .dia { font-size:20px; color:#ffe58a; letter-spacing:4px; font-weight:bold; }
+  #cartaoCidade .nome { font-size:clamp(34px,9vw,64px); color:#fff; font-weight:bold; text-shadow:0 4px 0 #3a2208, 0 0 30px rgba(255,210,80,.7); margin:6px 0; }
+  #cartaoCidade .sub { font-size:16px; color:#dceccf; max-width:520px; }
+  @keyframes cidadeEntra { 0%{opacity:0; transform:scale(1.25)} 15%{opacity:1; transform:scale(1)} 85%{opacity:1} 100%{opacity:0} }
+  #legenda { position:fixed; left:50%; bottom:70px; transform:translateX(-50%); z-index:47; display:none; background:rgba(0,0,0,.72);
+             border:2px solid #ffd84a; border-radius:16px; padding:10px 18px; font-size:18px; max-width:90vw; text-align:center; pointer-events:none; }
+  #legenda.on { display:block; animation:toastIn .25s ease; }
+  #pular { position:fixed; right:12px; bottom:12px; z-index:47; display:none; background:rgba(0,0,0,.6); border-radius:12px;
+           padding:8px 12px; font-size:13px; color:#ddd; pointer-events:none; }
+  #pular.on { display:block; }
+  #pular .barra { height:6px; background:rgba(255,255,255,.2); border-radius:3px; margin-top:5px; overflow:hidden; }
+  #pularBarra { height:100%; width:0; background:#ffd84a; }
+  #btnSairCasa { position:fixed; top:10px; right:10px; z-index:47; display:none; }
+  #fade { position:fixed; inset:0; z-index:49; background:#000; opacity:0; pointer-events:none; transition:opacity .45s; }
   #hud .lado { display:flex; flex-direction:column; gap:6px; pointer-events:auto; }
   #localAtual { background:rgba(0,0,0,.55); border-radius:14px; padding:6px 14px; font-size:14px; font-weight:bold; color:#ffe58a; }
   .hud-btn { border:none; border-radius:14px; padding:9px 14px; font-size:14px; font-weight:bold; cursor:pointer;
@@ -124,8 +145,10 @@
   <h1>🔍 Cogumelo Detetive</h1>
   <p class="quote">"A luz apagou. O cogumelo sumiu. E todo mundo tem um segredo. Cabe a você, Cogu, descobrir a verdade!"</p>
   <div class="painel-box">
+    <p id="tituloDia" style="font-size:15px; color:#ffe58a; margin-bottom:8px"></p>
     <button class="btn ouro" id="btnComecar">▶ COMEÇAR O CASO</button>
     <br>
+    <button class="btn pequeno" id="btnCasa" style="background:linear-gradient(135deg,#b07a3a,#6a4418); box-shadow:0 5px 0 #3a2208">🏠 CASA DO DETETIVE</button>
     <button class="btn roxo pequeno" id="btnLoja">🛒 LOJA DO COGU</button>
     <button class="btn pequeno" id="btnComoJogar">❓ COMO JOGAR</button>
   </div>
@@ -182,6 +205,16 @@
 
 <div id="acoesContexto"></div>
 <div id="toasts"></div>
+
+<!-- relógio do jogo (canto de cima, à esquerda) -->
+<div id="relogio">🕐 19:00</div>
+<!-- nome da cidade antes de começar o caso -->
+<div id="cartaoCidade"><div class="dia" id="ccDia"></div><div class="nome" id="ccNome"></div><div class="sub" id="ccSub"></div></div>
+<!-- cenas: legenda, segurar pra pular, escurecer -->
+<div id="legenda"></div>
+<div id="pular"><span id="pularTxt">Segure X (ou segure a tela) pra pular</span><div class="barra"><div id="pularBarra"></div></div></div>
+<button class="btn pequeno" id="btnSairCasa">⬅ VOLTAR</button>
+<div id="fade"></div>
 
 <!-- controles de toque -->
 <div id="touchControles">
@@ -332,9 +365,38 @@ var ITENS_LOJA = [
 
 // ===================== PROGRESSO (localStorage) =====================
 
+// ===================== DIAS / CIDADES / RELÓGIO =====================
+// cada dia (fase) é um caso numa cidade nova; o bloquinho na casa do detetive conta os dias
+
+var CIDADES = [
+  { nome:'Vila Cogumelo',       emoji:'🍄', clima:'chuva',   txt:'🌧️ Noite de tempestade' },
+  { nome:'Rua das Amoras',      emoji:'🫐', clima:'limpo',   txt:'✨ Noite estrelada' },
+  { nome:'Cidade Orvalho',      emoji:'💧', clima:'neblina', txt:'🌫️ Neblina bem fechada' },
+  { nome:'Vale dos Fungos',     emoji:'⛰️', clima:'neve',    txt:'❄️ Nevando' },
+  { nome:'Porto Musgo',         emoji:'⚓', clima:'garoa',   txt:'🌦️ Garoa fininha' },
+  { nome:'Morro do Champignon', emoji:'🌄', clima:'limpo',   txt:'✨ Noite estrelada' },
+  { nome:'Bairro Shiitake',     emoji:'🏮', clima:'chuva',   txt:'🌧️ Noite de tempestade' },
+  { nome:'Lagoa das Trufas',    emoji:'🐸', clima:'neblina', txt:'🌫️ Neblina bem fechada' }
+];
+function cidadeDoDia(d){
+  var c = CIDADES[(d-1) % CIDADES.length], volta = Math.floor((d-1) / CIDADES.length);
+  return { nome: c.nome + (volta ? ' ' + (volta+1) : ''), emoji:c.emoji, clima:c.clima, txt:c.txt, dia:d };
+}
+var HORA_INICIO = 19*60;                     // todo caso começa às 19:00; 1 segundo de verdade = 1 minuto no jogo
+function horaTexto(m){
+  m = ((Math.round(m) % 1440) + 1440) % 1440;
+  var h = Math.floor(m/60), mi = m % 60;
+  return (h<10?'0':'') + h + ':' + (mi<10?'0':'') + mi;
+}
+function mostraHora(m){ document.getElementById('relogio').textContent = '🕐 ' + horaTexto(m); }
+function relogioVisivel(v){ document.getElementById('relogio').classList.toggle('on', !!v); }
+setInterval(function(){
+  if(jogando() && !pausado()){ estado.minutos += 1; mostraHora(estado.minutos); }
+}, 1000);
+
 var CHAVE_PROGRESSO = 'cogumelo_detetive_progress';
 function progressoPadrao(){
-  return { moedas:0, estrelas:0, resolvidos:{facil:0,medio:0,dificil:0},
+  return { moedas:0, estrelas:0, resolvidos:{facil:0,medio:0,dificil:0}, dia:1,
     itens:['chapeu_pardo','lupa_prata','casaco_verde'],
     equip:{ chapeu:'chapeu_pardo', lupa:'lupa_prata', casaco:'casaco_verde' } };
 }
@@ -575,18 +637,28 @@ document.getElementById('btnConfirmSim').onclick = function(){
   resolveCaso(acusadoPendente);
 };
 
+var ultimoAcerto = false;
+// roda uma cena do 3D (casa / ônibus); se o 3D não carregou, segue direto
+function cena3D(nome, dados, depois){
+  if(window.DET3D && window.DET3D[nome]) window.DET3D[nome](dados, depois);
+  else depois();
+}
 function resolveCaso(acusadoId){
   var acertou = acusadoId === estado.culpadoId;
   var culpado = suspeitoPorId(estado.culpadoId);
+  ultimoAcerto = acertou;
   document.getElementById('hud').classList.remove('on');
   document.getElementById('touchControles').classList.remove('on');
-  setSaldoTopoVisivel(true);
+  document.getElementById('acoesContexto').innerHTML = '';
+  acoesAtuais = [];
 
   if(acertou){
     var dif = DIFICULDADES[estado.dificuldade];
+    var diaFeito = progresso.dia || 1;
     progresso.estrelas += dif.estrelas;
     progresso.moedas += dif.moedas;
     progresso.resolvidos[estado.dificuldade] = (progresso.resolvidos[estado.dificuldade]||0) + 1;
+    progresso.dia = diaFeito + 1;
     salvarProgresso();
     if(window.CoguCoins) window.CoguCoins.ganha(dif.coins);
 
@@ -598,9 +670,19 @@ function resolveCaso(acusadoId){
       'Era ' + culpado.nome + ' mesmo! ' + culpado.pista + ' ' + encurralado + ', ' + culpado.nome +
       ' confessa: ' + elaEle + ' achou que, escondendo o Cogumelo Lendário um tempinho, toda aquela sorte ia ser só ' +
       (culpado.genero === 'f' ? 'dela' : 'dele') + '. ' +
-      'O Cogumelo Lendário ✨ volta pro museu bem a tempo da festa, e a Vila Cogumelo inteira comemora o detetive Cogu! 🎉';
+      'O Cogumelo Lendário ✨ volta pro museu bem a tempo da festa, e ' + cidadeDoDia(diaFeito).nome + ' inteira comemora o detetive Cogu! 🎉';
     document.getElementById('fimRecompensa').textContent =
       '+' + dif.estrelas + ' ⭐  +' + dif.moedas + ' 🪙  +' + dif.coins + ' 🍄 Cogu Coins';
+    document.getElementById('btnNovoCaso').textContent = '🚌 PRÓXIMO DIA';
+    // o Cogu volta pra casa, arranca a folha do dia, olha o relógio e vai dormir
+    cena3D('cenaCasa', { dia: diaFeito, proxDia: progresso.dia, cidade: cidadeDoDia(diaFeito).nome,
+                         proxCidade: cidadeDoDia(progresso.dia).nome, hora: estado.minutos + 25,
+                         resolvidos: progresso.resolvidos.medio || 0 }, function(){
+      relogioVisivel(false);
+      setSaldoTopoVisivel(true);
+      document.getElementById('telaFim').classList.add('on');
+    });
+    return;
   } else {
     var acusado = suspeitoPorId(acusadoId);
     document.getElementById('fimIcone').textContent = '😢';
@@ -609,14 +691,33 @@ function resolveCaso(acusadoId){
       acusado.nome + ' não tinha nada a ver com isso! Enquanto isso, o verdadeiro culpado, ' + culpado.nome +
       ', aproveitou a confusão e fugiu pelo rio antes do amanhecer. A pista era: ' + culpado.pista;
     document.getElementById('fimRecompensa').textContent = '';
+    document.getElementById('btnNovoCaso').textContent = '🔁 TENTAR DE NOVO';
   }
+  relogioVisivel(false);
+  setSaldoTopoVisivel(true);
   document.getElementById('telaFim').classList.add('on');
 }
 
 document.getElementById('btnNovoCaso').onclick = function(){
   document.getElementById('telaFim').classList.remove('on');
-  iniciarJogo(estado.dificuldade);
+  setSaldoTopoVisivel(false);
+  // acertou: pega o ônibus pra próxima cidade; errou: tenta o mesmo dia de novo
+  if(ultimoAcerto) cena3D('cenaOnibus', { cidade: cidadeDoDia(progresso.dia) }, comecaDia);
+  else comecaDia();
 };
+
+// mostra o nome da cidade e só depois começa a entrevista
+function comecaDia(){
+  var c = cidadeDoDia(progresso.dia || 1);
+  if(window.DET3D) window.DET3D.cidade(c);
+  setSaldoTopoVisivel(false);
+  document.getElementById('ccDia').textContent = '📅 DIA ' + c.dia;
+  document.getElementById('ccNome').textContent = c.emoji + ' ' + c.nome;
+  document.getElementById('ccSub').textContent = c.txt + ' — o Cogumelo Lendário daqui sumiu! Hora de investigar.';
+  var cc = document.getElementById('cartaoCidade');
+  cc.classList.remove('on'); void cc.offsetWidth; cc.classList.add('on');
+  setTimeout(function(){ cc.classList.remove('on'); iniciarJogo('medio'); }, 3400);
+}
 document.getElementById('btnMenuFim').onclick = function(){
   document.getElementById('telaFim').classList.remove('on');
   voltaMenu();
@@ -626,9 +727,18 @@ function voltaMenu(){
   document.getElementById('hud').classList.remove('on');
   document.getElementById('touchControles').classList.remove('on');
   document.getElementById('acoesContexto').innerHTML = '';
+  acoesAtuais = [];
+  player.dentro = null;
+  relogioVisivel(false);
+  atualizaTituloDia();
   document.getElementById('telaTitulo').classList.add('on');
   setSaldoTopoVisivel(true);
 }
+function atualizaTituloDia(){
+  var c = cidadeDoDia(progresso.dia || 1);
+  document.getElementById('tituloDia').textContent = '📅 Dia ' + c.dia + ' — próxima cidade: ' + c.emoji + ' ' + c.nome;
+}
+atualizaTituloDia();
 function setSaldoTopoVisivel(v){
   document.getElementById('saldoTopo').style.display = v ? '' : 'none';
 }
@@ -637,7 +747,18 @@ function setSaldoTopoVisivel(v){
 
 document.getElementById('btnComecar').onclick = function(){
   document.getElementById('telaTitulo').classList.remove('on');
-  iniciarJogo('medio');
+  comecaDia();
+};
+// visitar a casa do detetive: o bloquinho mostra em que dia ele está
+document.getElementById('btnCasa').onclick = function(){
+  if(!window.DET3D) return;
+  document.getElementById('telaTitulo').classList.remove('on');
+  setSaldoTopoVisivel(false);
+  window.DET3D.verCasa({ dia: progresso.dia || 1, cidade: cidadeDoDia(progresso.dia || 1).nome,
+                         resolvidos: progresso.resolvidos.medio || 0 }, function(){
+    document.getElementById('telaTitulo').classList.add('on');
+    setSaldoTopoVisivel(true);
+  });
 };
 document.getElementById('btnComoJogar').onclick = function(){
   document.getElementById('telaTitulo').classList.remove('on');
@@ -708,8 +829,10 @@ atualizaSaldoTopo();
 var MUNDO_LARG = 70, MUNDO_PROF = 60;
 function posLocal(l){ return { x:(l.fx-0.5)*MUNDO_LARG, y:(l.fy-0.5)*MUNDO_PROF }; }
 
-var player = { x:0, y:24, raio:0.6 };
-function posicaoInicialJogador(){ player.x = 0; player.y = 24; }
+var player = { x:0, y:24, raio:0.6, dentro:null };      // dentro = 'museu' quando está lá dentro
+function posicaoInicialJogador(){ player.x = 0; player.y = 24; player.dentro = null; }
+// porta do museu: lá fora (vila) e lá dentro (a sala fica longe, em x = 200)
+var PORTAS = { museuFora:{ x:0, y:-12.2 }, museuDentro:{ x:200, y:6.3 } };
 var teclas = { cima:false, baixo:false, esq:false, dir:false };
 
 window.addEventListener('keydown', function(e){
@@ -755,7 +878,8 @@ function atualiza(){
 
 function atualizaLocalAtual(){
   var atual = null, melhor = 10;                  // o lugar mais perto (até 10 m)
-  Object.keys(LOCAIS).forEach(function(id){
+  if(player.dentro) atual = player.dentro;
+  else Object.keys(LOCAIS).forEach(function(id){
     var p = posLocal(LOCAIS[id]);
     var d = distancia(player.x,player.y,p.x,p.y);
     if(d < melhor){ melhor = d; atual = id; }
@@ -763,8 +887,8 @@ function atualizaLocalAtual(){
   if(atual !== localAtualId){
     localAtualId = atual;
     var el = document.getElementById('localAtual');
-    if(atual) el.textContent = LOCAIS[atual].emoji + ' ' + LOCAIS[atual].nome;
-    else el.textContent = '🍄 Vila Cogumelo';
+    if(atual) el.textContent = LOCAIS[atual].emoji + ' ' + LOCAIS[atual].nome + (player.dentro ? ' (dentro)' : '');
+    else el.textContent = '🏘️ ' + cidadeDoDia(progresso.dia || 1).nome;
   }
 }
 
@@ -772,8 +896,19 @@ var acoesAtuais = [];
 function atualizaAcoesContexto(){
   var box = document.getElementById('acoesContexto');
   var novas = [];
-  if(localAtualId){
-    novas.push({ tipo:'examinar', label:'🔍 Examinar ' + LOCAIS[localAtualId].nome, fn:function(){ examinarLocal(localAtualId); } });
+  if(player.dentro === 'museu'){
+    // dentro do museu: examina a vitrine e sai pela porta
+    novas.push({ tipo:'examinar', label:'🔍 Examinar o museu por dentro', fn:function(){ examinarLocal('museu'); } });
+    var pd = PORTAS.museuDentro;
+    if(distancia(player.x,player.y, pd.x, pd.y) < 2.6)
+      novas.push({ tipo:'porta', label:'🚪 Sair do Museu', fn:function(){ if(window.DET3D) window.DET3D.saiMuseu(); } });
+  } else if(localAtualId){
+    // o museu só dá pra examinar lá dentro
+    if(localAtualId !== 'museu')
+      novas.push({ tipo:'examinar', label:'🔍 Examinar ' + LOCAIS[localAtualId].nome, fn:function(){ examinarLocal(localAtualId); } });
+    var pf = PORTAS.museuFora;
+    if(localAtualId === 'museu' && distancia(player.x,player.y, pf.x, pf.y) < 3)
+      novas.unshift({ tipo:'porta', label:'🚪 Entrar no Museu', fn:function(){ if(window.DET3D) window.DET3D.entraMuseu(); } });
     suspeitosNoLocal(localAtualId).forEach(function(s){
       var p = pontoSuspeito(s);
       if(distancia(player.x,player.y, p.x, p.y) < 4){
@@ -798,12 +933,13 @@ function acionaPrimeiraAcao(){
   if(acoesAtuais.length > 0) acoesAtuais[0].fn();
 }
 
-// o suspeito fica na frente do lugar dele, virado pra praça
+// o suspeito fica na frente do lugar dele, virado pra praça (a guarda do museu fica do lado da porta)
 function pontoSuspeito(s){
   var p = posLocal(LOCAIS[s.local]);
   var d = Math.hypot(p.x, p.y);
   if(d < 1) return { x: p.x, y: p.y + 7 };
-  return { x: p.x - p.x/d*7, y: p.y - p.y/d*7 };
+  var lado = s.local === 'museu' ? 3.8 : 0;
+  return { x: p.x - p.x/d*7 + lado, y: p.y - p.y/d*7 };
 }
 
 function itemCor(tipo, id){
@@ -818,7 +954,10 @@ window.DET = {
   ativos: function(){ return estado ? estado.ativos : []; },
   visitado: function(id){ return !!(estado && estado.visitados[id]); },
   localAtual: function(){ return localAtualId; },
-  cores: function(){ return { chapeu:itemCor('chapeu', progresso.equip.chapeu), casaco:itemCor('casaco', progresso.equip.casaco), lupa:itemCor('lupa', progresso.equip.lupa) }; }
+  cores: function(){ return { chapeu:itemCor('chapeu', progresso.equip.chapeu), casaco:itemCor('casaco', progresso.equip.casaco), lupa:itemCor('lupa', progresso.equip.lupa) }; },
+  PORTAS: PORTAS,
+  culpadoId: function(){ return estado ? estado.culpadoId : null; },
+  mostraHora: mostraHora, relogioVisivel: relogioVisivel, horaTexto: horaTexto
 };
 
 
@@ -826,8 +965,12 @@ window.DET = {
 
 function iniciarJogo(dificuldade){
   novoCaso(dificuldade);
+  estado.minutos = HORA_INICIO;
+  mostraHora(estado.minutos);
+  relogioVisivel(true);
   posicaoInicialJogador();
   localAtualId = null;
+  document.getElementById('localAtual').textContent = '🏘️ ' + cidadeDoDia(progresso.dia || 1).nome;
   acoesAtuais = [];
   document.getElementById('acoesContexto').innerHTML = '';
   document.getElementById('hud').classList.add('on');
@@ -847,9 +990,9 @@ import { THREE, criaCena, carregaModelo } from '/cg3d.js';
 
 const D = window.DET;
 const CELULAR = matchMedia('(pointer:coarse)').matches || ('ontouchstart' in window);
-const cena = criaCena({ canvas: document.getElementById('jogo'), container: document.getElementById('mundo'),
+const cena3d = criaCena({ canvas: document.getElementById('jogo'), container: document.getElementById('mundo'),
   ceu: 'noite', sombras: !CELULAR, pixelRatioMax: 1.5 });
-const { scene, camera, renderer, luzSol: lua, luzAmbiente } = cena;
+const { scene, camera, renderer, luzSol: lua, luzAmbiente } = cena3d;
 scene.environment = null;                       // sem reflexo de "estúdio": é noite
 scene.fog = new THREE.Fog('#0c1626', 20, 80);
 renderer.toneMappingExposure = 1.25;
@@ -858,7 +1001,7 @@ Object.assign(lua.shadow.camera, { left:-45, right:45, top:45, bottom:-45, far:1
 lua.shadow.camera.updateProjectionMatrix();
 luzAmbiente.color.set('#5a6a9a'); luzAmbiente.groundColor.set('#2a2418'); luzAmbiente.intensity = 1.0;
 const relampago = new THREE.DirectionalLight('#dfe8ff', 0); relampago.position.set(10, 50, 20); scene.add(relampago);
-camera.far = 300; camera.updateProjectionMatrix();
+camera.far = 520; camera.updateProjectionMatrix();     // o céu é uma esfera de raio 400 que segue a câmera
 
 // ---------- texturas feitas no canvas ----------
 function texCanvas(tam, desenha, rep){
@@ -987,6 +1130,7 @@ function rotulo(txt, cor = '#ffe58a', larg = 4.2){
 
 // poste de ferro com lampião de vidro e luz quente de verdade (no celular, menos luzes pra não pesar)
 let luzesPostes = 0;
+const luzesFora = [], luzesMuseu = [], luzesCasa = [];   // cada lugar acende só as suas luzes
 const ferro = mat('#24262c', { metalness: .7, roughness: .45 });
 const vidroPoste = new THREE.MeshStandardMaterial({ color: '#ffe2a0', emissive: '#ffb050', emissiveIntensity: 1.6 });
 function poste(x, z){
@@ -1000,7 +1144,7 @@ function poste(x, z){
   colide(x - .25, z - .25, x + .25, z + .25);
   if(luzesPostes < (CELULAR ? 4 : 9)){
     luzesPostes++;
-    const l = new THREE.PointLight('#ffb560', 30, 16, 1.6); l.position.set(x, 3.9, z); scene.add(l);
+    const l = new THREE.PointLight('#ffb560', 30, 16, 1.6); l.position.set(x, 3.9, z); scene.add(l); luzesFora.push(l);
   }
 }
 
@@ -1096,12 +1240,12 @@ async function montaLugares(){
     lanterna.add(malha(new THREE.CylinderGeometry(.14, .14, .7, 12), mat('#2a2a30', { metalness: .6, roughness: .4 })));
     lanterna.add(malha(new THREE.CylinderGeometry(.22, .14, .22, 12), mat('#9aa0a8', { metalness: .8, roughness: .3 }), 0, .45, 0));
     const feixe = new THREE.SpotLight('#fff2c0', 18, 9, .45, .6); feixe.position.set(3.5, .25, 6.2); feixe.target.position.set(6.5, 0, 7.5);
-    scene.add(lanterna, feixe, feixe.target);
+    scene.add(lanterna, feixe, feixe.target); luzesFora.push(feixe);
     lugares.praca = { altura: 5 };
   }
   // postes perto de cada lugar
-  for(const id of ['museu','forca','padaria','rio','pousada']){ const p = P(id); poste(p.x*.62 + 2.2, p.z*.62); }
-  poste(-3, 9.5); poste(3, -9.5); poste(2.4, 20);
+  for(const id of ['forca','padaria','rio','pousada']){ const p = P(id); poste(p.x*.62 + 2.2, p.z*.62); }
+  poste(7, -12.6); poste(-3, 9.5); poste(-3.2, -9.3); poste(2.4, 20);
 
   // placas com o nome + lupa flutuando onde ainda não examinou
   for(const id in D.LOCAIS){
@@ -1173,6 +1317,7 @@ function olho(r, x, y, z, g){
 const cogu = new THREE.Group(); scene.add(cogu);
 const coguMat = { casaco: flat('#3f8f5a'), chapeu: flat('#8a5a2b'), lupa: mat('#cfd8e3', { metalness: .9, roughness: .25 }) };
 const pernas = [];
+const bracoCogu = new THREE.Group();
 {
   for(const lx of [-.22, .22]){
     const perna = new THREE.Group(); perna.position.set(lx, .7, 0);
@@ -1197,7 +1342,7 @@ const pernas = [];
   cogu.add(malha(new THREE.CylinderGeometry(.34, .4, .42, 16), coguMat.chapeu, 0, 3.04, 0));
   cogu.add(malha(new THREE.CylinderGeometry(.405, .405, .1, 16), flat('#2a1a10'), 0, 2.9, 0));
   // braço com a lupa
-  const braco = new THREE.Group(); braco.position.set(.55, 1.5, .1); braco.rotation.x = -.9;
+  const braco = bracoCogu; braco.position.set(.55, 1.5, .1); braco.rotation.x = -.9;
   braco.add(malha(new THREE.CylinderGeometry(.1, .1, .6, 8), coguMat.casaco, 0, -.3, 0));
   const lupa = new THREE.Group(); lupa.position.set(0, -.75, 0);
   lupa.add(malha(new THREE.CylinderGeometry(.04, .04, .35, 6), flat('#4a2e1a'), 0, .1, 0));
@@ -1320,20 +1465,556 @@ function trovao(){
   src.connect(f); f.connect(g); g.connect(ac.destination); src.start();
 }
 
+// ---------- céu, estrelas e clima de cada cidade ----------
+const ceu = scene.getObjectByName('ceu');
+const estrelas = (() => {
+  const n = 700, p = new Float32Array(n*3);
+  for(let i = 0; i < n; i++){
+    const a = Math.random()*Math.PI*2, b = .12 + Math.random()*1.35, r = 250;
+    p.set([Math.cos(a)*Math.cos(b)*r, Math.sin(b)*r, Math.sin(a)*Math.cos(b)*r], i*3);
+  }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  return new THREE.Points(geo, new THREE.PointsMaterial({ color: '#ffffff', size: 2, sizeAttenuation: false, fog: false, transparent: true, opacity: .85 }));
+})();
+estrelas.visible = false; scene.add(estrelas);
+const texNeve = texCanvas(256, (g, s) => {
+  g.fillStyle = '#dde5f0'; g.fillRect(0, 0, s, s);
+  for(let i = 0; i < 2200; i++){ g.fillStyle = Math.random() < .6 ? 'rgba(255,255,255,.8)' : 'rgba(160,175,205,.45)'; g.fillRect(Math.random()*s, Math.random()*s, 1 + Math.random()*3, 1 + Math.random()*2); }
+}, 24);
+const CLIMAS = {
+  chuva:   { ceu: ['#050818', '#1a1f4a'], nevoa: ['#0c1626', 20, 80],  lua: 1.1, amb: 1.0,  gota: 'chuva', raios: true },
+  garoa:   { ceu: ['#0a1020', '#2a3050'], nevoa: ['#18202e', 18, 75],  lua: 1.0, amb: 1.05, gota: 'garoa' },
+  limpo:   { ceu: ['#02040f', '#1c2860'], nevoa: ['#0e1830', 35, 120], lua: 1.5, amb: 1.0,  gota: null, estrelas: true },
+  neblina: { ceu: ['#1a2230', '#46525e'], nevoa: ['#3a4652', 6, 40],   lua: .8,  amb: 1.25, gota: null },
+  neve:    { ceu: ['#121a2e', '#5a6a8a'], nevoa: ['#6a7690', 16, 70],  lua: 1.2, amb: 1.3,  gota: 'neve', chao: 'neve' }
+};
+let clima = CLIMAS.chuva;
+function aplicaCeu(topo, hor){ ceu.material.uniforms.topo.value.set(topo); ceu.material.uniforms.horizonte.value.set(hor); }
+function aplicaClima(c){
+  clima = c;
+  aplicaCeu(c.ceu[0], c.ceu[1]);
+  scene.fog.color.set(c.nevoa[0]); scene.fog.near = c.nevoa[1]; scene.fog.far = c.nevoa[2];
+  lua.color.set('#a8bcff'); luzAmbiente.color.set('#5a6a9a');
+  chao.material.map = c.chao === 'neve' ? texNeve : texGrama; chao.material.needsUpdate = true;
+  const pos = gotasGeo.attributes.position.array, comp = c.gota === 'neve' ? .12 : .7;
+  for(let i = 0; i < NGOTAS; i++){ const j = i*6; pos[j+3] = pos[j] + (c.gota === 'neve' ? 0 : .08); pos[j+4] = pos[j+1] - comp; pos[j+5] = pos[j+2]; }
+  chuva.material.color.set(c.gota === 'neve' ? '#ffffff' : '#9fb6d8');
+  chuva.material.opacity = c.gota === 'neve' ? .9 : c.gota === 'garoa' ? .25 : .45;
+  luzesModo(modoLuz);
+}
+// placa de "bem-vindo" na entrada da cidade
+const placaCv = document.createElement('canvas'); placaCv.width = 512; placaCv.height = 256;
+const placaTex = new THREE.CanvasTexture(placaCv); placaTex.colorSpace = THREE.SRGBColorSpace;
+function escrevePlaca(nome){
+  const g = placaCv.getContext('2d');
+  g.fillStyle = '#7a4a22'; g.fillRect(0, 0, 512, 256);
+  for(let i = 0; i < 6; i++){ g.fillStyle = i % 2 ? '#6e421e' : '#84522a'; g.fillRect(0, i*43, 512, 40); }
+  g.strokeStyle = '#3a2210'; g.lineWidth = 14; g.strokeRect(7, 7, 498, 242);
+  g.fillStyle = '#ffe9b0'; g.textAlign = 'center'; g.font = 'bold 40px system-ui,sans-serif'; g.fillText('Bem-vindo a', 256, 90);
+  let tam = 64; g.font = `bold ${tam}px system-ui,sans-serif`;
+  while(g.measureText(nome).width > 470 && tam > 30){ tam -= 4; g.font = `bold ${tam}px system-ui,sans-serif`; }
+  g.fillText(nome, 256, 175);
+  placaTex.needsUpdate = true;
+}
+{
+  const g = new THREE.Group(); g.position.set(4.2, 0, 23); g.rotation.y = -.35;
+  for(const x of [-1.5, 1.5]) g.add(malha(new THREE.CylinderGeometry(.1, .12, 2.6, 8), mat('#4a2e16'), x, 1.3, 0));
+  g.add(malha(new THREE.BoxGeometry(3.4, 1.7, .12), mat('#5a3a1a'), 0, 2.1, -.02));
+  g.add(malha(new THREE.PlaneGeometry(3.3, 1.6), new THREE.MeshStandardMaterial({ map: placaTex, roughness: .8 }), 0, 2.1, .05, false));
+  scene.add(g); colide(2.6, 22.4, 5.8, 23.6);
+  escrevePlaca('Vila Cogumelo');
+}
+
+// ---------- luzes de cada lugar (só acende as do lugar onde a câmera está) ----------
+let modoLuz = 'fora';
+function luzesModo(m){
+  modoLuz = m;
+  for(const l of luzesFora) l.visible = m === 'fora';
+  for(const l of luzesMuseu) l.visible = m === 'museu';
+  for(const l of luzesCasa) l.visible = m === 'casa';
+  const fora = m === 'fora';
+  lua.intensity = fora ? clima.lua : m === 'onibus' ? 2.4 : .25;
+  luzAmbiente.intensity = fora ? clima.amb : m === 'onibus' ? 1.7 : .55;
+  estrelas.visible = fora && !!clima.estrelas;
+  chuva.visible = fora && !!clima.gota;
+}
+
+// ---------- fade / legenda / pular ----------
+const fadeEl = document.getElementById('fade');
+function fade(v, instantaneo){
+  if(instantaneo){ fadeEl.style.transition = 'none'; fadeEl.style.opacity = v ? 1 : 0; void fadeEl.offsetWidth; fadeEl.style.transition = ''; }
+  else fadeEl.style.opacity = v ? 1 : 0;
+}
+const legendaEl = document.getElementById('legenda');
+function legenda(txt){ legendaEl.textContent = txt || ''; legendaEl.classList.toggle('on', !!txt); }
+const pularEl = document.getElementById('pular'), pularBarra = document.getElementById('pularBarra');
+let segurandoX = false, segurandoTela = false;
+addEventListener('keydown', e => { if(e.code === 'KeyX') segurandoX = true; });
+addEventListener('keyup', e => { if(e.code === 'KeyX') segurandoX = false; });
+addEventListener('pointerdown', () => { segurandoTela = true; });
+addEventListener('pointerup', () => { segurandoTela = false; });
+addEventListener('pointercancel', () => { segurandoTela = false; });
+addEventListener('blur', () => { segurandoX = segurandoTela = false; });
+
+// ---------- 🏛️ MUSEU POR DENTRO (a sala fica em x = 200) ----------
+const MX = 200;
+const colMuseu = [];
+const LIMM = { x1: MX - 8.3, x2: MX + 8.3, z1: -6.4, z2: 6.9 };
+function colideM(x1, z1, x2, z2){ colMuseu.push({ x1: MX + x1, x2: MX + x2, z1, z2 }); }
+const museuDentro = new THREE.Group(); museuDentro.position.set(MX, 0, 0); scene.add(museuDentro);
+const pistasMuseu = {};
+{
+  const G = museuDentro;
+  const texMarmore = texCanvas(256, (g, s) => {
+    for(let y = 0; y < 2; y++) for(let x = 0; x < 2; x++){
+      g.fillStyle = (x + y) % 2 ? '#2e2a2a' : '#e8e2d6'; g.fillRect(x*s/2, y*s/2, s/2, s/2);
+    }
+    g.strokeStyle = 'rgba(140,130,120,.35)'; g.lineWidth = 1.5;
+    for(let i = 0; i < 14; i++){ g.beginPath(); let x = Math.random()*s, y = Math.random()*s; g.moveTo(x, y);
+      for(let k = 0; k < 5; k++){ x += (Math.random() - .5)*60; y += Math.random()*40; g.lineTo(x, y); } g.stroke(); }
+  }, 1);
+  texMarmore.repeat.set(9, 7);
+  const piso = malha(new THREE.PlaneGeometry(18, 14), mat('#ffffff', { map: texMarmore, roughness: .25, metalness: .1 }), 0, .01, 0, false);
+  piso.rotation.x = -Math.PI/2; G.add(piso);
+  const vazio = malha(new THREE.PlaneGeometry(90, 90), mat('#07080c'), 0, -.05, 0, false); vazio.rotation.x = -Math.PI/2; G.add(vazio);
+  const parede = mat('#e4d6bc'), rodape = mat('#5a3a22'), sanca = mat('#cdbb98');
+  G.add(malha(new THREE.BoxGeometry(18.8, 6.5, .4), parede, 0, 3.25, -7.2));
+  for(const lx of [-9.2, 9.2]) G.add(malha(new THREE.BoxGeometry(.4, 6.5, 14.4), parede, lx, 3.25, 0));
+  G.add(malha(new THREE.BoxGeometry(18.8, 1.3, .1), rodape, 0, .65, -6.98));
+  for(const lx of [-8.98, 8.98]) G.add(malha(new THREE.BoxGeometry(.1, 1.3, 14.2), rodape, lx, .65, 0));
+  G.add(malha(new THREE.BoxGeometry(18.8, .35, .6), sanca, 0, 6.4, -6.9));
+  // frente baixinha (dá pra ver dentro) com o vão da porta
+  for(const lx of [-5.2, 5.2]) G.add(malha(new THREE.BoxGeometry(7.6, 1, .4), parede, lx, .5, 7.2));
+  for(const lx of [-1.5, 1.5]) G.add(malha(new THREE.BoxGeometry(.4, 1.2, .5), rodape, lx, .6, 7.2));
+  const tapete = malha(new THREE.PlaneGeometry(2.4, 7), mat('#8a1a22', { roughness: 1 }), 0, .02, 3.4, false); tapete.rotation.x = -Math.PI/2; G.add(tapete);
+
+  // pedestal no meio, com a vitrine quebrada e a almofada vazia
+  const pz = -1.6;
+  G.add(malha(new THREE.CylinderGeometry(.95, 1.1, 1.1, 24), mat('#4a4246', { roughness: .3 }), 0, .55, pz));
+  G.add(malha(new THREE.CylinderGeometry(.45, .5, .18, 18), mat('#9a1a2a', { roughness: 1 }), 0, 1.19, pz));
+  const vidro = new THREE.MeshStandardMaterial({ color: '#cfe8ff', transparent: true, opacity: .22, roughness: .02, metalness: .3, side: THREE.DoubleSide });
+  for(const [x, z, r] of [[0, -.7, 0], [.7, 0, Math.PI/2], [-.7, 0, Math.PI/2]]){ const v = malha(new THREE.PlaneGeometry(1.4, 1.2), vidro, x, 1.75, pz + z, false); v.rotation.y = r; G.add(v); }
+  const tampa = malha(new THREE.PlaneGeometry(1.4, 1.4), vidro, 0, 2.35, pz, false); tampa.rotation.x = -Math.PI/2; G.add(tampa);
+  const cacoMat = new THREE.MeshStandardMaterial({ color: '#dff0ff', transparent: true, opacity: .7, roughness: .02, metalness: .6 });
+  for(let i = 0; i < 26; i++){
+    const c = malha(new THREE.TetrahedronGeometry(.06 + Math.random()*.1), cacoMat, (Math.random() - .5)*2.4, .04, pz + .9 + Math.random()*1.4, false);
+    c.rotation.set(Math.random()*3, Math.random()*3, 0); c.scale.y = .3; G.add(c);
+  }
+  const plaquinha = rotulo('🍄 Cogumelo Lendário — SUMIU!', '#ff9a9a', 4.4); plaquinha.position.set(0, 3.3, pz); G.add(plaquinha);
+  // cordão de veludo em volta (a frente fica aberta pra chegar na vitrine)
+  const ouro = mat('#d8b040', { metalness: .9, roughness: .3 }), veludo = mat('#b0182a', { roughness: 1 });
+  const cantos = [[-2, pz - 2], [2, pz - 2], [2, pz + 2], [-2, pz + 2]];
+  for(const [x, z] of cantos){ G.add(malha(new THREE.CylinderGeometry(.06, .14, 1, 10), ouro, x, .5, z)); G.add(malha(new THREE.SphereGeometry(.09, 10, 8), ouro, x, 1.02, z)); }
+  for(let i = 0; i < 4; i++){
+    if(i === 2) continue;
+    const [x1, z1] = cantos[i], [x2, z2] = cantos[(i + 1) % 4];
+    const curva = new THREE.QuadraticBezierCurve3(new THREE.Vector3(x1, .95, z1), new THREE.Vector3((x1 + x2)/2, .62, (z1 + z2)/2), new THREE.Vector3(x2, .95, z2));
+    G.add(malha(new THREE.TubeGeometry(curva, 16, .035, 6), veludo));
+  }
+  colideM(-2.1, pz - 2.1, 2.1, pz + .9);
+  const spot = new THREE.SpotLight('#fff0d0', 60, 14, .42, .5, 1.4); spot.position.set(MX, 6.3, pz + 1); spot.target.position.set(MX, 1, pz);
+  scene.add(spot, spot.target); luzesMuseu.push(spot);
+
+  // quadros na parede do fundo
+  function quadroTex(tipo){
+    return texCanvas(256, (g, s) => {
+      if(tipo === 'cogumelo'){
+        g.fillStyle = '#3a6a3a'; g.fillRect(0, 0, s, s); g.fillStyle = '#f0e2c0'; g.fillRect(108, 130, 40, 90);
+        g.fillStyle = '#d0302a'; g.beginPath(); g.ellipse(128, 132, 82, 60, 0, Math.PI, 0); g.fill();
+        g.fillStyle = '#fff'; for(const [x, y] of [[96, 105], [140, 92], [170, 118], [118, 120]]){ g.beginPath(); g.arc(x, y, 9, 0, 7); g.fill(); }
+      } else if(tipo === 'lua'){
+        const gr = g.createLinearGradient(0, 0, 0, s); gr.addColorStop(0, '#0a1430'); gr.addColorStop(1, '#3a4a7a'); g.fillStyle = gr; g.fillRect(0, 0, s, s);
+        g.fillStyle = '#fff6d0'; g.beginPath(); g.arc(180, 70, 30, 0, 7); g.fill();
+        g.fillStyle = '#1a2a1a'; g.beginPath(); g.moveTo(0, 256); g.lineTo(0, 180); g.quadraticCurveTo(80, 120, 150, 190); g.quadraticCurveTo(210, 150, 256, 170); g.lineTo(256, 256); g.fill();
+      } else {
+        g.fillStyle = '#c8a46a'; g.fillRect(0, 0, s, s); g.fillStyle = '#a8603a'; g.beginPath(); g.arc(150, 140, 70, 0, 7); g.fill();
+        g.strokeStyle = '#7a3a1a'; g.lineWidth = 8; g.beginPath(); for(let a = 0; a < 12; a += .2){ const r = 62 - a*4.6; g.lineTo(150 + Math.cos(a)*r, 140 + Math.sin(a)*r); } g.stroke();
+        g.fillStyle = '#d8c878'; g.fillRect(40, 170, 120, 50); g.beginPath(); g.arc(60, 150, 28, 0, 7); g.fill();
+        g.strokeStyle = '#333'; g.lineWidth = 4; for(const x of [50, 72]){ g.beginPath(); g.arc(x, 146, 9, 0, 7); g.stroke(); }
+      }
+      g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 10; g.strokeRect(0, 0, s, s);
+    }, 1);
+  }
+  for(const [x, y, tipo, t] of [[-5.6, 3.4, 'lua', 2.6], [5.6, 3.4, 'retrato', 2.6], [0, 4.6, 'cogumelo', 1.9]]){
+    G.add(malha(new THREE.BoxGeometry(t + .3, t + .3, .12), ouro, x, y, -6.95, false));
+    G.add(malha(new THREE.PlaneGeometry(t, t), new THREE.MeshStandardMaterial({ map: quadroTex(tipo), roughness: .7 }), x, y, -6.88, false));
+  }
+  // janela alta quebrada (lá em cima, só quem voa alcança) e o buraquinho de rato
+  G.add(malha(new THREE.BoxGeometry(.15, 1.4, 1.8), rodape, -8.95, 5.2, -3.5, false));
+  const janela = malha(new THREE.PlaneGeometry(1.5, 1.1), new THREE.MeshStandardMaterial({ color: '#2a3a6a', emissive: '#1a2a5a', emissiveIntensity: 1 }), -8.85, 5.2, -3.5, false);
+  janela.rotation.y = Math.PI/2; G.add(janela);
+  for(let i = 0; i < 8; i++){ const c = malha(new THREE.TetrahedronGeometry(.08), cacoMat, -8.2 + Math.random()*.8, .04, -4.2 + Math.random()*1.4, false); c.scale.y = .3; G.add(c); }
+  const buraco = malha(new THREE.CircleGeometry(.28, 16, 0, Math.PI), mat('#050505'), -8.92, 0, 2.2, false); buraco.rotation.y = Math.PI/2; G.add(buraco);
+  // expositores dos lados: vaso, estátua, coroa e um fóssil de cogumelo
+  const base = mat('#d8ccb4', { roughness: .5 });
+  for(const [x, z] of [[-6.6, -3.6], [-6.6, 1.2], [6.6, -3.6], [6.6, 1.2]]){ G.add(malha(new THREE.BoxGeometry(1.2, 1.1, 1.2), base, x, .55, z)); colideM(x - .7, z - .7, x + .7, z + .7); }
+  const perfil = []; for(let i = 0; i <= 10; i++){ const t = i/10; perfil.push(new THREE.Vector2(.18 + Math.sin(t*Math.PI)*.32 + (t > .85 ? .08 : 0), t*1.1)); }
+  G.add(malha(new THREE.LatheGeometry(perfil, 20), mat('#2a6aa8', { roughness: .25, metalness: .2 }), -6.6, 1.1, -3.6));
+  poe('/assets/models/arena/statue.glb', { x: MX - 6.6, z: 1.2, altura: 1.6, y: 1.1, rot: Math.PI/2 });
+  const dourado = mat('#e8c040', { metalness: 1, roughness: .2, side: THREE.DoubleSide });
+  const coroa = new THREE.Group(); coroa.position.set(6.6, 1.35, -3.6);
+  coroa.add(malha(new THREE.CylinderGeometry(.32, .3, .3, 16, 1, true), dourado));
+  for(let i = 0; i < 6; i++){ const a = i/6*Math.PI*2; coroa.add(malha(new THREE.ConeGeometry(.07, .22, 6), dourado, Math.cos(a)*.3, .24, Math.sin(a)*.3));
+    coroa.add(malha(new THREE.SphereGeometry(.045, 8, 6), mat(['#d02040', '#2060d0', '#20a050'][i % 3], { roughness: .1 }), Math.cos(a)*.31, .05, Math.sin(a)*.31, false)); }
+  G.add(coroa);
+  G.add(malha(new THREE.SphereGeometry(.45, 14, 8, 0, Math.PI*2, 0, Math.PI/2), mat('#8a7a62', { roughness: 1 }), 6.6, 1.5, 1.2));
+  G.add(malha(new THREE.CylinderGeometry(.14, .2, .45, 10), mat('#7a6a52', { roughness: 1 }), 6.6, 1.3, 1.2));
+  for(const [x, z] of [[-8, -6], [8, -6], [-8, 5.6], [8, 5.6]]){ poe('/assets/models/furniture/pottedPlant.glb', { x: MX + x, z, altura: 1.5 }); colideM(x - .5, z - .5, x + .5, z + .5); }
+  for(const lx of [-4.5, 4.5]){ const l = new THREE.PointLight('#ffd8a0', 22, 16, 1.5); l.position.set(MX + lx, 5.4, 1.5); scene.add(l); luzesMuseu.push(l); }
+  // pista que o culpado deixou (só aparece depois de examinar o museu)
+  const pista = id => { const g = new THREE.Group(); g.visible = false; G.add(g); pistasMuseu[id] = g; return g; };
+  { const g = pista('capivara'); for(let i = 0; i < 7; i++){ const m = malha(new THREE.CircleGeometry(.12 + Math.random()*.15, 10), mat('#4a3418'), (Math.random() - .5)*1.6, .03, pz + 1 + Math.random()*1.2, false); m.rotation.x = -Math.PI/2; g.add(m); }
+    for(let i = 0; i < 4; i++) g.add(malha(new THREE.SphereGeometry(.05, 6, 4), mat('#7a5230'), -.4 + i*.25, 1.3, pz + .72, false)); }
+  { const g = pista('sapo'); const poca = malha(new THREE.CircleGeometry(.6, 18), mat('#5ab838', { roughness: .05, metalness: .2, transparent: true, opacity: .8 }), .3, .03, pz + 1.1, false); poca.rotation.x = -Math.PI/2; g.add(poca);
+    for(let i = 0; i < 8; i++){ const p = malha(new THREE.CircleGeometry(.14, 3), mat('#2a4a6a', { roughness: .05 }), (i % 2 ? .3 : -.3), .03, pz + 2 + i*.95, false); p.rotation.x = -Math.PI/2; g.add(p); } }
+  { const g = pista('coruja'); const pena = malha(new THREE.SphereGeometry(.18, 8, 6), mat('#8a8a90'), -7.6, .06, -3.4, false); pena.scale.set(.35, .08, 1.4); pena.rotation.y = .6; g.add(pena); }
+  { const g = pista('tico'); for(let i = 0; i < 26; i++){ const t = i/25; g.add(malha(new THREE.BoxGeometry(.07, .05, .07), mat('#d8a050'), -1.2 + (-7.6 + 1.2)*t + (Math.random() - .5)*.3, .03, pz + .8 + (2.2 - pz - .8)*t + (Math.random() - .5)*.3, false)); } }
+  { const g = pista('vovo'); const curva = new THREE.CatmullRomCurve3([new THREE.Vector3(0, .03, 6.5), new THREE.Vector3(.8, .03, 3.5), new THREE.Vector3(-.5, .03, 1.5), new THREE.Vector3(0, .03, pz + .95)]);
+    const rastro = malha(new THREE.TubeGeometry(curva, 40, .12, 4), new THREE.MeshStandardMaterial({ color: '#d8f0ff', emissive: '#6aa0c0', emissiveIntensity: .6, roughness: .05, metalness: .3 }), 0, 0, 0, false);
+    rastro.scale.y = .25; g.add(rastro); }
+  pista('raposa');
+}
+
+// ---------- 🏠 CASA DO DETETIVE (fica em x = 400) ----------
+const CX = 400;
+const casa = new THREE.Group(); casa.position.set(CX, 0, 0); scene.add(casa);
+let cama = { x: CX + 4.4, z: -2.6, topo: .7 };
+const folhaPivo = new THREE.Group();
+const folhaTopoMat = new THREE.MeshStandardMaterial({ roughness: .9, side: THREE.DoubleSide }), folhaBaixoMat = new THREE.MeshStandardMaterial({ roughness: .9 });
+const ponteiroHora = new THREE.Group(), ponteiroMin = new THREE.Group();
+const zzz = [];
+function folhaTex(dia, cidade, resolvidos){
+  const c = document.createElement('canvas'); c.width = 256; c.height = 340; const g = c.getContext('2d');
+  g.fillStyle = '#fbf6e6'; g.fillRect(0, 0, 256, 340);
+  g.strokeStyle = 'rgba(90,140,200,.25)'; g.lineWidth = 2; for(let y = 120; y < 340; y += 26){ g.beginPath(); g.moveTo(0, y); g.lineTo(256, y); g.stroke(); }
+  g.fillStyle = '#c8302a'; g.fillRect(0, 0, 256, 70);
+  g.fillStyle = '#fff'; g.font = 'bold 44px system-ui,sans-serif'; g.textAlign = 'center'; g.fillText('DIA', 128, 52);
+  g.fillStyle = '#2a2a2a'; g.font = 'bold 120px system-ui,sans-serif'; g.fillText(String(dia), 128, 196);
+  let tam = 26; g.font = `bold ${tam}px system-ui,sans-serif`; while(g.measureText(cidade).width > 236 && tam > 14){ tam -= 2; g.font = `bold ${tam}px system-ui,sans-serif`; }
+  g.fillStyle = '#4a3a2a'; g.fillText(cidade, 128, 248);
+  g.font = '20px system-ui,sans-serif'; g.fillStyle = '#6a5a4a'; g.fillText('casos resolvidos: ' + resolvidos, 128, 298);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+function poeFolhas(topo, baixo){
+  if(folhaTopoMat.map) folhaTopoMat.map.dispose(); if(folhaBaixoMat.map) folhaBaixoMat.map.dispose();
+  folhaTopoMat.map = folhaTex(topo.dia, topo.cidade, topo.resolvidos); folhaTopoMat.needsUpdate = true;
+  folhaBaixoMat.map = folhaTex(baixo.dia, baixo.cidade, baixo.resolvidos); folhaBaixoMat.needsUpdate = true;
+  folhaPivo.position.set(0, .56, .05); folhaPivo.rotation.set(0, 0, 0); folhaPivo.visible = true;
+}
+function setRelogio(m){
+  const h = (m/60) % 12, mi = m % 60;
+  ponteiroHora.rotation.z = -h/12*Math.PI*2; ponteiroMin.rotation.z = -mi/60*Math.PI*2;
+}
+{
+  const G = casa;
+  const texMadeira = texCanvas(256, (g, s) => {
+    for(let i = 0; i < 8; i++){ g.fillStyle = ['#8a5a32', '#7a4e2a', '#946238', '#82542e'][i % 4]; g.fillRect(0, i*32, s, 31);
+      g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(((i*97) % 200) + 20, i*32, 3, 31); }
+    g.strokeStyle = 'rgba(60,30,10,.25)'; for(let i = 0; i < 40; i++){ const y = Math.random()*s; g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(80, y + 4, 160, y - 4, s, y); g.stroke(); }
+  }, 1);
+  texMadeira.repeat.set(3, 3);
+  const piso = malha(new THREE.PlaneGeometry(12, 10), mat('#ffffff', { map: texMadeira, roughness: .6 }), 0, .01, 0, false); piso.rotation.x = -Math.PI/2; G.add(piso);
+  const vazio = malha(new THREE.PlaneGeometry(90, 90), mat('#07080c'), 0, -.05, 0, false); vazio.rotation.x = -Math.PI/2; G.add(vazio);
+  const texPapel = texCanvas(128, (g, s) => { g.fillStyle = '#3e5e4e'; g.fillRect(0, 0, s, s); g.fillStyle = '#365444'; for(let x = 0; x < s; x += 32) g.fillRect(x, 0, 14, s);
+    g.fillStyle = 'rgba(230,210,150,.35)'; for(let y = 16; y < s; y += 32) for(let x = 23; x < s; x += 32){ g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill(); } }, 1);
+  const papel = (rx, ry) => { const t = texPapel.clone(); t.needsUpdate = true; t.repeat.set(rx, ry); return mat('#ffffff', { map: t }); };
+  G.add(malha(new THREE.BoxGeometry(12.6, 5, .3), papel(6, 2.5), 0, 2.5, -5.15));
+  for(const lx of [-6.15, 6.15]) G.add(malha(new THREE.BoxGeometry(.3, 5, 10.6), papel(5, 2.5), lx, 2.5, 0));
+  const rodape = mat('#4a2e18');
+  G.add(malha(new THREE.BoxGeometry(12.6, .9, .1), rodape, 0, .45, -4.97));
+  for(const lx of [-5.97, 5.97]) G.add(malha(new THREE.BoxGeometry(.1, .9, 10.4), rodape, lx, .45, 0));
+  // janela com a lua lá fora
+  const texNoite = texCanvas(256, (g, s) => { const gr = g.createLinearGradient(0, 0, 0, s); gr.addColorStop(0, '#060c24'); gr.addColorStop(1, '#22306a'); g.fillStyle = gr; g.fillRect(0, 0, s, s);
+    g.fillStyle = '#fff'; for(let i = 0; i < 40; i++) g.fillRect(Math.random()*s, Math.random()*s*.7, 2, 2);
+    g.fillStyle = '#fff3c8'; g.beginPath(); g.arc(70, 70, 34, 0, 7); g.fill(); g.fillStyle = '#060c24'; g.beginPath(); g.arc(84, 60, 30, 0, 7); g.fill(); }, 1);
+  G.add(malha(new THREE.PlaneGeometry(2.4, 1.8), new THREE.MeshStandardMaterial({ map: texNoite, emissive: '#ffffff', emissiveMap: texNoite, emissiveIntensity: .8 }), -3, 2.9, -4.98, false));
+  for(const [w, h, x, y] of [[2.7, .14, -3, 3.85], [2.7, .14, -3, 1.95], [.14, 2, -4.3, 2.9], [.14, 2, -1.7, 2.9], [.08, 1.8, -3, 2.9], [2.4, .08, -3, 2.9]])
+    G.add(malha(new THREE.BoxGeometry(w, h, .12), mat('#f0ece0'), x, y, -4.93, false));
+  // porta na parede da esquerda
+  G.add(malha(new THREE.BoxGeometry(.14, 3, 1.5), mat('#6a3e1e'), -5.95, 1.5, 2.6));
+  G.add(malha(new THREE.SphereGeometry(.08, 8, 6), mat('#d8b040', { metalness: 1, roughness: .3 }), -5.82, 1.4, 2.1, false));
+  // móveis (Kenney)
+  poe('/assets/models/furniture/desk.glb', { x: CX - 3, z: -4.3, largura: 2.2 });
+  poe('/assets/models/furniture/chairDesk.glb', { x: CX - 3, z: -3.3, altura: 1.3, rot: Math.PI });
+  poe('/assets/models/furniture/lampRoundFloor.glb', { x: CX - 5.2, z: -4.3, altura: 2.1 });
+  poe('/assets/models/furniture/bookcaseOpen.glb', { x: CX - 5.5, z: -.6, altura: 2.6, rot: Math.PI/2 });
+  poe('/assets/models/furniture/coatRackStanding.glb', { x: CX - 5.3, z: 4.2, altura: 2.1 });
+  poe('/assets/models/furniture/rugRound.glb', { x: CX + .4, z: .6, largura: 3.6 });
+  poe('/assets/models/furniture/pottedPlant.glb', { x: CX + 5.4, z: 4.2, altura: 1.4 });
+  poe('/assets/models/furniture/bedSingle.glb', { x: CX + 4.4, z: -2.6, largura: 3.6 }).then(o => {
+    const b = caixa(o), c = b.getCenter(new THREE.Vector3());
+    cama = { x: c.x, z: c.z, topo: b.max.y - .25 };
+  });
+  // quadro de cortiça com os casos (fotos e barbante vermelho)
+  const mural = new THREE.Group(); mural.position.set(5.95, 2.6, 1.4); mural.rotation.y = -Math.PI/2; G.add(mural);
+  mural.add(malha(new THREE.BoxGeometry(2.6, 1.6, .06), mat('#b88a5a', { roughness: 1 }), 0, 0, 0, false));
+  const fotos = [[-.8, .35], [.1, .45], [.85, .2], [-.5, -.4], [.6, -.45]];
+  for(const [x, y] of fotos){ mural.add(malha(new THREE.PlaneGeometry(.45, .35), mat(['#e8e0d0', '#d0d8e8', '#e8d8c8'][Math.floor(Math.random()*3)]), x, y, .04, false));
+    mural.add(malha(new THREE.SphereGeometry(.035, 6, 4), mat('#d02020'), x, y + .16, .06, false)); }
+  for(let i = 0; i < fotos.length - 1; i++){ const [x1, y1] = fotos[i], [x2, y2] = fotos[i + 1];
+    const f = malha(new THREE.BoxGeometry(Math.hypot(x2 - x1, y2 - y1), .015, .01), mat('#d02020'), (x1 + x2)/2, (y1 + y2)/2 + .16, .07, false);
+    f.rotation.z = Math.atan2(y2 - y1, x2 - x1); mural.add(f); }
+  // a prancheta com o bloquinho de dias (o prendedor de folhas)
+  const metal = mat('#c8ccd4', { metalness: .9, roughness: .25 });
+  const pr = new THREE.Group(); pr.position.set(.6, 2.5, -4.92); G.add(pr);
+  pr.add(malha(new THREE.BoxGeometry(1.0, 1.36, .05), mat('#9a6a38', { roughness: .7 }), 0, 0, 0, false));
+  pr.add(malha(new THREE.BoxGeometry(.5, .16, .1), metal, 0, .62, .07, false));
+  pr.add(malha(new THREE.TorusGeometry(.09, .02, 6, 14, Math.PI), metal, 0, .7, .07, false));
+  for(let i = 0; i < 3; i++) pr.add(malha(new THREE.PlaneGeometry(.84, 1.12), mat('#efe8d4'), 0, -.04, .028 + i*.004, false));
+  pr.add(malha(new THREE.PlaneGeometry(.84, 1.12), folhaBaixoMat, 0, -.04, .042, false));
+  folhaPivo.add(malha(new THREE.PlaneGeometry(.84, 1.12), folhaTopoMat, 0, -.6, 0, false)); pr.add(folhaPivo);
+  // relógio de parede
+  const rel = new THREE.Group(); rel.position.set(2.6, 3.3, -4.92); G.add(rel);
+  const texMostrador = texCanvas(256, (g, s) => { g.fillStyle = '#fbf6e6'; g.beginPath(); g.arc(128, 128, 126, 0, 7); g.fill();
+    g.fillStyle = '#2a2a2a'; g.font = 'bold 34px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    for(let i = 1; i <= 12; i++){ const a = i/12*Math.PI*2; g.fillText(String(i), 128 + Math.sin(a)*96, 128 - Math.cos(a)*96); } }, 1);
+  rel.add(malha(new THREE.CircleGeometry(.62, 32), new THREE.MeshStandardMaterial({ map: texMostrador, roughness: .5 }), 0, 0, .03, false));
+  rel.add(malha(new THREE.TorusGeometry(.64, .06, 8, 32), mat('#3a2418', { roughness: .5 }), 0, 0, .04, false));
+  const pon = (w, comp) => { const geo = new THREE.BoxGeometry(w, comp, .02); geo.translate(0, comp/2 - .06, 0); return malha(geo, mat('#1a1a1a'), 0, 0, 0, false); };
+  ponteiroHora.add(pon(.06, .36)); ponteiroMin.add(pon(.04, .52));
+  ponteiroHora.position.z = .06; ponteiroMin.position.z = .07; rel.add(ponteiroHora, ponteiroMin);
+  rel.add(malha(new THREE.SphereGeometry(.04, 8, 6), mat('#c8302a'), 0, 0, .08, false));
+  // luzes da casa: abajur e lustre
+  const abajur = new THREE.PointLight('#ffc070', 18, 10, 1.4); abajur.position.set(CX - 5.2, 2.1, -4.0);
+  const lustre = new THREE.PointLight('#ffe0b0', 16, 14, 1.4); lustre.position.set(CX + .5, 4.4, .5);
+  scene.add(abajur, lustre); luzesCasa.push(abajur, lustre);
+  for(const l of luzesCasa) l.userData.base = l.intensity;
+  for(let i = 0; i < 3; i++){ const z = new THREE.Sprite(new THREE.SpriteMaterial({ map: emojiTex('💤'), transparent: true, fog: false })); z.visible = false; z.scale.set(.8, .8, 1); scene.add(z); zzz.push(z); }
+}
+
+// ---------- 🚌 ESTRADA PRO PRÓXIMO DIA (fica em x = 600) ----------
+const BX = 600;
+const onibus = new THREE.Group(), rodas = [];
+{
+  const solo = malha(new THREE.PlaneGeometry(420, 120), mat('#ffffff', { map: texGrama }), BX + 90, -.01, 0, false); solo.rotation.x = -Math.PI/2; scene.add(solo);
+  const asfalto = malha(new THREE.PlaneGeometry(420, 6.5), mat('#2c2c32', { roughness: .9 }), BX + 90, .01, 0, false); asfalto.rotation.x = -Math.PI/2; scene.add(asfalto);
+  const faixaMat = mat('#f0e0a0');
+  for(let x = -110; x < 310; x += 5){ const f = malha(new THREE.PlaneGeometry(2.4, .18), faixaMat, BX + x, .02, 0, false); f.rotation.x = -Math.PI/2; scene.add(f); }
+  for(let i = 0; i < 46; i++){
+    const x = BX - 60 + i*8 + Math.random()*4, lado = i % 2 ? 1 : -1, z = lado > 0 ? 19 + Math.random()*10 : -(7 + Math.random()*12);   // do lado da câmera, longe
+    if(i % 7 === 3) cogumeloGigante(x, z, 3 + Math.random()*3, ['#c8322a', '#d8562a', '#b8242a'][i % 3]);
+    else poe(`/assets/models/nature/${['tree_oak', 'tree_detailed', 'tree_default', 'tree_cone'][i % 4]}.glb`, { x, z, altura: 5 + Math.random()*4, rot: Math.random()*6 });
+  }
+  const morro = mat('#4a8a3a', { roughness: 1 });
+  for(let i = 0; i < 12; i++){ const m = malha(new THREE.SphereGeometry(30, 16, 10), morro, BX - 80 + i*36, -18, -70 - Math.random()*20, false); m.scale.y = .7; scene.add(m); }
+  for(let x = -60; x < 310; x += 18) scene.add(malha(new THREE.CylinderGeometry(.1, .12, 5, 6), mat('#5a4a3a'), BX + x, 2.5, -4.6));
+  // o ônibus: lataria amarela, janelas de vidro (dá pra ver o Cogu), rodas e faróis
+  const lata = mat('#f2b81a', { roughness: .45, metalness: .2 }), faixa = mat('#2a5aa8', { roughness: .5 });
+  onibus.add(malha(new THREE.BoxGeometry(8.4, 1.3, 2.6), lata, 0, 1.15, 0));
+  onibus.add(malha(new THREE.BoxGeometry(8.42, .25, 2.62), faixa, 0, 1.2, 0));
+  onibus.add(malha(new THREE.BoxGeometry(8.4, .3, 2.6), lata, 0, 3.05, 0));
+  const vidroBus = new THREE.MeshStandardMaterial({ color: '#9ad0f0', transparent: true, opacity: .3, roughness: .05, metalness: .4, side: THREE.DoubleSide });
+  for(let i = 0; i < 7; i++) for(const z of [-1.24, 1.24]) onibus.add(malha(new THREE.BoxGeometry(.18, 1.1, .12), lata, -4.1 + i*1.37, 2.35, z));
+  for(const z of [-1.29, 1.29]) onibus.add(malha(new THREE.PlaneGeometry(8.2, 1.1), vidroBus, 0, 2.35, z, false));
+  const frente = malha(new THREE.PlaneGeometry(2.5, 1.1), vidroBus, 4.21, 2.35, 0, false); frente.rotation.y = Math.PI/2; onibus.add(frente);
+  onibus.add(malha(new THREE.BoxGeometry(.1, 2.9, 2.6), lata, -4.2, 1.9, 0));
+  const farol = new THREE.MeshStandardMaterial({ color: '#fff8d0', emissive: '#fff0b0', emissiveIntensity: 1.5 });
+  for(const z of [-.85, .85]){ const f = malha(new THREE.CircleGeometry(.2, 12), farol, 4.22, 1.0, z, false); f.rotation.y = Math.PI/2; onibus.add(f); }
+  onibus.add(malha(new THREE.BoxGeometry(.3, .3, 2.0), mat('#333333'), 4.3, .55, 0));
+  const placaBus = rotulo('🚌 LINHA DOS DETETIVES', '#ffe58a', 3); placaBus.position.set(0, 3.7, 0); onibus.add(placaBus);
+  for(const [x, z] of [[-2.7, -1.3], [-2.7, 1.3], [2.7, -1.3], [2.7, 1.3]]){
+    const roda = new THREE.Group(); roda.position.set(x, .55, z);
+    const pneu = malha(new THREE.CylinderGeometry(.55, .55, .4, 18), mat('#1a1a1e', { roughness: .8 })); pneu.rotation.x = Math.PI/2; roda.add(pneu);
+    const calota = malha(new THREE.BoxGeometry(.7, .12, .44), mat('#c8ccd4', { metalness: .9, roughness: .3 }), 0, 0, 0, false); roda.add(calota);
+    onibus.add(roda); rodas.push(roda);
+  }
+  for(let i = 0; i < 4; i++) onibus.add(malha(new THREE.BoxGeometry(.5, .7, .5), mat('#3a6a9a'), -2.6 + i*1.6, 1.95, -.6));
+  onibus.position.set(BX - 30, 0, 1.4); scene.add(onibus);
+}
+
+// ---------- cenas (cutscenes) ----------
+let cena = null;
+const camAlvo = new THREE.Vector3(), olharAlvo = new THREE.Vector3(), olharSuave = new THREE.Vector3();
+function rodaCena(c){
+  cena = Object.assign({ t: 0, pulo: 0 }, c);
+  segurandoX = segurandoTela = false;
+  pularEl.classList.toggle('on', !!c.pulavel); pularBarra.style.width = '0';
+}
+function terminaCena(){
+  const c = cena; if(!c || c.acabando) return;
+  c.acabando = true; fade(1);
+  setTimeout(() => {
+    cena = null; legenda(''); pularEl.classList.remove('on');
+    if(c.limpa) c.limpa();
+    luzesModo(D.player.dentro === 'museu' ? 'museu' : 'fora');
+    if(c.fim) c.fim();
+    fade(0);
+  }, 480);
+}
+// anda o Cogu de um ponto a outro entre t0 e t1 (balança as pernas)
+function anda(ax, az, bx, bz, t0, t1, t){
+  if(t < t0 || t > t1) return false;
+  const k = (t - t0)/(t1 - t0);
+  cogu.position.set(ax + (bx - ax)*k, Math.abs(Math.sin(t*11))*.1, az + (bz - az)*k);
+  cogu.rotation.y = Math.atan2(bx - ax, bz - az);
+  const b = Math.sin(t*11)*.7; pernas[0].rotation.x = b; pernas[1].rotation.x = -b;
+  return true;
+}
+function parado(){ pernas[0].rotation.x = pernas[1].rotation.x = 0; }
+function falas(t, lista){ for(const [t0, txt] of lista) if(t >= t0 && !(cena.ditas || (cena.ditas = {}))[t0]){ cena.ditas[t0] = true; legenda(txt); } }
+function acendeCasa(){ luzesModo('casa'); for(const l of luzesCasa) l.intensity = l.userData.base; }
+
+// 😴 fim do caso: o Cogu volta pra casa, arranca a folha do dia, olha o relógio e vai dormir
+function cenaCasa(d, fim){
+  acendeCasa();
+  poeFolhas({ dia: d.dia, cidade: d.cidade, resolvidos: d.resolvidos - 1 }, { dia: d.proxDia, cidade: d.proxCidade, resolvidos: d.resolvidos });
+  setRelogio(d.hora); D.mostraHora(d.hora); D.relogioVisivel(true);
+  cogu.visible = true; cogu.rotation.set(0, Math.PI/2, 0); cogu.position.set(CX - 5.3, 0, 2.6); parado();
+  camPos.set(CX + .5, 6.2, 8.5); olharSuave.set(CX + .5, 1.6, -1.5);
+  fade(1, true); setTimeout(() => fade(0), 60);
+  const hora = D.horaTexto(d.hora);
+  rodaCena({ pulavel: true, fim, atualiza(t){
+    falas(t, [[.3, '🏠 Ufa! Caso resolvido. Hora de voltar pra casa...'], [3.3, `✂️ Tchau, DIA ${d.dia}! Amanhã é o DIA ${d.proxDia}: ${d.proxCidade}`],
+              [6.0, `🕐 Nossa, já são ${hora}! Detetive também precisa dormir...`], [9.8, '😴 Boa noite, Cogu... zzz']]);
+    let c = [CX + .5, 6.2, 8.5], o = [CX + .5, 1.6, -1.5];
+    if(anda(CX - 5.3, 2.6, CX + .6, -3.7, .5, 2.8, t)){}
+    else if(t > 2.8 && t < 4.9){                          // vira pra parede e arranca a folha
+      cogu.rotation.y = Math.PI; parado();
+      bracoCogu.rotation.x = t < 4.5 ? -2.7 : -.9;
+      if(t > 3.1){
+        const k = Math.min(1, (t - 3.1)/1.6);
+        folhaPivo.rotation.x = Math.min(1.3, (t - 3.1)*3) + k*k*4;
+        folhaPivo.position.set(Math.sin(t*7)*.25*k, .56 - k*2.45, .05 + k*.9);
+        folhaPivo.rotation.z = Math.sin(t*5)*.6*k;
+      }
+      c = [CX + .6, 3.1, .6]; o = [CX + .6, 2.3, -4.9];
+    }
+    else if(anda(CX + .6, -3.7, CX + 2.6, -3.7, 4.9, 5.9, t)){ bracoCogu.rotation.x = -.9; }
+    else if(t >= 5.9 && t < 8.0){                         // olha o relógio bem de perto
+      cogu.rotation.y = Math.PI; parado();
+      c = [CX + 2.6, 3.3, -1.7]; o = [CX + 2.6, 3.3, -4.9];
+    }
+    else if(anda(CX + 2.6, -3.7, cama.x - 1.7, cama.z + 1.4, 8.0, 9.1, t)){}
+    else if(t >= 9.1){                                    // deita na cama e apaga a luz
+      const k = Math.min(1, (t - 9.1)/.6);
+      cogu.rotation.set(-Math.PI/2*k, 0, 0);
+      cogu.position.set(cama.x - 1.7*(1 - k), cama.topo*k, cama.z + 1.4);
+      parado();
+      const apaga = Math.max(.15, 1 - Math.max(0, t - 9.8)/.8);
+      for(const l of luzesCasa) l.intensity = l.userData.base*apaga;
+      zzz.forEach((z, i) => { const tt = t - 10 - i*.6; z.visible = tt > 0; const f = ((tt % 1.8) + 1.8) % 1.8 / 1.8;
+        z.position.set(cama.x + .3 + f*.6, cama.topo + 1.2 + f*1.6, cama.z - .8); z.material.opacity = 1 - f; });
+      c = [CX + 1.2, 4.6, 4.2]; o = [cama.x, .8, cama.z];
+    }
+    camAlvo.set(c[0], c[1], c[2]); olharAlvo.set(o[0], o[1], o[2]);
+    if(t > 12.2) terminaCena();
+  }, limpa(){
+    cogu.rotation.set(0, Math.PI, 0); bracoCogu.rotation.x = -.9; zzz.forEach(z => z.visible = false);
+    for(const l of luzesCasa) l.intensity = l.userData.base;
+  } });
+}
+
+// 🚌 próximo dia: o Cogu vai de ônibus pra próxima cidade (segurar X ou a tela pula)
+function cenaOnibus(d, fim){
+  luzesModo('onibus');
+  aplicaCeu('#4a7ac8', '#ffbe86'); scene.fog.color.set('#e6b48e'); scene.fog.near = 40; scene.fog.far = 190;
+  lua.color.set('#ffe2b8'); luzAmbiente.color.set('#bcd0ff'); luzAmbiente.groundColor.set('#6a5a3a');
+  lua.position.set(30, 35, 45);                          // o sol da manhã bate de frente (do lado da câmera)
+  const passageiro = cogu.clone(); passageiro.visible = true; passageiro.scale.setScalar(.5); passageiro.position.set(-.6, 1.05, .45); passageiro.rotation.set(0, 0, 0);
+  onibus.add(passageiro);
+  D.relogioVisivel(true);
+  camPos.set(BX - 28, 3.5, 14); olharSuave.set(BX - 30, 1.5, 0);
+  fade(1, true); setTimeout(() => fade(0), 60);
+  rodaCena({ pulavel: true, fim, atualiza(t, dt){
+    falas(t, [[.4, `🚌 Bom dia! Próxima parada: ${d.cidade.emoji} ${d.cidade.nome}`], [5.5, '🛣️ A viagem é looonga... o dia inteiro na estrada!']]);
+    onibus.position.x = BX - 30 + t*12; onibus.position.y = Math.abs(Math.sin(t*9))*.04;
+    for(const r of rodas) r.rotation.z -= dt*12/.55;
+    passageiro.rotation.y = Math.sin(t*.8)*.5;
+    D.mostraHora(7*60 + Math.min(1, t/10.5)*(11*60 + 50));
+    const bx = onibus.position.x;
+    if(t < 4.5){ camAlvo.set(bx + 1, 3.2, 12); olharAlvo.set(bx, 1.8, 1.4); }
+    else if(t < 7.8){ camAlvo.set(bx + 16, 2.4, 5.5); olharAlvo.set(bx, 1.8, 1.4); }
+    else { camAlvo.set(bx - 10, 8, 10); olharAlvo.set(bx + 6, 1.5, 1.4); }
+    if(t > 10.4) terminaCena();
+  }, limpa(){ onibus.remove(passageiro); onibus.position.x = BX - 30; lua.position.set(-25, 45, -15); luzAmbiente.groundColor.set('#2a2418'); aplicaClima(clima); } });
+}
+
+// 🏠 visitar a casa pelo menu: o bloquinho mostra o dia atual
+const btnSairCasa = document.getElementById('btnSairCasa');
+btnSairCasa.onclick = () => terminaCena();
+function verCasa(d, voltar){
+  acendeCasa();
+  const f = { dia: d.dia, cidade: d.cidade, resolvidos: d.resolvidos };
+  poeFolhas(f, f);
+  const agora = new Date(); setRelogio(agora.getHours()*60 + agora.getMinutes());
+  cogu.visible = true; cogu.rotation.set(0, .5, 0); cogu.position.set(CX - 1.2, 0, -2.6); parado();
+  camPos.set(CX, 5.5, 9); olharSuave.set(CX, 1.8, -2);
+  fade(1, true); setTimeout(() => fade(0), 60);
+  btnSairCasa.style.display = 'block';
+  rodaCena({ pulavel: false, fim: voltar, atualiza(t){
+    falas(t, [[.3, `🏠 Casa do detetive — o bloquinho na prancheta marca o DIA ${d.dia}`], [6, '']]);
+    const a = Math.sin(t*.25)*.55;
+    camAlvo.set(CX + Math.sin(a)*8.5, 5.2, Math.cos(a)*8.5); olharAlvo.set(CX + .4, 2, -3);
+  }, limpa(){ btnSairCasa.style.display = 'none'; cogu.rotation.set(0, Math.PI, 0); } });
+}
+
+// 🚪 entrar e sair do museu (escurece, troca de lugar, clareia)
+let trocando = false;
+function teleporta(x, y, dentro, olhar){
+  if(trocando) return;
+  trocando = true; fade(1);
+  setTimeout(() => {
+    const pl = D.player; pl.x = x; pl.y = y; pl.dentro = dentro;
+    luzesModo(dentro ? 'museu' : 'fora');
+    camPos.set(x, dentro ? 7 : 10.5, y + (dentro ? 8.5 : 13));
+    cogu.rotation.y = olhar;
+    D.atualiza(); fade(0); trocando = false;
+  }, 460);
+}
+
 // ---------- loop ----------
 const alvo = new THREE.Vector3(), camPos = new THREE.Vector3(28, 18, 34);
 let andando = 0, acumula = 0, contexto = 0, angTitulo = 0;
 function livre(x, z){
-  const r = D.player.raio;
-  if(x < LIM.x1 || x > LIM.x2 || z < LIM.z1 || z > LIM.z2) return false;
-  for(const c of colisores) if(x > c.x1 - r && x < c.x2 + r && z > c.z1 - r && z < c.z2 + r) return false;
+  const r = D.player.raio, dentro = D.player.dentro === 'museu';
+  const L = dentro ? LIMM : LIM, lista = dentro ? colMuseu : colisores;
+  if(x < L.x1 || x > L.x2 || z < L.z1 || z > L.z2) return false;
+  for(const c of lista) if(x > c.x1 - r && x < c.x2 + r && z > c.z1 - r && z < c.z2 + r) return false;
   return true;
 }
+// chuva/neve, água, raios e céu: rodam sempre (até nas cenas)
+function efeitos(dt){
+  ceu.position.copy(camera.position); estrelas.position.copy(camera.position);
+  chuva.position.set(alvo.x, 0, alvo.z);
+  if(chuva.visible){
+    const pos = gotasGeo.attributes.position.array, neve = clima.gota === 'neve', desce = dt*(neve ? 3.2 : 26);
+    for(let i = 0; i < NGOTAS; i++){
+      const j = i*6; pos[j+1] -= desce; pos[j+4] -= desce;
+      if(neve){ const s = Math.sin(pos[j+1]*.8 + i)*dt*.6; pos[j] += s; pos[j+3] += s; }
+      if(pos[j+4] < 0){ pos[j+1] += 25; pos[j+4] += 25; }
+    }
+    gotasGeo.attributes.position.needsUpdate = true;
+  }
+  texAgua.offset.y -= dt*.08;
+  const podeRaio = clima.raios && modoLuz === 'fora';
+  proxRaio -= dt;
+  if(proxRaio <= 0){ proxRaio = 9 + Math.random()*14; if(podeRaio){ raioT = .55; setTimeout(trovao, 500 + Math.random()*900); } }
+  if(raioT > 0){ raioT -= dt; relampago.intensity = podeRaio && (raioT > .4 || (raioT > .15 && raioT < .25)) ? 3.5 : 0; }
+  else relampago.intensity = 0;
+}
 function passo(dt, t){
-  const pl = D.player, jog = D.jogando();
+  const pl = D.player;
+  // cena rodando: ela manda na câmera e no Cogu
+  if(cena){
+    cena.t += dt;
+    if(cena.pulavel){
+      const segura = segurandoX || segurandoTela;
+      cena.pulo = segura ? cena.pulo + dt : Math.max(0, cena.pulo - dt*2);
+      pularBarra.style.width = Math.min(100, cena.pulo/3*100) + '%';
+      if(cena.pulo >= 3) terminaCena();
+    }
+    if(cena) cena.atualiza(cena.t, dt);
+    for(const id in bichos) bichos[id].visible = false;
+    camPos.lerp(camAlvo, Math.min(1, dt*2.2)); olharSuave.lerp(olharAlvo, Math.min(1, dt*2.6));
+    alvo.copy(olharSuave);
+    camera.position.copy(camPos); camera.lookAt(olharSuave);
+    efeitos(dt);
+    return;
+  }
+  const jog = D.jogando(), dentro = pl.dentro === 'museu';
   // andar
   let mx = 0, mz = 0;
-  if(jog && !D.pausado()){
+  if(jog && !D.pausado() && !trocando){
     const k = D.teclas;
     if(k.cima) mz -= 1; if(k.baixo) mz += 1; if(k.esq) mx -= 1; if(k.dir) mx += 1;
   }
@@ -1359,7 +2040,7 @@ function passo(dt, t){
     b.visible = !jog || ativos.indexOf(id) >= 0;
     b.children[0].position.y = Math.abs(Math.sin(t*2 + b.userData.fase)) * .06;
     const dist = Math.hypot(pl.x - b.position.x, pl.y - b.position.z);
-    const perto = jog && dist < 4 && local === s.local;
+    const perto = jog && !dentro && dist < 4 && local === s.local;
     b.userData.fala.visible = perto;
     b.userData.fala.position.y = 2.2 + Math.sin(t*4)*.08;
     if(jog && dist < 9){
@@ -1374,33 +2055,23 @@ function passo(dt, t){
     const p = P(id); l.placa.visible = !jog || Math.hypot(pl.x - p.x, pl.y - p.z) > 13;
     l.lupa.position.y = l.altura + 2.6 + Math.sin(t*3)*.25;
   }
+  // a pista do culpado no chão do museu aparece depois de examinar
+  const culpado = D.culpadoId(), viuMuseu = D.visitado('museu');
+  for(const id in pistasMuseu) pistasMuseu[id].visible = jog && viuMuseu && id === culpado;
 
-  // câmera: atrás do Cogu no jogo; dando a volta na vila na tela de título
+  // câmera: atrás do Cogu no jogo (mais perto dentro do museu); dando a volta na vila na tela de título
   if(jog){
     alvo.set(pl.x, 1.6, pl.y);
-    camPos.lerp(new THREE.Vector3(pl.x, 10.5, pl.y + 13), Math.min(1, dt*3));
+    if(dentro) camPos.lerp(new THREE.Vector3(pl.x, 7, Math.min(pl.y + 8.5, 15)), Math.min(1, dt*3));
+    else camPos.lerp(new THREE.Vector3(pl.x, 10.5, pl.y + 13), Math.min(1, dt*3));
   } else {
+    if(modoLuz !== 'fora') luzesModo('fora');
     angTitulo += dt * .06;
     alvo.set(0, 2, -4);
     camPos.set(Math.sin(angTitulo)*34, 17, Math.cos(angTitulo)*34);
   }
   camera.position.copy(camPos); camera.lookAt(alvo);
-
-  // chuva cai em volta da câmera
-  chuva.position.set(alvo.x, 0, alvo.z);
-  const pos = gotasGeo.attributes.position.array, desce = dt * 26;
-  for(let i = 0; i < NGOTAS; i++){
-    const j = i*6; pos[j+1] -= desce; pos[j+4] -= desce;
-    if(pos[j+4] < 0){ pos[j+1] += 25; pos[j+4] += 25; }
-  }
-  gotasGeo.attributes.position.needsUpdate = true;
-  texAgua.offset.y -= dt * .08;
-
-  // relâmpago
-  proxRaio -= dt;
-  if(proxRaio <= 0){ raioT = .55; proxRaio = 9 + Math.random()*14; setTimeout(trovao, 500 + Math.random()*900); }
-  if(raioT > 0){ raioT -= dt; relampago.intensity = (raioT > .4 || (raioT > .15 && raioT < .25)) ? 3.5 : 0; }
-  else relampago.intensity = 0;
+  efeitos(dt);
 
   // botões de ação (10x por segundo, não a cada frame)
   contexto += dt;
@@ -1414,12 +2085,22 @@ renderer.setAnimationLoop(() => {
   else ult = agora;
   const d = CELULAR ? Math.min(.1, acumula) : dt; acumula = 0;
   passo(d, agora/1000);
-  cena.render();
+  cena3d.render();
 });
 
-window.DET3D = { passo, scene, inicio(){ vesteCogu(); cogu.rotation.y = Math.PI; camPos.set(D.player.x, 10.5, D.player.y + 13); } };
+window.DET3D = {
+  passo, scene,
+  inicio(){ vesteCogu(); cogu.rotation.set(0, Math.PI, 0); luzesModo('fora'); camPos.set(D.player.x, 10.5, D.player.y + 13); },
+  cidade(c){ aplicaClima(CLIMAS[c.clima] || CLIMAS.chuva); escrevePlaca(c.nome); luzesModo('fora'); },
+  entraMuseu(){ teleporta(MX, 5.4, 'museu', Math.PI); },
+  saiMuseu(){ teleporta(0, -11, null, 0); },
+  cenaCasa(d, fim){ vesteCogu(); cenaCasa(d, fim); },
+  cenaOnibus(d, fim){ vesteCogu(); cenaOnibus(d, fim); },
+  verCasa(d, voltar){ vesteCogu(); verCasa(d, voltar); }
+};
 vesteCogu();
 montaLugares(); montaVila(); montaSuspeitos();
+luzesModo('fora');
 </script>
 
 <script src="/stats.js?v=496"></script>

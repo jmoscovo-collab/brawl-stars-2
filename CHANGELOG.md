@@ -1,5 +1,12 @@
 # Changelog - Cogumelo Games (site)
 
+## v606 (2026-11-03)
+- 🏛️ Cogumelo Detetive: agora dá pra ENTRAR no museu! Lá dentro tem quadros, a vitrine quebrada, cordão de veludo e as marcas que o ladrão deixou
+- 📅 Cada caso é um DIA numa cidade nova (Vila Cogumelo, Rua das Amoras, Cidade Orvalho com neblina, Vale dos Fungos com neve...) e o nome da cidade aparece antes de começar
+- 🏠 Casa do detetive com a prancheta que conta os dias: no fim do caso o Cogu volta pra casa, arranca a folha, olha o relógio e vai dormir
+- 🚌 Cena do ônibus indo pra próxima cidade (segure X ou a tela 3 segundos pra pular)
+- 🕐 Relógio no canto de cima, à esquerda
+
 ## v605 (2026-11-03)
 - 🍄🔍 Cogumelo Detetive agora é 3D! A Vila Cogumelo virou um mundo 3D de verdade numa noite de tempestade: chuva, raios com trovão, postes acesos, rio, museu com colunas e a vitrine quebrada, fonte na praça e casinhas-cogumelo. Os 6 suspeitos aparecem em 3D e olham pro Cogu quando ele chega perto
 - 🚫 Tirada a escolha de dificuldade: todo caso agora tem os 6 suspeitos
