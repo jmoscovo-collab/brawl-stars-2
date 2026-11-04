@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v615 (2026-11-04)
+- 🧟 Jogo novo LANÇADO: **Cogumelos vs Zumbis da Floresta**! Os zumbis saem da floresta e você planta cogumelos no jardim pra segurar eles: Cogu Regador (faz gotas de orvalho 💧), Cogu Espirro, Cogu Pedrão, Cogu Pum (explode!), Cogu Gelinho, Cogu Duplo, Cogu Dragão (bafo de fogo) e Cogu Lua. Tem Zumbi Abóbora, Raposa Zumbi, Esquilo Pulador, Toco Zumbi e na fase 8 a gigante ÁRVORE ZUMBI 🌳. Venceu as 8 fases? Abre o ♾️ Modo Sem Fim!
+
 ## v614 (2026-11-04)
 - 🍕 Jogo novo LANÇADO: **Pizzaria Maluca**! Os clientes (Cogu, Polvo, Alien, Dino, Fantasma...) pedem pizzas doidas: molho de tomate, chocolate ou gosma verde, com queijo, abacaxi, bala, peixe, minhoca de goma, sorvete e até olho de geleia! Monte a pizza, asse no ponto (tire do forno no VERDE!) e entregue antes da paciência acabar. Cada dia tem uma meta e ingredientes novos, e tem a lojinha de Melhorias
 - 🐉 LANÇADO: Cria o seu Monstro agora está na página inicial!

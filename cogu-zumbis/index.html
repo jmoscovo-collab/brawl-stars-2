@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Cogumelos vs Zumbis da Floresta — Cogumelo Games</title>
+<meta name="description" content="Cogumelos vs Zumbis da Floresta: plante cogumelos no jardim, junte gotas de orvalho e segure as ondas de zumbis que saem da floresta! Jogo grátis do Cogumelo Games.">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { background:linear-gradient(180deg,#0e2a14 0%,#06140a 100%); min-height:100vh; font-family:Arial,sans-serif; color:#fff;
+    display:flex; flex-direction:column; align-items:center; padding:8px 6px 20px; user-select:none; }
+h1 { font-size:24px; margin:2px 0; text-align:center; background:linear-gradient(to right,#7dff6a,#ffe14a,#b06aff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.sub { color:#b8d8b8; font-size:14px; margin-bottom:8px; text-align:center; }
+.tela { display:none; width:100%; max-width:900px; flex-direction:column; align-items:center; }
+.tela.on { display:flex; }
+button { font-family:inherit; font-size:16px; font-weight:bold; padding:10px 16px; border:none; border-radius:12px; cursor:pointer;
+    background:linear-gradient(135deg,#7dff6a,#2fd0a0); color:#06281a; box-shadow:0 3px 0 rgba(0,0,0,0.4); }
+button:active { transform:translateY(2px); box-shadow:none; }
+button.cinza { background:#2a4a32; color:#fff; }
+button.amarelo { background:linear-gradient(135deg,#ffe14a,#ff9a2a); color:#3a1a00; }
+button:disabled { opacity:0.4; cursor:default; transform:none; }
+.linha { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin:8px 0; }
+a.voltar { color:#8a8; text-decoration:none; margin-top:14px; font-size:14px; }
+#fases { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:520px; }
+.fase { width:110px; padding:8px 4px; border-radius:14px; background:rgba(255,255,255,0.07); border:2px solid #2a5a32; text-align:center; cursor:pointer; }
+.fase b { font-size:22px; display:block; }
+.fase span { font-size:11px; color:#b8d8b8; }
+.fase.trancada { opacity:0.35; cursor:default; }
+.fase.feita { border-color:#ffe14a; }
+#barra { display:flex; gap:4px; width:100%; align-items:stretch; overflow-x:auto; padding-bottom:4px; }
+#orvalho { min-width:62px; background:#0a2a3a; border:2px solid #3ab8ff; border-radius:10px; text-align:center; font-weight:bold; font-size:15px; padding:4px 2px; display:flex; flex-direction:column; justify-content:center; }
+.carta { min-width:58px; width:58px; background:#f4f0d8; color:#2a3a1a; border-radius:10px; text-align:center; cursor:pointer; padding:2px; position:relative; border:3px solid transparent; overflow:hidden; }
+.carta canvas { width:44px; height:40px; display:block; margin:auto; }
+.carta small { font-size:11px; font-weight:bold; display:block; }
+.carta.sel { border-color:#ffe14a; box-shadow:0 0 10px #ffe14a; }
+.carta.sem { opacity:0.45; }
+.carta .rec { position:absolute; left:0; right:0; top:0; background:rgba(0,0,0,0.55); }
+#pa { min-width:52px; font-size:26px; padding:4px; background:#5a4a3a; }
+#pa.sel { box-shadow:0 0 10px #ffe14a; outline:3px solid #ffe14a; }
+#campo { width:100%; display:block; border-radius:10px; touch-action:none; margin-top:4px; }
+#info { font-size:14px; font-weight:bold; margin-top:4px; text-align:center; min-height:18px; }
+.caixa { background:rgba(10,30,14,0.97); border:3px solid #7dff6a; border-radius:18px; padding:16px; max-width:460px; width:100%; text-align:center; margin-top:3vh; }
+.caixa ul { text-align:left; padding-left:20px; color:#d8f0d8; font-size:14px; line-height:1.55; }
+.grande { font-size:42px; }
+#almanaque { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:8px 0; }
+#almanaque div { width:96px; background:rgba(255,255,255,0.07); border-radius:10px; padding:4px; font-size:11px; text-align:center; }
+#almanaque canvas { width:60px; height:54px; display:block; margin:auto; }
+</style>
+<script src="/cogucoins.js?v=551"></script>
+</head>
+<body>
+<h1>🍄 Cogumelos vs Zumbis da Floresta 🧟</h1>
+
+<!-- ======== MENU ======== -->
+<div class="tela on" id="telaMenu">
+    <div class="sub">Os zumbis estão saindo da floresta! Plante cogumelos no jardim e não deixe eles passarem!</div>
+    <div id="fases"></div>
+    <div class="titulo" style="font-weight:bold; color:#ffe14a; margin-top:12px">🍄 Seus cogumelos</div>
+    <div id="almanaque"></div>
+    <div class="linha"><button class="cinza" onclick="abreComoJogar()">❓ Como jogar</button></div>
+    <a class="voltar" href="/">← Voltar pros jogos</a>
+</div>
+
+<!-- ======== JOGO ======== -->
+<div class="tela" id="telaJogo">
+    <div id="barra"><div id="orvalho">💧<span id="orvVal">0</span></div></div>
+    <canvas id="campo"></canvas>
+    <div id="info"></div>
+    <div class="linha">
+        <button class="cinza" onclick="pausa()">⏸️ Pausar</button>
+        <button class="cinza" id="btVel" onclick="trocaVel()">⏩ 1x</button>
+    </div>
+</div>
+
+<div class="tela" id="telaMsg"><div class="caixa" id="msgCaixa"></div></div>
+
+<script src="/stats.js?v=496"></script>
+<script>
+if (window.initStats) initStats('cogu-zumbis');
+
+/* ================= DADOS ================= */
+var SAVE_KEY = 'coguzumbis_save';
+var dados = { fase: 1, estrelas: {} };
+try { var dd = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (dd && dd.fase) dados = dd; } catch (e) {}
+function salva() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(dados)); } catch (e) {} }
+
+var LINHAS = 5, COLS = 9;
+// cogumelos do jardim
+var COGUS = {
+    regador: { nome: 'Cogu Regador', custo: 50, vida: 6, recarga: 6, cor: '#3ab8ff', desc: 'faz gotas de orvalho 💧', fase: 1 },
+    espirro: { nome: 'Cogu Espirro', custo: 100, vida: 6, recarga: 6, cor: '#e8322a', desc: 'espirra esporos nos zumbis', fase: 1 },
+    pedra: { nome: 'Cogu Pedrão', custo: 50, vida: 40, recarga: 20, cor: '#8a8a9a', desc: 'durão: segura os zumbis', fase: 2 },
+    pum: { nome: 'Cogu Pum', custo: 150, vida: 99, recarga: 30, cor: '#ff9a2a', desc: 'EXPLODE tudo em volta', fase: 3 },
+    gelinho: { nome: 'Cogu Gelinho', custo: 175, vida: 6, recarga: 7, cor: '#9ae8ff', desc: 'esporo de gelo: deixa lento', fase: 4 },
+    duplo: { nome: 'Cogu Duplo', custo: 200, vida: 6, recarga: 7, cor: '#c84aff', desc: 'espirra 2 vezes', fase: 5 },
+    fogo: { nome: 'Cogu Dragão', custo: 225, vida: 8, recarga: 10, cor: '#ff5a1a', desc: 'bafo de fogo na fileira', fase: 6 },
+    luz: { nome: 'Cogu Lua', custo: 25, vida: 4, recarga: 8, cor: '#ffe14a', desc: 'orvalho baratinho (pouco)', fase: 7 }
+};
+var ORDEM = ['regador', 'espirro', 'pedra', 'pum', 'gelinho', 'duplo', 'fogo', 'luz'];
+var ZUMBIS = {
+    comum: { vida: 10, vel: 0.2, cor: '#7ab87a', nome: 'Zumbi' },
+    abobora: { vida: 24, vel: 0.2, cor: '#7ab87a', nome: 'Zumbi Abóbora' },
+    corredor: { vida: 8, vel: 0.42, cor: '#c8a87a', nome: 'Raposa Zumbi' },
+    esquilo: { vida: 9, vel: 0.3, cor: '#a87a5a', nome: 'Esquilo Pulador' },
+    toco: { vida: 36, vel: 0.14, cor: '#6a4a2a', nome: 'Toco Zumbi' },
+    arvore: { vida: 180, vel: 0.08, cor: '#4a3a1a', nome: 'ÁRVORE ZUMBI' }
+};
+var FASES = [
+    { n: 6, tipos: ['comum'], nome: 'Jardim da Frente' },
+    { n: 10, tipos: ['comum', 'comum', 'abobora'], nome: 'Canteiro de Flores' },
+    { n: 13, tipos: ['comum', 'abobora', 'corredor'], nome: 'Trilha do Bosque' },
+    { n: 16, tipos: ['comum', 'abobora', 'corredor', 'esquilo'], nome: 'Ponte do Riacho' },
+    { n: 19, tipos: ['comum', 'abobora', 'corredor', 'esquilo', 'toco'], nome: 'Floresta Escura' },
+    { n: 22, tipos: ['comum', 'abobora', 'abobora', 'corredor', 'esquilo', 'toco'], nome: 'Pântano Gosmento' },
+    { n: 23, tipos: ['comum', 'comum', 'abobora', 'corredor', 'esquilo', 'toco'], nome: 'Noite de Neblina' },
+    { n: 26, tipos: ['comum', 'abobora', 'corredor', 'esquilo', 'toco'], nome: 'Coração da Floresta', chefe: true }
+];
+
+/* ================= DESENHOS ================= */
+function desenhaCogu(c, tipo, x, y, s, t, atirando) {
+    var cfg = COGUS[tipo], pul = Math.sin((t || 0) * 3 + x) * 1.5 * s;
+    c.save(); c.translate(x, y); c.scale(s, s);
+    // talo
+    c.fillStyle = tipo === 'pedra' ? '#b8b8c0' : '#f4e6c8';
+    c.beginPath(); c.moveTo(-9, 18); c.quadraticCurveTo(-11, 0, -7, -4); c.lineTo(7, -4); c.quadraticCurveTo(11, 0, 9, 18); c.closePath(); c.fill();
+    c.strokeStyle = '#3a2a1a'; c.lineWidth = 2; c.stroke();
+    // olhos
+    c.fillStyle = '#1a1a1a';
+    if (tipo === 'pum') { c.fillRect(-6, 4, 4, 2); c.fillRect(2, 4, 4, 2); }
+    else { c.beginPath(); c.arc(-4, 5, 2.2, 0, 7); c.arc(4, 5, 2.2, 0, 7); c.fill(); }
+    if (tipo === 'fogo' || tipo === 'espirro' || tipo === 'duplo' || tipo === 'gelinho') { c.beginPath(); c.arc(0, 11, atirando ? 3.5 : 2, 0, 7); c.fill(); }
+    else { c.beginPath(); c.arc(0, 10, 3, 0.2, Math.PI - 0.2); c.stroke(); }
+    // chapéu
+    c.translate(0, pul);
+    c.fillStyle = cfg.cor;
+    if (tipo === 'pedra') { c.beginPath(); c.ellipse(0, -6, 20, 14, 0, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
+        c.strokeStyle = '#5a5a6a'; c.beginPath(); c.moveTo(-8, -14); c.lineTo(-2, -8); c.moveTo(6, -16); c.lineTo(10, -10); c.stroke(); }
+    else if (tipo === 'fogo') { c.beginPath(); c.moveTo(-20, -4); c.lineTo(-16, -16); c.lineTo(-8, -12); c.lineTo(0, -24); c.lineTo(8, -12); c.lineTo(16, -16); c.lineTo(20, -4); c.closePath(); c.fill(); c.stroke(); }
+    else if (tipo === 'luz') { c.beginPath(); c.arc(0, -6, 13, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
+        c.fillStyle = 'rgba(255,240,140,0.35)'; c.beginPath(); c.arc(0, -8, 20, 0, 7); c.fill(); }
+    else if (tipo === 'pum') { var inch = 1 + Math.sin((t || 0) * 8) * 0.06; c.beginPath(); c.ellipse(0, -6, 20 * inch, 16 * inch, 0, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
+        c.fillStyle = '#3a2a1a'; c.fillRect(-1, -26, 2, 6); c.fillStyle = '#ffe14a'; c.beginPath(); c.arc(0, -27, 3, 0, 7); c.fill(); }
+    else { c.beginPath(); c.ellipse(0, -4, tipo === 'regador' ? 17 : 20, 15, 0, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
+        c.fillStyle = '#fff';
+        var pts = tipo === 'gelinho' ? [[-9, -10, 3], [8, -11, 3], [0, -15, 2.5]] : [[-10, -9, 3.5], [3, -14, 4], [11, -7, 3]];
+        pts.forEach(function (p) { c.beginPath(); c.arc(p[0], p[1], p[2], 0, 7); c.fill(); });
+        if (tipo === 'regador') { c.fillStyle = '#3ab8ff'; c.beginPath(); c.moveTo(0, -26); c.quadraticCurveTo(5, -19, 0, -17); c.quadraticCurveTo(-5, -19, 0, -26); c.fill(); }
+        if (tipo === 'duplo') { c.fillStyle = cfg.cor; c.beginPath(); c.ellipse(0, -18, 10, 8, 0, Math.PI, 0); c.fill(); c.stroke(); } }
+    c.restore();
+}
+function desenhaZumbi(c, z, x, y, s, t) {
+    var cfg = ZUMBIS[z.tipo], bal = Math.sin(t * 4 + z.id) * 3;
+    c.save(); c.translate(x, y); c.scale(s, s);
+    if (z.lento > 0) c.filter = 'hue-rotate(160deg)';
+    if (z.flash > 0) c.globalAlpha = 0.6;
+    c.strokeStyle = '#1a2a1a'; c.lineWidth = 2;
+    if (z.tipo === 'corredor') { // raposa zumbi
+        c.fillStyle = '#c87a3a'; c.beginPath(); c.ellipse(0, 6, 16, 9, 0, 0, 7); c.fill(); c.stroke();
+        c.beginPath(); c.ellipse(-16, -2, 9, 8, 0, 0, 7); c.fill(); c.stroke();
+        c.beginPath(); c.moveTo(-20, -8); c.lineTo(-18, -18); c.lineTo(-13, -9); c.fill();
+        c.fillStyle = '#9ad87a'; c.beginPath(); c.arc(-19, -3, 2.5, 0, 7); c.fill();
+        c.fillStyle = '#c87a3a'; c.beginPath(); c.moveTo(14, 4); c.quadraticCurveTo(26, -6, 24, -12); c.lineTo(18, 2); c.fill();
+        c.fillRect(-10, 12, 4, 8 + bal); c.fillRect(8, 12, 4, 8 - bal);
+    } else if (z.tipo === 'esquilo') {
+        c.fillStyle = '#a87a5a'; c.beginPath(); c.ellipse(0, 6, 10, 12, 0, 0, 7); c.fill(); c.stroke();
+        c.beginPath(); c.arc(-4, -9, 8, 0, 7); c.fill(); c.stroke();
+        c.beginPath(); c.ellipse(12, -2, 7, 16, 0.3, 0, 7); c.fill(); c.stroke();
+        c.fillStyle = '#9ad87a'; c.beginPath(); c.arc(-7, -10, 2.5, 0, 7); c.fill();
+        if (z.pulou) { c.fillStyle = '#fff'; c.font = 'bold 10px Arial'; c.fillText('!', -3, -20); }
+    } else if (z.tipo === 'toco' || z.tipo === 'arvore') {
+        var g = z.tipo === 'arvore' ? 1.8 : 1;
+        c.scale(g, g);
+        c.fillStyle = cfg.cor; c.fillRect(-14, -16, 28, 34); c.strokeRect(-14, -16, 28, 34);
+        c.strokeStyle = '#3a2a10'; c.beginPath(); c.arc(0, -16, 10, 0, Math.PI); c.stroke();
+        if (z.tipo === 'arvore') { c.fillStyle = '#2a5a1a'; c.beginPath(); c.arc(-10, -26, 14, 0, 7); c.arc(10, -26, 14, 0, 7); c.arc(0, -36, 14, 0, 7); c.fill(); }
+        c.fillStyle = '#ff3a3a'; c.beginPath(); c.arc(-6, -4, 3, 0, 7); c.arc(6, -4, 3, 0, 7); c.fill();
+        c.strokeStyle = '#1a1a1a'; c.beginPath(); c.moveTo(-14, 0); c.lineTo(-24, -4 + bal); c.moveTo(14, 0); c.lineTo(24, -4 - bal); c.stroke();
+        c.fillStyle = '#1a1a1a'; c.fillRect(-6, 6, 12, 3);
+    } else {
+        // zumbi de pé
+        c.fillStyle = '#5a4a8a'; c.fillRect(-7, 6, 5, 14 + bal / 2); c.fillRect(2, 6, 5, 14 - bal / 2);
+        c.fillStyle = '#6a8a5a'; c.fillRect(-9, -10, 18, 18); c.strokeRect(-9, -10, 18, 18);
+        c.fillStyle = cfg.cor; c.fillRect(-22, -8 + bal / 2, 14, 5); c.fillRect(-22, -1 - bal / 2, 14, 5);
+        c.beginPath(); c.arc(0, -18, 10, 0, 7); c.fill(); c.stroke();
+        c.fillStyle = '#fff'; c.beginPath(); c.arc(-4, -19, 3, 0, 7); c.arc(4, -20, 2, 0, 7); c.fill();
+        c.fillStyle = '#000'; c.beginPath(); c.arc(-5, -19, 1.4, 0, 7); c.fill();
+        c.fillStyle = '#3a1a1a'; c.fillRect(-4, -13, 7, 2);
+        if (z.tipo === 'abobora' && z.vida > 10) {
+            c.fillStyle = '#ff8a1a'; c.beginPath(); c.ellipse(0, -26, 13, 9, 0, 0, 7); c.fill(); c.stroke();
+            c.fillStyle = '#2a1a0a'; c.beginPath(); c.moveTo(-6, -27); c.lineTo(-3, -31); c.lineTo(0, -27); c.fill(); c.beginPath(); c.moveTo(2, -27); c.lineTo(5, -31); c.lineTo(8, -27); c.fill();
+            c.fillStyle = '#3a8a1a'; c.fillRect(-1, -37, 3, 4);
+        }
+    }
+    c.restore();
+}
+
+/* ================= TELAS ================= */
+function mostra(id) { ['telaMenu', 'telaJogo', 'telaMsg'].forEach(function (t) { document.getElementById(t).classList.toggle('on', t === id); }); }
+function abreMenu() {
+    var f = document.getElementById('fases'); f.innerHTML = '';
+    FASES.forEach(function (fs, i) {
+        var n = i + 1, d = document.createElement('div'), livre = n <= dados.fase, est = dados.estrelas[n] || 0;
+        d.className = 'fase' + (livre ? '' : ' trancada') + (est ? ' feita' : '');
+        d.innerHTML = '<b>' + (fs.chefe ? '🌳' : livre ? n : '🔒') + '</b>' + fs.nome + '<br><span>' + (livre ? '⭐'.repeat(est) + '☆'.repeat(3 - est) : 'vença a fase ' + (n - 1)) + '</span>';
+        if (livre) d.onclick = function () { comeca(n); };
+        f.appendChild(d);
+    });
+    if (dados.fase > FASES.length) {
+        var d = document.createElement('div'); d.className = 'fase feita';
+        d.innerHTML = '<b>♾️</b>Sem Fim<br><span>🏆 recorde: onda ' + (dados.recInf || 0) + '</span>'; d.onclick = function () { comeca(0); }; f.appendChild(d);
+    }
+    var a = document.getElementById('almanaque'); a.innerHTML = '';
+    ORDEM.forEach(function (k) {
+        var cfg = COGUS[k], d = document.createElement('div'), cv = document.createElement('canvas'); cv.width = 60; cv.height = 54;
+        if (cfg.fase <= dados.fase) desenhaCogu(cv.getContext('2d'), k, 30, 32, 1, 0);
+        d.appendChild(cv);
+        var tx = document.createElement('span');
+        tx.innerHTML = cfg.fase <= dados.fase ? '<b>' + cfg.nome + '</b><br>💧' + cfg.custo + ' · ' + cfg.desc : '🔒 libera na fase ' + cfg.fase;
+        d.appendChild(tx); a.appendChild(d);
+    });
+    mostra('telaMenu');
+}
+function msg(h) { document.getElementById('msgCaixa').innerHTML = h; mostra('telaMsg'); }
+function abreComoJogar() {
+    msg('<h2>❓ Como jogar</h2><ul>' +
+        '<li>🧟 Os zumbis saem da <b>floresta</b> (direita) e andam até a sua casa (esquerda)</li>' +
+        '<li>🍄 Toque num <b>cogumelo</b> lá em cima e depois num quadradinho do jardim pra plantar</li>' +
+        '<li>💧 Plantar gasta <b>gotas de orvalho</b>. Toque nas gotas que caem pra pegar! O <b>Cogu Regador</b> faz mais gotas</li>' +
+        '<li>🤧 O <b>Cogu Espirro</b> ataca os zumbis da fileira dele</li>' +
+        '<li>❤️ Você tem 3 corações. Cada zumbi que chega na casa tira 1</li>' +
+        '<li>⛏️ A <b>pá</b> tira um cogumelo do jardim</li>' +
+        '<li>Cada fase libera um cogumelo novo. Na última vem a <b>🌳 ÁRVORE ZUMBI</b>!</li>' +
+        '<li>⏩ O botão de velocidade deixa o jogo mais rápido</li></ul>' +
+        '<div class="linha"><button onclick="abreMenu()">Bora defender! 🍄</button></div>');
+}
+
+/* ================= JOGO ================= */
+var cv = document.getElementById('campo'), ctx = cv.getContext('2d');
+var CW = 0, CH = 0, CEL = 40, OX = 0, OY = 0, DPR = 1;
+function tam() {
+    DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+    var w = Math.min(document.getElementById('telaJogo').clientWidth || window.innerWidth - 12, 900);
+    var hMax = window.innerHeight - 190;
+    CEL = Math.floor(Math.min(w / (COLS + 1.6), hMax / LINHAS));
+    CW = Math.floor(CEL * (COLS + 1.6)); CH = CEL * LINHAS;
+    OX = Math.floor(CEL * 0.8); OY = 0;
+    cv.width = CW * DPR; cv.height = CH * DPR; cv.style.width = CW + 'px'; cv.style.height = CH + 'px';
+}
+window.addEventListener('resize', function () { if (G) tam(); });
+
+var G = null, zid = 0;
+function comeca(n) {
+    var inf = n === 0, fs = inf ? { n: 9999, tipos: ['comum', 'abobora', 'corredor', 'esquilo', 'toco'], nome: 'Sem Fim' } : FASES[n - 1];
+    G = { n: n, inf: inf, fs: fs, t: 0, orv: 150, vidas: 3, grade: [], zumbis: [], tiros: [], gotas: [], efeitos: [], sel: null,
+        recarga: {}, faltam: fs.n, proxZ: 18, onda: 1, grandeAvisada: false, chefeVeio: !fs.chefe, fim: false, pausado: false, vel: G ? G.vel : 1,
+        proxGota: 6, perdeu: 0, plantou: 0 };
+    for (var r = 0; r < LINHAS; r++) { G.grade.push([]); for (var c = 0; c < COLS; c++) G.grade[r].push(null); }
+    montaBarra(); mostra('telaJogo'); tam();
+    info((window.innerHeight > window.innerWidth * 1.2 ? '📱 Dica: vire o celular de lado! ' : '') + (inf ? '♾️ Modo Sem Fim! Aguente o máximo de ondas!' : '🌱 Fase ' + n + ': ' + fs.nome + ' — plante cogumelos!'));
+}
+function info(t) { document.getElementById('info').textContent = t; }
+function disponiveis() { return ORDEM.filter(function (k) { return COGUS[k].fase <= Math.max(dados.fase, G.n || 99) || G.inf; }).filter(function (k) { return G.inf || COGUS[k].fase <= G.n; }); }
+function montaBarra() {
+    var b = document.getElementById('barra');
+    b.innerHTML = '<div id="orvalho">💧<span id="orvVal">' + G.orv + '</span></div>';
+    disponiveis().forEach(function (k) {
+        var d = document.createElement('div'); d.className = 'carta'; d.id = 'carta_' + k;
+        var c2 = document.createElement('canvas'); c2.width = 44; c2.height = 40; desenhaCogu(c2.getContext('2d'), k, 22, 24, 0.8, 0); d.appendChild(c2);
+        d.insertAdjacentHTML('beforeend', '<small>💧' + COGUS[k].custo + '</small><div class="rec"></div>');
+        d.onclick = function () { escolhe(k); }; b.appendChild(d);
+    });
+    var pa = document.createElement('button'); pa.id = 'pa'; pa.textContent = '⛏️'; pa.title = 'Pá: tira um cogumelo'; pa.onclick = function () { escolhe('pa'); }; b.appendChild(pa);
+}
+function escolhe(k) {
+    if (!G || G.fim) return;
+    if (k !== 'pa' && (G.orv < COGUS[k].custo || (G.recarga[k] || 0) > 0)) { info(G.orv < COGUS[k].custo ? '💧 Falta orvalho! Pegue as gotas.' : '⏳ Esse cogumelo ainda está carregando'); return; }
+    G.sel = G.sel === k ? null : k; pintaBarra();
+    if (G.sel) info(k === 'pa' ? '⛏️ Toque num cogumelo pra tirar' : '👇 Toque num quadradinho do jardim');
+}
+function pintaBarra() {
+    document.getElementById('orvVal').textContent = G.orv;
+    disponiveis().forEach(function (k) {
+        var d = document.getElementById('carta_' + k); if (!d) return;
+        d.classList.toggle('sel', G.sel === k); d.classList.toggle('sem', G.orv < COGUS[k].custo);
+        d.querySelector('.rec').style.height = ((G.recarga[k] || 0) / COGUS[k].recarga * 100) + '%';
+    });
+    document.getElementById('pa').classList.toggle('sel', G.sel === 'pa');
+}
+
+function planta(r, c, k) {
+    if (G.grade[r][c] || G.orv < COGUS[k].custo || (G.recarga[k] || 0) > 0) return false;
+    G.orv -= COGUS[k].custo; G.recarga[k] = COGUS[k].recarga;
+    G.grade[r][c] = { tipo: k, vida: COGUS[k].vida, vidaMax: COGUS[k].vida, t: 0, carga: k === 'regador' ? 4 : k === 'luz' ? 3 : 0.5, pum: k === 'pum' ? 1.2 : 0, atira: 0 };
+    G.plantou++; som('planta'); return true;
+}
+cv.addEventListener('pointerdown', function (e) {
+    if (!G || G.fim || G.pausado) return;
+    var rc = cv.getBoundingClientRect(), x = e.clientX - rc.left, y = e.clientY - rc.top;
+    // pegar gota primeiro
+    for (var i = G.gotas.length - 1; i >= 0; i--) {
+        var g = G.gotas[i];
+        if (Math.hypot(g.x - x, g.y - y) < CEL * 0.5) { pegaGota(i); return; }
+    }
+    var c = Math.floor((x - OX) / CEL), r = Math.floor((y - OY) / CEL);
+    if (r < 0 || r >= LINHAS || c < 0 || c >= COLS || !G.sel) return;
+    if (G.sel === 'pa') { if (G.grade[r][c]) { G.grade[r][c] = null; som('pa'); } G.sel = null; pintaBarra(); return; }
+    if (planta(r, c, G.sel)) { G.sel = null; info(''); }
+    pintaBarra();
+});
+function pegaGota(i) { G.orv += G.gotas[i].val; G.gotas.splice(i, 1); som('gota'); pintaBarra(); }
+
+/* ---------- som ---------- */
+var AC = null;
+function som(t) {
+    try {
+        if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+        var c = { planta: ['sine', 300, 600, 0.08, 0.12], gota: ['sine', 1000, 1600, 0.07, 0.1], tiro: ['triangle', 600, 300, 0.025, 0.05],
+            nhac: ['square', 120, 80, 0.03, 0.08], boom: ['sawtooth', 120, 30, 0.2, 0.6], pa: ['square', 300, 100, 0.05, 0.15],
+            morre: ['sawtooth', 300, 60, 0.06, 0.3], ai: ['sawtooth', 400, 100, 0.12, 0.5], onda: ['square', 200, 400, 0.08, 0.6] }[t];
+        var o = AC.createOscillator(), g = AC.createGain(), n = AC.currentTime;
+        o.type = c[0]; o.frequency.setValueAtTime(c[1], n); o.frequency.exponentialRampToValueAtTime(c[2], n + c[4]);
+        g.gain.setValueAtTime(c[3], n); g.gain.exponentialRampToValueAtTime(0.001, n + c[4]);
+        o.connect(g); g.connect(AC.destination); o.start(n); o.stop(n + c[4]);
+    } catch (e) {}
+}
+
+/* ---------- lógica (em unidades de célula) ---------- */
+function criaZumbi(tipo, linha) {
+    var cfg = ZUMBIS[tipo], extra = G.inf ? 1 + G.onda * 0.12 : 1;
+    var z = { id: zid++, tipo: tipo, r: linha === undefined ? Math.floor(Math.random() * LINHAS) : linha, x: COLS + 0.3 + Math.random() * 0.5,
+        vida: cfg.vida * extra, vidaMax: cfg.vida * extra, vel: cfg.vel, comendo: false, lento: 0, flash: 0, pulou: false, invoca: 6 };
+    if (tipo === 'arvore') z.r = 2;
+    G.zumbis.push(z); return z;
+}
+function sorteiaTipo() { var t = G.fs.tipos; return t[Math.floor(Math.random() * t.length)]; }
+function dano(z, q) { z.vida -= q; z.flash = 0.1; }
+function explode(r, c) {
+    som('boom');
+    G.efeitos.push({ tipo: 'boom', x: c + 0.5, y: r + 0.5, t: 0.6 });
+    G.zumbis.forEach(function (z) { if (Math.abs(z.r - r) <= 1 && Math.abs(z.x - (c + 0.5)) <= 1.6) dano(z, 40); });
+}
+
+function passo(dt) {
+    if (!G || G.fim) return;
+    G.t += dt;
+    var k;
+    for (k in G.recarga) if (G.recarga[k] > 0) G.recarga[k] = Math.max(0, G.recarga[k] - dt);
+    // gotas do céu
+    G.proxGota -= dt;
+    if (G.proxGota <= 0) { G.proxGota = 9; G.gotas.push({ x: OX + (0.5 + Math.random() * (COLS - 1)) * CEL, y: -10, alvoY: (0.5 + Math.random() * (LINHAS - 1)) * CEL, val: 25, t: 0 }); }
+    G.gotas.forEach(function (g) { g.t += dt; if (g.y < g.alvoY) g.y += 60 * dt * (CEL / 40); });
+    G.gotas = G.gotas.filter(function (g) { return g.t < 11; });
+
+    // chegada dos zumbis
+    if (G.faltam > 0) {
+        G.proxZ -= dt;
+        var feito = G.fs.n - G.faltam, frac = feito / G.fs.n;
+        if (!G.grandeAvisada && !G.inf && frac >= 0.7) { G.grandeAvisada = true; info('⚠️ UMA ONDA GRANDE ESTÁ CHEGANDO!'); som('onda'); G.proxZ = 4; }
+        if (G.proxZ <= 0) {
+            var quantos = G.grandeAvisada && !G.inf ? 2 + Math.floor(Math.random() * 2) : 1;
+            for (var q = 0; q < quantos && G.faltam > 0; q++) { criaZumbi(sorteiaTipo()); G.faltam--; }
+            G.proxZ = G.grandeAvisada && !G.inf ? 6 : Math.max(6.5, 14 - (G.n || 6) * 0.9) + Math.random() * 3;
+            if (G.inf) { G.proxZ = Math.max(2.5, 10 - G.onda * 0.6); if (feito % 10 === 9) { G.onda++; info('🌊 Onda ' + G.onda + '!'); som('onda'); } }
+        }
+    }
+    if (!G.chefeVeio && G.grandeAvisada && G.faltam <= 4) { G.chefeVeio = true; criaZumbi('arvore'); info('🌳 A ÁRVORE ZUMBI ACORDOU!'); som('onda'); }
+
+    // cogumelos
+    for (var r = 0; r < LINHAS; r++) for (var c = 0; c < COLS; c++) {
+        var p = G.grade[r][c]; if (!p) continue;
+        p.t += dt; if (p.atira > 0) p.atira -= dt;
+        var naFila = G.zumbis.some(function (z) { return z.r === r && z.x > c + 0.2 && z.x < COLS + 0.6; });
+        if (p.tipo === 'regador' || p.tipo === 'luz') {
+            p.carga -= dt;
+            if (p.carga <= 0) { p.carga = p.tipo === 'regador' ? 11 : 9; G.gotas.push({ x: OX + (c + 0.5 + (Math.random() - 0.5) * 0.4) * CEL, y: (r + 0.2) * CEL, alvoY: (r + 0.4) * CEL, val: p.tipo === 'regador' ? 25 : 15, t: 0 }); }
+        } else if (p.tipo === 'pum') {
+            p.pum -= dt; if (p.pum <= 0) { explode(r, c); G.grade[r][c] = null; }
+        } else if (p.tipo === 'fogo') {
+            p.carga -= dt;
+            var perto = G.zumbis.some(function (z) { return z.r === r && z.x > c && z.x < c + 4.2; });
+            if (p.carga <= 0 && perto) {
+                p.carga = 3; p.atira = 0.5;
+                G.efeitos.push({ tipo: 'fogo', x: c + 0.6, y: r + 0.5, t: 0.5 });
+                G.zumbis.forEach(function (z) { if (z.r === r && z.x > c && z.x < c + 4.2) dano(z, 5); });
+            }
+        } else if (p.tipo !== 'pedra') {
+            p.carga -= dt;
+            if (p.carga <= 0 && naFila) {
+                p.carga = 1.2; p.atira = 0.15; som('tiro');
+                G.tiros.push({ r: r, x: c + 0.7, gelo: p.tipo === 'gelinho' });
+                if (p.tipo === 'duplo') G.tiros.push({ r: r, x: c + 0.35, gelo: false });
+            }
+        }
+    }
+    // tiros
+    G.tiros = G.tiros.filter(function (t) {
+        t.x += 5 * dt;
+        for (var i = 0; i < G.zumbis.length; i++) {
+            var z = G.zumbis[i];
+            if (z.r === t.r && Math.abs(z.x - t.x) < 0.3 && z.vida > 0) { dano(z, 1); if (t.gelo) z.lento = 3; return false; }
+        }
+        return t.x < COLS + 1;
+    });
+    // zumbis
+    G.zumbis.forEach(function (z) {
+        if (z.flash > 0) z.flash -= dt; if (z.lento > 0) z.lento -= dt;
+        var f = z.lento > 0 ? 0.5 : 1;
+        var c = Math.floor(z.x - 0.15), p = c >= 0 && c < COLS ? G.grade[z.r][c] : null;
+        if (p && p.tipo === 'pum') p = null; // passa por cima do pum (ele explode)
+        if (p && z.tipo === 'esquilo' && !z.pulou) { z.pulou = true; z.x -= 1.05; return; }
+        if (z.tipo === 'arvore') {
+            z.invoca -= dt;
+            if (z.invoca <= 0) { z.invoca = 12; for (var q = 0; q < 1; q++) { var nz = criaZumbi('comum', Math.floor(Math.random() * LINHAS)); nz.x = Math.min(COLS + 0.3, z.x + 0.5); } }
+            // a árvore esmaga cogumelo na hora
+            if (p) { p.vida -= 4 * dt * f; z.comendo = true; if (p.vida <= 0) G.grade[z.r][c] = null; return; }
+        }
+        if (p) { z.comendo = true; p.vida -= 1.6 * dt * f; if (Math.random() < dt * 3) som('nhac'); if (p.vida <= 0) G.grade[z.r][c] = null; }
+        else { z.comendo = false; z.x -= z.vel * f * dt; }
+        if (z.x < -0.4) { z.vida = 0; z.chegou = true; G.vidas--; G.perdeu++; som('ai'); info('😱 Um zumbi entrou na casa! ❤️ ' + Math.max(0, G.vidas)); }
+    });
+    G.zumbis = G.zumbis.filter(function (z) {
+        if (z.vida <= 0) { if (!z.chegou) { som('morre'); G.efeitos.push({ tipo: 'puff', x: z.x, y: z.r + 0.5, t: 0.5 }); } return false; }
+        return true;
+    });
+    G.efeitos = G.efeitos.filter(function (e) { e.t -= dt; return e.t > 0; });
+
+    if (G.vidas <= 0) return acaba(false);
+    if (G.faltam <= 0 && G.chefeVeio && !G.zumbis.length && !G.inf) acaba(true);
+}
+
+function acaba(venceu) {
+    G.fim = true;
+    var txt, coins;
+    if (G.inf) {
+        if (G.onda > (dados.recInf || 0)) dados.recInf = G.onda;
+        coins = Math.min(80, G.onda * 6);
+        txt = '<h2>🧟 Os zumbis entraram!</h2><p>Você aguentou até a <b>onda ' + G.onda + '</b>!</p><p>🏆 Recorde: onda ' + dados.recInf + '</p>';
+    } else if (venceu) {
+        var est = G.perdeu === 0 ? 3 : G.perdeu === 1 ? 2 : 1;
+        if (est > (dados.estrelas[G.n] || 0)) dados.estrelas[G.n] = est;
+        var primeira = dados.fase === G.n; if (primeira) dados.fase = G.n + 1;
+        coins = 15 + G.n * 6 + (primeira ? 25 : 0);
+        var novo = ORDEM.filter(function (k) { return COGUS[k].fase === G.n + 1; })[0];
+        txt = '<h2>🎉 Jardim salvo!</h2><div class="grande">' + '⭐'.repeat(est) + '☆'.repeat(3 - est) + '</div>' +
+            (primeira && novo ? '<p>🆕 Cogumelo novo liberado: <b>' + COGUS[novo].nome + '</b> (' + COGUS[novo].desc + ')</p>' : '') +
+            (primeira && G.n === FASES.length ? '<p>🌳 VOCÊ VENCEU A ÁRVORE ZUMBI! ♾️ Modo Sem Fim liberado!</p>' : '');
+    } else {
+        coins = 3;
+        txt = '<h2>🧟 Os zumbis entraram na casa!</h2><p>Dica: plante <b>Cogu Regador</b> no começo pra ter muito orvalho 💧</p>';
+    }
+    salva();
+    if (window.CoguCoins) CoguCoins.ganha(coins);
+    txt += '<p>🍄 +' + coins + ' Cogu Coins</p><div class="linha">';
+    if (venceu && !G.inf && G.n < FASES.length) txt += '<button class="amarelo" onclick="comeca(' + (G.n + 1) + ')">▶️ Próxima fase</button>';
+    txt += '<button onclick="comeca(' + G.n + ')">🔁 Jogar de novo</button><button class="cinza" onclick="G=null;abreMenu()">🗺️ Fases</button></div>';
+    setTimeout(function () { msg(txt); }, 800);
+}
+function pausa() {
+    if (!G || G.fim) return; G.pausado = true;
+    msg('<h2>⏸️ Pausado</h2><div class="linha"><button onclick="G.pausado=false;mostra(\'telaJogo\')">▶️ Continuar</button><button class="cinza" onclick="G=null;abreMenu()">🚪 Sair</button></div>');
+}
+function trocaVel() { if (!G) return; G.vel = G.vel === 1 ? 2 : 1; document.getElementById('btVel').textContent = '⏩ ' + G.vel + 'x'; }
+
+/* ---------- desenho ---------- */
+function desenha() {
+    var c = ctx, t = G.t;
+    c.setTransform(DPR, 0, 0, DPR, 0, 0);
+    // casa (esquerda)
+    c.fillStyle = '#6a4a2a'; c.fillRect(0, 0, OX, CH);
+    c.fillStyle = '#8a5a3a'; for (var y = 0; y < CH; y += 14) c.fillRect(0, y, OX, 2);
+    c.font = Math.floor(CEL * 0.4) + 'px Arial'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    for (var v = 0; v < 3; v++) c.fillText(v < G.vidas ? '❤️' : '🖤', OX / 2, CEL * 0.5 + v * CEL * 0.6);
+    // grama xadrez
+    for (var r = 0; r < LINHAS; r++) for (var col = 0; col < COLS; col++) {
+        c.fillStyle = (r + col) % 2 ? '#4a9a3a' : '#5aaa44'; c.fillRect(OX + col * CEL, r * CEL, CEL, CEL);
+    }
+    // floresta (direita)
+    var fx = OX + COLS * CEL;
+    c.fillStyle = '#123a1a'; c.fillRect(fx, 0, CW - fx, CH);
+    c.fillStyle = '#1a5a2a';
+    for (var a = 0; a < LINHAS * 2; a++) { c.beginPath(); c.moveTo(fx + 4 + (a % 2) * 10, (a + 1) * CEL / 2 + 6); c.lineTo(fx + 14 + (a % 2) * 10, a * CEL / 2 - 8); c.lineTo(fx + 24 + (a % 2) * 10, (a + 1) * CEL / 2 + 6); c.fill(); }
+    // destaque de onde plantar
+    if (G.sel && G.sel !== 'pa') { c.fillStyle = 'rgba(255,255,255,0.08)'; for (r = 0; r < LINHAS; r++) for (col = 0; col < COLS; col++) if (!G.grade[r][col]) c.fillRect(OX + col * CEL + 2, r * CEL + 2, CEL - 4, CEL - 4); }
+    var s = CEL / 46;
+    // cogumelos
+    for (r = 0; r < LINHAS; r++) for (col = 0; col < COLS; col++) {
+        var p = G.grade[r][col]; if (!p) continue;
+        var px = OX + (col + 0.5) * CEL, py = (r + 0.58) * CEL;
+        desenhaCogu(c, p.tipo, px, py, s, t, p.atira > 0);
+        if (p.vida < p.vidaMax && p.tipo !== 'pum') { c.fillStyle = '#300'; c.fillRect(px - CEL * 0.35, py + CEL * 0.36, CEL * 0.7, 3); c.fillStyle = '#7dff6a'; c.fillRect(px - CEL * 0.35, py + CEL * 0.36, CEL * 0.7 * p.vida / p.vidaMax, 3); }
+    }
+    // tiros
+    G.tiros.forEach(function (tr) { c.fillStyle = tr.gelo ? '#9ae8ff' : '#ffe14a'; c.beginPath(); c.arc(OX + tr.x * CEL, (tr.r + 0.45) * CEL, CEL * 0.1, 0, 7); c.fill(); c.strokeStyle = '#3a2a1a'; c.lineWidth = 1; c.stroke(); });
+    // zumbis (de cima pra baixo)
+    G.zumbis.slice().sort(function (a, b) { return a.r - b.r; }).forEach(function (z) {
+        var zx = OX + z.x * CEL, zy = (z.r + 0.55) * CEL;
+        desenhaZumbi(c, z, zx, zy, s, t);
+        if (z.vida < z.vidaMax) { var bw = z.tipo === 'arvore' ? CEL * 1.4 : CEL * 0.6; c.fillStyle = '#300'; c.fillRect(zx - bw / 2, zy - CEL * (z.tipo === 'arvore' ? 1.4 : 0.62), bw, 4); c.fillStyle = '#ff5a3a'; c.fillRect(zx - bw / 2, zy - CEL * (z.tipo === 'arvore' ? 1.4 : 0.62), bw * Math.max(0, z.vida / z.vidaMax), 4); }
+    });
+    // efeitos
+    G.efeitos.forEach(function (e) {
+        var ex = OX + e.x * CEL, ey = e.y * CEL;
+        if (e.tipo === 'boom') { c.fillStyle = 'rgba(255,' + Math.floor(150 + e.t * 150) + ',40,' + (e.t * 1.5) + ')'; c.beginPath(); c.arc(ex, ey, CEL * (1.8 - e.t), 0, 7); c.fill(); }
+        else if (e.tipo === 'fogo') { c.fillStyle = 'rgba(255,120,20,' + e.t * 1.6 + ')'; c.beginPath(); c.moveTo(ex, ey); c.lineTo(ex + CEL * 3.6, ey - CEL * 0.35); c.lineTo(ex + CEL * 3.6, ey + CEL * 0.35); c.fill(); }
+        else { c.fillStyle = 'rgba(200,255,200,' + e.t * 1.5 + ')'; c.beginPath(); c.arc(ex, ey, CEL * 0.4 * (1.5 - e.t), 0, 7); c.fill(); }
+    });
+    // gotas
+    G.gotas.forEach(function (g) {
+        var pis = g.t > 8 && Math.floor(g.t * 6) % 2; if (pis) return;
+        var rr = CEL * 0.22;
+        c.fillStyle = '#5ac8ff'; c.strokeStyle = '#fff'; c.lineWidth = 2;
+        c.beginPath(); c.moveTo(g.x, g.y - rr * 1.6); c.quadraticCurveTo(g.x + rr * 1.3, g.y, g.x, g.y + rr); c.quadraticCurveTo(g.x - rr * 1.3, g.y, g.x, g.y - rr * 1.6); c.fill(); c.stroke();
+    });
+    // barra de progresso da fase
+    if (!G.inf) {
+        var feito = 1 - G.faltam / G.fs.n;
+        c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(CW - 112, 4, 106, 12);
+        c.fillStyle = '#ff5a3a'; c.fillRect(CW - 110, 6, 102 * feito, 8);
+        c.font = '12px Arial'; c.fillText('🧟', CW - 110 + 102 * feito, 10);
+    }
+}
+
+var ult = performance.now(), hudT = 0;
+function loop(now) {
+    requestAnimationFrame(loop);
+    var dt = Math.min(0.1, (now - ult) / 1000); ult = now;
+    if (!G || G.pausado || !document.getElementById('telaJogo').classList.contains('on')) return;
+    if (!G.fim) { passo(dt * G.vel); }
+    desenha();
+    hudT -= dt; if (hudT <= 0) { hudT = 0.25; pintaBarra(); }
+}
+window.addEventListener('keydown', function (e) {
+    if (!G || G.fim) return;
+    var lista = disponiveis(), n = parseInt(e.key, 10);
+    if (n >= 1 && n <= lista.length) escolhe(lista[n - 1]);
+    if (e.key === 'Escape') { G.sel = null; pintaBarra(); }
+});
+
+/* ================= COMEÇO ================= */
+if (!localStorage.getItem(SAVE_KEY)) { salva(); abreComoJogar(); } else abreMenu();
+requestAnimationFrame(loop);
+window._czTeste = { G: function () { return G; }, dados: function () { return dados; }, passo: passo, planta: planta, comeca: comeca, desenha: desenha };
+</script>
+<script src="/mascote.js"></script>
+<script src="/gamepad.js?v=358"></script>
+<script src="/idiomas.js"></script>
+<script src="/telacheia.js"></script>
+</body>
+</html>
