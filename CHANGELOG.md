@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v616 (2026-11-04)
+- ⚽ Jogo novo LANÇADO: **Cogu Futebol**! Futebol 11 contra 11 visto de cima, num campo com as medidas de verdade: passe pro amigo, drible, chute segurando pra ir mais forte (e mirando no canto!), goleiro que defende e espalma, lateral, escanteio, tiro de meta, dois tempos com troca de lado e fôlego pra correr. Escolha entre 8 times (Cogumelos FC, Tubarões, Capivaras, Dragões...), 3 dificuldades e jogue a 🏆 Copa Cogumelo: quartas, semi e FINAL com gol de ouro
+
 ## v615 (2026-11-04)
 - 🧟 Jogo novo LANÇADO: **Cogumelos vs Zumbis da Floresta**! Os zumbis saem da floresta e você planta cogumelos no jardim pra segurar eles: Cogu Regador (faz gotas de orvalho 💧), Cogu Espirro, Cogu Pedrão, Cogu Pum (explode!), Cogu Gelinho, Cogu Duplo, Cogu Dragão (bafo de fogo) e Cogu Lua. Tem Zumbi Abóbora, Raposa Zumbi, Esquilo Pulador, Toco Zumbi e na fase 8 a gigante ÁRVORE ZUMBI 🌳. Venceu as 8 fases? Abre o ♾️ Modo Sem Fim!
 
