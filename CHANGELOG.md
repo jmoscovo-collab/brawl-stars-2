@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v630 (2026-11-07)
+- ⛷️ LANÇADO: Cogu Esqui 3D agora está na página inicial com o selo NOVO!
+
 ## v629 (2026-11-07)
 - 🚫 Agora NÃO dá mais pra ganhar Cogu Coins jogando os jogos (pedido do Davi). O presente da página inicial, os presentes de amigos e a loja continuam funcionando
 - 🙈 Código secreto novo: digite **/jogos.escondidos** em Minha Conta > ⚙️ > Códigos secretos e aparece uma tabela com todos os jogos que estão escondidos do site, com botão pra jogar
