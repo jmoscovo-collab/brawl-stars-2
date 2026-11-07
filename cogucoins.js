@@ -119,9 +119,21 @@
     } catch (e) {}
   }
 
+  // v629 (pedido do Davi): jogar NÃO dá mais Cogu Coins. Os jogos chamam CoguCoins.ganha()
+  // e aqui a gente ignora fora das páginas do site (home, loja, Cogu Coins, conta).
+  // Pra voltar a ganhar nos jogos: troca GANHA_NOS_JOGOS pra true.
+  // (presente diário/evento da home, presentes de amigos e devolução de troca continuam funcionando)
+  var GANHA_NOS_JOGOS = false;
+  var PAGINAS_QUE_DAO = ['/', '/index.html', '/loja/', '/cogucoins/', '/conta/'];
+  function podeGanharAqui() {
+    if (GANHA_NOS_JOGOS) return true;
+    try { return PAGINAS_QUE_DAO.indexOf(location.pathname) >= 0; } catch (e) { return true; }
+  }
+
   window.CoguCoins = {
     saldo: saldo,
-    ganha: function (n) { var s = ganha(n); mostraGanho(n); return s; },
+    ganha: function (n) { if (!podeGanharAqui()) return saldo(); var s = ganha(n); mostraGanho(n); return s; },
+    podeGanhar: podeGanharAqui,
     ganhaSilencioso: ganha,
     gasta: gasta,
     compra: compra,
