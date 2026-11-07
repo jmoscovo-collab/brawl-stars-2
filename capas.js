@@ -48,7 +48,8 @@
     trem: ['grama', 'trem', ['arvore', 'moeda', 'nuvem']], pinta: ['palco', 'pincel', ['paleta', 'estrela', 'cogu']],
     detetive: ['cidade', 'lupa', ['osso', 'interrogacao', 'estrela']], monstro: ['roxo', 'monstro', ['ovo', 'fogo', 'estrela']],
     espacial: ['espaco', 'foguete', ['planeta', 'meteoro', 'alien']], pizzaria: ['cozinha', 'pizza', ['cogu', 'fogo', 'moeda']],
-    'cogu-zumbis': ['grama', 'zumbi', ['cogu', 'arvore', 'gota:#3ab8ff']], futebol: ['grama', 'gol', ['bolinha', 'cogu', 'trofeu']]
+    'cogu-zumbis': ['grama', 'zumbi', ['cogu', 'arvore', 'gota:#3ab8ff']], futebol: ['grama', 'gol', ['bolinha', 'cogu', 'trofeu']],
+    esqui: ['ceu', 'cogu', ['arvore', 'moeda', 'estrela']]
   };
   var CEN = { // [céu em cima, céu embaixo, chão, enfeite]
     ceu: ['#3aa0ff', '#bfe6ff', '#4cc44c', 'nuvens'], noite: ['#0b0420', '#3a1a5a', '#1e1530', 'lua'],

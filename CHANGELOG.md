@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v628 (2026-11-07)
+- ⛷️ Jogo novo (ainda escondido, só pelo link /esqui/): **Cogu Esqui 3D**! Desça a montanha de esqui em 3D desviando de árvores, pedras e bonecos de neve. Pule nas rampas e segure pro lado no ar pra fazer GIROS, passe entre as bandeiras pra ganhar combo e pegue moedas. São 3 montanhas: Montanha Verde, Pico Gelado (com nevasca) e Noite Estrelada (só com a lanterna do Cogu!)
+- ⬜ O fundo branco agora também vale na página Minha Conta
+
 ## v627 (2026-11-04)
 - ⚽ O jogo Cogu Futebol foi escondido da página inicial a pedido do Davi
 

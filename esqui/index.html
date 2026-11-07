@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Cogu Esqui 3D — Cogumelo Games</title>
+<meta name="description" content="Cogu Esqui 3D: desça a montanha de esqui desviando de árvores, pedras e bonecos de neve, pule nas rampas e faça giros! Jogo grátis do Cogumelo Games.">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { width:100%; height:100%; overflow:hidden; background:#bfe0ff; font-family:Arial,sans-serif; color:#fff; user-select:none; -webkit-user-select:none; touch-action:none; }
+#jogo { position:fixed; inset:0; width:100%; height:100%; display:block; }
+.tela { position:fixed; inset:0; display:none; flex-direction:column; align-items:center; overflow-y:auto; padding:16px 14px 30px; z-index:5;
+    background:linear-gradient(180deg, rgba(20,60,120,0.92), rgba(10,25,60,0.97)); touch-action:pan-y; }
+.tela.on { display:flex; }
+#telaMenu { padding-top:70px; background:linear-gradient(180deg, rgba(20,60,120,0.55), rgba(10,25,60,0.85)); }
+h1 { font-size:36px; margin:6px 0 2px; text-align:center; letter-spacing:1px; color:#fff; text-shadow:0 3px 0 #2a6fd6, 0 6px 14px rgba(0,0,0,0.5); }
+h1 small { display:block; font-size:16px; color:#ffd84a; text-shadow:none; letter-spacing:4px; }
+h2 { margin:10px 0 6px; font-size:18px; color:#ffd84a; text-align:center; }
+.sub { color:#cfe4ff; font-size:14px; text-align:center; margin-bottom:6px; max-width:520px; line-height:1.4; }
+button { font-family:inherit; font-size:17px; font-weight:bold; padding:11px 20px; border:none; border-radius:14px; cursor:pointer;
+    background:linear-gradient(135deg,#ffd84a,#ff8a2a); color:#3a1600; box-shadow:0 4px 0 rgba(0,0,0,0.35); }
+button:active { transform:translateY(2px); box-shadow:none; }
+button.azul { background:linear-gradient(135deg,#7fd0ff,#3a7bff); color:#04163a; }
+button.cinza { background:#34507a; color:#fff; }
+.linha { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:10px 0; }
+.montanhas { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; max-width:660px; }
+.mont { width:196px; border-radius:16px; overflow:hidden; cursor:pointer; border:4px solid transparent; background:rgba(255,255,255,0.08); text-align:center; }
+.mont.sel { border-color:#ffd84a; }
+.mont .img { height:86px; position:relative; overflow:hidden; }
+.mont .img i { position:absolute; bottom:-6px; width:0; height:0; border-left:48px solid transparent; border-right:48px solid transparent; }
+.mont .img i::after { content:''; position:absolute; left:-15px; top:0; border-left:15px solid transparent; border-right:15px solid transparent; border-bottom:18px solid #fff; }
+.mont b { display:block; font-size:16px; margin:6px 0 1px; }
+.mont span { display:block; font-size:12px; color:#cfe4ff; padding:0 6px 8px; }
+.mont .rec { color:#ffd84a; font-weight:bold; }
+.caixa { background:rgba(10,30,70,0.96); border:3px solid #7fd0ff; border-radius:18px; padding:18px; max-width:440px; width:100%; text-align:center; margin-top:5vh; }
+.caixa ul { text-align:left; padding-left:20px; color:#dcebff; font-size:14px; line-height:1.6; }
+.num { font-size:44px; font-weight:900; color:#ffd84a; }
+.tabela { display:grid; grid-template-columns:1fr auto; gap:4px 16px; text-align:left; margin:10px auto; max-width:260px; font-size:16px; }
+.tabela b { text-align:right; color:#ffd84a; }
+#novoRec { color:#7dff6a; font-weight:900; font-size:20px; margin:6px 0; display:none; }
+a.voltar { color:#9cc4ff; text-decoration:none; margin-top:16px; font-size:15px; }
+
+#hud { position:fixed; top:0; left:0; right:0; display:none; justify-content:space-between; align-items:flex-start; padding:8px 10px; pointer-events:none; z-index:3; }
+#hud.on { display:flex; }
+.painel { background:rgba(8,24,60,0.6); border-radius:12px; padding:6px 12px; font-weight:bold; text-shadow:0 1px 2px #000; }
+#hDist { font-size:26px; }
+#hDist small { font-size:14px; }
+#hInfo { font-size:14px; color:#dcebff; margin-top:2px; }
+#vidas { display:flex; gap:4px; margin-top:4px; }
+.cor { width:18px; height:16px; position:relative; }
+.cor::before, .cor::after { content:''; position:absolute; top:0; width:10px; height:16px; border-radius:10px 10px 0 0; background:#ff3b5c; }
+.cor::before { left:9px; transform:rotate(-45deg); transform-origin:0 100%; }
+.cor::after { left:-1px; transform:rotate(45deg); transform-origin:100% 100%; }
+.cor.off::before, .cor.off::after { background:rgba(255,255,255,0.25); }
+#btPausa { pointer-events:auto; padding:8px 14px; font-size:15px; }
+#aviso { position:fixed; top:26%; left:0; right:0; text-align:center; font-size:40px; font-weight:900; pointer-events:none; opacity:0; transition:opacity .2s, transform .2s;
+    color:#ffd84a; text-shadow:0 3px 0 #a84a00, 0 6px 14px rgba(0,0,0,0.6); z-index:4; }
+#aviso small { display:block; font-size:22px; color:#fff; }
+#toque { position:fixed; inset:0; display:none; z-index:2; }
+#toque.on { display:block; }
+.seta { position:absolute; bottom:28px; width:0; height:0; border-top:26px solid transparent; border-bottom:26px solid transparent; opacity:0.35; }
+#setaE { left:22px; border-right:36px solid #fff; }
+#setaD { right:22px; border-left:36px solid #fff; }
+#btPulo { position:absolute; bottom:22px; left:50%; transform:translateX(-50%); width:96px; height:66px; border-radius:33px; font-size:17px;
+    background:rgba(255,216,74,0.55); border:3px solid rgba(255,255,255,0.8); color:#fff; text-shadow:0 1px 2px #000; padding:0; box-shadow:none; }
+#flash { position:fixed; inset:0; background:#ff2040; opacity:0; pointer-events:none; transition:opacity .25s; z-index:3; }
+</style>
+<script src="/cogucoins.js?v=551"></script>
+</head>
+<body>
+<canvas id="jogo"></canvas>
+<div id="flash"></div>
+<div id="hud">
+    <div class="painel">
+        <div id="hDist">0 <small>m</small></div>
+        <div id="hInfo">Pontos 0 · Moedas 0</div>
+        <div id="vidas"></div>
+    </div>
+    <button class="cinza" id="btPausa" onclick="pausar()">Pausa</button>
+</div>
+<div id="aviso"></div>
+<div id="toque"><div class="seta" id="setaE"></div><div class="seta" id="setaD"></div><button id="btPulo">PULO</button></div>
+
+<div class="tela on" id="telaMenu">
+    <h1>COGU ESQUI<small>3D</small></h1>
+    <div class="sub">Desça a montanha! Desvie das árvores, pedras e bonecos de neve, pegue as moedas, passe entre as bandeiras e pule nas rampas pra fazer GIROS.</div>
+    <h2>Escolha a montanha</h2>
+    <div class="montanhas" id="listaMont"></div>
+    <div class="linha">
+        <button onclick="comecar()">ESQUIAR!</button>
+        <button class="azul" onclick="mostra('telaComo')">Como jogar</button>
+    </div>
+    <a class="voltar" href="/">&larr; Voltar pro Cogumelo Games</a>
+</div>
+
+<div class="tela" id="telaComo">
+    <div class="caixa">
+        <h2>Como jogar</h2>
+        <ul>
+            <li><b>Virar:</b> setas / A e D (no celular: segure o lado esquerdo ou direito da tela)</li>
+            <li><b>Pular:</b> espaço / seta pra cima (no celular: botão PULO)</li>
+            <li><b>No ar:</b> segure esquerda ou direita pra GIRAR. Aterrisse de frente (volta completa) pra ganhar pontos! Se cair torto, é tombo.</li>
+            <li><b>Rampas</b> jogam você bem alto: dá pra passar por cima de pedras e bonecos de neve (árvore não!).</li>
+            <li><b>Bandeiras:</b> passe entre a vermelha e a azul pra ganhar bônus e aumentar o combo.</li>
+            <li>Você tem 3 vidas. Quanto mais longe, mais rápido fica!</li>
+        </ul>
+        <div class="linha"><button onclick="mostra('telaMenu')">Entendi!</button></div>
+    </div>
+</div>
+
+<div class="tela" id="telaPausa">
+    <div class="caixa">
+        <h2>Pausado</h2>
+        <div class="linha"><button onclick="continuar()">Continuar</button><button class="cinza" onclick="irMenu()">Menu</button></div>
+    </div>
+</div>
+
+<div class="tela" id="telaFim">
+    <div class="caixa">
+        <h2 id="fimTitulo">Fim da descida!</h2>
+        <div class="num" id="fimDist">0 m</div>
+        <div id="novoRec">NOVO RECORDE!</div>
+        <div class="tabela">
+            <span>Pontos</span><b id="fimPontos">0</b>
+            <span>Moedas pegas</span><b id="fimMoedas">0</b>
+            <span>Giros</span><b id="fimGiros">0</b>
+            <span>Bandeiras</span><b id="fimBand">0</b>
+            <span>Cogu Coins ganhas</span><b id="fimCoins">0</b>
+            <span>Recorde</span><b id="fimRec">0 m</b>
+        </div>
+        <div class="linha"><button onclick="comecar()">De novo!</button><button class="cinza" onclick="irMenu()">Menu</button></div>
+    </div>
+</div>
+
+<script src="/stats.js?v=496"></script>
+<script>
+if (window.initStats) initStats('esqui');
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ====================== COGU ESQUI 3D ======================
+var CELULAR = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || ('ontouchstart' in window && innerWidth < 1100);
+var LARG = 8.6;        // metade da largura da pista
+var PASSO_LINHA = 3.5; // distância entre linhas geradas
+
+var MONTANHAS = [
+    { id:'verde', nome:'Montanha Verde', desc:'Pra começar: dia de sol e pouca coisa no caminho.', ceu:0x9fd4ff, nevoa:0xd8ecff, chao:'#f4f8ff', luz:1.0,
+      v0:13, vMax:24, dens:0.55, neve:false, noite:false, grad:'linear-gradient(#7cc4ff,#d8ecff)', morro:'#4e9a5a' },
+    { id:'gelo', nome:'Pico Gelado', desc:'Nevando forte, mais rápido e mais árvores.', ceu:0xaab8cc, nevoa:0xc8d4e2, chao:'#eef4fb', luz:0.85,
+      v0:15.5, vMax:28, dens:0.8, neve:true, noite:false, grad:'linear-gradient(#8a9ab2,#dfe7f2)', morro:'#6a7f9c' },
+    { id:'noite', nome:'Noite Estrelada', desc:'Difícil! Escuro, só com a lanterna do Cogu.', ceu:0x0b1430, nevoa:0x101c40, chao:'#c8d4f0', luz:0.35,
+      v0:17.5, vMax:32, dens:1.0, neve:false, noite:true, grad:'linear-gradient(#050a20,#2a3a78)', morro:'#1c2850' }
+];
+var montSel = 0;
+try { montSel = Math.max(0, Math.min(2, parseInt(localStorage.getItem('esqui_mont') || '0', 10) || 0)); } catch (e) {}
+function recorde(id) { try { return parseInt(localStorage.getItem('esqui_rec_' + id) || '0', 10) || 0; } catch (e) { return 0; } }
+
+function montaLista() {
+    var l = document.getElementById('listaMont'); l.innerHTML = '';
+    MONTANHAS.forEach(function (m, i) {
+        var d = document.createElement('div'); d.className = 'mont' + (i === montSel ? ' sel' : '');
+        var picos = '';
+        [[8, 70], [70, 90], [128, 64]].forEach(function (p) {
+            picos += '<i style="left:' + p[0] + 'px;border-bottom:' + p[1] + 'px solid ' + m.morro + '"></i>';
+        });
+        d.innerHTML = '<div class="img" style="background:' + m.grad + '">' + picos + '</div><b>' + m.nome + '</b><span>' + m.desc +
+            '<br><span class="rec">Recorde: ' + recorde(m.id) + ' m</span></span>';
+        d.onclick = function () { montSel = i; try { localStorage.setItem('esqui_mont', String(i)); } catch (e) {} montaLista(); if (!J.on) aplicaVisual(MONTANHAS[i]); };
+        l.appendChild(d);
+    });
+}
+function mostra(id) {
+    document.querySelectorAll('.tela').forEach(function (t) { t.classList.toggle('on', t.id === id); });
+}
+
+// ---------------- three.js ----------------
+var canvas = document.getElementById('jogo');
+var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: !CELULAR, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CELULAR ? 1.25 : 1.5));
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(64, 1, 0.1, 400);
+function resize() {
+    renderer.setSize(innerWidth, innerHeight, false);
+    camera.aspect = innerWidth / innerHeight;
+    camera.fov = camera.aspect < 0.8 ? 78 : 64;
+    camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+var hemi = new THREE.HemisphereLight(0xffffff, 0x8899bb, 0.75); scene.add(hemi);
+var sol = new THREE.DirectionalLight(0xfff4e0, 0.7); sol.position.set(-6, 12, 6); scene.add(sol); scene.add(sol.target);
+var lanterna = new THREE.PointLight(0xfff2c0, 0, 34, 1.4); scene.add(lanterna);
+scene.fog = new THREE.Fog(0xd8ecff, 40, 135);
+
+function mat(cor, extra) { var o = { color: cor, flatShading: true }; for (var k in extra) o[k] = extra[k]; return new THREE.MeshLambertMaterial(o); }
+
+// chão de neve (segue o jogador; a textura desliza)
+var texChao = (function () {
+    var c = document.createElement('canvas'); c.width = c.height = 256; var g = c.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, 256, 256);
+    for (var i = 0; i < 900; i++) {
+        var a = 0.05 + Math.random() * 0.12;
+        g.fillStyle = 'rgba(120,150,200,' + a + ')';
+        g.beginPath(); g.arc(Math.random() * 256, Math.random() * 256, 0.6 + Math.random() * 2.2, 0, 7); g.fill();
+    }
+    for (var j = 0; j < 14; j++) { // ondinhas
+        g.strokeStyle = 'rgba(140,170,220,0.12)'; g.lineWidth = 3;
+        var y = Math.random() * 256; g.beginPath(); g.moveTo(0, y);
+        for (var x = 0; x <= 256; x += 16) g.lineTo(x, y + Math.sin(x * 0.05 + j) * 4);
+        g.stroke();
+    }
+    var t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(5, 18);
+    return t;
+})();
+var CH_L = 70, CH_C = 240;
+var chaoMat = new THREE.MeshLambertMaterial({ color: 0xffffff, map: texChao });
+var chao = new THREE.Mesh(new THREE.PlaneGeometry(CH_L, CH_C), chaoMat);
+chao.rotation.x = -Math.PI / 2; scene.add(chao);
+// faixas mais escuras fora da pista
+var bordaMat = new THREE.MeshLambertMaterial({ color: 0xc9d8ee, transparent: true, opacity: 0.55, depthWrite: false });
+var bordas = [];
+[-1, 1].forEach(function (s) {
+    var b = new THREE.Mesh(new THREE.PlaneGeometry(26, CH_C), bordaMat);
+    b.rotation.x = -Math.PI / 2; b.position.set(s * (LARG + 0.6 + 13), 0.02, 0); scene.add(b); bordas.push(b);
+});
+
+// montanhas ao fundo (sem névoa)
+var fundo = new THREE.Group(); scene.add(fundo);
+var morroMat = new THREE.MeshLambertMaterial({ color: 0x4e9a5a, flatShading: true, fog: false });
+var topoMat = new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true, fog: false });
+[[-120, 70, 55], [-60, 95, 70], [0, 80, 60], [65, 105, 75], [130, 72, 58], [-170, 60, 50], [180, 85, 60]].forEach(function (m) {
+    var g = new THREE.Group();
+    var c = new THREE.Mesh(new THREE.ConeGeometry(m[2], m[1], 7), morroMat); c.position.y = m[1] / 2; g.add(c);
+    var t = new THREE.Mesh(new THREE.ConeGeometry(m[2] * 0.32, m[1] * 0.32, 7), topoMat); t.position.y = m[1] * 0.84 + 0.4; g.add(t);
+    g.position.set(m[0], -6, -230 - Math.random() * 30); fundo.add(g);
+});
+
+// estrelas (noite)
+var estrelas = (function () {
+    var n = 300, p = new Float32Array(n * 3);
+    for (var i = 0; i < n; i++) {
+        var a = Math.random() * Math.PI - Math.PI, e = 0.15 + Math.random() * 1.2, r = 300;
+        p[i * 3] = Math.cos(a) * Math.cos(e) * r; p[i * 3 + 1] = Math.sin(e) * r; p[i * 3 + 2] = Math.sin(a) * Math.cos(e) * r;
+    }
+    var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+    var s = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, fog: false }));
+    scene.add(s); return s;
+})();
+
+// neve caindo
+var NEVE_N = CELULAR ? 220 : 420;
+var neve = (function () {
+    var p = new Float32Array(NEVE_N * 3);
+    for (var i = 0; i < NEVE_N; i++) { p[i * 3] = (Math.random() - 0.5) * 50; p[i * 3 + 1] = Math.random() * 22; p[i * 3 + 2] = -Math.random() * 70 + 10; }
+    var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+    var s = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 0.16, transparent: true, opacity: 0.9 }));
+    scene.add(s); return s;
+})();
+
+// spray de neve quando vira
+var SPRAY_N = 70;
+var spray = (function () {
+    var p = new Float32Array(SPRAY_N * 3);
+    var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+    var s = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 0.22, transparent: true, opacity: 0.85, depthWrite: false }));
+    s.frustumCulled = false; scene.add(s);
+    s.userData.vel = []; s.userData.vida = [];
+    for (var i = 0; i < SPRAY_N; i++) { s.userData.vel.push([0, 0, 0]); s.userData.vida.push(0); p[i * 3 + 1] = -50; }
+    return s;
+})();
+var sprayIdx = 0;
+
+// ---------------- o Cogu esquiador ----------------
+var cogu = new THREE.Group(); scene.add(cogu);
+var coguCorpo = new THREE.Group(); cogu.add(coguCorpo); // gira nos truques
+(function () {
+    var pele = mat(0xfff1d6), vermelho = mat(0xe8323c), branco = mat(0xffffff), preto = mat(0x1a1a22), azul = mat(0x2a6fd6), amarelo = mat(0xffc21a);
+    var corpo = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.42, 0.85, 10), azul); corpo.position.y = 0.95; coguCorpo.add(corpo);
+    var cab = new THREE.Mesh(new THREE.SphereGeometry(0.36, 12, 10), pele); cab.position.y = 1.55; coguCorpo.add(cab);
+    var chapeu = new THREE.Mesh(new THREE.SphereGeometry(0.72, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), vermelho);
+    chapeu.scale.y = 0.75; chapeu.position.y = 1.72; coguCorpo.add(chapeu);
+    var aba = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.72, 0.06, 14), vermelho); aba.position.y = 1.72; coguCorpo.add(aba);
+    [[0.3, 2.12, 0.1], [-0.25, 2.05, 0.3], [0.05, 2.0, -0.45], [-0.45, 1.9, -0.15], [0.5, 1.88, -0.3], [0.1, 2.1, 0.45]].forEach(function (b) {
+        var bo = new THREE.Mesh(new THREE.SphereGeometry(0.11, 6, 5), branco); bo.position.set(b[0], b[1], b[2]); bo.scale.y = 0.5; coguCorpo.add(bo);
+    });
+    // óculos de esqui (olhando pra -z)
+    var oc = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.16, 0.12), amarelo); oc.position.set(0, 1.58, -0.3); coguCorpo.add(oc);
+    var lente = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.1, 0.05), preto); lente.position.set(0, 1.58, -0.37); coguCorpo.add(lente);
+    // cachecol
+    var cach = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.08, 6, 12), vermelho); cach.rotation.x = Math.PI / 2; cach.position.y = 1.3; coguCorpo.add(cach);
+    var ponta = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.06), vermelho); ponta.position.set(0.15, 1.12, 0.32); ponta.rotation.x = 0.5; coguCorpo.add(ponta);
+    coguCorpo.userData.ponta = ponta;
+    // braços + bastões
+    [-1, 1].forEach(function (s) {
+        var br = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6, 6), azul); br.position.set(s * 0.45, 1.0, -0.1); br.rotation.z = s * 0.5; br.rotation.x = -0.4; coguCorpo.add(br);
+        var bast = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.3, 5), preto); bast.position.set(s * 0.62, 0.55, 0.1); bast.rotation.x = 0.45; coguCorpo.add(bast);
+    });
+    // pernas + esquis
+    [-1, 1].forEach(function (s) {
+        var pe = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.5, 6), preto); pe.position.set(s * 0.17, 0.35, 0); coguCorpo.add(pe);
+        var esq = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.06, 1.9), amarelo); esq.position.set(s * 0.2, 0.06, -0.15); coguCorpo.add(esq);
+        var bico = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.06, 0.3), amarelo); bico.position.set(s * 0.2, 0.14, -1.15); bico.rotation.x = 0.5; coguCorpo.add(bico);
+    });
+})();
+var sombra = new THREE.Mesh(new THREE.CircleGeometry(0.7, 16), new THREE.MeshBasicMaterial({ color: 0x334466, transparent: true, opacity: 0.3, depthWrite: false }));
+sombra.rotation.x = -Math.PI / 2; scene.add(sombra);
+
+// ---------------- objetos com InstancedMesh (leve!) ----------------
+var TIPOS = {};
+function criaTipo(nome, max, partes, info) {
+    var t = { nome: nome, max: max, partes: [], ativos: [] };
+    partes.forEach(function (p) {
+        var g = p[0]; g.translate(p[2] || 0, p[3] || 0, p[4] || 0);
+        var im = new THREE.InstancedMesh(g, p[1], max); im.count = 0; im.frustumCulled = false;
+        im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(im); t.partes.push(im);
+    });
+    for (var k in info) t[k] = info[k];
+    TIPOS[nome] = t; return t;
+}
+var verdePinho = mat(0x2f7a46), verdeEsc = mat(0x23603a), tronco = mat(0x7a4a2a), neveM = mat(0xffffff), pedraM = mat(0x7d8696), laranja = mat(0xff8a1a);
+criaTipo('arvore', 320, [
+    [new THREE.CylinderGeometry(0.18, 0.24, 1.0, 6), tronco, 0, 0.5],
+    [new THREE.ConeGeometry(1.25, 2.2, 7), verdeEsc, 0, 1.9],
+    [new THREE.ConeGeometry(0.95, 1.8, 7), verdePinho, 0, 3.0],
+    [new THREE.ConeGeometry(0.45, 0.7, 7), neveM, 0, 4.0]
+], { raio: 0.75, alt: 4.4, obst: true });
+criaTipo('pedra', 70, [
+    [new THREE.DodecahedronGeometry(0.75, 0), pedraM, 0, 0.35],
+    [new THREE.DodecahedronGeometry(0.45, 0), neveM, 0.1, 0.8]
+], { raio: 0.8, alt: 1.0, obst: true });
+criaTipo('boneco', 40, [
+    [new THREE.SphereGeometry(0.62, 9, 7), neveM, 0, 0.55],
+    [new THREE.SphereGeometry(0.44, 9, 7), neveM, 0, 1.38],
+    [new THREE.ConeGeometry(0.08, 0.4, 5).rotateX(-Math.PI / 2), laranja, 0, 1.4, -0.55],
+    [new THREE.CylinderGeometry(0.32, 0.32, 0.42, 8), mat(0x1a1a22), 0, 1.95],
+    [new THREE.CylinderGeometry(0.46, 0.46, 0.05, 10), mat(0x1a1a22), 0, 1.76]
+], { raio: 0.65, alt: 2.1, obst: true });
+var moedaMat = new THREE.MeshLambertMaterial({ color: 0xffc21a, emissive: 0x6a4a00, flatShading: true });
+criaTipo('moeda', 150, [
+    [new THREE.CylinderGeometry(0.42, 0.42, 0.1, 14).rotateX(Math.PI / 2), moedaMat, 0, 0],
+    [new THREE.BoxGeometry(0.12, 0.42, 0.13), mat(0xffe680, { emissive: 0x5a4a10 }), 0, 0]
+], { raio: 0.9, obst: false });
+criaTipo('bandV', 24, [
+    [new THREE.CylinderGeometry(0.06, 0.06, 2.4, 5), mat(0xffffff), 0, 1.2],
+    [new THREE.BoxGeometry(0.04, 0.6, 0.9), mat(0xff2a3a), 0, 2.05, 0, 0.45]
+], { obst: false });
+criaTipo('bandA', 24, [
+    [new THREE.CylinderGeometry(0.06, 0.06, 2.4, 5), mat(0xffffff), 0, 1.2],
+    [new THREE.BoxGeometry(0.04, 0.6, 0.9), mat(0x2a6fff), 0, 2.05, 0, 0.45]
+], { obst: false });
+// rampa: cunha de 3m de largura, 4m de comprimento, sobe até 1.1m (sentido -z)
+var rampaGeo = (function () {
+    var w = 1.6, L = 4, h = 1.1;
+    var v = [
+        -w, 0, 0,  w, 0, 0,  w, h, -L,  -w, h, -L, // rampa
+        -w, 0, -L, w, 0, -L                          // fundo
+    ];
+    var idx = [0, 1, 2, 0, 2, 3,  4, 3, 2, 4, 2, 5,  0, 3, 4,  1, 5, 2];
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3)); g.setIndex(idx);
+    g = g.toNonIndexed(); g.computeVertexNormals(); return g;
+})();
+criaTipo('rampa', 12, [
+    [rampaGeo, new THREE.MeshLambertMaterial({ color: 0x8fd0ff, flatShading: true, side: THREE.DoubleSide }), 0, 0],
+    [new THREE.BoxGeometry(3.3, 0.12, 0.3), mat(0xff8a1a), 0, 1.1, -4]
+], { obst: false });
+
+var tmp = new THREE.Object3D();
+function atualizaInstancias(t) {
+    for (var k in TIPOS) {
+        var T = TIPOS[k], n = Math.min(T.ativos.length, T.max);
+        for (var i = 0; i < n; i++) {
+            var o = T.ativos[i];
+            tmp.position.set(o.x, o.y || 0, o.z);
+            tmp.rotation.set(0, k === 'moeda' ? t * 3 + o.z : (o.rot || 0), 0);
+            tmp.scale.setScalar(o.s || 1);
+            tmp.updateMatrix();
+            for (var p = 0; p < T.partes.length; p++) T.partes[p].setMatrixAt(i, tmp.matrix);
+        }
+        for (var q = 0; q < T.partes.length; q++) { T.partes[q].count = n; T.partes[q].instanceMatrix.needsUpdate = true; }
+    }
+}
+function addObj(tipo, x, z, extra) {
+    var T = TIPOS[tipo]; if (T.ativos.length >= T.max) return null;
+    var o = { tipo: tipo, x: x, z: z };
+    for (var k in extra) o[k] = extra[k];
+    T.ativos.push(o); return o;
+}
+function limpaObjs() { for (var k in TIPOS) TIPOS[k].ativos.length = 0; }
+
+// ---------------- gerador de pista ----------------
+var G = {}; // estado do gerador
+function rnd() { return Math.random(); }
+function resetGerador() {
+    G.z = -20; G.faixa = 0; G.alvoFaixa = 0; G.proxBand = -90; G.proxRampa = -160; G.semObst = 0; G.moedasFila = 0; G.trava = 0;
+}
+var FAIXA_LIVRE = 2.6;   // distância mínima do centro da faixa segura até a beira do obstáculo
+function geraLinha(z, dist) {
+    var M = MONTANHAS[montSel];
+    var d = Math.min(1, dist / 1600);
+    // faixa segura anda devagar (sempre dá pra seguir)
+    if (G.trava > 0) { G.trava--; G.alvoFaixa = G.faixa; }
+    else if (Math.abs(G.faixa - G.alvoFaixa) < 0.3) G.alvoFaixa = (rnd() * 2 - 1) * (LARG - 2.6);
+    var passoMax = 0.55;
+    G.faixa += Math.max(-passoMax, Math.min(passoMax, G.alvoFaixa - G.faixa));
+    var f = G.faixa;
+
+    // árvores de enfeite na beira
+    [-1, 1].forEach(function (s) {
+        if (rnd() < 0.85) addObj('arvore', s * (LARG + 1.6 + rnd() * 9), z + rnd() * 2, { s: 0.85 + rnd() * 0.6, rot: rnd() * 6, enfeite: true });
+    });
+
+    // rampa
+    if (z < G.proxRampa) {
+        addObj('rampa', f, z, { ramp: true });
+        G.proxRampa = z - (130 + rnd() * 120); G.semObst = 4; G.trava = 18;
+        for (var c = 0; c < 6; c++) addObj('moeda', f, z - 7 - c * 2.4, { y: 2.6 + Math.sin(c / 5 * Math.PI) * 2.2 });
+        return;
+    }
+    // bandeiras
+    if (z < G.proxBand && G.semObst === 0) {
+        var meia = 2.3;
+        addObj('bandV', f - meia, z, {}); var b = addObj('bandA', f + meia, z, { gate: true, cx: f, meia: meia });
+        G.proxBand = z - (70 + rnd() * 50); G.semObst = 1;
+        return;
+    }
+    if (G.semObst > 0) { G.semObst--; return; }
+
+    // obstáculos
+    var chance = M.dens * (0.45 + d * 0.75);
+    var n = 0, tentativa = 0, xs = [];
+    var maxN = 1 + Math.floor(M.dens * 2 + d * 2);
+    while (tentativa < 8 && n < maxN) {
+        tentativa++;
+        if (rnd() > chance) continue;
+        var r = rnd(), tipo = r < 0.6 ? 'arvore' : r < 0.85 ? 'pedra' : 'boneco';
+        var T = TIPOS[tipo];
+        var x = (rnd() * 2 - 1) * (LARG - 0.4);
+        if (Math.abs(x - f) < FAIXA_LIVRE + T.raio) continue;
+        var ok = true; for (var i = 0; i < xs.length; i++) if (Math.abs(xs[i] - x) < 2.2) ok = false;
+        if (!ok) continue;
+        xs.push(x); n++;
+        addObj(tipo, x, z + (rnd() - 0.5) * 1.2, { s: tipo === "arvore" ? 0.9 + rnd() * 0.35 : 0.9 + rnd() * 0.25, rot: rnd() * 6, f: f, gz: z });
+    }
+    // moedas na faixa segura (em filas)
+    if (G.moedasFila > 0) { addObj('moeda', f, z, { y: 0.8 }); G.moedasFila--; }
+    else if (rnd() < 0.12) G.moedasFila = 4 + Math.floor(rnd() * 4);
+    G.ultFaixa = f;
+}
+function geraAte(zLimite, dist) {
+    while (G.z > zLimite) { geraLinha(G.z, dist + (-G.z - J.z0)); G.faixaHist.push([G.z, G.faixa]); G.z -= PASSO_LINHA; }
+}
+function removeAtras(z) {
+    for (var k in TIPOS) {
+        var a = TIPOS[k].ativos, j = 0;
+        for (var i = 0; i < a.length; i++) if (a[i].z < z + 12) a[j++] = a[i];
+        a.length = j;
+    }
+    while (G.faixaHist.length && G.faixaHist[0][0] > z + 12) G.faixaHist.shift();
+}
+function faixaEm(z) { // centro da faixa segura perto de z (pro piloto automático de teste)
+    var h = G.faixaHist;
+    if (h.length && z >= h[0][0]) return h[0][1];
+    for (var i = 0; i < h.length - 1; i++) if (h[i][0] >= z && h[i + 1][0] < z) {
+        var t = (h[i][0] - z) / (h[i][0] - h[i + 1][0]); return h[i][1] + (h[i + 1][1] - h[i][1]) * t;
+    }
+    return h.length ? h[h.length - 1][1] : 0;
+}
+
+// ---------------- jogo ----------------
+var J = { on: false, pausa: false };
+var tecla = {};
+var toqueE = false, toqueD = false, puloPedido = false;
+
+function comecar() {
+    var M = MONTANHAS[montSel];
+    J = { on: true, pausa: false, x: 0, z: 0, z0: 0, y: 0, vy: 0, vx: 0, spd: M.v0, vidas: 3, invul: 0, noAr: false, giro: 0,
+          pontos: 0, moedas: 0, giros: 0, band: 0, combo: 0, t: 0, dist: 0, fim: 0, tombo: 0, bot: J.bot || false };
+    limpaObjs(); resetGerador(); G.faixaHist = [];
+    aplicaVisual(M); camPos.set(0, 4.3, 9);
+    geraAte(-150, 0);
+    mostra(''); document.getElementById('hud').classList.add('on');
+    document.getElementById('toque').classList.toggle('on', CELULAR);
+    pintaVidas(); hud();
+    aviso('VAI!', '', 900);
+}
+function aplicaVisual(M) {
+    scene.background = new THREE.Color(M.ceu);
+    scene.fog.color.setHex(M.nevoa);
+    scene.fog.near = M.noite ? 18 : 40; scene.fog.far = M.noite ? 85 : 135;
+    hemi.intensity = 0.75 * M.luz; sol.intensity = 0.75 * M.luz;
+    chaoMat.color.set(M.chao);
+    morroMat.color.set(M.morro);
+    topoMat.color.set(M.noite ? 0x9aa8d0 : 0xffffff);
+    lanterna.intensity = M.noite ? 1.6 : 0;
+    estrelas.visible = M.noite;
+    neve.visible = M.neve || M.noite;
+    neve.material.opacity = M.noite ? 0.5 : 0.9;
+    moedaMat.emissive.setHex(M.noite ? 0xaa7a00 : 0x6a4a00);
+}
+function pausar() { if (!J.on || J.fim) return; J.pausa = true; mostra('telaPausa'); }
+function continuar() { J.pausa = false; mostra(''); ultimo = performance.now(); }
+function irMenu() {
+    J.on = false; J.pausa = false; J.invul = 0; J.tombo = 0; J.fim = 0; document.getElementById('hud').classList.remove('on'); document.getElementById('toque').classList.remove('on');
+    montaLista(); mostra('telaMenu');
+}
+
+var avisoT = null;
+function aviso(txt, sub, ms) {
+    var a = document.getElementById('aviso');
+    a.innerHTML = txt + (sub ? '<small>' + sub + '</small>' : '');
+    a.style.opacity = 1; a.style.transform = 'scale(1.08)';
+    setTimeout(function () { a.style.transform = 'scale(1)'; }, 120);
+    clearTimeout(avisoT); avisoT = setTimeout(function () { a.style.opacity = 0; }, ms || 1100);
+}
+function pintaVidas() {
+    var v = document.getElementById('vidas'); v.innerHTML = '';
+    for (var i = 0; i < 3; i++) { var c = document.createElement('div'); c.className = 'cor' + (i < J.vidas ? '' : ' off'); v.appendChild(c); }
+}
+function hud() {
+    document.getElementById('hDist').innerHTML = Math.floor(J.dist) + ' <small>m</small>';
+    document.getElementById('hInfo').textContent = 'Pontos ' + Math.floor(J.pontos) + ' · Moedas ' + J.moedas + (J.combo > 1 ? ' · Combo x' + J.combo : '');
+}
+function machuca(motivo) {
+    if (J.invul > 0 || J.fim) return;
+    J.vidas--; J.invul = 1.8; J.spd *= 0.45; J.combo = 0; J.tombo = 0.6;
+    pintaVidas();
+    var fl = document.getElementById('flash'); fl.style.opacity = 0.45; setTimeout(function () { fl.style.opacity = 0; }, 160);
+    if (navigator.vibrate) try { navigator.vibrate(120); } catch (e) {}
+    if (J.vidas <= 0) { J.fim = 1.2; aviso('TOMBO!', 'Acabaram as vidas', 1200); }
+    else aviso(motivo || 'Ai!', 'Restam ' + J.vidas + (J.vidas === 1 ? ' vida' : ' vidas'), 900);
+}
+function terminar() {
+    J.on = false;
+    var M = MONTANHAS[montSel], dist = Math.floor(J.dist), rec = recorde(M.id), novo = dist > rec;
+    if (novo) try { localStorage.setItem('esqui_rec_' + M.id, String(dist)); } catch (e) {}
+    var coins = Math.min(40, Math.floor(J.moedas / 3) + Math.floor(dist / 250) + J.giros);
+    if (coins > 0 && window.CoguCoins && !J.bot) CoguCoins.ganha(coins);
+    document.getElementById('fimDist').textContent = dist + ' m';
+    document.getElementById('novoRec').style.display = novo ? 'block' : 'none';
+    document.getElementById('fimPontos').textContent = Math.floor(J.pontos);
+    document.getElementById('fimMoedas').textContent = J.moedas;
+    document.getElementById('fimGiros').textContent = J.giros;
+    document.getElementById('fimBand').textContent = J.band;
+    document.getElementById('fimCoins').textContent = coins;
+    document.getElementById('fimRec').textContent = Math.max(rec, dist) + ' m';
+    document.getElementById('hud').classList.remove('on'); document.getElementById('toque').classList.remove('on');
+    mostra('telaFim');
+}
+
+function soltaSpray(n) {
+    var p = spray.geometry.attributes.position.array;
+    for (var i = 0; i < n; i++) {
+        var k = sprayIdx = (sprayIdx + 1) % SPRAY_N;
+        p[k * 3] = J.x + (rnd() - 0.5) * 0.6; p[k * 3 + 1] = 0.15; p[k * 3 + 2] = J.z + 0.6;
+        spray.userData.vel[k] = [-J.vx * 0.25 + (rnd() - 0.5) * 2, 1.5 + rnd() * 2.5, 2 + rnd() * 3];
+        spray.userData.vida[k] = 0.5 + rnd() * 0.3;
+    }
+}
+
+function passo(dt) {
+    var M = MONTANHAS[montSel];
+    J.t += dt;
+    if (J.fim) { J.fim -= dt; J.spd *= 0.96; if (J.fim <= 0) { terminar(); return; } }
+    // controles
+    var esq = tecla.ArrowLeft || tecla.a || tecla.A || toqueE, dir = tecla.ArrowRight || tecla.d || tecla.D || toqueD;
+    var pular = puloPedido; puloPedido = false;
+    if (J.bot) { // piloto automático (só no teste)
+        var alvo = faixaEm(J.z - J.spd * 0.18);
+        esq = alvo < J.x - 0.25; dir = alvo > J.x + 0.25; pular = false;
+        if (J.noAr) esq = dir = false;
+    }
+    var giro = (dir ? 1 : 0) - (esq ? 1 : 0);
+    if (J.fim) giro = 0;
+
+    // velocidade
+    J.dist = -J.z;
+    var alvoV = Math.min(M.vMax, M.v0 + J.dist * 0.006);
+    if (J.tombo > 0) { J.tombo -= dt; }
+    else J.spd += (alvoV - J.spd) * Math.min(1, dt * (J.spd < alvoV ? 0.9 : 2));
+
+    if (!J.noAr) {
+        var alvoVx = giro * (9 + J.spd * 0.12);
+        J.vx += (alvoVx - J.vx) * Math.min(1, dt * 9);
+        if (pular && !J.fim) { J.noAr = true; J.vy = 7.2; J.giro = 0; }
+        if (Math.abs(alvoVx - J.vx) > 3 && rnd() < 0.7) soltaSpray(2);
+    } else {
+        J.vx *= Math.pow(0.5, dt * 4); // no ar perde um pouco do lado
+        J.giro += giro * 11.5 * dt;     // GIRO!
+        J.vy -= 20 * dt; J.y += J.vy * dt;
+        if (J.y <= 0) { J.y = 0; J.noAr = false; aterrissa(); }
+    }
+    J.x += J.vx * dt;
+    if (J.x < -LARG) { J.x = -LARG; J.vx = 0; } if (J.x > LARG) { J.x = LARG; J.vx = 0; }
+    var zAnt = J.z;
+    J.z -= J.spd * dt;
+    J.pontos += J.spd * dt * 0.5;
+    if (J.invul > 0) J.invul -= dt;
+
+    // gerar / remover
+    geraAte(J.z - 150, 0);
+    removeAtras(J.z);
+
+    // colisões
+    for (var k in TIPOS) {
+        var T = TIPOS[k], a = T.ativos;
+        for (var i = 0; i < a.length; i++) {
+            var o = a[i];
+            if (o.pego) continue;
+            var dz = o.z - J.z;
+            if (k === 'moeda') {
+                if (Math.abs(dz) < 0.9 && Math.abs(o.x - J.x) < 0.95 && Math.abs((o.y || 0) - (J.y + 0.9)) < 1.3) {
+                    o.pego = true; o.y = -50; J.moedas++; J.pontos += 25;
+                }
+            } else if (k === 'rampa') {
+                if (!J.noAr && J.z <= o.z && J.z > o.z - 4 && Math.abs(J.x - o.x) < 1.65) {
+                    var prog = (o.z - J.z) / 4;
+                    J.y = prog * 1.1;
+                    if (prog > 0.9) { J.noAr = true; J.y = 1.1; J.vy = 8 + J.spd * 0.22; J.vx *= 0.2; J.giro = 0; if (!J.bot) aviso('RAMPA!', 'Segure pro lado pra girar', 800); }
+                }
+            } else if (o.gate) {
+                if (zAnt > o.z && J.z <= o.z) {
+                    o.pego = true;
+                    if (Math.abs(J.x - o.cx) < o.meia) { J.combo++; J.band++; var b = 100 * J.combo; J.pontos += b; aviso('Bandeira!', '+' + b + (J.combo > 1 ? '  combo x' + J.combo : ''), 700); }
+                    else J.combo = 0;
+                }
+            } else if (T.obst && !o.enfeite) {
+                if (Math.abs(dz) < T.raio * (o.s || 1) + 0.35 && Math.abs(o.x - J.x) < T.raio * (o.s || 1) + 0.35 && J.y < T.alt * (o.s || 1) - 0.3) {
+                    o.pego = true;
+                    if (J.bot) { J.batidas = (J.batidas || 0) + 1; (J.batInfo = J.batInfo || []).push(k + " dx" + (o.x - J.x).toFixed(1) + " y" + J.y.toFixed(1) + " ar" + (J.noAr ? 1 : 0) + " faixa" + (faixaEm(J.z) - J.x).toFixed(1) + " of" + (o.f - o.x).toFixed(1) + " gz" + o.gz.toFixed(1) + " oz" + o.z.toFixed(1) + " hist" + (faixaEm(o.z) - o.x).toFixed(1)); continue; }
+                    machuca(k === 'arvore' ? 'Árvore!' : k === 'pedra' ? 'Pedra!' : 'Boneco de neve!');
+                }
+            }
+        }
+    }
+}
+function aterrissa() {
+    var volta = Math.PI * 2, n = Math.round(Math.abs(J.giro) / volta), erro = Math.abs(Math.abs(J.giro) - n * volta);
+    if (n >= 1 && erro < 0.85) {
+        var p = 400 * n * n; J.pontos += p; J.giros += n;
+        aviso('GIRO ' + (n * 360) + '!', '+' + p, 1000);
+    } else if (erro >= 0.85 && Math.abs(J.giro) > 0.85) {
+        machuca('Caiu torto!');
+    }
+    J.giro = 0; soltaSpray(12);
+}
+
+// ---------------- visual por quadro ----------------
+var camPos = new THREE.Vector3(0, 5, 9), camOlha = new THREE.Vector3();
+function desenha(dt) {
+    var M = MONTANHAS[montSel];
+    cogu.position.set(J.x, J.y, J.z);
+    var inclina = J.noAr ? 0 : -J.vx * 0.035;
+    coguCorpo.rotation.set(J.tombo > 0 ? -0.6 : (J.noAr ? 0.15 : -0.12), J.giro - J.vx * 0.03, inclina);
+    coguCorpo.userData.ponta.rotation.x = 0.5 + Math.sin(J.t * 18) * 0.2 + J.spd * 0.02;
+    cogu.visible = J.on && !(J.invul > 0 && Math.floor(J.t * 12) % 2 === 0); sombra.visible = J.on;
+    sombra.position.set(J.x, 0.03, J.z); var ss = Math.max(0.35, 1 - J.y * 0.12); sombra.scale.set(ss, ss, ss);
+
+    chao.position.set(J.x * 0.3, 0, J.z - 70);
+    texChao.offset.set(0, -(chao.position.z) * texChao.repeat.y / CH_C);
+    bordas.forEach(function (b) { b.position.z = J.z - 70; });
+    fundo.position.set(J.x * 0.2, 0, J.z);
+    estrelas.position.set(0, 0, J.z);
+    lanterna.position.set(J.x, 3.5, J.z - 5);
+    sol.position.set(J.x - 6, 12, J.z + 6); sol.target.position.set(J.x, 0, J.z);
+
+    // câmera
+    var alvoCam = new THREE.Vector3(J.x * 0.75, 4.3 + J.y * 0.45, J.z + 8.6 + J.spd * 0.05);
+    camPos.lerp(alvoCam, Math.min(1, dt * 6));
+    camera.position.copy(camPos);
+    camOlha.set(J.x * 0.85, 1.1 + J.y * 0.6, J.z - 9);
+    camera.lookAt(camOlha);
+
+    // neve caindo
+    if (neve.visible) {
+        var p = neve.geometry.attributes.position.array, vel = M.neve ? 4 : 1.5;
+        for (var i = 0; i < NEVE_N; i++) {
+            p[i * 3 + 1] -= vel * dt; p[i * 3] += Math.sin(J.t + i) * dt * 0.6;
+            if (p[i * 3 + 1] < 0 || p[i * 3 + 2] > J.z + 10) { p[i * 3 + 1] = 14 + rnd() * 8; p[i * 3 + 2] = J.z - rnd() * 70; p[i * 3] = J.x + (rnd() - 0.5) * 50; }
+        }
+        neve.geometry.attributes.position.needsUpdate = true;
+    }
+    // spray
+    var sp = spray.geometry.attributes.position.array, ud = spray.userData;
+    for (var j = 0; j < SPRAY_N; j++) {
+        if (ud.vida[j] <= 0) continue;
+        ud.vida[j] -= dt; var v = ud.vel[j]; v[1] -= 12 * dt;
+        sp[j * 3] += v[0] * dt; sp[j * 3 + 1] = Math.max(0.05, sp[j * 3 + 1] + v[1] * dt); sp[j * 3 + 2] += v[2] * dt - J.spd * dt * 0.0;
+        if (ud.vida[j] <= 0) sp[j * 3 + 1] = -50;
+    }
+    spray.geometry.attributes.position.needsUpdate = true;
+
+    atualizaInstancias(J.t);
+    renderer.render(scene, camera);
+}
+
+// ---------------- loop ----------------
+var ultimo = performance.now(), acumHud = 0, acum30 = 0;
+function loop(agora) {
+    requestAnimationFrame(loop);
+    var dt = Math.min(0.05, (agora - ultimo) / 1000);
+    if (CELULAR) { acum30 += dt; ultimo = agora; if (acum30 < 1 / 31) return; dt = Math.min(0.05, acum30); acum30 = 0; }
+    else ultimo = agora;
+    if (J.on && !J.pausa) {
+        passo(dt);
+        acumHud += dt; if (acumHud > 0.25) { acumHud = 0; if (J.on) hud(); }
+    } else if (!J.on) {
+        // tela de menu: a câmera passeia devagar
+        J.t = (J.t || 0) + dt; J.spd = 9; J.y = 0; J.noAr = false;
+        var nx = faixaEm(J.z - 3); J.vx = (nx - J.x) * 2; J.x += J.vx * dt;
+        J.z -= J.spd * dt; geraAte(J.z - 150, 0); removeAtras(J.z);
+    }
+    if (J.x !== undefined) desenha(dt);
+}
+// mundo do menu
+J = { on: false, x: 0, y: 0, z: 0, vx: 0, giro: 0, spd: 0, invul: 0, tombo: 0, t: 0, z0: 0 };
+resetGerador(); G.faixaHist = []; aplicaVisual(MONTANHAS[montSel]); geraAte(-150, 0);
+requestAnimationFrame(loop);
+montaLista();
+
+// ---------------- entrada ----------------
+addEventListener('keydown', function (e) {
+    tecla[e.key] = true;
+    if (J.on && !J.pausa) {
+        if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { puloPedido = true; e.preventDefault(); }
+        if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') pausar();
+        if (e.key.indexOf('Arrow') === 0) e.preventDefault();
+    } else if (e.key === 'Enter') {
+        var aberta = document.querySelector('.tela.on');
+        if (aberta && (aberta.id === 'telaMenu' || aberta.id === 'telaFim')) comecar();
+        else if (aberta && aberta.id === 'telaPausa') continuar();
+        else if (aberta && aberta.id === 'telaComo') mostra('telaMenu');
+    }
+});
+addEventListener('keyup', function (e) { tecla[e.key] = false; });
+addEventListener('blur', function () { tecla = {}; toqueE = toqueD = false; });
+document.addEventListener('visibilitychange', function () { if (document.hidden) pausar(); });
+
+var zonaToque = document.getElementById('toque');
+function leToques(e) {
+    toqueE = toqueD = false;
+    for (var i = 0; i < e.touches.length; i++) {
+        var t = e.touches[i];
+        if (t.target && t.target.id === 'btPulo') continue;
+        if (t.clientX < innerWidth / 2) toqueE = true; else toqueD = true;
+    }
+}
+zonaToque.addEventListener('touchstart', function (e) { e.preventDefault(); leToques(e); }, { passive: false });
+zonaToque.addEventListener('touchmove', function (e) { e.preventDefault(); leToques(e); }, { passive: false });
+zonaToque.addEventListener('touchend', function (e) { e.preventDefault(); leToques(e); }, { passive: false });
+zonaToque.addEventListener('touchcancel', function (e) { leToques(e); });
+var btPulo = document.getElementById('btPulo');
+btPulo.addEventListener('touchstart', function (e) { e.preventDefault(); puloPedido = true; }, { passive: false });
+btPulo.addEventListener('mousedown', function () { puloPedido = true; });
+
+// ---------------- gancho de teste (simulação sem desenhar) ----------------
+window.__testeEsqui = function (mont, segundos) {
+    montSel = mont; J.bot = true; comecar(); J.bot = true;
+    var passos = Math.round(segundos * 60);
+    for (var i = 0; i < passos && J.on; i++) { J.invul = 0; passo(1 / 60); }
+    var r = { mont: MONTANHAS[mont].id, dist: Math.floor(J.dist), batidas: J.batidas || 0, info: J.batInfo, moedas: J.moedas, band: J.band, vidas: J.vidas,
+              objs: Object.keys(TIPOS).map(function (k) { return k + ':' + TIPOS[k].ativos.length; }).join(' ') };
+    J.bot = false; irMenu(); return r;
+};
+</script>
+<script src="/gamepad.js?v=358"></script>
+</body>
+</html>
