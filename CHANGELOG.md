@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v634 (2026-11-07)
+- 🐌 Cogumelo Detetive: na PRIMEIRA noite a culpada é sempre a Vovó Caracol! Mas se você errar, aí o culpado passa a ser sorteado
+
 ## v633 (2026-11-07)
 - 🧱 LANÇADO: Cogu Empilha 3D agora está na página inicial com o selo NOVO!
 

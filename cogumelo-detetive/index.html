@@ -437,6 +437,8 @@ function novoCaso(dificuldade){
   var ids = SUSPEITOS.map(function(s){ return s.id; });
   var ativos = ids.slice();
   var culpadoId = ativos[Math.floor(Math.random()*ativos.length)];
+  // pedido do Davi: na PRIMEIRA fase a culpada é sempre a Vovó Caracol; se o jogador errar, daí em diante é sorteado
+  if((progresso.dia || 1) === 1 && !progresso.errouDia1 && ativos.indexOf('vovo') >= 0) culpadoId = 'vovo';
 
   estado = {
     dificuldade: dificuldade,
@@ -686,6 +688,7 @@ function resolveCaso(acusadoId){
     });
     return;
   } else {
+    if((progresso.dia || 1) === 1 && !progresso.errouDia1){ progresso.errouDia1 = true; salvarProgresso(); } // errou a 1ª fase: agora é sorteado
     var acusado = suspeitoPorId(acusadoId);
     document.getElementById('fimIcone').textContent = '😢';
     document.getElementById('fimTitulo').textContent = 'O LADRÃO FUGIU!';
