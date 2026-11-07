@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v637 (2026-11-07)
+- 🏀 LANÇADO: Cogu Basquete 3D agora está na página inicial com o selo NOVO!
+
 ## v636 (2026-11-07)
 - 🏀 Jogo novo (ainda escondido, só pelo link /basquete/): **Cogu Basquete 3D**! Arraste o dedo pra cima pra arremessar (ou segure espaço): acerte a faixa verde da força e mire reto. Cesta = 2, de trás da linha = 3, SWISH dá bônus e 3 cestas seguidas a bola PEGA FOGO (pontos em dobro). Tem torcida de cogumelos que pula quando você acerta! Modos Arcade 60s, Cesta Maluca (a cesta anda) e Treino (com a linha da mira)
 
