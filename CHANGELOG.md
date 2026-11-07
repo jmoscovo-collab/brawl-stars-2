@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v631 (2026-11-07)
+- 🏔️ Capa nova do Cogu Esqui 3D: o Cogu de esqui com óculos no chapéu e cachecol, montanhas com neve no topo, flocos caindo, chão de neve, boneco de neve, pinheiro nevado e um floco de neve gigante ❄️
+
 ## v630 (2026-11-07)
 - ⛷️ LANÇADO: Cogu Esqui 3D agora está na página inicial com o selo NOVO!
 

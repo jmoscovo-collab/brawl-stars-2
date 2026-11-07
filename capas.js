@@ -3,7 +3,7 @@
    Tudo é desenhado aqui com formas (canvas), no estilo desenho animado (contorno escuro).
    Jogo novo: adicione uma linha em CAPAS  →  pasta: [cenário, 'principal', ['coisa1', 'coisa2', 'coisa3']].
    Os nomes são os desenhos de DES (lá embaixo). Cor diferente: 'carro:#ff5a3a'.
-   Cenários: ceu noite mar espaco cidade deserto grama arena cozinha palco caverna roxo pista praia.
+   Cenários: ceu noite mar espaco cidade deserto grama arena cozinha palco caverna roxo pista praia neve.
    Pra usar um desenho pronto (svg/jpg) em vez do gerado: coloque em FOTOS. */
 (function () {
   var FOTOS = { voador: '/fotos/voador.svg?v=2', 'cogumelo-detetive': '/fotos/cogumelo-detetive.svg?v=1' };
@@ -49,7 +49,7 @@
     detetive: ['cidade', 'lupa', ['osso', 'interrogacao', 'estrela']], monstro: ['roxo', 'monstro', ['ovo', 'fogo', 'estrela']],
     espacial: ['espaco', 'foguete', ['planeta', 'meteoro', 'alien']], pizzaria: ['cozinha', 'pizza', ['cogu', 'fogo', 'moeda']],
     'cogu-zumbis': ['grama', 'zumbi', ['cogu', 'arvore', 'gota:#3ab8ff']], futebol: ['grama', 'gol', ['bolinha', 'cogu', 'trofeu']],
-    esqui: ['ceu', 'cogu', ['arvore', 'moeda', 'estrela']]
+    esqui: ['neve', 'coguEsqui', ['bonecoNeve', 'floco', 'pinheiro']]
   };
   var CEN = { // [céu em cima, céu embaixo, chão, enfeite]
     ceu: ['#3aa0ff', '#bfe6ff', '#4cc44c', 'nuvens'], noite: ['#0b0420', '#3a1a5a', '#1e1530', 'lua'],
@@ -58,7 +58,8 @@
     grama: ['#5ab8ff', '#d6f0ff', '#3fae3f', 'nuvens'], arena: ['#2a0a4a', '#8a2aff', '#3a2a5a', 'holofote'],
     cozinha: ['#ffe3b0', '#fff4dc', '#c8874a', 'azulejo'], palco: ['#4a0a2a', '#ff3a8a', '#2a1020', 'holofote'],
     caverna: ['#1a1410', '#4a3a2a', '#2a2018', 'cristais'], roxo: ['#4a1aa8', '#ff6ad0', null, 'bolhas'],
-    pista: ['#5ab8ff', '#d6f0ff', '#444', 'pista'], praia: ['#3aa0ff', '#ffe9a8', '#ffd98a', 'sol']
+    pista: ['#5ab8ff', '#d6f0ff', '#444', 'pista'], praia: ['#3aa0ff', '#ffe9a8', '#ffd98a', 'sol'],
+    neve: ['#5aa8f0', '#e4f2ff', '#f4f8ff', 'montanhas']
   };
   function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
   function rnd(seed) { return function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
@@ -98,6 +99,37 @@
       g.beginPath(); g.ellipse(0, -4, 50, 42, 0, Math.PI, 0); g.closePath(); pinta(g, cor || '#e8322a');
       el(g, -26, -20, 8, 6, '#fff8ea'); el(g, 2, -34, 10, 6, '#fff8ea'); el(g, 28, -18, 8, 6, '#fff8ea'); el(g, -6, -14, 5, 4, '#fff8ea');
       brilho(g, -22, -30, 10);
+    },
+    // ---- neve (Cogu Esqui 3D) ----
+    coguEsqui: function (g) {
+      li(g, -46, 10, -30, 66, K, 4); li(g, 46, 10, 30, 66, K, 4);
+      re(g, -62, 52, 124, 9, '#ffc21a', 4); re(g, -58, 62, 116, 9, '#ffc21a', 4);
+      po(g, [62, 52, 74, 40, 70, 56], '#ffc21a'); po(g, [58, 62, 70, 50, 66, 66], '#ffc21a');
+      re(g, -14, 40, 10, 16, '#222', 3); re(g, 4, 40, 10, 16, '#222', 3);
+      DES.cogu(g);
+      re(g, -30, -24, 60, 12, '#ffc21a', 6); re(g, -24, -22, 20, 8, '#7fd0ff', 4); re(g, 4, -22, 20, 8, '#7fd0ff', 4);
+      re(g, -22, 34, 44, 8, '#e8322a', 4); po(g, [10, 38, 20, 54, 12, 56], '#e8322a');
+    },
+    pinheiro: function (g) {
+      re(g, -7, 30, 14, 20, '#8a5a2a', 3);
+      po(g, [0, -10, 36, 34, -36, 34], '#2f8a4a'); po(g, [0, -34, 28, 10, -28, 10], '#3aa85a'); po(g, [0, -54, 20, -14, -20, -14], '#4ac86a');
+      po(g, [0, -54, 9, -38, 2, -42, -6, -36, -9, -38], '#fff');
+      el(g, -16, 8, 10, 4, '#fff'); el(g, 18, 30, 12, 4, '#fff'); el(g, -20, 31, 9, 3, '#fff');
+    },
+    bonecoNeve: function (g) {
+      ci(g, 0, 26, 30, '#fff'); ci(g, 0, -16, 21, '#fff');
+      re(g, -16, -48, 32, 18, '#222', 3); re(g, -24, -32, 48, 6, '#222', 3);
+      ci(g, -7, -20, 3, '#222'); ci(g, 7, -20, 3, '#222');
+      po(g, [0, -14, 22, -10, 0, -8], '#ff8a1a');
+      re(g, -20, -2, 40, 8, '#e8322a', 4);
+      ci(g, 0, 16, 3, '#222'); ci(g, 0, 30, 3, '#222');
+    },
+    floco: function (g, cor) {
+      var c = cor || '#fff', a;
+      for (a = 0; a < 6; a++) { g.save(); g.rotate(a * Math.PI / 3);
+        li(g, 0, 0, 0, -40, K, 11); li(g, 0, -24, -10, -34, K, 9); li(g, 0, -24, 10, -34, K, 9);
+        li(g, 0, 0, 0, -40, c, 5); li(g, 0, -24, -10, -34, c, 4); li(g, 0, -24, 10, -34, c, 4); g.restore(); }
+      ci(g, 0, 0, 7, c);
     },
     coguDourado: function (g) { DES.cogu(g, '#f2c21a'); estrela5(g, 40, -40, 12, '#fff6a0'); estrela5(g, -44, -8, 8, '#fff6a0'); },
     coguVeneno: function (g) { DES.cogu(g, '#8a3aff'); el(g, 30, 40, 8, 5, '#6ad04a'); },
@@ -563,6 +595,18 @@
       case 'predios': for (i = 0; i < 9; i++) { var bw = 40 + R() * 30, bh = 60 + R() * 110, bx = i * 56 - 10;
           g.fillStyle = 'rgba(60,40,80,' + (0.55 + R() * 0.3) + ')'; g.fillRect(bx, chao - bh, bw, bh);
           g.fillStyle = 'rgba(255,230,120,.8)'; for (j = 0; j < 6; j++) if (R() < 0.5) g.fillRect(bx + 6 + (j % 2) * 18, chao - bh + 10 + Math.floor(j / 2) * 22, 8, 10); }
+        break;
+      case 'montanhas': // montanhas com neve no topo + flocos caindo
+        g.lineWidth = 4; g.lineJoin = 'round';
+        [[-30, 120, 150, '#8aa4c8'], [130, 150, 140, '#7a96bc'], [300, 110, 160, '#8aa4c8'], [440, 140, 130, '#7a96bc'],
+         [40, 170, 120, '#5d7fa8'], [230, 185, 130, '#5d7fa8'], [390, 175, 115, '#5d7fa8']].forEach(function (m) {
+          var x = m[0], topo = chao - m[1], b = m[2];
+          po(g, [x - b, chao + 4, x, topo, x + b, chao + 4], m[3]);
+          var s = 0.34, sx = b * s, sy = m[1] * s;
+          po(g, [x - sx, topo + sy, x, topo, x + sx, topo + sy, x + sx * 0.45, topo + sy * 0.78, x + sx * 0.1, topo + sy * 1.05, x - sx * 0.35, topo + sy * 0.8], '#fff');
+        });
+        g.fillStyle = 'rgba(255,255,255,.95)';
+        for (i = 0; i < 55; i++) { g.beginPath(); g.arc(R() * W, R() * H, 1.5 + R() * 2.5, 0, 7); g.fill(); }
         break;
       case 'sol': g.fillStyle = '#fff0a0'; g.beginPath(); g.arc(W * 0.82, 55, 34, 0, 7); g.fill(); break;
       case 'holofote': for (i = 0; i < 3; i++) { g.fillStyle = 'rgba(255,255,255,.10)'; g.beginPath(); var hx = W * (0.2 + i * 0.3); g.moveTo(hx, 0); g.lineTo(hx - 90, chao); g.lineTo(hx + 90, chao); g.fill(); } break;
