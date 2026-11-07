@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Cogu Basquete 3D — Cogumelo Games</title>
+<meta name="description" content="Cogu Basquete 3D: arremesse a bola na cesta numa quadra 3D com torcida de cogumelos! Cestas de 3, swish e bola pegando fogo. Jogo grátis do Cogumelo Games.">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { width:100%; height:100%; overflow:hidden; background:#1a1030; font-family:Arial,sans-serif; color:#fff; user-select:none; -webkit-user-select:none; touch-action:none; }
+#jogo { position:fixed; inset:0; width:100%; height:100%; display:block; }
+.tela { position:fixed; inset:0; display:none; flex-direction:column; align-items:center; overflow-y:auto; padding:72px 14px 30px; z-index:5; touch-action:pan-y;
+    background:linear-gradient(180deg, rgba(30,10,40,0.55), rgba(15,5,25,0.88)); }
+.tela.on { display:flex; }
+h1 { font-size:38px; margin:4px 0 2px; text-align:center; color:#fff; letter-spacing:1px; text-shadow:0 3px 0 #ff7a1a, 0 6px 16px rgba(0,0,0,0.5); }
+h1 small { display:block; font-size:16px; color:#ffd84a; letter-spacing:5px; text-shadow:none; }
+h2 { margin:10px 0 6px; font-size:18px; color:#ffd84a; text-align:center; }
+.sub { color:#f4e8ff; font-size:15px; text-align:center; margin-bottom:8px; max-width:500px; line-height:1.45; }
+button { font-family:inherit; font-size:17px; font-weight:bold; padding:11px 20px; border:none; border-radius:14px; cursor:pointer;
+    background:linear-gradient(135deg,#ffb04a,#ff5a1a); color:#2a0a00; box-shadow:0 4px 0 rgba(0,0,0,0.35); }
+button:active { transform:translateY(2px); box-shadow:none; }
+button.azul { background:linear-gradient(135deg,#7fd0ff,#3a7bff); color:#04163a; }
+button.cinza { background:#4a3a6a; color:#fff; }
+.linha { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:10px 0; }
+.modos { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; max-width:660px; }
+.modo { width:190px; border-radius:16px; padding:10px 8px; cursor:pointer; border:4px solid transparent; background:rgba(255,255,255,0.12); text-align:center; }
+.modo.sel { border-color:#ffd84a; background:rgba(255,216,74,0.16); }
+.modo .bola { width:44px; height:44px; border-radius:50%; margin:2px auto 6px; background:radial-gradient(circle at 35% 35%, #ffb070, #e8641a 60%, #a8400a);
+    position:relative; overflow:hidden; border:2px solid #3a1a0a; }
+.modo .bola::before { content:''; position:absolute; left:50%; top:0; bottom:0; width:2px; background:#3a1a0a; }
+.modo .bola::after { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:#3a1a0a; }
+.modo b { display:block; font-size:16px; }
+.modo span { display:block; font-size:12px; color:#efe6ff; margin-top:3px; }
+.modo .rec { color:#ffd84a; font-weight:bold; }
+.caixa { background:rgba(35,15,55,0.96); border:3px solid #ffb04a; border-radius:18px; padding:18px; max-width:440px; width:100%; text-align:center; margin-top:3vh; }
+.caixa ul { text-align:left; padding-left:20px; color:#efe6ff; font-size:14px; line-height:1.6; }
+.num { font-size:56px; font-weight:900; color:#ffd84a; line-height:1.1; }
+.tabela { display:grid; grid-template-columns:1fr auto; gap:4px 16px; text-align:left; margin:10px auto; max-width:250px; font-size:16px; }
+.tabela b { text-align:right; color:#ffd84a; }
+#novoRec { color:#7dff6a; font-weight:900; font-size:20px; margin:4px 0; display:none; }
+a.voltar { color:#e0d0ff; text-decoration:none; margin-top:16px; font-size:15px; }
+
+#hud { position:fixed; top:8px; left:8px; right:8px; display:none; justify-content:space-between; align-items:flex-start; pointer-events:none; z-index:3; }
+#hud.on { display:flex; }
+.painel { background:rgba(20,8,35,0.65); border-radius:12px; padding:6px 12px; font-weight:bold; text-shadow:0 1px 2px #000; min-width:84px; text-align:center; }
+.painel small { display:block; font-size:11px; color:#d8c8f0; letter-spacing:1px; }
+.painel b { font-size:26px; }
+#hTempo.pouco b { color:#ff5a5a; }
+#hFogo { display:none; color:#ffb04a; }
+#btPausa { pointer-events:auto; padding:8px 14px; font-size:15px; margin-left:6px; }
+#aviso { position:fixed; top:24%; left:0; right:0; text-align:center; font-size:44px; font-weight:900; pointer-events:none; opacity:0; transition:opacity .2s, transform .2s;
+    color:#ffd84a; text-shadow:0 3px 0 #a8400a, 0 6px 14px rgba(0,0,0,0.6); z-index:4; }
+#aviso small { display:block; font-size:22px; color:#fff; }
+#forca { position:fixed; right:16px; top:50%; transform:translateY(-50%); width:26px; height:44vh; max-height:300px; border-radius:14px; background:rgba(0,0,0,0.45);
+    border:3px solid rgba(255,255,255,0.7); display:none; z-index:3; overflow:hidden; pointer-events:none; }
+#forca.on { display:block; }
+#forcaZona { position:absolute; left:0; right:0; background:rgba(80,255,120,0.55); }
+#forcaNivel { position:absolute; left:0; right:0; bottom:0; background:linear-gradient(0deg,#ffd84a,#ff5a1a); }
+#forcaRisco { position:absolute; left:-4px; right:-4px; height:4px; background:#fff; }
+#dica { position:fixed; bottom:18px; left:10px; right:10px; text-align:center; font-size:16px; font-weight:bold; pointer-events:none; z-index:3; display:none;
+    text-shadow:0 2px 4px rgba(0,0,0,0.8); }
+</style>
+<script src="/cogucoins.js?v=552"></script>
+</head>
+<body>
+<canvas id="jogo"></canvas>
+<div id="hud">
+    <div style="display:flex; gap:6px">
+        <div class="painel" id="hTempo"><small>TEMPO</small><b id="tTempo">60</b></div>
+        <div class="painel"><small>PONTOS</small><b id="tPontos">0</b></div>
+        <div class="painel" id="hFogo"><small>PEGANDO</small><b>FOGO x2</b></div>
+    </div>
+    <div style="display:flex; align-items:flex-start">
+        <div class="painel"><small>CESTAS</small><b id="tCestas">0</b></div>
+        <button class="cinza" id="btPausa" onclick="pausar()">Pausa</button>
+    </div>
+</div>
+<div id="aviso"></div>
+<div id="forca"><div id="forcaZona"></div><div id="forcaNivel"></div><div id="forcaRisco"></div></div>
+<div id="dica"></div>
+
+<div class="tela on" id="telaMenu">
+    <h1>COGU BASQUETE<small>3D</small></h1>
+    <div class="sub">Arraste o dedo (ou o mouse) pra CIMA pra arremessar! Quanto maior o risco, mais forte. Acerte a faixa verde da força e mire reto na cesta. 3 cestas seguidas e a bola PEGA FOGO!</div>
+    <h2>Escolha o modo</h2>
+    <div class="modos" id="listaModos"></div>
+    <div class="linha">
+        <button onclick="comecar()">JOGAR!</button>
+        <button class="azul" onclick="mostra('telaComo')">Como jogar</button>
+    </div>
+    <a class="voltar" href="/">&larr; Voltar pro Cogumelo Games</a>
+</div>
+
+<div class="tela" id="telaComo">
+    <div class="caixa">
+        <h2>Como jogar</h2>
+        <ul>
+            <li><b>Celular/mouse:</b> encoste na tela e arraste pra CIMA. O tamanho do risco é a força (olhe a barra do lado: solte na faixa <b>verde</b>). Arrastar torto pro lado faz a bola ir torta.</li>
+            <li><b>Teclado/controle:</b> segure <b>espaço</b> (X no controle): a barra sobe e desce. Solte na faixa verde! Setas pros lados ajustam a mira.</li>
+            <li><b>Cesta</b> = 2 pontos. De trás da linha grande = <b>3 pontos</b>.</li>
+            <li><b>SWISH</b> (entrou sem encostar no aro) = +1 de bônus.</li>
+            <li>3 cestas seguidas: <b>PEGANDO FOGO</b>, os pontos valem o dobro até errar!</li>
+        </ul>
+        <div class="linha"><button onclick="mostra('telaMenu')">Entendi!</button></div>
+    </div>
+</div>
+
+<div class="tela" id="telaPausa">
+    <div class="caixa">
+        <h2>Pausado</h2>
+        <div class="linha"><button onclick="continuar()">Continuar</button><button class="cinza" onclick="irMenu()">Menu</button></div>
+    </div>
+</div>
+
+<div class="tela" id="telaFim">
+    <div class="caixa">
+        <h2 id="fimTitulo">Fim de jogo!</h2>
+        <div class="num" id="fimPontos">0</div>
+        <div style="color:#efe6ff; font-weight:bold">pontos</div>
+        <div id="novoRec">NOVO RECORDE!</div>
+        <div class="tabela">
+            <span>Cestas</span><b id="fimCestas">0</b>
+            <span>Arremessos</span><b id="fimArr">0</b>
+            <span>Acertos</span><b id="fimPct">0%</b>
+            <span>Cestas de 3</span><b id="fimTres">0</b>
+            <span>Swish</span><b id="fimSwish">0</b>
+            <span>Maior sequência</span><b id="fimSeq">0</b>
+            <span>Recorde</span><b id="fimRec">0</b>
+        </div>
+        <div class="linha"><button onclick="comecar()">De novo!</button><button class="cinza" onclick="irMenu()">Menu</button></div>
+    </div>
+</div>
+
+<script src="/stats.js?v=496"></script>
+<script>
+if (window.initStats) initStats('basquete');
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ====================== COGU BASQUETE 3D ======================
+// medidas de verdade (metros): aro a 3,05 m, aro com 0,23 m de raio, bola com 0,12 m
+var CELULAR = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || ('ontouchstart' in window && innerWidth < 1100);
+var G = 9.8, ARO_Y = 3.05, ARO_R = 0.23, ARO_T = 0.018, BOLA_R = 0.12, TABELA_Z = -0.38, LINHA3 = 6.75;
+var SOLTA_Y = 2.1, ENTRADA = 47 * Math.PI / 180; // altura do arremesso e ângulo que a bola cai no aro (de perto sobe mais)
+var FAIXA = 0.12;      // quanto a força pode variar em volta do ideal (barra 0..1)
+var ZONA = 0.07;       // metade da faixa verde da barra
+
+var MODOS = [
+    { id:'arcade', nome:'Arcade 60s', desc:'Faça o máximo de pontos em 1 minuto!', tempo:60 },
+    { id:'movel', nome:'Cesta Maluca', desc:'60s e a cesta anda pros lados!', tempo:60, movel:true },
+    { id:'treino', nome:'Treino', desc:'Sem tempo, com a linha da mira pra aprender.', tempo:0, guia:true }
+];
+var modoSel = 0;
+try { modoSel = Math.max(0, Math.min(MODOS.length - 1, parseInt(localStorage.getItem('basquete_modo') || '0', 10) || 0)); } catch (e) {}
+function recorde(id) { try { return parseInt(localStorage.getItem('basquete_rec_' + id) || '0', 10) || 0; } catch (e) { return 0; } }
+function montaModos() {
+    var l = document.getElementById('listaModos'); l.innerHTML = '';
+    MODOS.forEach(function (m, i) {
+        var d = document.createElement('div'); d.className = 'modo' + (i === modoSel ? ' sel' : '');
+        d.innerHTML = '<div class="bola"></div><b>' + m.nome + '</b><span>' + m.desc + '</span>' + (m.tempo ? '<span class="rec">Recorde: ' + recorde(m.id) + '</span>' : '<span class="rec">&nbsp;</span>');
+        d.onclick = function () { modoSel = i; try { localStorage.setItem('basquete_modo', String(i)); } catch (e) {} montaModos(); };
+        l.appendChild(d);
+    });
+}
+function mostra(id) { document.querySelectorAll('.tela').forEach(function (t) { t.classList.toggle('on', t.id === id); }); }
+
+// ---------------- three.js ----------------
+var canvas = document.getElementById('jogo');
+var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: !CELULAR, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CELULAR ? 1.25 : 1.5));
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1030);
+scene.fog = new THREE.Fog(0x1a1030, 18, 40);
+var camera = new THREE.PerspectiveCamera(55, 1, 0.05, 80);
+function resize() {
+    renderer.setSize(innerWidth, innerHeight, false);
+    camera.aspect = innerWidth / innerHeight; camera.fov = camera.aspect < 0.8 ? 72 : 55; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+scene.add(new THREE.HemisphereLight(0xfff0e0, 0x403050, 0.65));
+var luz = new THREE.DirectionalLight(0xffffff, 0.75); luz.position.set(3, 12, 6); scene.add(luz);
+var spot = new THREE.PointLight(0xffe0b0, 0.8, 14, 1.5); spot.position.set(0, 7, 1); scene.add(spot);
+function mat(c, o) { var p = { color: c }; for (var k in o) p[k] = o[k]; return new THREE.MeshLambertMaterial(p); }
+
+// quadra (textura de madeira + linhas desenhadas)
+(function () {
+    var c = document.createElement('canvas'); c.width = 512; c.height = 512; var g = c.getContext('2d');
+    // a textura cobre 16m x 16m: x de -8 a 8, z de -2 a 14 (cesta em z=0)
+    function px(x) { return (x + 8) / 16 * 512; } function pz(z) { return (z + 2) / 16 * 512; }
+    for (var i = 0; i < 32; i++) { g.fillStyle = ['#d9a066', '#cf955a', '#e0a86e', '#c98f56'][i % 4]; g.fillRect(i * 16, 0, 16, 512); }
+    g.strokeStyle = 'rgba(120,70,30,0.25)'; g.lineWidth = 1;
+    for (var j = 0; j < 60; j++) { var x0 = Math.floor(Math.random() * 32) * 16, y0 = Math.random() * 512; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x0 + 16, y0); g.stroke(); }
+    // garrafão
+    g.fillStyle = 'rgba(200,40,60,0.85)'; g.fillRect(px(-2.45), pz(-1.2), px(2.45) - px(-2.45), pz(4.6) - pz(-1.2));
+    g.strokeStyle = '#fff'; g.lineWidth = 5;
+    g.strokeRect(px(-2.45), pz(-1.2), px(2.45) - px(-2.45), pz(4.6) - pz(-1.2));
+    g.beginPath(); g.arc(px(0), pz(4.6), 1.8 / 16 * 512, 0, Math.PI); g.stroke();
+    // linha de 3
+    g.beginPath(); g.arc(px(0), pz(0), LINHA3 / 16 * 512, 0.08, Math.PI - 0.08); g.stroke();
+    g.beginPath(); g.moveTo(px(-6.6), pz(-1.2)); g.lineTo(px(-6.6), pz(1.0)); g.moveTo(px(6.6), pz(-1.2)); g.lineTo(px(6.6), pz(1.0)); g.stroke();
+    g.beginPath(); g.moveTo(0, pz(-1.2)); g.lineTo(512, pz(-1.2)); g.stroke();
+    // cogumelo no meio da quadra (logo)
+    g.globalAlpha = 0.5; g.fillStyle = '#e8323c'; g.beginPath(); g.arc(px(0), pz(11), 46, Math.PI, 0); g.fill();
+    g.fillStyle = '#fff1d6'; g.fillRect(px(0) - 16, pz(11), 32, 36); g.globalAlpha = 1;
+    var t = new THREE.CanvasTexture(c);
+    var chao = new THREE.Mesh(new THREE.PlaneGeometry(16, 16), new THREE.MeshLambertMaterial({ map: t }));
+    chao.rotation.x = -Math.PI / 2; chao.position.set(0, 0, 6); scene.add(chao);
+    var fora = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), mat(0x2a1c3a)); fora.rotation.x = -Math.PI / 2; fora.position.y = -0.01; scene.add(fora);
+})();
+
+// tabela + aro + rede
+var cesta = new THREE.Group(); scene.add(cesta);
+var redeLinhas, redeBase = [];
+(function () {
+    var poste = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 4, 10), mat(0x3a3a48)); poste.position.set(0, 2, TABELA_Z - 1.0); cesta.add(poste);
+    var braco = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 1.0), mat(0x3a3a48)); braco.position.set(0, 3.5, TABELA_Z - 0.5); cesta.add(braco);
+    var vidro = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.05, 0.05), new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 }));
+    vidro.position.set(0, ARO_Y + 0.4, TABELA_Z - 0.025); cesta.add(vidro);
+    var borda = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.8, 1.05, 0.05)), new THREE.LineBasicMaterial({ color: 0xffffff }));
+    borda.position.copy(vidro.position); cesta.add(borda);
+    var quad = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(0.59, 0.45)), new THREE.LineBasicMaterial({ color: 0xff3a3a }));
+    quad.position.set(0, ARO_Y + 0.15 + 0.225, TABELA_Z + 0.002); cesta.add(quad);
+    var aro = new THREE.Mesh(new THREE.TorusGeometry(ARO_R, ARO_T, 8, 28), mat(0xff5a1a, { emissive: 0x401000 }));
+    aro.rotation.x = Math.PI / 2; aro.position.set(0, ARO_Y, 0); cesta.add(aro);
+    var suporte = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.03, 0.16), mat(0xff5a1a)); suporte.position.set(0, ARO_Y, TABELA_Z + 0.08); cesta.add(suporte);
+    // rede: linhas do aro até um anel menor embaixo
+    var n = 12, pts = [];
+    for (var i = 0; i < n; i++) {
+        var a1 = i / n * Math.PI * 2, a2 = (i + 0.5) / n * Math.PI * 2, a3 = (i + 1) / n * Math.PI * 2;
+        var top1 = [Math.cos(a1) * ARO_R, ARO_Y, Math.sin(a1) * ARO_R], mid = [Math.cos(a2) * 0.17, ARO_Y - 0.22, Math.sin(a2) * 0.17], bot = [Math.cos(a3) * 0.12, ARO_Y - 0.42, Math.sin(a3) * 0.12];
+        var top2 = [Math.cos(a3) * ARO_R, ARO_Y, Math.sin(a3) * ARO_R];
+        pts.push(top1, mid, top2, mid, mid, bot);
+    }
+    var arr = []; pts.forEach(function (p) { arr.push(p[0], p[1], p[2]); });
+    var gr = new THREE.BufferGeometry(); gr.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
+    redeBase = arr.slice();
+    redeLinhas = new THREE.LineSegments(gr, new THREE.LineBasicMaterial({ color: 0xffffff })); cesta.add(redeLinhas);
+})();
+
+// arquibancada + torcida de cogumelos (InstancedMesh = leve)
+var NT = 0, torcida = [], tCorpo, tChapeu;
+(function () {
+    var deg = mat(0x4a3a6a);
+    for (var f = 0; f < 4; f++) {
+        var d = new THREE.Mesh(new THREE.BoxGeometry(20, 0.5, 1), deg); d.position.set(0, 0.25 + f * 0.5, -3.2 - f * 1); scene.add(d);
+        [-1, 1].forEach(function (s) { var l = new THREE.Mesh(new THREE.BoxGeometry(1, 0.5, 14), deg); l.position.set(s * (8.6 + f), 0.25 + f * 0.5, 5); scene.add(l); });
+    }
+    var lugares = [];
+    for (var f2 = 0; f2 < 4; f2++) {
+        for (var x = -9; x <= 9; x += 0.9) lugares.push([x + (f2 % 2) * 0.45, 0.5 + f2 * 0.5, -3.2 - f2 * 1, 0]);
+        for (var z = -1; z <= 11; z += 1.0) { lugares.push([-(8.6 + f2), 0.5 + f2 * 0.5, z, Math.PI / 2]); lugares.push([8.6 + f2, 0.5 + f2 * 0.5, z, -Math.PI / 2]); }
+    }
+    NT = lugares.length;
+    tCorpo = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.16, 0.2, 0.42, 8).translate(0, 0.21, 0), mat(0xfff1d6), NT);
+    tChapeu = new THREE.InstancedMesh(new THREE.SphereGeometry(0.32, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2).translate(0, 0.38, 0), new THREE.MeshLambertMaterial({ color: 0xffffff }), NT);
+    var cores = [0xe8323c, 0xffc21a, 0x3a8aff, 0x7a3aff, 0x3ac05a, 0xff7ad0, 0xff8a1a];
+    var cor = new THREE.Color();
+    lugares.forEach(function (l, i) {
+        torcida.push({ x: l[0], y: l[1], z: l[2], r: l[3], fase: Math.random() * 6, pulo: 0 });
+        cor.setHex(cores[i % cores.length]); tChapeu.setColorAt(i, cor);
+    });
+    scene.add(tCorpo); scene.add(tChapeu);
+})();
+var dummy = new THREE.Object3D(), torcidaAgita = 0;
+function atualizaTorcida(t, dt) {
+    if (torcidaAgita > 0) torcidaAgita -= dt;
+    for (var i = 0; i < NT; i++) {
+        var p = torcida[i], h = torcidaAgita > 0 ? Math.abs(Math.sin(t * 9 + p.fase)) * 0.35 : Math.max(0, Math.sin(t * 1.5 + p.fase)) * 0.04;
+        dummy.position.set(p.x, p.y + h, p.z); dummy.rotation.set(0, p.r, 0); dummy.updateMatrix();
+        tCorpo.setMatrixAt(i, dummy.matrix); tChapeu.setMatrixAt(i, dummy.matrix);
+    }
+    tCorpo.instanceMatrix.needsUpdate = true; tChapeu.instanceMatrix.needsUpdate = true;
+}
+
+// ---------------- bola ----------------
+var bolaTex = (function () {
+    var c = document.createElement('canvas'); c.width = 256; c.height = 128; var g = c.getContext('2d');
+    g.fillStyle = '#e8641a'; g.fillRect(0, 0, 256, 128);
+    for (var i = 0; i < 600; i++) { g.fillStyle = 'rgba(120,40,0,0.18)'; g.fillRect(Math.random() * 256, Math.random() * 128, 2, 2); }
+    g.strokeStyle = '#2a1206'; g.lineWidth = 4;
+    g.beginPath(); g.moveTo(0, 64); g.lineTo(256, 64); g.stroke();
+    [64, 192].forEach(function (x) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 128); g.stroke(); });
+    g.beginPath(); g.ellipse(0, 64, 40, 64, 0, -Math.PI / 2, Math.PI / 2); g.stroke();
+    g.beginPath(); g.ellipse(128, 64, 40, 64, 0, Math.PI / 2, Math.PI * 1.5); g.stroke();
+    g.beginPath(); g.ellipse(128, 64, 40, 64, 0, -Math.PI / 2, Math.PI / 2); g.stroke();
+    g.beginPath(); g.ellipse(256, 64, 40, 64, 0, Math.PI / 2, Math.PI * 1.5); g.stroke();
+    return new THREE.CanvasTexture(c);
+})();
+var bolaMat = new THREE.MeshLambertMaterial({ map: bolaTex, emissive: 0x000000 });
+var bola = new THREE.Mesh(new THREE.SphereGeometry(BOLA_R, 18, 14), bolaMat); scene.add(bola);
+var sombraBola = new THREE.Mesh(new THREE.CircleGeometry(BOLA_R * 1.1, 14), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }));
+sombraBola.rotation.x = -Math.PI / 2; scene.add(sombraBola);
+// fogo (rastro)
+var FOGO_N = 50, fogo = (function () {
+    var p = new Float32Array(FOGO_N * 3); for (var i = 0; i < FOGO_N; i++) p[i * 3 + 1] = -50;
+    var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+    var s = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffa020, size: 0.14, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
+    s.frustumCulled = false; scene.add(s); s.userData.v = []; s.userData.vida = []; for (var k = 0; k < FOGO_N; k++) { s.userData.v.push([0, 0, 0]); s.userData.vida.push(0); }
+    return s;
+})();
+var fogoIdx = 0;
+// linha-guia (modo treino)
+var GUIA_N = 26, guia = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(GUIA_N * 3), 3)),
+    new THREE.PointsMaterial({ color: 0xffffff, size: 0.07, transparent: true, opacity: 0.8 }));
+guia.frustumCulled = false; guia.visible = false; scene.add(guia);
+
+// ---------------- Cogu jogador ----------------
+var cogu = new THREE.Group(); scene.add(cogu);
+var coguBracos = [];
+(function () {
+    var corpo = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.32, 0.75, 12), mat(0xfff1d6)); corpo.position.y = 0.55; cogu.add(corpo);
+    var camisa = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.33, 0.42, 12), mat(0xff5a1a)); camisa.position.y = 0.42; cogu.add(camisa);
+    var num = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.2, 0.02), mat(0xffffff)); num.position.set(0, 0.45, 0.32); cogu.add(num);
+    var chapeu = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xe8323c)); chapeu.scale.y = 0.75; chapeu.position.y = 0.9; cogu.add(chapeu);
+    [[0.3, 1.25, 0.15], [-0.25, 1.2, 0.25], [0.05, 1.32, -0.2], [-0.35, 1.08, -0.2], [0.4, 1.05, -0.25]].forEach(function (b) {
+        var bo = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 5), mat(0xffffff)); bo.position.set(b[0], b[1], b[2]); bo.scale.y = 0.5; cogu.add(bo);
+    });
+    [-1, 1].forEach(function (s) {
+        var piv = new THREE.Group(); piv.position.set(s * 0.3, 0.7, 0); cogu.add(piv);
+        var br = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.55, 6).translate(0, 0.27, 0), mat(0xfff1d6)); piv.add(br);
+        coguBracos.push(piv);
+    });
+    [-1, 1].forEach(function (s) { var pe = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.1, 0.26), mat(0x222233)); pe.position.set(s * 0.13, 0.05, 0.04); cogu.add(pe); });
+})();
+
+// ---------------- som ----------------
+var ac = null;
+function som(f, d, tipo, vol, f2) {
+    try {
+        if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+        var o = ac.createOscillator(), g = ac.createGain(); o.type = tipo || 'sine';
+        o.frequency.setValueAtTime(f, ac.currentTime); if (f2) o.frequency.exponentialRampToValueAtTime(f2, ac.currentTime + d);
+        g.gain.setValueAtTime(vol || 0.15, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + d);
+        o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + d);
+    } catch (e) {}
+}
+
+// ---------------- estado ----------------
+var J = { on: false, t: 0 };
+var B = { estado: 'mao', p: new THREE.Vector3(), v: new THREE.Vector3(), rot: new THREE.Vector3() }; // estado: mao | voando
+var spot0 = { x: 0, z: 5 };
+var cestaX = 0;
+
+function comecar() {
+    var M = MODOS[modoSel];
+    J = { on: true, pausa: false, modo: M, t: 0, tempo: M.tempo, pontos: 0, cestas: 0, arr: 0, tres: 0, swish: 0, seq: 0, maxSeq: 0, fogo: false, fim: 0, bot: J.bot || false };
+    cestaX = 0; cesta.position.x = 0;
+    novaPosicao();
+    mostra(''); document.getElementById('hud').classList.add('on');
+    document.getElementById('hTempo').style.display = M.tempo ? '' : 'none';
+    dicaTxt(CELULAR ? 'Arraste o dedo pra CIMA pra arremessar!' : 'Arraste o mouse pra CIMA (ou segure ESPAÇO) pra arremessar!');
+    hud();
+}
+function dicaTxt(t) { var d = document.getElementById('dica'); d.textContent = t; d.style.display = t ? 'block' : 'none'; }
+function novaPosicao() {
+    // sorteia um lugar na quadra (às vezes de 3)
+    var dist = 3.2 + Math.random() * (J.cestas > 4 ? 4.6 : 3.4), ang = (Math.random() - 0.5) * 1.9;
+    if (J.bot && J.botPos) { dist = J.botPos[0]; ang = J.botPos[1]; }
+    spot0 = { x: Math.sin(ang) * dist, z: Math.cos(ang) * dist };
+    B.estado = 'mao'; B.tocouAro = false; B.contou = false; B.quiques = 0; B.tVoo = 0;
+    mira = 0; forcaTecla = -1;
+    posicionaBolaNaMao();
+}
+function alvoCesta() { return new THREE.Vector3(cesta.position.x, ARO_Y, 0); }
+function maoPos() {
+    var c = alvoCesta(), dx = c.x - spot0.x, dz = c.z - spot0.z, L = Math.hypot(dx, dz);
+    return new THREE.Vector3(spot0.x + dx / L * 0.35, SOLTA_Y, spot0.z + dz / L * 0.35);
+}
+function posicionaBolaNaMao() { B.p.copy(maoPos()); B.v.set(0, 0, 0); }
+function distCesta() { return Math.hypot(spot0.x - cesta.position.x, spot0.z); }
+
+// velocidade ideal pra bola passar pelo centro do aro
+function velIdeal(origem, alvo) {
+    var dx = alvo.x - origem.x, dz = alvo.z - origem.z, d = Math.hypot(dx, dz), h = alvo.y - origem.y;
+    var ang = Math.atan(Math.tan(ENTRADA) + 2 * h / d), c = Math.cos(ang), den = 2 * c * c * (d * Math.tan(ang) - h);
+    return { v: Math.sqrt(G * d * d / Math.max(0.01, den)), yaw: Math.atan2(dx, dz), d: d, ang: ang };
+}
+function arremessa(forca, desvio) {
+    if (!J.on || J.pausa || J.fim || B.estado !== 'mao') return;
+    // ajudinha: perto do certo vira certo
+    if (Math.abs(forca - 0.5) < 0.025) forca = 0.5;
+    if (Math.abs(desvio) < 0.006) desvio = 0;
+    var o = maoPos(), id = velIdeal(o, alvoCesta());
+    var fator = 1 + (forca - 0.5 + 0.045) * FAIXA; // +0.045: o meio da faixa verde cai no meio do jeito que entra
+    var v = id.v * fator, yaw = id.yaw + desvio;
+    B.p.copy(o);
+    var A = id.ang; B.v.set(Math.sin(yaw) * Math.cos(A) * v, Math.sin(A) * v, Math.cos(yaw) * Math.cos(A) * v);
+    B.rot.set(-8, 0, 0);
+    B.estado = 'voando'; B.tVoo = 0; B.tocouAro = false; B.contou = false; B.quiques = 0; B.de3 = distCesta() > LINHA3;
+    J.arr++; J.pulo = 0.45;
+    som(300, 0.12, 'triangle', 0.1, 500);
+    if (J.arr === 2) dicaTxt('');
+}
+function cesta_ok() {
+    B.contou = true; J.cestas++; J.seq++; J.maxSeq = Math.max(J.maxSeq, J.seq);
+    var pts = B.de3 ? 3 : 2, sw = !B.tocouAro;
+    if (sw) { pts += 1; J.swish++; }
+    if (B.de3) J.tres++;
+    if (J.fogo) pts *= 2;
+    J.pontos += pts;
+    var titulo = B.de3 ? 'DE TRÊS!' : 'CESTA!';
+    if (sw) titulo = B.de3 ? 'SWISH DE TRÊS!' : 'SWISH!';
+    if (!J.fogo && J.seq >= 3) { J.fogo = true; if (!J.bot) aviso('PEGANDO FOGO!', 'Pontos em dobro! +' + pts, 1300); }
+    else if (!J.bot) aviso(titulo, '+' + pts + (J.fogo ? '  (x2)' : ''), 900);
+    torcidaAgita = 1.4; redeBalanco = 1;
+    som(660, 0.12, 'square', 0.08); setTimeout(function () { som(880, 0.2, 'square', 0.08); }, 110);
+    hud();
+}
+function errou() {
+    if (J.fogo && !J.bot) aviso('Apagou o fogo...', '', 700);
+    J.seq = 0; J.fogo = false; hud();
+}
+function fimDoTempo() {
+    J.fim = 1.6; som(220, 0.9, 'sawtooth', 0.12);
+    if (!J.bot) aviso('FIM!', '', 1400);
+}
+function terminar() {
+    J.on = false;
+    var M = J.modo, rec = recorde(M.id), novo = M.tempo && J.pontos > rec;
+    if (novo && !J.bot) try { localStorage.setItem('basquete_rec_' + M.id, String(J.pontos)); } catch (e) {}
+    document.getElementById('fimPontos').textContent = J.pontos;
+    document.getElementById('novoRec').style.display = novo ? 'block' : 'none';
+    document.getElementById('fimCestas').textContent = J.cestas;
+    document.getElementById('fimArr').textContent = J.arr;
+    document.getElementById('fimPct').textContent = (J.arr ? Math.round(J.cestas / J.arr * 100) : 0) + '%';
+    document.getElementById('fimTres').textContent = J.tres;
+    document.getElementById('fimSwish').textContent = J.swish;
+    document.getElementById('fimSeq').textContent = J.maxSeq;
+    document.getElementById('fimRec').textContent = M.tempo ? Math.max(rec, J.pontos) : '-';
+    document.getElementById('hud').classList.remove('on'); dicaTxt(''); mostraForca(false);
+    J.fimEm = performance.now();
+    mostra('telaFim');
+}
+function pausar() { if (!J.on || J.fim) return; J.pausa = true; mostra('telaPausa'); }
+function continuar() { J.pausa = false; mostra(''); ultimo = performance.now(); }
+function irMenu() { J.on = false; J.pausa = false; document.getElementById('hud').classList.remove('on'); dicaTxt(''); mostraForca(false); montaModos(); mostra('telaMenu'); }
+function hud() {
+    document.getElementById('tTempo').textContent = Math.ceil(Math.max(0, J.tempo || 0));
+    document.getElementById('hTempo').classList.toggle('pouco', J.tempo > 0 && J.tempo <= 10);
+    document.getElementById('tPontos').textContent = J.pontos;
+    document.getElementById('tCestas').textContent = J.cestas + '/' + J.arr;
+    document.getElementById('hFogo').style.display = J.fogo ? 'block' : 'none';
+    bolaMat.emissive.setHex(J.fogo ? 0x903000 : 0x000000);
+}
+var avisoT = null;
+function aviso(txt, sub, ms) {
+    var a = document.getElementById('aviso');
+    a.innerHTML = txt + (sub ? '<small>' + sub + '</small>' : '');
+    a.style.opacity = 1; a.style.transform = 'scale(1.1)';
+    setTimeout(function () { a.style.transform = 'scale(1)'; }, 110);
+    clearTimeout(avisoT); avisoT = setTimeout(function () { a.style.opacity = 0; }, ms || 900);
+}
+
+// ---------------- física ----------------
+var redeBalanco = 0;
+var tmpV = new THREE.Vector3();
+function fisica(dt) {
+    if (B.estado !== 'voando') return;
+    var passos = 4, h = dt / passos;
+    for (var s = 0; s < passos; s++) {
+        var yAntes = B.p.y;
+        B.v.y -= G * h;
+        B.p.addScaledVector(B.v, h);
+        var cx = cesta.position.x;
+        // aro (anel): ponto do aro mais perto da bola
+        var rx = B.p.x - cx, rz = B.p.z, rl = Math.hypot(rx, rz) || 0.0001;
+        var qx = cx + rx / rl * ARO_R, qz = rz / rl * ARO_R;
+        tmpV.set(B.p.x - qx, B.p.y - ARO_Y, B.p.z - qz);
+        var dist = tmpV.length(), lim = BOLA_R + ARO_T;
+        if (dist < lim) {
+            tmpV.multiplyScalar(1 / (dist || 0.0001));
+            B.p.addScaledVector(tmpV, lim - dist);
+            var vn = B.v.dot(tmpV);
+            if (vn < 0) { B.v.addScaledVector(tmpV, -(1 + 0.55) * vn); B.v.multiplyScalar(0.92); }
+            if (!B.tocouAro) som(180, 0.08, 'square', 0.07);
+            B.tocouAro = true;
+        }
+        // tabela (vidro): plano z = TABELA_Z, x ±0.9, y de ARO_Y-0.15 até +0.9
+        if (B.p.z - BOLA_R < TABELA_Z && B.v.z < 0 && B.p.z > TABELA_Z - 0.3 &&
+            Math.abs(B.p.x - cx) < 0.9 + BOLA_R && B.p.y > ARO_Y - 0.15 - BOLA_R && B.p.y < ARO_Y + 0.9 + BOLA_R) {
+            B.p.z = TABELA_Z + BOLA_R; B.v.z = -B.v.z * 0.6; B.v.x *= 0.85;
+            som(120, 0.06, 'square', 0.08);
+        }
+        // cesta: passou descendo pelo aro, por dentro
+        if (!B.contou && yAntes >= ARO_Y && B.p.y < ARO_Y && B.v.y < 0 && Math.hypot(B.p.x - cx, B.p.z) < ARO_R - BOLA_R * 0.25) cesta_ok();
+        // chão
+        if (B.p.y < BOLA_R) {
+            B.p.y = BOLA_R;
+            if (B.v.y < 0) { B.v.y = -B.v.y * 0.62; B.v.x *= 0.8; B.v.z *= 0.8; B.quiques++; if (B.v.y > 1) som(90, 0.08, 'sine', 0.12); }
+        }
+    }
+    B.tVoo += dt;
+    // terminou o arremesso?
+    var acabou = (B.contou && (B.quiques >= 1 || B.tVoo > 1.6)) || B.quiques >= 2 || B.tVoo > 3.2;
+    if (acabou) {
+        if (!B.contou) errou();
+        if (!J.fim) novaPosicao();
+    }
+}
+
+// ---------------- controles ----------------
+var mira = 0, forcaTecla = -1, forcaFase = 0, arrasto = null;
+var forcaEl = document.getElementById('forca');
+function mostraForca(on, valor) {
+    forcaEl.classList.toggle('on', !!on);
+    if (!on) return;
+    document.getElementById('forcaZona').style.bottom = ((0.5 - ZONA) * 100) + '%';
+    document.getElementById('forcaZona').style.height = (ZONA * 2 * 100) + '%';
+    document.getElementById('forcaNivel').style.height = (Math.max(0, Math.min(1, valor)) * 100) + '%';
+    document.getElementById('forcaRisco').style.bottom = 'calc(' + (Math.max(0, Math.min(1, valor)) * 100) + '% - 2px)';
+}
+function base() { return Math.min(innerWidth, innerHeight); }
+function forcaDoArrasto(a) { return Math.max(0, Math.min(1, ((a.y0 - a.y) / base() - 0.06) / 0.5)); }
+function desvioDoArrasto(a) { return ((a.x - a.x0) / base()) * 0.12; }
+function inicioArrasto(x, y) { if (!J.on || J.pausa || J.fim || B.estado !== 'mao') return; arrasto = { x0: x, y0: y, x: x, y: y }; mostraForca(true, 0); }
+function moveArrasto(x, y) { if (!arrasto) return; arrasto.x = x; arrasto.y = y; mostraForca(true, forcaDoArrasto(arrasto)); }
+function fimArrasto() {
+    if (!arrasto) return; var a = arrasto; arrasto = null; mostraForca(false);
+    if ((a.y0 - a.y) / base() < 0.05) return; // foi só um toque
+    arremessa(forcaDoArrasto(a), desvioDoArrasto(a));
+}
+canvas.addEventListener('mousedown', function (e) { inicioArrasto(e.clientX, e.clientY); });
+addEventListener('mousemove', function (e) { moveArrasto(e.clientX, e.clientY); });
+addEventListener('mouseup', fimArrasto);
+canvas.addEventListener('touchstart', function (e) { e.preventDefault(); var t = e.changedTouches[0]; inicioArrasto(t.clientX, t.clientY); }, { passive: false });
+canvas.addEventListener('touchmove', function (e) { e.preventDefault(); var t = e.changedTouches[0]; moveArrasto(t.clientX, t.clientY); }, { passive: false });
+canvas.addEventListener('touchend', function (e) { e.preventDefault(); fimArrasto(); }, { passive: false });
+var teclas = {};
+addEventListener('keydown', function (e) {
+    teclas[e.key] = true;
+    if (J.on && !J.pausa) {
+        if (e.key === ' ' && !e.repeat && B.estado === 'mao' && !J.fim) { forcaTecla = 0; forcaFase = 0; e.preventDefault(); }
+        if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') pausar();
+        if (e.key.indexOf('Arrow') === 0 || e.key === ' ') e.preventDefault();
+        return;
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+        if (J.fimEm && performance.now() - J.fimEm < 700) return;
+        var aberta = document.querySelector('.tela.on'); if (!aberta) return;
+        e.preventDefault();
+        if (aberta.id === 'telaMenu' || aberta.id === 'telaFim') comecar();
+        else if (aberta.id === 'telaPausa') continuar();
+        else if (aberta.id === 'telaComo') mostra('telaMenu');
+    }
+});
+addEventListener('keyup', function (e) {
+    teclas[e.key] = false;
+    if (e.key === ' ' && forcaTecla >= 0) { var f = forcaTecla; forcaTecla = -1; mostraForca(false); arremessa(f, mira); }
+});
+addEventListener('blur', function () { teclas = {}; });
+document.addEventListener('visibilitychange', function () { if (document.hidden) pausar(); });
+
+// ---------------- loop ----------------
+var ultimo = performance.now(), acum = 0, acumHud = 0;
+function passo(dt) {
+    J.t += dt;
+    if (J.on && !J.pausa) {
+        if (J.modo.tempo && !J.fim) { J.tempo -= dt; if (J.tempo <= 0) { J.tempo = 0; fimDoTempo(); } }
+        if (J.fim) { J.fim -= dt; if (J.fim <= 0) { terminar(); return; } }
+        if (J.modo.movel) { // a cesta desliza pra um lugar novo e fica parada um tempinho
+            J.movT = (J.movT || 0) - dt;
+            if (J.movT <= 0) { J.movDe = cesta.position.x; J.movPara = (Math.random() * 2 - 1) * 1.8; J.movT = 3.2 - Math.min(J.cestas, 15) * 0.08; J.movDur = 0.9; }
+            var k = Math.min(1, (3.2 - Math.min(J.cestas, 15) * 0.08 - J.movT) / J.movDur); k = k * k * (3 - 2 * k);
+            cesta.position.x = J.movDe + (J.movPara - J.movDe) * k;
+        }
+        // mira com setas + barra de força do espaço
+        if (B.estado === 'mao') {
+            if (teclas.ArrowLeft) mira -= 0.05 * dt; if (teclas.ArrowRight) mira += 0.05 * dt;
+            mira = Math.max(-0.05, Math.min(0.05, mira));
+            if (forcaTecla >= 0) { forcaFase += dt * 1.6; forcaTecla = 0.5 - Math.cos(forcaFase * Math.PI) * 0.5; mostraForca(true, forcaTecla); }
+            posicionaBolaNaMao();
+        }
+        fisica(dt);
+    }
+}
+function desenha(dt) {
+    var c = alvoCesta();
+    var dx = c.x - spot0.x, dz = c.z - spot0.z, L = Math.hypot(dx, dz), ux = dx / L, uz = dz / L;
+    // Cogu
+    if (J.pulo > 0) J.pulo = Math.max(0, J.pulo - dt);
+    var pul = J.pulo > 0 ? Math.sin((J.pulo / 0.45) * Math.PI) * 0.35 : 0;
+    cogu.position.set(spot0.x - ux * 0.05, pul, spot0.z - uz * 0.05);
+    cogu.rotation.y = Math.atan2(ux, uz);
+    coguBracos.forEach(function (b, i) { b.rotation.x = B.estado === 'mao' ? -2.6 : -2.9 + (J.pulo > 0 ? 0.4 : 0); b.rotation.z = (i ? -1 : 1) * 0.25; });
+    // câmera atrás do Cogu
+    var camX = spot0.x - ux * 3.4 + uz * 0.9, camZ = spot0.z - uz * 3.4 - ux * 0.9;
+    var alvoCam = new THREE.Vector3(camX, 2.7, camZ);
+    if (!J.on && !document.getElementById('telaFim').classList.contains('on')) {
+        var a = J.t * 0.15; alvoCam.set(Math.sin(a) * 9, 4.5, 4 + Math.cos(a) * 6);
+    }
+    camera.position.lerp(alvoCam, Math.min(1, dt * 3.5));
+    camera.lookAt(c.x * 0.7 + spot0.x * 0.3, 2.45, c.z * 0.7 + spot0.z * 0.3);
+    // bola
+    if (B.estado === 'voando') { bola.rotation.x += B.rot.x * dt; }
+    bola.position.copy(B.p);
+    sombraBola.position.set(B.p.x, 0.01, B.p.z); var s = Math.max(0.3, 1 - B.p.y * 0.15); sombraBola.scale.set(s, s, s);
+    // fogo
+    var fp = fogo.geometry.attributes.position.array, fu = fogo.userData;
+    if (J.fogo) for (var n = 0; n < 2; n++) { var k = fogoIdx = (fogoIdx + 1) % FOGO_N; fp[k * 3] = B.p.x + (Math.random() - 0.5) * 0.12; fp[k * 3 + 1] = B.p.y + (Math.random() - 0.5) * 0.12; fp[k * 3 + 2] = B.p.z; fu.v[k] = [(Math.random() - 0.5) * 0.4, 0.6 + Math.random() * 0.6, (Math.random() - 0.5) * 0.4]; fu.vida[k] = 0.4; }
+    for (var i = 0; i < FOGO_N; i++) { if (fu.vida[i] <= 0) continue; fu.vida[i] -= dt; fp[i * 3] += fu.v[i][0] * dt; fp[i * 3 + 1] += fu.v[i][1] * dt; fp[i * 3 + 2] += fu.v[i][2] * dt; if (fu.vida[i] <= 0) fp[i * 3 + 1] = -50; }
+    fogo.geometry.attributes.position.needsUpdate = true;
+    // rede balançando
+    if (redeBalanco > 0) {
+        redeBalanco = Math.max(0, redeBalanco - dt * 1.5);
+        var rp = redeLinhas.geometry.attributes.position.array;
+        for (var r = 0; r < rp.length; r += 3) { var fundo = (ARO_Y - redeBase[r + 1]) / 0.42; rp[r + 1] = redeBase[r + 1] - Math.sin(redeBalanco * 12) * redeBalanco * 0.08 * fundo; rp[r] = redeBase[r] * (1 - redeBalanco * 0.25 * fundo); rp[r + 2] = redeBase[r + 2] * (1 - redeBalanco * 0.25 * fundo); }
+        redeLinhas.geometry.attributes.position.needsUpdate = true;
+    }
+    // linha-guia (treino)
+    guia.visible = !!(J.on && J.modo && J.modo.guia && B.estado === 'mao' && (arrasto || forcaTecla >= 0));
+    if (guia.visible) {
+        var f = arrasto ? forcaDoArrasto(arrasto) : forcaTecla, dv = arrasto ? desvioDoArrasto(arrasto) : mira;
+        var o = maoPos(), id = velIdeal(o, c), v = id.v * (1 + (f - 0.5) * FAIXA), yaw = id.yaw + dv;
+        var A = id.ang, vx = Math.sin(yaw) * Math.cos(A) * v, vy = Math.sin(A) * v, vz = Math.cos(yaw) * Math.cos(A) * v;
+        var gp = guia.geometry.attributes.position.array, T = id.d / (Math.cos(A) * v) * 1.08;
+        for (var g = 0; g < GUIA_N; g++) { var tt = (g + 1) / GUIA_N * T; gp[g * 3] = o.x + vx * tt; gp[g * 3 + 1] = o.y + vy * tt - G * tt * tt / 2; gp[g * 3 + 2] = o.z + vz * tt; }
+        guia.geometry.attributes.position.needsUpdate = true;
+    }
+    atualizaTorcida(J.t, dt);
+    renderer.render(scene, camera);
+}
+function loop(agora) {
+    requestAnimationFrame(loop);
+    var dt = Math.min(0.05, (agora - ultimo) / 1000);
+    if (CELULAR) { acum += dt; ultimo = agora; if (acum < 1 / 31) return; dt = Math.min(0.05, acum); acum = 0; }
+    else ultimo = agora;
+    passo(dt);
+    acumHud += dt; if (acumHud > 0.25 && J.on) { acumHud = 0; hud(); }
+    desenha(dt);
+}
+J = { on: false, t: 0, pulo: 0 }; novaPosicao(); camera.position.set(0, 4.5, 10);
+montaModos();
+requestAnimationFrame(loop);
+
+// ---------------- gancho de teste: arremessa e simula ----------------
+window.__testeBasquete = function (modo, lista) {
+    modoSel = modo; J.bot = true; comecar(); J.bot = true; J.tempo = 9999;
+    var res = [];
+    lista.forEach(function (c) { // c = [distância, ângulo, força, desvio]
+        J.botPos = [c[0], c[1]]; novaPosicao();
+        var antes = J.cestas; arremessa(c[2], c[3]);
+        for (var i = 0; i < 300 && B.estado === 'voando'; i++) passo(1 / 60);
+        res.push(J.cestas > antes ? 1 : 0);
+    });
+    var r = { modo: MODOS[modo].id, cestas: J.cestas, arr: J.arr, pontos: J.pontos, swish: J.swish, res: res.join('') };
+    J.bot = false; irMenu(); return r;
+};
+</script>
+<script src="/gamepad.js?v=358"></script>
+</body>
+</html>
