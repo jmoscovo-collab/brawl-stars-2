@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Cogu Empilha 3D — Cogumelo Games</title>
+<meta name="description" content="Cogu Empilha 3D: empilhe os blocos na hora certa e construa a torre mais alta, do céu até o espaço! Jogo grátis do Cogumelo Games.">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { width:100%; height:100%; overflow:hidden; background:#8fd0ff; font-family:Arial,sans-serif; color:#fff; user-select:none; -webkit-user-select:none; touch-action:none; }
+#jogo { position:fixed; inset:0; width:100%; height:100%; display:block; }
+.tela { position:fixed; inset:0; display:none; flex-direction:column; align-items:center; overflow-y:auto; padding:72px 14px 30px; z-index:5; touch-action:pan-y;
+    background:linear-gradient(180deg, rgba(40,20,90,0.35), rgba(20,10,50,0.8)); }
+.tela.on { display:flex; }
+h1 { font-size:40px; margin:4px 0 2px; text-align:center; color:#fff; letter-spacing:1px; text-shadow:0 3px 0 #ff5a8a, 0 6px 16px rgba(0,0,0,0.5); }
+h1 small { display:block; font-size:16px; color:#ffd84a; letter-spacing:5px; text-shadow:none; }
+h2 { margin:10px 0 6px; font-size:18px; color:#ffd84a; text-align:center; }
+.sub { color:#f0eaff; font-size:15px; text-align:center; margin-bottom:8px; max-width:480px; line-height:1.45; text-shadow:0 1px 3px rgba(0,0,0,0.6); }
+button { font-family:inherit; font-size:17px; font-weight:bold; padding:11px 20px; border:none; border-radius:14px; cursor:pointer;
+    background:linear-gradient(135deg,#ffd84a,#ff8a2a); color:#3a1600; box-shadow:0 4px 0 rgba(0,0,0,0.35); }
+button:active { transform:translateY(2px); box-shadow:none; }
+button.rosa { background:linear-gradient(135deg,#ff8ad0,#a05aff); color:#fff; }
+button.cinza { background:#4a3a7a; color:#fff; }
+.linha { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:10px 0; }
+.modos { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; max-width:640px; }
+.modo { width:180px; border-radius:16px; padding:10px 8px; cursor:pointer; border:4px solid transparent; background:rgba(255,255,255,0.14); text-align:center; }
+.modo.sel { border-color:#ffd84a; background:rgba(255,216,74,0.18); }
+.modo .cub { width:46px; height:46px; margin:2px auto 6px; border-radius:8px; transform:rotate(45deg) skew(-10deg,-10deg); box-shadow:inset -8px -8px 0 rgba(0,0,0,0.2); }
+.modo b { display:block; font-size:16px; }
+.modo span { display:block; font-size:12px; color:#efe6ff; margin-top:3px; }
+.modo .rec { color:#ffd84a; font-weight:bold; }
+.caixa { background:rgba(30,16,70,0.95); border:3px solid #ff8ad0; border-radius:18px; padding:18px; max-width:420px; width:100%; text-align:center; margin-top:3vh; }
+.caixa ul { text-align:left; padding-left:20px; color:#efe6ff; font-size:14px; line-height:1.6; }
+.num { font-size:56px; font-weight:900; color:#ffd84a; line-height:1.1; }
+.tabela { display:grid; grid-template-columns:1fr auto; gap:4px 16px; text-align:left; margin:10px auto; max-width:240px; font-size:16px; }
+.tabela b { text-align:right; color:#ffd84a; }
+#novoRec { color:#7dff6a; font-weight:900; font-size:20px; margin:4px 0; display:none; }
+a.voltar { color:#e0d0ff; text-decoration:none; margin-top:16px; font-size:15px; }
+#placar { position:fixed; top:64px; left:0; right:0; text-align:center; font-size:64px; font-weight:900; display:none; pointer-events:none; z-index:3;
+    color:#fff; text-shadow:0 4px 0 rgba(0,0,0,0.25), 0 6px 18px rgba(0,0,0,0.35); }
+#placar.on { display:block; }
+#placar small { display:block; font-size:15px; font-weight:bold; letter-spacing:1px; opacity:0.9; }
+#btPausa { position:fixed; top:10px; right:10px; z-index:4; display:none; padding:8px 14px; font-size:15px; }
+#btPausa.on { display:block; }
+#aviso { position:fixed; top:38%; left:0; right:0; text-align:center; font-size:38px; font-weight:900; pointer-events:none; opacity:0; transition:opacity .2s, transform .2s;
+    color:#ffd84a; text-shadow:0 3px 0 #a0306a, 0 6px 14px rgba(0,0,0,0.5); z-index:4; }
+#aviso small { display:block; font-size:20px; color:#fff; }
+#dica { position:fixed; bottom:22px; left:0; right:0; text-align:center; font-size:17px; font-weight:bold; pointer-events:none; z-index:3; display:none;
+    text-shadow:0 2px 4px rgba(0,0,0,0.6); }
+</style>
+<script src="/cogucoins.js?v=552"></script>
+</head>
+<body>
+<canvas id="jogo"></canvas>
+<div id="placar">0<small>ANDARES</small></div>
+<button class="cinza" id="btPausa" onclick="pausar()">Pausa</button>
+<div id="aviso"></div>
+<div id="dica">Toque na tela (ou espaço) pra soltar o bloco!</div>
+
+<div class="tela on" id="telaMenu">
+    <h1>COGU EMPILHA<small>3D</small></h1>
+    <div class="sub">Os blocos vêm deslizando: toque na hora certa pra empilhar! O que ficar pra fora CAI. Acerte em cheio pra ganhar PERFEITO e o bloco crescer de novo. Leve o Cogu do céu até o espaço!</div>
+    <h2>Escolha o modo</h2>
+    <div class="modos" id="listaModos"></div>
+    <div class="linha">
+        <button onclick="comecar()">EMPILHAR!</button>
+        <button class="rosa" onclick="mostra('telaComo')">Como jogar</button>
+    </div>
+    <a class="voltar" href="/">&larr; Voltar pro Cogumelo Games</a>
+</div>
+
+<div class="tela" id="telaComo">
+    <div class="caixa">
+        <h2>Como jogar</h2>
+        <ul>
+            <li>Toque na tela, clique, ou aperte <b>espaço</b> (no controle: <b>X</b>) pra soltar o bloco.</li>
+            <li>A parte que ficar pra fora do bloco de baixo <b>é cortada e cai</b>. O próximo bloco fica menor.</li>
+            <li>Acertou em cheio? <b>PERFEITO!</b> 3 perfeitos seguidos e o bloco <b>cresce</b> de volta.</li>
+            <li>Errou tudo? A torre acaba!</li>
+            <li>Suba pra ver o céu mudar: dia, pôr do sol, noite e... <b>espaço</b>!</li>
+        </ul>
+        <div class="linha"><button onclick="mostra('telaMenu')">Entendi!</button></div>
+    </div>
+</div>
+
+<div class="tela" id="telaPausa">
+    <div class="caixa">
+        <h2>Pausado</h2>
+        <div class="linha"><button onclick="continuar()">Continuar</button><button class="cinza" onclick="irMenu()">Menu</button></div>
+    </div>
+</div>
+
+<div class="tela" id="telaFim" style="background:linear-gradient(180deg, rgba(40,20,90,0.1), rgba(20,10,50,0.75));">
+    <div class="caixa">
+        <h2 id="fimTitulo">A torre caiu!</h2>
+        <div class="num" id="fimAndares">0</div>
+        <div style="color:#efe6ff; font-weight:bold">andares</div>
+        <div id="novoRec">NOVO RECORDE!</div>
+        <div class="tabela">
+            <span>Perfeitos</span><b id="fimPerf">0</b>
+            <span>Maior combo</span><b id="fimCombo">0</b>
+            <span>Chegou até</span><b id="fimLugar">-</b>
+            <span>Recorde</span><b id="fimRec">0</b>
+        </div>
+        <div class="linha"><button onclick="comecar()">De novo!</button><button class="cinza" onclick="irMenu()">Menu</button></div>
+    </div>
+</div>
+
+<script src="/stats.js?v=496"></script>
+<script>
+if (window.initStats) initStats('empilha');
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ====================== COGU EMPILHA 3D ======================
+var CELULAR = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || ('ontouchstart' in window && innerWidth < 1100);
+var ALT = 1;        // altura de cada bloco
+var TAM0 = 3.2;     // tamanho do bloco no começo
+var TOL = 0.13;     // quanto pode errar e ainda ser PERFEITO
+
+var MODOS = [
+    { id:'normal', nome:'Normal', desc:'Velocidade que aumenta devagar.', v0:2.6, vMax:5.2, acel:0.05, cor:'#ff8a3a' },
+    { id:'rapido', nome:'Rápido', desc:'Os blocos já começam voando!', v0:4.2, vMax:7.5, acel:0.07, cor:'#ff3a6a' },
+    { id:'mini',   nome:'Mini', desc:'Blocos pequenos: precisa de mira!', v0:2.8, vMax:5.5, acel:0.05, cor:'#3ac0ff', tam:2.0 }
+];
+var modoSel = 0;
+try { modoSel = Math.max(0, Math.min(MODOS.length - 1, parseInt(localStorage.getItem('empilha_modo') || '0', 10) || 0)); } catch (e) {}
+function recorde(id) { try { return parseInt(localStorage.getItem('empilha_rec_' + id) || '0', 10) || 0; } catch (e) { return 0; } }
+
+function montaModos() {
+    var l = document.getElementById('listaModos'); l.innerHTML = '';
+    MODOS.forEach(function (m, i) {
+        var d = document.createElement('div'); d.className = 'modo' + (i === modoSel ? ' sel' : '');
+        d.innerHTML = '<div class="cub" style="background:' + m.cor + '"></div><b>' + m.nome + '</b><span>' + m.desc + '</span><span class="rec">Recorde: ' + recorde(m.id) + '</span>';
+        d.onclick = function (e) { e.stopPropagation(); modoSel = i; try { localStorage.setItem('empilha_modo', String(i)); } catch (er) {} montaModos(); };
+        l.appendChild(d);
+    });
+}
+function mostra(id) { document.querySelectorAll('.tela').forEach(function (t) { t.classList.toggle('on', t.id === id); }); }
+
+// ---------------- céu por altura ----------------
+// [andar, cor de cima, cor de baixo, nome]
+var CEUS = [
+    [0,   [0.35, 0.65, 1.0], [0.75, 0.9, 1.0],  'Céu azul'],
+    [25,  [0.35, 0.3, 0.75], [1.0, 0.6, 0.45],  'Pôr do sol'],
+    [50,  [0.05, 0.06, 0.25], [0.2, 0.15, 0.45], 'Noite'],
+    [80,  [0.0, 0.0, 0.03],  [0.05, 0.02, 0.15], 'Espaço']
+];
+function corCeu(andar) {
+    var a = CEUS[0], b = CEUS[0];
+    for (var i = 0; i < CEUS.length; i++) { if (andar >= CEUS[i][0]) { a = CEUS[i]; b = CEUS[Math.min(i + 1, CEUS.length - 1)]; } }
+    var t = b === a ? 0 : Math.min(1, Math.max(0, (andar - a[0]) / (b[0] - a[0])));
+    t = t * t * (3 - 2 * t);
+    function mix(x, y) { return [x[0] + (y[0] - x[0]) * t, x[1] + (y[1] - x[1]) * t, x[2] + (y[2] - x[2]) * t]; }
+    return { cima: mix(a[1], b[1]), baixo: mix(a[2], b[2]), nome: a[3], escuro: andar >= 45 };
+}
+function lugarDe(andar) { var n = CEUS[0][3]; for (var i = 0; i < CEUS.length; i++) if (andar >= CEUS[i][0]) n = CEUS[i][3]; return n; }
+
+// ---------------- three.js ----------------
+var canvas = document.getElementById('jogo');
+var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: !CELULAR, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CELULAR ? 1.25 : 1.5));
+var scene = new THREE.Scene();
+var VIEW = 11; // quanto do mundo aparece (câmera ortográfica = visual de maquete)
+var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
+var zoom = 1, zoomAlvo = 1;
+function resize() {
+    renderer.setSize(innerWidth, innerHeight, false);
+    var asp = innerWidth / innerHeight, v = VIEW * (asp < 0.75 ? 2.1 : asp < 1.2 ? 1.4 : 1);
+    camera.left = -v * asp / 2; camera.right = v * asp / 2; camera.top = v / 2; camera.bottom = -v / 2;
+    camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+// fundo: plano gigante com degradê (vertex colors) preso na câmera
+var fundoGeo = new THREE.PlaneGeometry(2, 2, 1, 1);
+fundoGeo.setAttribute('color', new THREE.Float32BufferAttribute(new Array(12).fill(1), 3));
+var fundo = new THREE.Mesh(fundoGeo, new THREE.MeshBasicMaterial({ vertexColors: true, depthWrite: false, depthTest: false }));
+fundo.renderOrder = -10; fundo.frustumCulled = false;
+camera.add(fundo); fundo.position.z = -150; scene.add(camera);
+function pintaFundo(andar) {
+    var c = corCeu(andar), cor = fundoGeo.attributes.color.array;
+    // vértices: 0,1 em cima; 2,3 embaixo
+    for (var i = 0; i < 4; i++) { var k = i < 2 ? c.cima : c.baixo; cor[i * 3] = k[0]; cor[i * 3 + 1] = k[1]; cor[i * 3 + 2] = k[2]; }
+    fundoGeo.attributes.color.needsUpdate = true;
+    var w = (camera.right - camera.left) * 1.6 / zoom, h = (camera.top - camera.bottom) * 1.6 / zoom;
+    fundo.scale.set(w, h, 1);
+    estrelas.material.opacity = Math.max(0, Math.min(1, (andar - 40) / 25));
+    nuvens.forEach(function (n) { n.material.opacity = Math.max(0, 0.9 - andar / 40); });
+    return c;
+}
+
+var hemi = new THREE.HemisphereLight(0xffffff, 0x8a7aa8, 0.55); scene.add(hemi);
+var sol = new THREE.DirectionalLight(0xffffff, 0.75); sol.position.set(6, 12, 4); scene.add(sol); scene.add(sol.target);
+var luz2 = new THREE.DirectionalLight(0xc8b0ff, 0.25); luz2.position.set(-6, 4, 8); scene.add(luz2);
+
+// estrelas (aparecem lá no alto)
+var estrelas = (function () {
+    var n = 260, p = new Float32Array(n * 3);
+    for (var i = 0; i < n; i++) { p[i * 3] = (Math.random() - 0.5) * 60; p[i * 3 + 1] = (Math.random() - 0.5) * 60; p[i * 3 + 2] = -100 - Math.random() * 20; }
+    var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+    var s = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 2, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false }));
+    s.frustumCulled = false; camera.add(s); return s;
+})();
+// planetas (decoração do espaço)
+var planetas = new THREE.Group(); scene.add(planetas);
+(function () {
+    var p1 = new THREE.Mesh(new THREE.SphereGeometry(2.2, 20, 14), new THREE.MeshLambertMaterial({ color: 0xff8a5a }));
+    p1.position.set(-9, 92, -12); planetas.add(p1);
+    var anel = new THREE.Mesh(new THREE.TorusGeometry(3.4, 0.25, 6, 30), new THREE.MeshLambertMaterial({ color: 0xffd28a }));
+    anel.rotation.x = 1.2; anel.position.copy(p1.position); planetas.add(anel);
+    var p2 = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 12), new THREE.MeshLambertMaterial({ color: 0x5ad0ff }));
+    p2.position.set(9, 108, -14); planetas.add(p2);
+    var lua = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 12), new THREE.MeshLambertMaterial({ color: 0xf0f0ff, emissive: 0x404050 }));
+    lua.position.set(8, 62, -14); planetas.add(lua);
+})();
+// nuvens (lá embaixo)
+var nuvens = [];
+(function () {
+    var mat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, flatShading: true });
+    [[-8, 6, -10], [9, 14, -12], [-10, 22, -12], [8, 30, -10], [-7, 38, -12]].forEach(function (c) {
+        var g = new THREE.Group(), m = mat.clone();
+        [[0, 0, 1.4], [1.4, -0.2, 1.1], [-1.4, -0.2, 1.0], [0.6, 0.6, 1.0]].forEach(function (b) {
+            var s = new THREE.Mesh(new THREE.IcosahedronGeometry(b[2], 0), m); s.position.set(b[0], b[1], 0); g.add(s);
+        });
+        g.position.set(c[0], c[1], c[2]); scene.add(g); g.material = m; nuvens.push(g);
+    });
+})();
+
+// base (ilhazinha de grama com terra)
+var base = new THREE.Group(); scene.add(base);
+(function () {
+    var terra = new THREE.Mesh(new THREE.BoxGeometry(5.2, 3, 5.2), new THREE.MeshLambertMaterial({ color: 0x8a5a3a }));
+    terra.position.y = -2.0; base.add(terra);
+    var grama = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.5, 5.4), new THREE.MeshLambertMaterial({ color: 0x4ac04a }));
+    grama.position.y = -0.25 - 0.0; base.add(grama);
+    // cogumelinhos de enfeite na grama
+    [[-2.1, -2.1], [2.2, -1.8], [-1.9, 2.2]].forEach(function (p) {
+        var t = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.3, 6), new THREE.MeshLambertMaterial({ color: 0xfff1d6 })); t.position.set(p[0], 0.15, p[1]); base.add(t);
+        var c = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0xe8323c })); c.position.set(p[0], 0.28, p[1]); base.add(c);
+    });
+})();
+base.position.y = -ALT / 2; // topo da grama encosta embaixo do 1º bloco (y=0)
+
+// ---------------- Cogu ----------------
+var cogu = new THREE.Group(); scene.add(cogu);
+(function () {
+    function m(c) { return new THREE.MeshLambertMaterial({ color: c }); }
+    var corpo = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.6, 12), m(0xfff1d6)); corpo.position.y = 0.3; cogu.add(corpo);
+    var chapeu = new THREE.Mesh(new THREE.SphereGeometry(0.55, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), m(0xe8323c)); chapeu.scale.y = 0.8; chapeu.position.y = 0.55; cogu.add(chapeu);
+    [[0.25, 0.85, 0.2], [-0.2, 0.82, 0.25], [0.05, 0.95, -0.15], [-0.3, 0.75, -0.2], [0.35, 0.7, -0.2]].forEach(function (b) {
+        var bo = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 5), m(0xffffff)); bo.position.set(b[0], b[1], b[2]); bo.scale.y = 0.5; cogu.add(bo);
+    });
+    [-0.11, 0.11].forEach(function (x) {
+        var o = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 5), m(0x1a1a22)); o.position.set(x, 0.38, 0.29); cogu.add(o);
+    });
+    // virar o rosto pra câmera
+    cogu.rotation.y = Math.PI / 4;
+})();
+
+// ---------------- partículas de "PERFEITO" ----------------
+var aneis = [];
+function fazAnel(x, y, z, w, d) {
+    var g = new THREE.EdgesGeometry(new THREE.BoxGeometry(w, 0.02, d));
+    var l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1 }));
+    l.position.set(x, y - ALT / 2 + 0.02, z); scene.add(l); aneis.push({ m: l, t: 0 });
+}
+
+// ---------------- som (bip simples) ----------------
+var ac = null;
+function bip(freq, dur, tipo, vol) {
+    try {
+        if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+        var o = ac.createOscillator(), g = ac.createGain();
+        o.type = tipo || 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(vol || 0.15, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + (dur || 0.15));
+        o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + (dur || 0.15));
+    } catch (e) {}
+}
+
+// ---------------- jogo ----------------
+var J = { on: false };
+var pilha = [];   // blocos colocados: {mesh, x, z, w, d}
+var caindo = [];  // pedaços cortados caindo
+var atual = null; // bloco que está se mexendo
+var geoCubo = new THREE.BoxGeometry(1, 1, 1);
+var matCache = {};
+function corBloco(i) { var c = new THREE.Color(); c.setHSL(((J.hue0 || 0) + i * 0.027) % 1, 0.72, 0.6); return c; }
+function criaMesh(w, d, cor) {
+    var m = new THREE.Mesh(geoCubo, new THREE.MeshLambertMaterial({ color: cor }));
+    m.scale.set(w, ALT, d); scene.add(m); return m;
+}
+function limpa() {
+    pilha.forEach(function (b) { scene.remove(b.mesh); b.mesh.material.dispose(); });
+    caindo.forEach(function (b) { scene.remove(b.mesh); b.mesh.material.dispose(); });
+    if (atual) { scene.remove(atual.mesh); atual.mesh.material.dispose(); }
+    aneis.forEach(function (a) { scene.remove(a.m); }); aneis = [];
+    pilha = []; caindo = []; atual = null;
+}
+
+function comecar() {
+    var M = MODOS[modoSel];
+    limpa();
+    J = { on: true, pausa: false, modo: M, andar: 0, perf: 0, combo: 0, maxCombo: 0, t: 0, vel: M.v0, fim: 0, hue0: Math.random(), bot: J.bot || false, inicio: performance.now(), pulo: 0 };
+    var tam = M.tam || TAM0;
+    // bloco de baixo (fundação)
+    var b0 = criaMesh(tam, tam, corBloco(0)); b0.position.set(0, 0, 0);
+    pilha.push({ mesh: b0, x: 0, z: 0, w: tam, d: tam });
+    novoBloco();
+    camY = 0; camAlvo = 0; zoom = zoomAlvo = 1;
+    mostra(''); document.getElementById('placar').classList.add('on'); document.getElementById('btPausa').classList.add('on');
+    document.getElementById('dica').style.display = 'block';
+    placar();
+}
+function novoBloco() {
+    var topo = pilha[pilha.length - 1], n = pilha.length;
+    var eixo = n % 2 === 0 ? 'x' : 'z';
+    var w = topo.w, d = topo.d, dist = 5.5;
+    var m = criaMesh(w, d, corBloco(n));
+    atual = { mesh: m, eixo: eixo, x: topo.x, z: topo.z, w: w, d: d, y: n * ALT, pos: -dist, dir: 1, dist: dist };
+    if (eixo === 'x') atual.x = topo.x - dist; else atual.z = topo.z - dist;
+    m.position.set(atual.x, atual.y, atual.z);
+}
+function solta() {
+    if (!J.on || J.pausa || J.fim || !atual) return;
+    var topo = pilha[pilha.length - 1], a = atual;
+    var eixo = a.eixo, tamA = eixo === 'x' ? a.w : a.d, tamT = eixo === 'x' ? topo.w : topo.d;
+    var pa = eixo === 'x' ? a.x : a.z, pt = eixo === 'x' ? topo.x : topo.z;
+    var delta = pa - pt;
+    var sobra = tamT - Math.abs(delta);
+    if (sobra <= 0.02) { // errou tudo: cai inteiro
+        caindo.push({ mesh: a.mesh, vy: 0, vr: (Math.random() - 0.5) * 3, vx: eixo === 'x' ? Math.sign(delta) * 2 : 0, vz: eixo === 'z' ? Math.sign(delta) * 2 : 0, t: 0 });
+        atual = null; fimDeJogo(); return;
+    }
+    var perfeito = Math.abs(delta) < TOL;
+    if (perfeito) {
+        // encaixa certinho em cima
+        if (eixo === 'x') a.x = topo.x; else a.z = topo.z;
+        J.combo++; J.perf++; J.maxCombo = Math.max(J.maxCombo, J.combo);
+        var cresce = J.combo >= 3;
+        var tamMax = J.modo.tam || TAM0;
+        if (cresce) {
+            if (eixo === 'x') a.w = Math.min(tamMax, a.w + 0.25); else a.d = Math.min(tamMax, a.d + 0.25);
+        }
+        fazAnel(a.x, a.y, a.z, a.w + 0.3, a.d + 0.3);
+        bip(440 * Math.pow(1.06, Math.min(J.combo, 24)), 0.18, 'triangle', 0.18);
+        if (!J.bot) aviso(J.combo >= 3 ? 'PERFEITO x' + J.combo : 'PERFEITO!', cresce ? 'O bloco cresceu!' : '', 650);
+    } else {
+        J.combo = 0;
+        // corta: parte que fica + pedaço que cai
+        var novoTam = sobra, centro = pt + delta / 2;
+        var tamCai = Math.abs(delta), centroCai = centro + Math.sign(delta) * (novoTam / 2 + tamCai / 2);
+        if (eixo === 'x') { a.w = novoTam; a.x = centro; } else { a.d = novoTam; a.z = centro; }
+        var pd = criaMesh(eixo === 'x' ? tamCai : a.w, eixo === 'z' ? tamCai : a.d, a.mesh.material.color.clone());
+        pd.position.set(eixo === 'x' ? centroCai : a.x, a.y, eixo === 'z' ? centroCai : a.z);
+        caindo.push({ mesh: pd, vy: 0, vr: Math.sign(delta) * (1 + Math.random() * 2), vx: eixo === 'x' ? Math.sign(delta) * 1.2 : 0, vz: eixo === 'z' ? Math.sign(delta) * 1.2 : 0, eixo: eixo, t: 0 });
+        bip(260, 0.12, 'square', 0.08);
+    }
+    a.mesh.scale.set(a.w, ALT, a.d); a.mesh.position.set(a.x, a.y, a.z);
+    pilha.push({ mesh: a.mesh, x: a.x, z: a.z, w: a.w, d: a.d });
+    J.andar = pilha.length - 1;
+    J.vel = Math.min(J.modo.vMax, J.modo.v0 + J.andar * J.modo.acel);
+    J.pulo = 0.35; // Cogu pula pro novo topo
+    camAlvo = J.andar * ALT;
+    var lugar = lugarDe(J.andar), antes = lugarDe(J.andar - 1);
+    if (lugar !== antes && !J.bot) aviso(lugar.toUpperCase() + '!', 'Andar ' + J.andar, 1300);
+    if (J.andar === 5) document.getElementById('dica').style.display = 'none';
+    // tira da cena blocos muito lá embaixo (leve)
+    if (pilha.length > 45) { var velho = pilha[pilha.length - 46]; if (velho.mesh.visible) velho.mesh.visible = false; }
+    placar();
+    novoBloco();
+}
+function fimDeJogo() {
+    J.fim = 1.4; J.combo = 0;
+    bip(180, 0.4, 'sawtooth', 0.12);
+    // mostra a torre inteira (todos os blocos de novo)
+    pilha.forEach(function (b) { b.mesh.visible = true; });
+    var altura = pilha.length * ALT + 4;
+    zoomAlvo = Math.min(1, (camera.top - camera.bottom) / altura);
+    camAlvo = (pilha.length * ALT) / 2 - 1.5;
+    document.getElementById('dica').style.display = 'none';
+}
+function terminar() {
+    J.on = false;
+    var M = J.modo, n = J.andar, rec = recorde(M.id), novo = n > rec;
+    if (novo && !J.bot) try { localStorage.setItem('empilha_rec_' + M.id, String(n)); } catch (e) {}
+    document.getElementById('fimAndares').textContent = n;
+    document.getElementById('novoRec').style.display = novo ? 'block' : 'none';
+    document.getElementById('fimPerf').textContent = J.perf;
+    document.getElementById('fimCombo').textContent = J.maxCombo;
+    document.getElementById('fimLugar').textContent = lugarDe(n);
+    document.getElementById('fimRec').textContent = Math.max(rec, n);
+    document.getElementById('placar').classList.remove('on'); document.getElementById('btPausa').classList.remove('on');
+    J.fimEm = performance.now();
+    mostra('telaFim');
+}
+function pausar() { if (!J.on || J.fim) return; J.pausa = true; mostra('telaPausa'); }
+function continuar() { J.pausa = false; mostra(''); ultimo = performance.now(); }
+function irMenu() {
+    J.on = false; J.pausa = false; limpa(); demo();
+    document.getElementById('placar').classList.remove('on'); document.getElementById('btPausa').classList.remove('on');
+    document.getElementById('dica').style.display = 'none';
+    montaModos(); mostra('telaMenu');
+}
+function placar() { document.getElementById('placar').innerHTML = J.andar + '<small>' + (J.andar === 1 ? 'ANDAR' : 'ANDARES') + '</small>'; }
+var avisoT = null;
+function aviso(txt, sub, ms) {
+    var a = document.getElementById('aviso');
+    a.innerHTML = txt + (sub ? '<small>' + sub + '</small>' : '');
+    a.style.opacity = 1; a.style.transform = 'scale(1.1)';
+    setTimeout(function () { a.style.transform = 'scale(1)'; }, 110);
+    clearTimeout(avisoT); avisoT = setTimeout(function () { a.style.opacity = 0; }, ms || 900);
+}
+
+// torre de enfeite no menu
+function demo() {
+    J = { on: false, hue0: Math.random(), andar: 0, t: 0, pulo: 0 };
+    var x = 0, z = 0, w = TAM0, d = TAM0;
+    for (var i = 0; i < 9; i++) {
+        var m = criaMesh(w, d, corBloco(i)); m.position.set(x, i * ALT, z);
+        pilha.push({ mesh: m, x: x, z: z, w: w, d: d });
+        if (i % 3 === 2) { if (i % 2) { w -= 0.35; x += 0.17; } else { d -= 0.35; z -= 0.17; } }
+    }
+    J.andar = pilha.length - 1; camAlvo = camY = J.andar * ALT - 3; zoom = zoomAlvo = 1;
+}
+
+// ---------------- loop ----------------
+var camY = 0, camAlvo = 0;
+function passo(dt) {
+    J.t += dt;
+    if (J.on && !J.pausa) {
+        if (atual && !J.fim) {
+            atual.pos += atual.dir * J.vel * dt;
+            if (atual.pos > atual.dist) { atual.pos = atual.dist; atual.dir = -1; }
+            if (atual.pos < -atual.dist) { atual.pos = -atual.dist; atual.dir = 1; }
+            var topo = pilha[pilha.length - 1];
+            if (atual.eixo === 'x') atual.x = topo.x + atual.pos; else atual.z = topo.z + atual.pos;
+            atual.mesh.position.set(atual.x, atual.y, atual.z);
+            if (J.bot) { // robô de teste: solta quando está perto (às vezes erra de propósito)
+                var dd = (atual.eixo === 'x' ? atual.x - topo.x : atual.z - topo.z);
+                if (Math.abs(dd) < J.botMira) solta();
+            }
+        }
+        if (J.fim) { J.fim -= dt; if (J.fim <= 0) terminar(); }
+    }
+    // pedaços caindo
+    for (var i = caindo.length - 1; i >= 0; i--) {
+        var c = caindo[i]; c.t += dt; c.vy -= 22 * dt;
+        c.mesh.position.y += c.vy * dt; c.mesh.position.x += (c.vx || 0) * dt; c.mesh.position.z += (c.vz || 0) * dt;
+        if (c.eixo === 'z') c.mesh.rotation.x += c.vr * dt; else c.mesh.rotation.z -= c.vr * dt;
+        if (c.t > 3) { scene.remove(c.mesh); c.mesh.material.dispose(); caindo.splice(i, 1); }
+    }
+    // anéis
+    for (var k = aneis.length - 1; k >= 0; k--) {
+        var a = aneis[k]; a.t += dt; var s = 1 + a.t * 1.2; a.m.scale.set(s, 1, s); a.m.material.opacity = Math.max(0, 1 - a.t * 2);
+        if (a.t > 0.5) { scene.remove(a.m); a.m.geometry.dispose(); aneis.splice(k, 1); }
+    }
+}
+function desenha(dt) {
+    camY += (camAlvo - camY) * Math.min(1, dt * 4);
+    zoom += (zoomAlvo - zoom) * Math.min(1, dt * 3);
+    if (!J.on && !document.getElementById('telaFim').classList.contains('on')) { camY = camAlvo + Math.sin(J.t * 0.5) * 0.3; }
+    var gira = J.on ? 0 : J.t * 0.25;
+    var ang = Math.PI / 4 + gira, R = 14;
+    camera.position.set(Math.sin(ang) * R, camY + 9, Math.cos(ang) * R);
+    camera.lookAt(0, camY + 1.5, 0);
+    if (camera.zoom !== zoom) { camera.zoom = zoom; camera.updateProjectionMatrix(); }
+    sol.position.set(6, camY + 12, 4); sol.target.position.set(0, camY, 0);
+    var c = pintaFundo(J.andar || 0);
+    hemi.intensity = c.escuro ? 0.45 : 0.55;
+    // Cogu no topo
+    var topo = pilha[pilha.length - 1];
+    if (topo) {
+        var yTopo = topo.mesh.position.y + ALT / 2;
+        if (J.pulo > 0) J.pulo = Math.max(0, J.pulo - dt);
+        var p = J.pulo / 0.35, salto = Math.sin(p * Math.PI) * 0.9;
+        cogu.position.set(topo.x, yTopo + salto - (p > 0 ? ALT * p * 0 : 0), topo.z);
+        cogu.scale.set(1, 1 - Math.max(0, Math.sin(J.t * 6)) * 0.05, 1);
+        cogu.rotation.y = Math.PI / 4 + gira;
+        cogu.visible = true;
+    } else cogu.visible = false;
+    renderer.render(scene, camera);
+}
+var ultimo = performance.now(), acum = 0;
+function loop(agora) {
+    requestAnimationFrame(loop);
+    var dt = Math.min(0.05, (agora - ultimo) / 1000);
+    if (CELULAR) { acum += dt; ultimo = agora; if (acum < 1 / 31) return; dt = Math.min(0.05, acum); acum = 0; }
+    else ultimo = agora;
+    passo(dt);
+    if (!J.on) J.t += 0; // (o tempo do menu anda no passo)
+    desenha(dt);
+}
+demo(); montaModos();
+requestAnimationFrame(loop);
+
+// ---------------- entrada ----------------
+function apertou(e) {
+    if (!J.on || J.pausa) return;
+    if (e && e.target && e.target.closest && e.target.closest('button')) return;
+    solta();
+}
+canvas.addEventListener('mousedown', apertou);
+canvas.addEventListener('touchstart', function (e) { e.preventDefault(); apertou(e); }, { passive: false });
+addEventListener('keydown', function (e) {
+    if (e.repeat) return;
+    if (J.on && !J.pausa) {
+        if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); solta(); }
+        if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') pausar();
+        return;
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+        if (J.fimEm && performance.now() - J.fimEm < 700) return; // o X do controle manda espaço+enter juntos
+        var aberta = document.querySelector('.tela.on');
+        if (!aberta) return;
+        e.preventDefault();
+        if (aberta.id === 'telaMenu' || aberta.id === 'telaFim') comecar();
+        else if (aberta.id === 'telaPausa') continuar();
+        else if (aberta.id === 'telaComo') mostra('telaMenu');
+    }
+});
+document.addEventListener('visibilitychange', function () { if (document.hidden) pausar(); });
+
+// ---------------- gancho de teste ----------------
+window.__testeEmpilha = function (modo, mira, segundos) {
+    modoSel = modo; J.bot = true; comecar(); J.bot = true; J.botMira = mira;
+    var n = Math.round(segundos * 60);
+    for (var i = 0; i < n && J.on; i++) passo(1 / 60);
+    var r = { modo: MODOS[modo].id, mira: mira, andares: J.andar, perf: J.perf, maxCombo: J.maxCombo, tam: pilha.length ? +(pilha[pilha.length - 1].w * pilha[pilha.length - 1].d).toFixed(2) : 0, caiu: !J.on || J.fim > 0 || J.fim < 0 };
+    J.bot = false; return r;
+};
+</script>
+<script src="/gamepad.js?v=358"></script>
+</body>
+</html>

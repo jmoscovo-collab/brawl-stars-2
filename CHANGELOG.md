@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v632 (2026-11-07)
+- 🧱 Jogo novo (ainda escondido, só pelo link /empilha/): **Cogu Empilha 3D**! Os blocos vêm deslizando e você solta na hora certa pra empilhar: o que fica pra fora é cortado e CAI. Acertou em cheio? PERFEITO! 3 seguidos e o bloco cresce de volta. Quanto mais alto, mais o céu muda: dia, pôr do sol, noite e ESPAÇO com planetas 🪐. Modos Normal, Rápido e Mini
+
 ## v631 (2026-11-07)
 - 🏔️ Capa nova do Cogu Esqui 3D: o Cogu de esqui com óculos no chapéu e cachecol, montanhas com neve no topo, flocos caindo, chão de neve, boneco de neve, pinheiro nevado e um floco de neve gigante ❄️
 
