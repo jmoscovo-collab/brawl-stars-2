@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v635 (2026-11-07)
+- 🛏️ Cogumelo Detetive: a cama da casa do Cogu não atravessa mais a parede! E todos os móveis da casa agora se ajeitam sozinhos pra ficar dentro do quarto
+
 ## v634 (2026-11-07)
 - 🐌 Cogumelo Detetive: na PRIMEIRA noite a culpada é sempre a Vovó Caracol! Mas se você errar, aí o culpado passa a ser sorteado
 

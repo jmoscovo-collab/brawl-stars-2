@@ -1683,7 +1683,15 @@ const pistasMuseu = {};
 // ---------- 🏠 CASA DO DETETIVE (fica em x = 400) ----------
 const CX = 400;
 const casa = new THREE.Group(); casa.position.set(CX, 0, 0); scene.add(casa);
-let cama = { x: CX + 4.4, z: -2.6, topo: .7 };
+let cama = { x: CX + 4.0, z: -2.6, topo: .7 };
+// móvel nunca atravessa a parede: se a caixa dele passar das paredes (por dentro), empurra pra dentro
+function encaixaNaCasa(o){
+  const M = .08, lim = { x0: CX - 6.0 + M, x1: CX + 6.0 - M, z0: -5.0 + M, z1: 5.0 - M };
+  const b = caixa(o);
+  if(b.max.x > lim.x1) o.position.x -= b.max.x - lim.x1; else if(b.min.x < lim.x0) o.position.x += lim.x0 - b.min.x;
+  if(b.min.z < lim.z0) o.position.z += lim.z0 - b.min.z; else if(b.max.z > lim.z1) o.position.z -= b.max.z - lim.z1;
+  return o;
+}
 const folhaPivo = new THREE.Group();
 const folhaTopoMat = new THREE.MeshStandardMaterial({ roughness: .9, side: THREE.DoubleSide }), folhaBaixoMat = new THREE.MeshStandardMaterial({ roughness: .9 });
 const ponteiroHora = new THREE.Group(), ponteiroMin = new THREE.Group();
@@ -1739,14 +1747,14 @@ function setRelogio(m){
   G.add(malha(new THREE.BoxGeometry(.14, 3, 1.5), mat('#6a3e1e'), -5.95, 1.5, 2.6));
   G.add(malha(new THREE.SphereGeometry(.08, 8, 6), mat('#d8b040', { metalness: 1, roughness: .3 }), -5.82, 1.4, 2.1, false));
   // móveis (Kenney)
-  poe('/assets/models/furniture/desk.glb', { x: CX - 3, z: -4.3, largura: 2.2 });
-  poe('/assets/models/furniture/chairDesk.glb', { x: CX - 3, z: -3.3, altura: 1.3, rot: Math.PI });
-  poe('/assets/models/furniture/lampRoundFloor.glb', { x: CX - 5.2, z: -4.3, altura: 2.1 });
-  poe('/assets/models/furniture/bookcaseOpen.glb', { x: CX - 5.5, z: -.6, altura: 2.6, rot: Math.PI/2 });
-  poe('/assets/models/furniture/coatRackStanding.glb', { x: CX - 5.3, z: 4.2, altura: 2.1 });
+  poe('/assets/models/furniture/desk.glb', { x: CX - 3, z: -4.3, largura: 2.2 }).then(encaixaNaCasa);
+  poe('/assets/models/furniture/chairDesk.glb', { x: CX - 3, z: -3.3, altura: 1.3, rot: Math.PI }).then(encaixaNaCasa);
+  poe('/assets/models/furniture/lampRoundFloor.glb', { x: CX - 5.2, z: -4.3, altura: 2.1 }).then(encaixaNaCasa);
+  poe('/assets/models/furniture/bookcaseOpen.glb', { x: CX - 5.5, z: -.6, altura: 2.6, rot: Math.PI/2 }).then(encaixaNaCasa);
+  poe('/assets/models/furniture/coatRackStanding.glb', { x: CX - 5.3, z: 4.2, altura: 2.1 }).then(encaixaNaCasa);
   poe('/assets/models/furniture/rugRound.glb', { x: CX + .4, z: .6, largura: 3.6 });
-  poe('/assets/models/furniture/pottedPlant.glb', { x: CX + 5.4, z: 4.2, altura: 1.4 });
-  poe('/assets/models/furniture/bedSingle.glb', { x: CX + 4.4, z: -2.6, largura: 3.6 }).then(o => {
+  poe('/assets/models/furniture/pottedPlant.glb', { x: CX + 5.4, z: 4.2, altura: 1.4 }).then(encaixaNaCasa);
+  poe('/assets/models/furniture/bedSingle.glb', { x: CX + 4.0, z: -2.6, largura: 3.4 }).then(encaixaNaCasa).then(o => {
     const b = caixa(o), c = b.getCenter(new THREE.Vector3());
     cama = { x: c.x, z: c.z, topo: b.max.y - .25 };
   });
