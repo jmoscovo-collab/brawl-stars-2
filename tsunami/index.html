@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Alerta de Tsunami 3D — Cogumelo Games</title>
+<meta name="description" content="Alerta de Tsunami 3D: você está no restaurante mexendo no celular e chega um alerta. Ignorar ou fugir? Corra pela cidade até o morro antes da onda! Jogo grátis do Cogumelo Games.">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { width:100%; height:100%; overflow:hidden; background:#bfe6ff; font-family:Arial,sans-serif; color:#fff; user-select:none; -webkit-user-select:none; touch-action:none; }
+#jogo { position:fixed; inset:0; width:100%; height:100%; display:block; }
+.tela { position:fixed; inset:0; display:none; flex-direction:column; align-items:center; overflow-y:auto; padding:64px 14px 30px; z-index:8; touch-action:pan-y;
+    background:linear-gradient(180deg, rgba(0,40,90,0.25), rgba(0,20,50,0.85)); }
+.tela.on { display:flex; }
+h1 { font-size:40px; margin:4px 0 2px; text-align:center; color:#fff; letter-spacing:1px; text-shadow:0 3px 0 #0a5ab0, 0 6px 18px rgba(0,0,0,0.5); }
+h1 small { display:block; font-size:16px; color:#7ae0ff; letter-spacing:5px; }
+h2 { margin:10px 0 6px; font-size:18px; color:#ffd84a; text-align:center; }
+.sub { color:#eaf6ff; font-size:15px; text-align:center; margin-bottom:8px; max-width:480px; line-height:1.45; text-shadow:0 1px 3px rgba(0,0,0,0.8); }
+button { font-family:inherit; font-size:17px; font-weight:bold; padding:11px 20px; border:none; border-radius:14px; cursor:pointer;
+    background:linear-gradient(135deg,#7ae0ff,#2a7aff); color:#fff; box-shadow:0 4px 0 rgba(0,0,0,0.35); }
+button:active { transform:translateY(2px); box-shadow:none; }
+button.rosa { background:linear-gradient(135deg,#ff8ad0,#a05aff); }
+button.cinza { background:#3a4a6a; }
+.linha { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:10px 0; }
+.modos { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; max-width:640px; }
+.modo { width:170px; border-radius:16px; padding:10px 8px; cursor:pointer; border:4px solid transparent; background:rgba(0,0,0,0.4); text-align:center; }
+.modo.sel { border-color:#ffd84a; background:rgba(40,140,255,0.35); }
+.modo .ic { font-size:30px; }
+.modo b { display:block; font-size:16px; }
+.modo span { display:block; font-size:12px; color:#eaf6ff; margin-top:3px; }
+.modo .rec { color:#ffd84a; font-weight:bold; }
+.caixa { background:rgba(10,30,70,0.95); border:3px solid #7ae0ff; border-radius:18px; padding:18px; max-width:430px; width:100%; text-align:center; margin-top:3vh; }
+.caixa ul { text-align:left; padding-left:20px; color:#eaf6ff; font-size:14px; line-height:1.6; }
+.num { font-size:46px; line-height:1.2; }
+.tabela { display:grid; grid-template-columns:1fr auto; gap:4px 16px; text-align:left; margin:10px auto; max-width:260px; font-size:16px; }
+.tabela b { text-align:right; color:#ffd84a; }
+.dicaReal { background:rgba(255,216,74,0.15); border:2px dashed #ffd84a; border-radius:12px; padding:8px; font-size:14px; color:#fff6d0; margin-top:8px; }
+a.voltar { color:#cfeaff; text-decoration:none; margin-top:16px; font-size:15px; }
+#hud { position:fixed; top:10px; left:10px; z-index:3; display:none; font-size:20px; font-weight:900; text-shadow:0 2px 4px #000, 0 0 10px rgba(0,0,0,0.6); line-height:1.4; pointer-events:none; }
+#hud.on { display:block; }
+#btPausa { position:fixed; top:54px; right:10px; z-index:4; display:none; padding:8px 14px; font-size:15px; }
+#btPausa.on { display:block; }
+#aviso { position:fixed; top:28%; left:0; right:0; text-align:center; font-size:40px; font-weight:900; pointer-events:none; opacity:0; transition:opacity .2s;
+    color:#fff; text-shadow:0 3px 0 #0a5ab0, 0 6px 16px rgba(0,0,0,0.6); z-index:6; padding:0 10px; }
+#aviso small { display:block; font-size:20px; }
+#flash { position:fixed; inset:0; background:#ff0000; opacity:0; pointer-events:none; z-index:5; }
+#btPulo { position:fixed; right:22px; bottom:30px; width:96px; height:96px; border-radius:50%; z-index:4; display:none; font-size:18px; padding:0;
+    background:radial-gradient(circle at 40% 35%, #7ae0ff, #2a7aff); border:4px solid rgba(255,255,255,0.7); }
+#btPulo.on { display:block; }
+#joyBase { position:fixed; width:120px; height:120px; border-radius:50%; border:3px solid rgba(255,255,255,0.5); background:rgba(0,0,0,0.2); z-index:3; display:none; pointer-events:none; }
+#joyPino { position:fixed; width:54px; height:54px; border-radius:50%; background:rgba(160,230,255,0.8); z-index:3; display:none; pointer-events:none; }
+#seta { position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:3; display:none; font-size:16px; font-weight:bold; background:rgba(0,0,0,0.45); padding:6px 12px; border-radius:12px; pointer-events:none; }
+/* ---- celular ---- */
+#celular { position:fixed; left:50%; bottom:-10px; width:min(300px, 80vw); height:min(540px, 82vh); transform:translateX(-50%); z-index:6; display:none;
+    background:#111; border-radius:34px; border:6px solid #2a2a2a; box-shadow:0 10px 40px rgba(0,0,0,0.6); padding:14px 10px; transition:transform .8s ease-in; }
+#celular.on { display:block; }
+#celular.cai { transform:translateX(-50%) translateY(120%) rotate(25deg); }
+#celular.treme { animation:treme .12s linear infinite; }
+@keyframes treme { 0%{margin-left:-4px} 50%{margin-left:4px} 100%{margin-left:-4px} }
+#celTela { position:relative; width:100%; height:100%; border-radius:22px; overflow:hidden; background:linear-gradient(180deg,#6a3aff,#ff6ab0); touch-action:none; }
+#celBarra { position:absolute; top:0; left:0; right:0; height:24px; font-size:12px; font-weight:bold; display:flex; justify-content:space-between; padding:4px 12px; background:rgba(0,0,0,0.25); z-index:2; }
+#celTit { position:absolute; top:30px; left:0; right:0; text-align:center; font-weight:900; font-size:18px; z-index:2; text-shadow:0 2px 4px rgba(0,0,0,0.4); }
+#celPts { position:absolute; top:54px; left:0; right:0; text-align:center; font-size:14px; z-index:2; }
+.bolha { position:absolute; border-radius:50%; background:radial-gradient(circle at 35% 30%, rgba(255,255,255,0.95), rgba(160,230,255,0.5) 40%, rgba(80,160,255,0.35)); border:2px solid rgba(255,255,255,0.7); cursor:pointer; }
+#alerta { position:absolute; left:8px; right:8px; top:-260px; background:#fff; color:#222; border-radius:16px; padding:12px; z-index:5; box-shadow:0 6px 20px rgba(0,0,0,0.5); transition:top .4s; text-align:center; }
+#alerta.on { top:34px; }
+#alerta .tt { color:#d01010; font-weight:900; font-size:17px; }
+#alerta p { font-size:14px; margin:6px 0 10px; line-height:1.35; }
+#alerta button { font-size:15px; padding:9px 12px; margin:0 3px; }
+#btIgnorar { background:#8a8a9a; }
+#btFugir { background:linear-gradient(135deg,#ff5a3a,#d01010); }
+</style>
+<script src="/cogucoins.js?v=552"></script>
+</head>
+<body>
+<canvas id="jogo"></canvas>
+<div id="hud"></div>
+<div id="seta"></div>
+<button class="cinza" id="btPausa" onclick="pausar()">Pausa</button>
+<div id="aviso"></div>
+<div id="flash"></div>
+<button id="btPulo">PULA!</button>
+<div id="joyBase"></div><div id="joyPino"></div>
+
+<div id="celular"><div id="celTela">
+    <div id="celBarra"><span id="celHora">12:30</span><span id="celInfo">📶 🔋</span></div>
+    <div id="celTit">🫧 Estoura Bolhas</div>
+    <div id="celPts">0 bolhas</div>
+    <div id="alerta">
+        <div class="tt">⚠️ ALERTA DE TSUNAMI ⚠️</div>
+        <p>Uma <b>onda gigante</b> vai chegar na praia em <b id="alertaSeg">60</b> segundos! Saia agora e vá para um <b>lugar alto</b>.</p>
+        <button id="btIgnorar">Ignorar</button><button id="btFugir">FUGIR!</button>
+        <div style="font-size:11px; color:#777; margin-top:6px">teclado: I ignora, espaço foge · controle: ⬜ ignora, ✖ foge</div>
+    </div>
+</div></div>
+
+<div class="tela on" id="telaMenu">
+    <h1>ALERTA DE TSUNAMI<small>3D</small></h1>
+    <div class="sub">Você está num restaurante na praia, mexendo no celular... e chega um <b>ALERTA</b>! 📱⚠️ Ignorar ou fugir? Corra pela cidade até o morro antes que a onda chegue! 🌊⛰️</div>
+    <h2>Dificuldade</h2>
+    <div class="modos" id="listaModos"></div>
+    <div class="linha">
+        <button onclick="comecar()">COMEÇAR!</button>
+        <button class="rosa" onclick="mostra('telaComo')">Como jogar</button>
+    </div>
+    <a class="voltar" href="/">&larr; Voltar pro Cogumelo Games</a>
+</div>
+
+<div class="tela" id="telaComo">
+    <div class="caixa">
+        <h2>Como jogar</h2>
+        <ul>
+            <li>No celular, toque nas bolhas pra estourar 🫧</li>
+            <li>Chegou o alerta: <b>FUGIR</b> = você já sai correndo com muito tempo. <b>IGNORAR</b> = continua no celular, mas depois toca o <b>ALARME</b> e você tem que sair com MENOS tempo!</li>
+            <li>Corra pela rua até o <b>morro</b> (⛰️ ponto seguro). Pule carros, caixas e cercas.</li>
+            <li><b>PC:</b> WASD/setas + espaço, arraste o mouse pra girar. <b>Celular:</b> arraste à esquerda pra andar + botão PULA. <b>Controle:</b> analógico + X.</li>
+            <li>Cuidado com os carros cruzando a rua! 🚗</li>
+        </ul>
+        <div class="linha"><button onclick="mostra('telaMenu')">Entendi!</button></div>
+    </div>
+</div>
+
+<div class="tela" id="telaPausa">
+    <div class="caixa">
+        <h2>Pausado</h2>
+        <div class="linha"><button onclick="continuar()">Continuar</button><button class="cinza" onclick="irMenu()">Menu</button></div>
+    </div>
+</div>
+
+<div class="tela" id="telaFim" style="background:linear-gradient(180deg, rgba(0,40,90,0.1), rgba(0,20,50,0.75));">
+    <div class="caixa">
+        <h2 id="fimTitulo">VOCÊ SE SALVOU!</h2>
+        <div class="num" id="fimEst">⭐⭐⭐</div>
+        <div class="tabela" id="fimTabela"></div>
+        <div class="dicaReal">💡 <b>Na vida real:</b> se tocar alerta de tsunami, largue o celular e vá na hora para um lugar alto, longe da praia!</div>
+        <div class="linha"><button onclick="comecar()">De novo!</button><button class="cinza" onclick="irMenu()">Menu</button></div>
+    </div>
+</div>
+
+<script src="/stats.js?v=496"></script>
+<script>
+if (window.initStats) initStats('tsunami');
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ====================== ALERTA DE TSUNAMI 3D ======================
+var CELULAR = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || ('ontouchstart' in window && innerWidth < 1100);
+var G = 30, PULO = 11.5, VEL = 7, R = 0.38, ALTP = 1.2;
+var Z_PORTA = 28, Z_SEGURO = -118, Z_FIM = -150, LARG = 10.5, VEL_ONDA = 10;
+
+var DIFS = [
+    { id:'facil',   nome:'Fácil',   ic:'🙂', desc:'Onda em 60s. Poucos obstáculos.', T:60, alarme:24, porLinha:[1, 2], carros:0 },
+    { id:'normal',  nome:'Normal',  ic:'😬', desc:'Onda em 45s. Carros cruzando a rua!', T:45, alarme:18, porLinha:[1, 3], carros:2 },
+    { id:'dificil', nome:'Difícil', ic:'😱', desc:'Onda em 35s. Ônibus e muito carro!', T:35, alarme:14, porLinha:[2, 3], carros:3, onibus:true }
+];
+var difSel = 0;
+try { difSel = Math.max(0, Math.min(DIFS.length - 1, parseInt(localStorage.getItem('tsunami_dif') || '0', 10) || 0)); } catch (e) {}
+function recorde(id) { try { return parseInt(localStorage.getItem('tsunami_rec_' + id) || '0', 10) || 0; } catch (e) { return 0; } }
+function montaModos() {
+    var l = document.getElementById('listaModos'); l.innerHTML = '';
+    DIFS.forEach(function (m, i) {
+        var r = recorde(m.id);
+        var d = document.createElement('div'); d.className = 'modo' + (i === difSel ? ' sel' : '');
+        d.innerHTML = '<div class="ic">' + m.ic + '</div><b>' + m.nome + '</b><span>' + m.desc + '</span><span class="rec">' + (r ? '⭐'.repeat(r) : 'Ainda não se salvou') + '</span>';
+        d.onclick = function (e) { e.stopPropagation(); difSel = i; try { localStorage.setItem('tsunami_dif', String(i)); } catch (er) {} montaModos(); };
+        l.appendChild(d);
+    });
+}
+function mostra(id) { document.querySelectorAll('.tela').forEach(function (t) { t.classList.toggle('on', t.id === id); }); }
+var avisoTm = 0;
+function aviso(txt, peq, seg) {
+    var a = document.getElementById('aviso'); a.innerHTML = txt + (peq ? '<small>' + peq + '</small>' : ''); a.style.opacity = 1;
+    clearTimeout(avisoTm); avisoTm = setTimeout(function () { a.style.opacity = 0; }, (seg || 1.5) * 1000);
+}
+
+// ---------------- som ----------------
+var ac = null;
+function audio() { if (!ac) try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} return ac; }
+function bip(f1, f2, dur, tipo, vol) {
+    if (J.bot || !audio()) return;
+    try {
+        var o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+        o.type = tipo || 'square'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+        g.gain.setValueAtTime(vol || 0.08, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur);
+    } catch (e) {}
+}
+function sirene(seg) {
+    if (J.bot || !audio()) return;
+    try {
+        var o = ac.createOscillator(), g = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain(), t = ac.currentTime;
+        o.type = 'sawtooth'; o.frequency.value = 700; lfo.frequency.value = 1.2; lg.gain.value = 250;
+        lfo.connect(lg); lg.connect(o.frequency);
+        g.gain.setValueAtTime(0.06, t); g.gain.setValueAtTime(0.06, t + seg - 0.3); g.gain.linearRampToValueAtTime(0.0001, t + seg);
+        o.connect(g); g.connect(ac.destination); o.start(t); lfo.start(t); o.stop(t + seg); lfo.stop(t + seg);
+    } catch (e) {}
+}
+
+// ---------------- three.js ----------------
+var canvas = document.getElementById('jogo');
+var renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias:!CELULAR, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CELULAR ? 1.25 : 1.5));
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0xbfe6ff);
+scene.fog = new THREE.Fog(0xbfe6ff, 45, 175);
+var camera = new THREE.PerspectiveCamera(62, 1, 0.1, 400);
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+var ultimo = performance.now();
+function loop(t) {
+    requestAnimationFrame(loop);
+    var dt = (t - ultimo) / 1000;
+    if (CELULAR && dt < 1 / 32) return;
+    ultimo = t; dt = Math.min(dt, 0.05);
+    if (!window.MUNDO_OK) return;
+    if (!J.pausa) { var n = dt > 0.02 ? 2 : 1; for (var i = 0; i < n; i++) passo(dt / n); }
+    visual(dt);
+    renderer.render(scene, camera);
+}
+requestAnimationFrame(loop);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x6a8a5a, 0.85));
+var sol = new THREE.DirectionalLight(0xffffff, 0.6); sol.position.set(-8, 20, 10); scene.add(sol);
+
+// altura do chão: a rua vai subindo até o morro
+function H(z) {
+    if (z >= 26) return 0;
+    if (z > -108) return (26 - z) * 0.09;
+    return Math.min(20, 12.06 + (-108 - z) * 0.55);
+}
+
+function texCanvas(w, h, desenha, rx, ry) {
+    var c = document.createElement('canvas'); c.width = w; c.height = h; desenha(c.getContext('2d'), w, h);
+    var t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); return t;
+}
+var texPredio = texCanvas(64, 64, function (x, w, h) {
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#6a8ab0';
+    for (var i = 0; i < 2; i++) for (var j = 0; j < 2; j++) x.fillRect(8 + i * 32, 8 + j * 32, 18, 20);
+}, 2, 4);
+var texMar = texCanvas(64, 64, function (x, w, h) {
+    x.fillStyle = '#1a7ad0'; x.fillRect(0, 0, w, h);
+    x.strokeStyle = 'rgba(255,255,255,0.45)'; x.lineWidth = 2;
+    for (var i = 0; i < 6; i++) { x.beginPath(); var y = i * 11 + 4; x.moveTo(0, y); x.quadraticCurveTo(16, y - 4, 32, y); x.quadraticCurveTo(48, y + 4, 64, y); x.stroke(); }
+}, 30, 30);
+
+function mt(cor) { return new THREE.MeshLambertMaterial({ color:cor }); }
+function caixaMesh(w, h, d, cor, x, y, z, pai) { var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), typeof cor === 'number' ? mt(cor) : cor); m.position.set(x, y + h / 2, z); (pai || scene).add(m); return m; }
+
+// ---- mundo fixo: rua, praia, mar, prédios, morro ----
+var MUNDO = new THREE.Group(); scene.add(MUNDO);
+(function () {
+    var geo = new THREE.PlaneGeometry(28, 190, 14, 190); geo.rotateX(-Math.PI / 2);
+    var pos = geo.attributes.position, cores = [];
+    for (var i = 0; i < pos.count; i++) {
+        var x = pos.getX(i), z = pos.getZ(i) - 68; pos.setZ(i, z); pos.setY(i, H(z));
+        var c;
+        if (z < Z_SEGURO + 2) c = [0.35, 0.75, 0.3];
+        else if (Math.abs(x) > 10) c = [0.78, 0.78, 0.74];
+        else c = [0.33, 0.34, 0.38];
+        cores.push(c[0], c[1], c[2]);
+    }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(cores, 3)); geo.computeVertexNormals();
+    MUNDO.add(new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors:true })));
+    // faixas no meio da rua
+    for (var z = 22; z > -106; z -= 6) { var f = caixaMesh(0.25, 0.02, 2.4, 0xffe04a, 0, H(z) + 0.01, z, MUNDO); f.rotation.x = Math.atan(0.09); }
+    // areia e mar
+    var areia = new THREE.Mesh(new THREE.PlaneGeometry(120, 20), mt(0xf0d890)); areia.rotation.x = -Math.PI / 2; areia.position.set(0, -0.02, 48); MUNDO.add(areia);
+    var mar = new THREE.Mesh(new THREE.PlaneGeometry(500, 400), new THREE.MeshLambertMaterial({ map:texMar })); mar.rotation.x = -Math.PI / 2; mar.position.set(0, -0.15, 255); MUNDO.add(mar);
+    MUNDO.userData.mar = mar;
+    // prédios dos dois lados
+    var cores2 = [0xffb0a0, 0xa0d0ff, 0xfff0a0, 0xb0f0b0, 0xe0b0ff, 0xffd0a0, 0xffffff];
+    [-1, 1].forEach(function (lado) {
+        for (var z = 25; z > -108; ) {
+            var d = 7 + Math.random() * 5, w = 8 + Math.random() * 6, h = 6 + Math.random() * 16;
+            var m = new THREE.MeshLambertMaterial({ map:texPredio, color:cores2[Math.floor(Math.random() * cores2.length)] });
+            caixaMesh(w, h + 4, d - 0.6, m, lado * (12 + w / 2), H(z - d / 2) - 4, z - d / 2, MUNDO);
+            z -= d;
+        }
+        // lojinhas ao lado do restaurante
+        caixaMesh(14, 5, 12, lado < 0 ? 0xffc0d0 : 0xc0ffd0, lado * 15.5, 0, 34, MUNDO);
+        // morro dos lados
+        caixaMesh(30, 40, 60, 0x4aa040, lado * 26, -20, -135, MUNDO);
+    });
+    // morro do fundo
+    var cone = new THREE.Mesh(new THREE.ConeGeometry(40, 45, 10), mt(0x3a8a3a)); cone.position.set(0, 20, -190); MUNDO.add(cone);
+    // ponto seguro: placa + bandeira
+    var py = H(-128);
+    caixaMesh(0.25, 5, 0.25, 0xffffff, -4, py, -128, MUNDO);
+    var band = caixaMesh(2.4, 1.4, 0.08, 0x2ac04a, -2.7, py + 3.4, -128, MUNDO);
+    var placa = new THREE.Mesh(new THREE.PlaneGeometry(7, 2.2), new THREE.MeshBasicMaterial({ map:texCanvas(256, 80, function (x, w, h) {
+        x.fillStyle = '#1a8a2a'; x.fillRect(0, 0, w, h); x.strokeStyle = '#fff'; x.lineWidth = 6; x.strokeRect(4, 4, w - 8, h - 8);
+        x.fillStyle = '#fff'; x.font = 'bold 34px Arial'; x.textAlign = 'center'; x.fillText('⛰️ PONTO SEGURO', w / 2, 52);
+    }, 1, 1) }));
+    placa.position.set(3, py + 3, -121); MUNDO.add(placa);
+    caixaMesh(0.2, 2.2, 0.2, 0x6a4a2a, 3, py, -121.1, MUNDO);
+    // placas de rota de fuga
+    [10, -30, -70].forEach(function (z) {
+        var p = new THREE.Mesh(new THREE.PlaneGeometry(3, 1.2), new THREE.MeshBasicMaterial({ map:texCanvas(128, 50, function (x, w, h) {
+            x.fillStyle = '#0a5ab0'; x.fillRect(0, 0, w, h); x.fillStyle = '#fff'; x.font = 'bold 20px Arial'; x.textAlign = 'center'; x.fillText('ROTA DE FUGA ⬆', w / 2, 32);
+        }, 1, 1) }));
+        p.position.set(-10.6, H(z) + 3.2, z); p.rotation.y = Math.PI / 2; MUNDO.add(p);
+        caixaMesh(0.15, 3, 0.15, 0x888888, -10.6, H(z), z, MUNDO);
+    });
+})();
+
+// ---- restaurante ----
+var PAREDES = [];   // caixas de colisão fixas {x1,x2,z1,z2,y1,y2}
+function parede(x1, x2, z1, z2, y2, cor, semMesh) {
+    PAREDES.push({ x1:x1, x2:x2, z1:z1, z2:z2, y1:0, y2:y2 });
+    if (!semMesh) caixaMesh(x2 - x1, y2, z2 - z1, cor, (x1 + x2) / 2, 0, (z1 + z2) / 2, MUNDO);
+}
+(function () {
+    var cor = 0xfff0d8;
+    var piso = new THREE.Mesh(new THREE.PlaneGeometry(16.6, 12.3), mt(0xd09a6a)); piso.rotation.x = -Math.PI / 2; piso.position.set(0, 0.01, 34.15); MUNDO.add(piso);
+    parede(-8.3, -8, 27.7, 40.3, 3.5, cor); parede(8, 8.3, 27.7, 40.3, 3.5, cor);
+    parede(-8.3, -1.6, 27.7, 28, 3.5, cor); parede(1.6, 8.3, 27.7, 28, 3.5, cor);
+    caixaMesh(3.2, 0.8, 0.3, cor, 0, 2.7, 27.85, MUNDO);   // em cima da porta
+    // parede da praia: muretinha + vidro
+    parede(-8.3, 8.3, 40, 40.3, 3.5, 0, true);
+    caixaMesh(16.6, 1, 0.3, cor, 0, 0, 40.15, MUNDO);
+    var vidro = new THREE.Mesh(new THREE.PlaneGeometry(16.6, 2.5), new THREE.MeshLambertMaterial({ color:0xbfefff, transparent:true, opacity:0.25 }));
+    vidro.position.set(0, 2.25, 40.15); vidro.rotation.y = Math.PI; MUNDO.add(vidro);
+    for (var x = -8; x <= 8; x += 4) caixaMesh(0.2, 2.5, 0.32, cor, x, 1, 40.15, MUNDO);
+    caixaMesh(16.6, 0.2, 0.32, cor, 0, 3.4, 40.15, MUNDO);
+    // letreiro
+    var letreiro = new THREE.Mesh(new THREE.PlaneGeometry(6, 1.2), new THREE.MeshBasicMaterial({ map:texCanvas(256, 52, function (x, w, h) {
+        x.fillStyle = '#d0302a'; x.fillRect(0, 0, w, h); x.fillStyle = '#fff'; x.font = 'bold 30px Arial'; x.textAlign = 'center'; x.fillText('🍄 COGU RESTAURANTE', w / 2, 36);
+    }, 1, 1) }));
+    letreiro.position.set(0, 4.2, 27.6); letreiro.rotation.y = Math.PI; MUNDO.add(letreiro);
+    // balcão
+    parede(-7.9, -5.5, 29, 33, 1.1, 0x8a5a30);
+    // mesas
+    [[0, 35.2], [-4.5, 35.5], [4.5, 35.5], [-4, 31], [4, 31]].forEach(function (m) {
+        parede(m[0] - 0.75, m[0] + 0.75, m[1] - 0.75, m[1] + 0.75, 0.8, 0, true);
+        caixaMesh(1.5, 0.1, 1.5, 0xffffff, m[0], 0.7, m[1], MUNDO);
+        caixaMesh(0.2, 0.7, 0.2, 0x6a4a2a, m[0], 0, m[1], MUNDO);
+        caixaMesh(0.4, 0.15, 0.4, 0xff8a3a, m[0] + 0.2, 0.8, m[1], MUNDO);   // pratinho
+    });
+})();
+
+// ---------------- personagens ----------------
+function criaCogu(cor, celular) {
+    var g = new THREE.Group();
+    var corpo = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.7, 12), mt(0xfff0d8)); corpo.position.y = 0.38; g.add(corpo);
+    var ch = new THREE.Mesh(new THREE.SphereGeometry(0.58, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), mt(cor)); ch.position.y = 0.68; ch.scale.y = 0.85; g.add(ch);
+    var branco = mt(0xffffff);
+    [[0.25, 0.9, 0.3], [-0.3, 0.88, 0.2], [0.05, 1.12, -0.05], [0, 0.85, -0.45]].forEach(function (p) {
+        var s = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), branco); s.position.set(p[0], p[1], p[2]); s.scale.y = 0.6; g.add(s);
+    });
+    var preto = mt(0x111111);
+    [-0.1, 0.1].forEach(function (x) { var o = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6), preto); o.position.set(x, 0.5, 0.29); g.add(o); });
+    var pe = mt(0x7a4a22);
+    [-0.15, 0.15].forEach(function (x) { var o = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), pe); o.position.set(x, 0.05, 0.05); o.scale.set(1, 0.6, 1.4); g.add(o); });
+    return g;
+}
+var bonecos = [], eu = null, OBS = [], carros = [], BOX = [];
+function novoBoneco(cor, x, z, npc) {
+    var m = criaCogu(cor); scene.add(m);
+    var b = { x:x, y:H(z), z:z, vx:0, vz:0, vy:0, chao:true, coyote:0, buf:0, m:m, rot:Math.PI, npc:npc, vel:npc ? 4 + Math.random() * 1.6 : VEL, tonto:0, vivo:true, salvo:false, espera:0, lane:x, boia:0 };
+    bonecos.push(b); return b;
+}
+
+// ---------------- obstáculos da rua ----------------
+var TIPOS = {
+    carro:  { w:1.8, d:3.6, h:1.3, cor:[0xff4a4a, 0x4a8aff, 0xffd23a, 0xffffff, 0x3ac06a] },
+    caixa:  { w:1.2, d:1.2, h:1.1, cor:[0xc8955a] },
+    lixo:   { w:0.9, d:0.9, h:1.0, cor:[0x2a8a3a, 0x3a6ad0] },
+    cerca:  { w:4.0, d:0.3, h:0.9, cor:[0xff8a1a] },
+    banca:  { w:3.0, d:1.5, h:1.0, cor:[0xd09a5a] },
+    onibus: { w:2.4, d:6.5, h:2.8, cor:[0xffc81a] }
+};
+function fazObs(tipo, x, z) {
+    var t = TIPOS[tipo], cor = t.cor[Math.floor(Math.random() * t.cor.length)];
+    var y0 = Math.max(H(z - t.d / 2), H(z + t.d / 2));
+    var g = new THREE.Group(); g.position.set(x, y0, z);
+    if (tipo === 'carro') {
+        caixaMesh(1.8, 0.7, 3.6, cor, 0, 0.25, 0, g); caixaMesh(1.6, 0.5, 1.9, 0xbfefff, 0, 0.95, 0.2, g);
+        [[-0.9, -1.1], [0.9, -1.1], [-0.9, 1.1], [0.9, 1.1]].forEach(function (p) { var r = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.2, 10), mt(0x222222)); r.rotation.z = Math.PI / 2; r.position.set(p[0], 0.32, p[1]); g.add(r); });
+    } else if (tipo === 'cerca') {
+        caixaMesh(4, 0.25, 0.25, 0xffffff, 0, 0.65, 0, g); caixaMesh(4, 0.25, 0.25, cor, 0, 0.3, 0, g);
+        caixaMesh(0.2, 0.9, 0.3, 0x333333, -1.8, 0, 0, g); caixaMesh(0.2, 0.9, 0.3, 0x333333, 1.8, 0, 0, g);
+    } else if (tipo === 'banca') {
+        caixaMesh(3, 0.8, 1.5, cor, 0, 0, 0, g);
+        for (var i = 0; i < 6; i++) { var f = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), mt([0xff3a3a, 0xffa01a, 0x6ad03a][i % 3])); f.position.set(-1.1 + i * 0.44, 0.92, (i % 2) * 0.4 - 0.2); g.add(f); }
+    } else if (tipo === 'onibus') {
+        caixaMesh(2.4, 2.5, 6.5, cor, 0, 0.3, 0, g); caixaMesh(2.45, 0.7, 5.6, 0xbfefff, 0, 1.6, 0, g);
+    } else if (tipo === 'lixo') {
+        var c = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.38, 1.0, 12), mt(cor)); c.position.y = 0.5; g.add(c);
+    } else {
+        caixaMesh(t.w, t.h, t.d, cor, 0, 0, 0, g); caixaMesh(t.w + 0.02, 0.02, 0.25, 0xe8d0a0, 0, t.h, 0, g);
+    }
+    scene.add(g);
+    var o = { tipo:tipo, g:g, x1:x - t.w / 2, x2:x + t.w / 2, z1:z - t.d / 2, z2:z + t.d / 2, y1:y0 - 0.3, y2:y0 + t.h };
+    OBS.push(o); return o;
+}
+var CRUZ = [];
+function montaRua(dif) {
+    OBS.forEach(function (o) { scene.remove(o.g); }); OBS = [];
+    carros.forEach(function (c) { scene.remove(c.g); }); carros = [];
+    CRUZ = [];
+    var zs = [-22, -58, -88].slice(0, dif.carros);
+    zs.forEach(function (z, i) {
+        CRUZ.push(z);
+        var faixa = new THREE.Group();
+        for (var k = -4; k <= 4; k++) caixaMesh(0.9, 0.03, 3, 0xffffff, k * 2.2, H(z) + 0.01, z, faixa);
+        scene.add(faixa); carros.push({ g:faixa, faixa:true });
+        var o = fazObs('carro', -14, z); o.g.rotation.y = Math.PI / 2;
+        var c = { o:o, g:o.g, dir:i % 2 ? -1 : 1, vel:7 + i * 1.5 + Math.random() * 2, z:z, x:i % 2 ? 14 : -14 };
+        carros.push(c);
+    });
+    var slots = [-7.5, -2.5, 2.5, 7.5];
+    for (var z = 20; z > -104; z -= 6.5) {
+        if (CRUZ.some(function (c) { return Math.abs(c - z) < 6; })) continue;
+        var n = dif.porLinha[0] + Math.floor(Math.random() * (dif.porLinha[1] - dif.porLinha[0] + 1));
+        var livres = slots.slice().sort(function () { return Math.random() - 0.5; }).slice(0, n);
+        livres.forEach(function (x) {
+            var tipos = ['carro', 'caixa', 'lixo', 'cerca', 'banca', 'caixa'];
+            if (dif.onibus && Math.random() < 0.25) tipos = ['onibus'];
+            fazObs(tipos[Math.floor(Math.random() * tipos.length)], x + (Math.random() - 0.5), z + (Math.random() - 0.5) * 2);
+        });
+    }
+}
+
+// ---------------- física ----------------
+function dentro(e, b, m) { return e.x > b.x1 - m && e.x < b.x2 + m && e.z > b.z1 - m && e.z < b.z2 + m; }
+function chaoSob(e, folga) {
+    var y = H(e.z);
+    for (var i = 0; i < BOX.length; i++) { var b = BOX[i]; if (b.y2 <= e.y + folga && b.y2 > y && dentro(e, b, R * 0.45)) y = b.y2; }
+    return y;
+}
+function fisica(e, mx, mz, pula, dt) {
+    var vel = e.vel;
+    if (e.tonto > 0) { e.tonto -= dt; mx = mz = 0; pula = false; }
+    var k = Math.min(1, dt * (e.chao ? 12 : 6));
+    if (e.tonto <= 0) { e.vx += (mx * vel - e.vx) * k; e.vz += (mz * vel - e.vz) * k; }
+    else { e.vx *= 0.94; e.vz *= 0.94; }
+    e.x += e.vx * dt; e.z += e.vz * dt;
+    e.x = Math.max(-LARG + R, Math.min(LARG - R, e.x)); e.z = Math.max(Z_FIM, Math.min(39.6, e.z));
+    for (var i = 0; i < BOX.length; i++) {
+        var b = BOX[i];
+        if (!(e.y < b.y2 - 0.25 && e.y + ALTP > b.y1)) continue;
+        var ox = Math.min(e.x + R - b.x1, b.x2 - (e.x - R)), oz = Math.min(e.z + R - b.z1, b.z2 - (e.z - R));
+        if (ox <= 0 || oz <= 0) continue;
+        if (ox < oz) e.x += e.x < (b.x1 + b.x2) / 2 ? -ox : ox; else e.z += e.z < (b.z1 + b.z2) / 2 ? -oz : oz;
+    }
+    if (pula) e.buf = 0.15; else e.buf -= dt;
+    if (e.buf > 0 && (e.chao || e.coyote > 0)) { e.vy = PULO; e.chao = false; e.coyote = 0; e.buf = 0; if (e === eu) bip(300, 600, 0.12, 'square', 0.05); }
+    var sup = chaoSob(e, 0.3);
+    if (e.chao) {
+        if (sup >= e.y - 0.35) e.y = sup; else { e.chao = false; e.coyote = 0.1; }
+    }
+    if (!e.chao) {
+        e.coyote -= dt; e.vy = Math.max(-28, e.vy - G * dt);
+        var ny = e.y + e.vy * dt;
+        if (e.vy <= 0) { var s2 = chaoSob(e, 0.05); if (ny <= s2) { ny = s2; e.vy = 0; e.chao = true; } }
+        e.y = ny;
+    }
+}
+// cérebro simples: correr pra frente (-z) desviando/pulando o que tiver na frente
+function cerebro(e) {
+    var r = { mx:0, mz:-1, pula:false };
+    if (e.z > Z_PORTA + 0.2) {   // dentro do restaurante: vai pra porta
+        var dx = 0 - e.x, dz = (Z_PORTA - 1) - e.z;
+        if (Math.abs(e.x) > 1 && e.z < Z_PORTA + 1.4) dz = 0;   // encostado na parede da porta: anda de lado primeiro
+        var n = Math.hypot(dx, dz) || 1; r.mx = dx / n; r.mz = dz / n;
+        return r;
+    }
+    var frente = null;
+    for (var i = 0; i < BOX.length; i++) {
+        var b = BOX[i];
+        if (b.y2 - e.y < 0.25 || b.z1 > e.z || b.z2 < e.z - 2.2) continue;
+        if (e.x + R + 0.15 > b.x1 && e.x - R - 0.15 < b.x2) { if (!frente || b.z2 > frente.z2) frente = b; }
+    }
+    if (frente) {
+        if (frente.y2 - e.y < 1.75 && !frente.carro) { if (e.z - frente.z2 < 1.0) r.pula = true; }
+        else {   // alto demais (ônibus): desvia pro lado mais perto
+            var esq = e.x - frente.x1, dir = frente.x2 - e.x;
+            var vai = esq < dir ? -1 : 1;
+            if (frente.x1 < -LARG + 1.2) vai = 1; if (frente.x2 > LARG - 1.2) vai = -1;
+            r.mx = vai; r.mz = -0.35;
+        }
+    }
+    if (!frente) r.mx = Math.max(-1, Math.min(1, (e.lane - e.x) * 0.3));
+    // carro vindo na faixa? espera
+    carros.forEach(function (c) {
+        if (c.faixa) return;
+        if (e.z > c.z + 1.5 && e.z - c.z < 4 && Math.abs(c.x - e.x) < 6 && (c.x - e.x) * c.dir < 0 && e.chao) r.mz = 0.2;
+    });
+    var nn = Math.hypot(r.mx, r.mz); if (nn > 1) { r.mx /= nn; r.mz /= nn; }
+    return r;
+}
+
+// ---------------- controles ----------------
+var teclas = {}, puloPedido = false, yaw = 0, pitch = 0.42, joy = null, joyV = { x:0, y:0 };
+document.addEventListener('keydown', function (e) {
+    var k = e.code || e.key; teclas[k] = true;
+    if (J.on && !J.pausa) {
+        if (J.fase === 'celular' && J.alertou && !J.escolha) {
+            if (e.key === ' ' || e.key === 'Enter' || k === 'KeyF') { e.preventDefault(); escolhe('fugir'); return; }
+            if (k === 'KeyI' || k === 'KeyE' || e.key === 'Backspace') { escolhe('ignorar'); return; }
+        }
+        if (e.key === ' ' || k === 'Space') { e.preventDefault(); if (!e.repeat) puloPedido = true; }
+        if (/^Arrow/.test(k)) e.preventDefault();
+        if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') pausar();
+        return;
+    }
+    if (e.repeat) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+        if (J.fimEm && performance.now() - J.fimEm < 900) return;
+        var aberta = document.querySelector('.tela.on'); if (!aberta) return;
+        e.preventDefault();
+        if (aberta.id === 'telaMenu' || aberta.id === 'telaFim') comecar();
+        else if (aberta.id === 'telaPausa') continuar();
+        else if (aberta.id === 'telaComo') mostra('telaMenu');
+    }
+});
+document.addEventListener('keyup', function (e) { teclas[e.code || e.key] = false; });
+function gira(dx, dy) { yaw -= dx * 0.006; pitch = Math.max(0.12, Math.min(1.2, pitch + dy * 0.004)); }
+var arrastaMouse = false;
+canvas.addEventListener('mousedown', function () { arrastaMouse = true; });
+addEventListener('mouseup', function () { arrastaMouse = false; });
+canvas.addEventListener('mousemove', function (e) { if (!e.isTrusted || arrastaMouse) gira(e.movementX, e.movementY); });
+var toqueCam = null;
+canvas.addEventListener('touchstart', function (e) {
+    e.preventDefault();
+    for (var i = 0; i < e.changedTouches.length; i++) {
+        var t = e.changedTouches[i];
+        if (t.clientX < innerWidth * 0.45 && !joy) {
+            joy = { id:t.identifier, x:t.clientX, y:t.clientY };
+            var jb = document.getElementById('joyBase'); jb.style.display = 'block'; jb.style.left = (t.clientX - 60) + 'px'; jb.style.top = (t.clientY - 60) + 'px';
+            mexeJoy(t.clientX, t.clientY);
+        } else if (!toqueCam) toqueCam = { id:t.identifier, x:t.clientX, y:t.clientY };
+    }
+}, { passive:false });
+canvas.addEventListener('touchmove', function (e) {
+    e.preventDefault();
+    for (var i = 0; i < e.changedTouches.length; i++) {
+        var t = e.changedTouches[i];
+        if (joy && t.identifier === joy.id) mexeJoy(t.clientX, t.clientY);
+        else if (toqueCam && t.identifier === toqueCam.id) { gira((t.clientX - toqueCam.x) * 1.4, (t.clientY - toqueCam.y) * 1.2); toqueCam.x = t.clientX; toqueCam.y = t.clientY; }
+    }
+}, { passive:false });
+function fimToque(e) {
+    for (var i = 0; i < e.changedTouches.length; i++) {
+        var t = e.changedTouches[i];
+        if (joy && t.identifier === joy.id) soltaJoy();
+        if (toqueCam && t.identifier === toqueCam.id) toqueCam = null;
+    }
+}
+function soltaJoy() { joy = null; joyV.x = joyV.y = 0; document.getElementById('joyBase').style.display = 'none'; document.getElementById('joyPino').style.display = 'none'; }
+canvas.addEventListener('touchend', fimToque); canvas.addEventListener('touchcancel', fimToque);
+function mexeJoy(x, y) {
+    var dx = x - joy.x, dy = y - joy.y, d = Math.hypot(dx, dy), m = 50;
+    if (d > m) { dx *= m / d; dy *= m / d; }
+    joyV.x = dx / m; joyV.y = dy / m;
+    var jp = document.getElementById('joyPino'); jp.style.display = 'block'; jp.style.left = (joy.x + dx - 27) + 'px'; jp.style.top = (joy.y + dy - 27) + 'px';
+}
+var btPulo = document.getElementById('btPulo');
+btPulo.addEventListener('touchstart', function (e) { e.preventDefault(); e.stopPropagation(); puloPedido = true; }, { passive:false });
+btPulo.addEventListener('mousedown', function (e) { e.preventDefault(); puloPedido = true; });
+function entradaJogador() {
+    var ix = 0, iz = 0;
+    if (teclas.KeyA || teclas.ArrowLeft) ix -= 1;
+    if (teclas.KeyD || teclas.ArrowRight) ix += 1;
+    if (teclas.KeyW || teclas.ArrowUp) iz += 1;
+    if (teclas.KeyS || teclas.ArrowDown) iz -= 1;
+    if (joy) { ix = joyV.x; iz = -joyV.y; }
+    var n = Math.hypot(ix, iz); if (n > 1) { ix /= n; iz /= n; }
+    var fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
+    var p = puloPedido; puloPedido = false;
+    return { mx:fx * iz + rx * ix, mz:fz * iz + rz * ix, pula:p };
+}
+
+// ---------------- celular (Estoura Bolhas) ----------------
+var celTela = document.getElementById('celTela'), bolhas = [], celPts = 0, celProx = 0;
+function celPasso(dt) {
+    celProx -= dt;
+    var W = celTela.clientWidth, Ht = celTela.clientHeight;
+    if (celProx <= 0 && bolhas.length < 9) {
+        celProx = 0.45;
+        var tam = 34 + Math.random() * 30, d = document.createElement('div');
+        d.className = 'bolha'; d.style.width = d.style.height = tam + 'px';
+        var b = { el:d, x:Math.random() * (W - tam), y:Ht + 10, v:50 + Math.random() * 70, tam:tam, fase:Math.random() * 6 };
+        var estoura = function (ev) { ev.preventDefault(); ev.stopPropagation(); if (b.morta) return; b.morta = true; d.remove(); celPts++; document.getElementById('celPts').textContent = celPts + ' bolhas'; bip(900 + Math.random() * 300, 1500, 0.06, 'sine', 0.06); };
+        d.addEventListener('touchstart', estoura, { passive:false }); d.addEventListener('mousedown', estoura);
+        celTela.appendChild(d); bolhas.push(b);
+    }
+    for (var i = bolhas.length - 1; i >= 0; i--) {
+        var b2 = bolhas[i];
+        b2.y -= b2.v * dt; b2.fase += dt * 2;
+        b2.el.style.transform = 'translate(' + (b2.x + Math.sin(b2.fase) * 8) + 'px,' + b2.y + 'px)';
+        if (b2.morta || b2.y < 60) { if (!b2.morta) b2.el.remove(); bolhas.splice(i, 1); }
+    }
+}
+function celLimpa() { bolhas.forEach(function (b) { b.el.remove(); }); bolhas = []; celPts = 0; document.getElementById('celPts').textContent = '0 bolhas'; }
+document.getElementById('btIgnorar').onclick = function (e) { e.stopPropagation(); escolhe('ignorar'); };
+document.getElementById('btFugir').onclick = function (e) { e.stopPropagation(); escolhe('fugir'); };
+
+// ---------------- partida ----------------
+var J = { on:false, pausa:false, fase:'menu', dif:DIFS[0], bot:false, resta:60, ondaZ:200, escolha:null, t:0 };
+var CORES_NPC = [0x2a8aff, 0x3ac04a, 0xffc81a, 0xb05aff, 0xff8a1a, 0x1ac0c0];
+function comecar() {
+    J.dif = DIFS[difSel];
+    J.on = true; J.pausa = false; J.fase = 'celular'; J.tCel = 0; J.alertou = false; J.escolha = null; J.resta = J.dif.T; J.t = 0;
+    J.ondaZ = 45 + J.resta * 2; J.fimT = 0; J.resultado = null; J.tFuga = 0; J.alarmeT = 0;
+    bonecos.forEach(function (b) { scene.remove(b.m); }); bonecos = [];
+    montaRua(J.dif);
+    eu = novoBoneco(0xe02a2a, 0, 34.1, false);
+    eu.rot = 0;
+    // clientes do restaurante + gente na rua
+    [[-4.5, 36.4], [4.5, 36.4], [-4, 30.1], [4, 31.9], [-5, 34.6]].forEach(function (p, i) { var n = novoBoneco(CORES_NPC[i % 6], p[0], p[1], true); n.espera = 999; n.cliente = true; n.rot = 0; });
+    for (var i = 0; i < 10; i++) { var z = 18 - i * 11 + Math.random() * 4, x = (Math.random() - 0.5) * 16; var n2 = novoBoneco(CORES_NPC[(i + 2) % 6], x, z, true); n2.espera = 999; n2.lane = x; }
+    yaw = 0; pitch = 0.42;
+    celLimpa();
+    document.getElementById('alerta').classList.remove('on');
+    var cel = document.getElementById('celular'); cel.classList.remove('cai', 'treme'); cel.classList.add('on');
+    document.getElementById('celInfo').textContent = '📶 🔋';
+    mostra(''); escondeHud();
+    montaBOX();
+}
+function escolhe(qual) {
+    if (J.fase !== 'celular' || !J.alertou || J.escolha) return;
+    J.escolha = qual;
+    document.getElementById('alerta').classList.remove('on');
+    if (qual === 'fugir') { bip(400, 800, 0.2, 'square', 0.06); comecaFuga(false); }
+    else bip(300, 200, 0.15, 'triangle', 0.05);
+}
+function comecaFuga(alarme) {
+    J.fase = 'fuga'; J.tFuga = 0;
+    var cel = document.getElementById('celular'); cel.classList.remove('treme'); cel.classList.add('cai');
+    setTimeout(function () { if (J.fase !== 'celular') cel.classList.remove('on'); }, 900);
+    document.getElementById('hud').classList.add('on'); document.getElementById('btPausa').classList.add('on'); document.getElementById('seta').style.display = 'block';
+    if (CELULAR) btPulo.classList.add('on');
+    eu.rot = Math.PI; yaw = 0;
+    // todo mundo começa a correr (uns mais rápido que outros)
+    bonecos.forEach(function (b) { if (b.npc) b.espera = alarme ? Math.random() * 1.5 : 1.5 + Math.random() * 5; });
+    if (alarme) aviso('🚨 ALARME! 🚨', 'Todo mundo pra fora! Corre pro morro!', 2.2);
+    else aviso('BOA! CORRE! 🏃', 'Vá até o morro ⛰️', 1.8);
+}
+function montaBOX() {
+    BOX = PAREDES.concat(OBS);
+    carros.forEach(function (c) { if (!c.faixa) c.o.carro = true; });
+}
+function escondeHud() {
+    document.getElementById('hud').classList.remove('on'); document.getElementById('btPausa').classList.remove('on'); document.getElementById('seta').style.display = 'none';
+    btPulo.classList.remove('on'); soltaJoy();
+}
+function terminar(salvo) {
+    J.on = false; J.fase = 'fim'; J.fimEm = performance.now();
+    var est = 0;
+    if (salvo) est = J.escolha === 'fugir' ? 3 : (J.margem > 5 ? 2 : 1);
+    var rec = recorde(J.dif.id);
+    if (est > rec && !J.bot) try { localStorage.setItem('tsunami_rec_' + J.dif.id, String(est)); } catch (e) {}
+    var moedas = salvo ? 6 + est * 3 + Math.floor(celPts / 10) : Math.floor(celPts / 15);
+    moedas = Math.min(30, moedas);
+    if (moedas > 0 && !J.bot && window.CoguCoins) CoguCoins.ganha(moedas);
+    var salvos = bonecos.filter(function (b) { return b.npc && b.salvo; }).length;
+    document.getElementById('fimTitulo').textContent = salvo ? 'VOCÊ SE SALVOU! ⛰️' : 'A ONDA TE PEGOU! 🌊';
+    document.getElementById('fimEst').textContent = salvo ? '⭐'.repeat(est) + '☆'.repeat(3 - est) : '🛟';
+    var linhas = [
+        ['Sua escolha', J.escolha === 'fugir' ? 'FUGIR 🏃' : 'Ignorar 📱'],
+        ['Bolhas no celular', celPts],
+        ['Tempo correndo', J.tFuga.toFixed(1) + 's']
+    ];
+    if (salvo) linhas.push(['Folga da onda', Math.max(0, J.margem).toFixed(1) + 's']);
+    linhas.push(['Cogumelos salvos', salvos]);
+    if (moedas > 0) linhas.push(['Cogu Coins', '+' + moedas + ' 🍄']);
+    document.getElementById('fimTabela').innerHTML = linhas.map(function (l) { return '<span>' + l[0] + '</span><b>' + l[1] + '</b>'; }).join('');
+    escondeHud();
+    if (!J.bot) { mostra('telaFim'); montaModos(); }
+}
+function pausar() { if (!J.on || J.fimT) return; J.pausa = true; mostra('telaPausa'); }
+function continuar() { J.pausa = false; mostra(''); ultimo = performance.now(); }
+function irMenu() {
+    J.on = false; J.pausa = false; J.fase = 'menu'; escondeHud();
+    document.getElementById('celular').classList.remove('on');
+    mostra('telaMenu'); montaModos();
+}
+
+// ---------------- passo ----------------
+var flashT = 0;
+function passo(dt) {
+    if (!J.on) return;
+    // relógio da onda (começa quando chega o alerta)
+    if (J.fase === 'celular') {
+        J.tCel += dt;
+        if (!J.bot) celPasso(dt);
+        if (!J.alertou && J.tCel > 4) {
+            J.alertou = true; document.getElementById('alertaSeg').textContent = J.dif.T;
+            document.getElementById('alerta').classList.add('on'); document.getElementById('celular').classList.add('treme');
+            setTimeout(function () { document.getElementById('celular').classList.remove('treme'); }, 900);
+            bip(880, 880, 0.25, 'square', 0.07); setTimeout(function () { bip(880, 880, 0.25, 'square', 0.07); }, 350);
+            if (J.bot) escolhe(J.botEscolha);
+        }
+        if (J.alertou) {
+            J.resta -= dt;
+            if (J.escolha === 'ignorar') {
+                document.getElementById('celInfo').textContent = '⚠️ ' + Math.ceil(J.resta) + 's 🔋';
+                if (J.resta <= J.dif.alarme) {
+                    J.escolha = 'ignorar'; document.getElementById('celular').classList.add('treme');
+                    sirene(3.5); flashT = 3; comecaFuga(true);
+                }
+            }
+        }
+    } else if (J.fase === 'fuga') {
+        J.resta -= dt; J.tFuga += dt;
+    }
+    if (J.resta > 0) J.ondaZ = 45 + J.resta * 2;
+    else J.ondaZ -= VEL_ONDA * dt;
+    if (J.resta <= 0 && !J.avisouOnda) { J.avisouOnda = true; aviso('🌊 A ONDA CHEGOU!', 'CORRE!!!', 1.6); bip(150, 60, 0.8, 'sawtooth', 0.08); }
+    if (J.resta > 0) J.avisouOnda = false;
+
+    // carros cruzando
+    carros.forEach(function (c) {
+        if (c.faixa) return;
+        c.x += c.dir * c.vel * dt;
+        if (c.x > 16) c.x = -16; if (c.x < -16) c.x = 16;
+        var o = c.o; o.x1 = c.x - 1.8; o.x2 = c.x + 1.8; o.z1 = c.z - 0.9; o.z2 = c.z + 0.9;
+        o.g.position.x = c.x; o.g.rotation.y = c.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+        bonecos.forEach(function (b) {
+            if (!b.vivo || b.tonto > 0) return;
+            if (b.y < o.y2 - 0.3 && b.x + R > o.x1 && b.x - R < o.x2 && b.z + R > o.z1 && b.z - R < o.z2) {
+                b.vx = c.dir * 9; b.vz = 3; b.vy = 6; b.chao = false; b.tonto = 0.8;
+                b.z = b.z > c.z ? o.z2 + R + 0.05 : o.z1 - R - 0.05;
+                if (b === eu) { aviso('BI-BI! 🚗', 'Cuidado com os carros!', 1.2); bip(600, 500, 0.3, 'square', 0.07); }
+            }
+        });
+    });
+
+    // bonecos
+    bonecos.forEach(function (e) {
+        if (!e.vivo) { e.boia += dt; e.z = Math.max(e.z - VEL_ONDA * dt, J.ondaZ - 2); e.y = H(e.z) + 3 + Math.sin(e.boia * 4) * 0.4; return; }
+        if (e.salvo) { e.vx *= 0.9; e.vz *= 0.9; fisica(e, 0, e.z > Z_SEGURO - 6 ? -0.5 : 0, false, dt); return; }
+        var ent = { mx:0, mz:0, pula:false };
+        if (e === eu) {
+            if (J.fase === 'fuga') ent = J.bot ? cerebro(e) : entradaJogador();
+        } else {
+            e.espera -= dt;
+            if (e.espera <= 0 && J.fase === 'fuga') ent = cerebro(e);
+        }
+        if (e.desvio > 0) { e.desvio -= dt; ent.mx = e.desvDir; ent.mz *= 0.3; }
+        var px0 = e.x, pz0 = e.z;
+        fisica(e, ent.mx, ent.mz, ent.pula, dt);
+        if ((ent.mx || ent.mz) && (e !== eu || J.bot)) {
+            if (Math.hypot(e.x - px0, e.z - pz0) / dt < 1) e.preso = (e.preso || 0) + dt; else e.preso = 0;
+            if (e.preso > 0.4) { e.preso = 0; e.desvio = 0.7; e.desvDir = Math.random() < 0.5 ? -1 : 1; e.buf = 0.15; }
+        }
+        if (Math.abs(e.vx) + Math.abs(e.vz) > 0.5) e.rot = Math.atan2(e.vx, e.vz);
+        if (e.z < Z_SEGURO) {
+            e.salvo = true;
+            if (e === eu) { J.margem = J.resta > 0 ? J.resta + (45 - Z_SEGURO) / VEL_ONDA : (J.ondaZ - Z_SEGURO) / VEL_ONDA; J.fimT = 2; aviso('SALVO! ⛰️🎉', null, 2); bip(500, 1200, 0.4, 'triangle', 0.08); }
+        } else if (J.ondaZ - 3 < e.z) {
+            e.vivo = false; e.boia = 0;
+            if (e === eu) { J.fimT = 2.2; aviso('SPLASH! 🌊', null, 2); bip(300, 60, 0.7, 'sawtooth', 0.08); }
+        }
+    });
+    if (J.fimT) { J.fimT -= dt; if (J.fimT <= 0) terminar(eu.salvo); }
+}
+
+// ---------------- visual ----------------
+var onda = new THREE.Group(); scene.add(onda);
+(function () {
+    var agua = new THREE.MeshLambertMaterial({ color:0x1a6ad0, transparent:true, opacity:0.92 });
+    var corpo = new THREE.Mesh(new THREE.BoxGeometry(70, 14, 10), agua); corpo.position.set(0, 7, 5); onda.add(corpo);
+    var curva = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 70, 16, 1, false, 0, Math.PI), agua); curva.rotation.z = Math.PI / 2; curva.position.set(0, 14, 0); onda.add(curva);
+    var espuma = new THREE.Mesh(new THREE.BoxGeometry(70, 1.2, 3), mt(0xffffff)); espuma.position.set(0, 17.6, -0.5); onda.add(espuma);
+    var atras = new THREE.Mesh(new THREE.BoxGeometry(70, 10, 300), agua); atras.position.set(0, 4, 160); onda.add(atras);
+})();
+var hudT = 0, tempo = 0, camAlvo = new THREE.Vector3(0, 2, 30);
+function visual(dt) {
+    tempo += dt;
+    texMar.offset.y = (tempo * 0.05) % 1;
+    var mz = J.on || J.fase === 'fim' ? J.ondaZ : 120 + Math.sin(tempo * 0.3) * 4;
+    var esc = J.resta > 0 && (J.on || J.fase === 'fim') ? Math.max(0.25, 1 - J.resta / 70) : 1;
+    if (!J.on && J.fase !== 'fim') esc = 0.5;
+    onda.position.set(0, H(mz) - 1, mz); onda.scale.set(1, esc, 1);
+    if (flashT > 0) { flashT -= dt; document.getElementById('flash').style.opacity = flashT > 0 ? (Math.sin(tempo * 14) > 0 ? 0.25 : 0) : 0; }
+    bonecos.forEach(function (e) {
+        e.m.position.set(e.x, e.y, e.z);
+        e.m.visible = !(e === eu && J.fase === 'celular');
+        var dr = e.rot - e.m.rotation.y;
+        while (dr > Math.PI) dr -= Math.PI * 2; while (dr < -Math.PI) dr += Math.PI * 2;
+        e.m.rotation.y += dr * Math.min(1, dt * 10);
+        if (!e.vivo) { e.m.rotation.z = Math.sin(e.boia * 3) * 0.4; }
+        else { e.m.rotation.z = e.tonto > 0 ? Math.sin(tempo * 30) * 0.3 : 0; var sq = e.chao ? 1 + (Math.abs(e.vx) + Math.abs(e.vz) > 1 ? Math.sin(tempo * 20 + e.x) * 0.06 : 0) : (e.vy > 0 ? 1.12 : 0.95); e.m.scale.set(2 - sq, sq, 2 - sq); }
+        if (e.salvo && e.chao) e.y += Math.max(0, Math.sin(tempo * 8 + e.x)) * 0.25;   // pulando de alegria
+    });
+    if (J.fase === 'celular' && eu) {
+        camera.position.set(0, 1.35, 33.4);
+        camera.lookAt(0, 1.6, 60);
+        camAlvo.set(eu.x, eu.y + 1, eu.z);
+    } else if (eu && (J.on || J.fase === 'fim')) {
+        if (teclas.KeyQ) yaw += dt * 2.2; if (teclas.KeyE) yaw -= dt * 2.2;
+        camAlvo.lerp(new THREE.Vector3(eu.x, eu.y + 1, eu.z), Math.min(1, dt * 8));
+        var dist = eu.z > Z_PORTA ? 5 : 7.5;
+        var cx = camAlvo.x + Math.sin(yaw) * Math.cos(pitch) * dist, cz = camAlvo.z + Math.cos(yaw) * Math.cos(pitch) * dist;
+        cx = Math.max(-11, Math.min(11, cx));
+        var cy = Math.max(camAlvo.y + Math.sin(pitch) * dist, H(cz) + 1);
+        camera.position.lerp(new THREE.Vector3(cx, cy, cz), Math.min(1, dt * 10));
+        camera.lookAt(camAlvo);
+    } else {
+        var a = tempo * 0.1;
+        camera.position.set(Math.sin(a) * 6, 9 + Math.sin(a * 0.7) * 2, 10 + Math.cos(a) * 4);
+        camera.lookAt(0, 3, 60);
+    }
+    hudT -= dt;
+    if (hudT <= 0 && J.on && J.fase === 'fuga') {
+        hudT = 0.25;
+        var falta = Math.max(0, Math.round(eu.z - Z_SEGURO));
+        var h = J.resta > 0 ? '🌊 Onda em <span style="color:' + (J.resta < 10 ? '#ff6a6a' : '#fff') + '">' + Math.ceil(J.resta) + 's</span>'
+            : '🌊 A onda está a <span style="color:#ff6a6a">' + Math.max(0, Math.round(J.ondaZ - eu.z)) + ' m</span>!';
+        h += '<br>⛰️ Morro: ' + (eu.salvo ? 'CHEGOU!' : falta + ' m');
+        document.getElementById('hud').innerHTML = h;
+        document.getElementById('seta').textContent = eu.z > Z_PORTA ? '🚪 Saia pela porta!' : (eu.salvo ? '🎉 Você está seguro!' : '⬆️ Corra pra frente até o morro ⛰️');
+    }
+}
+
+document.addEventListener('visibilitychange', function () { if (document.hidden) pausar(); });
+montaModos();
+window.MUNDO_OK = true;
+
+// ---------------- gancho de teste ----------------
+window.__testeTsu = function (dif, escolha) {
+    var antes = difSel; difSel = dif; J.bot = true; J.botEscolha = escolha; comecar();
+    var n = 60 * 120, i;
+    for (i = 0; i < n && J.on; i++) passo(1 / 60);
+    var r = { dif:DIFS[dif].id, escolha:escolha, salvo:eu.salvo, vivo:eu.vivo, tFuga:+J.tFuga.toFixed(1), margem:J.margem !== undefined ? +J.margem.toFixed(1) : null, z:Math.round(eu.z), npcsSalvos:bonecos.filter(function (b) { return b.npc && b.salvo; }).length };
+    J.bot = false; difSel = antes; J.on = false; J.margem = undefined; irMenu(); return r;
+};
+</script>
+<script src="/gamepad.js?v=358"></script>
+</body>
+</html>

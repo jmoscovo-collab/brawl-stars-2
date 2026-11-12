@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v641 (2026-11-11)
+- 🌊 Jogo novo (ainda escondido, só pelo link /tsunami/): **Alerta de Tsunami 3D**! Você está no Cogu Restaurante na praia jogando Estoura Bolhas no celular quando chega um ALERTA DE TSUNAMI. **FUGIR** = sai correndo na hora com bastante tempo. **IGNORAR** = continua no celular, mas depois toca o ALARME e você é obrigado a fugir com menos tempo! Corra pela rua pulando carros, caixas e cercas (e cuidado com os carros cruzando) até o morro antes que a onda gigante chegue. 3 dificuldades e até 3 estrelas
+
 ## v640 (2026-11-11)
 - 🌋 LANÇADO: O Chão é Lava 3D agora está na página inicial com o selo NOVO e capa desenhada!
 
