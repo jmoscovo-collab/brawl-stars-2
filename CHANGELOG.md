@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v643 (2026-11-12)
+- 🤖 O jogo Arena Cogumelo agora se chama **Arena Cogumelo 1** (pra não confundir com a Arena Cogumelo 2)
+
 ## v642 (2026-11-11)
 - 🌊 Alerta de Tsunami 3D ficou MAIS DIFÍCIL e melhor: a onda agora chega bem mais rápido (e mais rápido ainda nas dificuldades altas), tem mais carros cruzando a rua, **vasos e telhas caem dos prédios** (fuja da sombra vermelha!), **TERREMOTOS** que deixam todo mundo lento, a tela fica azul quando a onda está perto, barrinha mostrando você 🏃, a onda 🌊 e o morro ⛰️, e uma dificuldade nova: **EXTREMO** 🌋 (dá mais Cogu Coins)
 
