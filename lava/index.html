@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>O Chão é Lava 3D — Cogumelo Games</title>
+<meta name="description" content="O Chão é Lava 3D: pule de móvel em móvel antes que eles afundem na lava! Contra bots ou escalando a lava que sobe. Jogo grátis do Cogumelo Games.">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { width:100%; height:100%; overflow:hidden; background:#2a0e08; font-family:Arial,sans-serif; color:#fff; user-select:none; -webkit-user-select:none; touch-action:none; }
+#jogo { position:fixed; inset:0; width:100%; height:100%; display:block; }
+.tela { position:fixed; inset:0; display:none; flex-direction:column; align-items:center; overflow-y:auto; padding:64px 14px 30px; z-index:5; touch-action:pan-y;
+    background:linear-gradient(180deg, rgba(60,10,0,0.25), rgba(30,5,0,0.85)); }
+.tela.on { display:flex; }
+h1 { font-size:42px; margin:4px 0 2px; text-align:center; color:#ffe04a; letter-spacing:1px; text-shadow:0 3px 0 #d0300a, 0 6px 18px rgba(255,80,0,0.7); }
+h1 small { display:block; font-size:16px; color:#fff; letter-spacing:5px; text-shadow:0 2px 6px #000; }
+h2 { margin:10px 0 6px; font-size:18px; color:#ffd84a; text-align:center; }
+.sub { color:#fff0e0; font-size:15px; text-align:center; margin-bottom:8px; max-width:480px; line-height:1.45; text-shadow:0 1px 3px rgba(0,0,0,0.8); }
+button { font-family:inherit; font-size:17px; font-weight:bold; padding:11px 20px; border:none; border-radius:14px; cursor:pointer;
+    background:linear-gradient(135deg,#ffe04a,#ff6a1a); color:#3a1000; box-shadow:0 4px 0 rgba(0,0,0,0.35); }
+button:active { transform:translateY(2px); box-shadow:none; }
+button.rosa { background:linear-gradient(135deg,#ff8ad0,#a05aff); color:#fff; }
+button.cinza { background:#5a2a1a; color:#fff; }
+.linha { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:10px 0; }
+.modos { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; max-width:640px; }
+.modo { width:180px; border-radius:16px; padding:10px 8px; cursor:pointer; border:4px solid transparent; background:rgba(0,0,0,0.45); text-align:center; }
+.modo.sel { border-color:#ffd84a; background:rgba(255,120,30,0.3); }
+.modo .ic { font-size:34px; }
+.modo b { display:block; font-size:16px; }
+.modo span { display:block; font-size:12px; color:#ffeede; margin-top:3px; }
+.modo .rec { color:#ffd84a; font-weight:bold; }
+.caixa { background:rgba(50,12,4,0.95); border:3px solid #ff7a2a; border-radius:18px; padding:18px; max-width:420px; width:100%; text-align:center; margin-top:3vh; }
+.caixa ul { text-align:left; padding-left:20px; color:#ffeede; font-size:14px; line-height:1.6; }
+.num { font-size:54px; font-weight:900; color:#ffd84a; line-height:1.1; }
+.tabela { display:grid; grid-template-columns:1fr auto; gap:4px 16px; text-align:left; margin:10px auto; max-width:240px; font-size:16px; }
+.tabela b { text-align:right; color:#ffd84a; }
+#novoRec { color:#7dff6a; font-weight:900; font-size:20px; margin:4px 0; display:none; }
+a.voltar { color:#ffd0b0; text-decoration:none; margin-top:16px; font-size:15px; }
+#hud { position:fixed; top:10px; left:10px; z-index:3; display:none; font-size:20px; font-weight:900; text-shadow:0 2px 4px #000, 0 0 10px rgba(0,0,0,0.6); line-height:1.35; pointer-events:none; }
+#hud.on { display:block; }
+#btPausa { position:fixed; top:54px; right:10px; z-index:4; display:none; padding:8px 14px; font-size:15px; }
+#btPausa.on { display:block; }
+#aviso { position:fixed; top:30%; left:0; right:0; text-align:center; font-size:44px; font-weight:900; pointer-events:none; opacity:0; transition:opacity .2s;
+    color:#ffe04a; text-shadow:0 3px 0 #c02a00, 0 6px 16px rgba(0,0,0,0.6); z-index:4; padding:0 10px; }
+#aviso small { display:block; font-size:20px; color:#fff; }
+#avisoPeq { position:fixed; top:20%; left:0; right:0; text-align:center; font-size:20px; font-weight:bold; pointer-events:none; opacity:0; transition:opacity .3s; z-index:4; text-shadow:0 2px 6px #000; }
+#btPulo { position:fixed; right:22px; bottom:30px; width:96px; height:96px; border-radius:50%; z-index:4; display:none; font-size:18px; padding:0;
+    background:radial-gradient(circle at 40% 35%, #ffe04a, #ff6a1a); border:4px solid rgba(255,255,255,0.7); }
+#btPulo.on { display:block; }
+#joyBase { position:fixed; width:120px; height:120px; border-radius:50%; border:3px solid rgba(255,255,255,0.45); background:rgba(0,0,0,0.2); z-index:3; display:none; pointer-events:none; }
+#joyPino { position:fixed; width:54px; height:54px; border-radius:50%; background:rgba(255,220,120,0.75); z-index:3; display:none; pointer-events:none; }
+#dicaMob { position:fixed; left:16px; bottom:40px; z-index:3; display:none; font-size:14px; font-weight:bold; color:rgba(255,255,255,0.75); pointer-events:none; text-shadow:0 1px 3px #000; max-width:40%; }
+</style>
+<script src="/cogucoins.js?v=552"></script>
+</head>
+<body>
+<canvas id="jogo"></canvas>
+<div id="hud"></div>
+<button class="cinza" id="btPausa" onclick="pausar()">Pausa</button>
+<div id="aviso"></div>
+<div id="avisoPeq"></div>
+<button id="btPulo">PULA!</button>
+<div id="joyBase"></div><div id="joyPino"></div>
+<div id="dicaMob">⬅ arraste aqui pra andar<br>arraste a tela pra girar 👀</div>
+
+<div class="tela on" id="telaMenu">
+    <h1>O CHÃO É LAVA<small>3D</small></h1>
+    <div class="sub">3... 2... 1... O CHÃO É LAVA! 🌋 Pule de móvel em móvel: sofá, mesa, cama, geladeira... Mas cuidado: os móveis tremem e AFUNDAM na lava!</div>
+    <h2>Escolha o modo</h2>
+    <div class="modos" id="listaModos"></div>
+    <div class="linha">
+        <button onclick="comecar()">JOGAR!</button>
+        <button class="rosa" onclick="mostra('telaComo')">Como jogar</button>
+    </div>
+    <a class="voltar" href="/">&larr; Voltar pro Cogumelo Games</a>
+</div>
+
+<div class="tela" id="telaComo">
+    <div class="caixa">
+        <h2>Como jogar</h2>
+        <ul>
+            <li><b>PC:</b> WASD ou setas pra andar, <b>espaço</b> pra pular, arraste o mouse (ou Q/E) pra girar a câmera.</li>
+            <li><b>Celular:</b> arraste do lado esquerdo pra andar, botão <b>PULA!</b> pra pular, arraste o resto da tela pra girar.</li>
+            <li><b>Controle:</b> analógico anda, <b>X</b> pula, analógico direito gira.</li>
+            <li>Encostou na lava? <b>QUEIMOU!</b> 🔥</li>
+            <li>Móvel <b>tremendo e vermelho</b> vai afundar: pula fora!</li>
+            <li>Móveis novos caem do teto. Pegue as ⭐ pra ganhar pontos.</li>
+        </ul>
+        <div class="linha"><button onclick="mostra('telaMenu')">Entendi!</button></div>
+    </div>
+</div>
+
+<div class="tela" id="telaPausa">
+    <div class="caixa">
+        <h2>Pausado</h2>
+        <div class="linha"><button onclick="continuar()">Continuar</button><button class="cinza" onclick="irMenu()">Menu</button></div>
+    </div>
+</div>
+
+<div class="tela" id="telaFim" style="background:linear-gradient(180deg, rgba(60,10,0,0.1), rgba(30,5,0,0.75));">
+    <div class="caixa">
+        <h2 id="fimTitulo">QUEIMOU!</h2>
+        <div class="num" id="fimNum">0</div>
+        <div style="color:#ffeede; font-weight:bold" id="fimUni">pontos</div>
+        <div id="novoRec">NOVO RECORDE!</div>
+        <div class="tabela" id="fimTabela"></div>
+        <div class="linha"><button onclick="comecar()">De novo!</button><button class="cinza" onclick="irMenu()">Menu</button></div>
+    </div>
+</div>
+
+<script src="/stats.js?v=496"></script>
+<script>
+if (window.initStats) initStats('lava');
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ====================== O CHÃO É LAVA 3D ======================
+var CELULAR = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || ('ontouchstart' in window && innerWidth < 1100);
+var G = 30, PULO = 11.5, VEL = 6, R = 0.38, ALTP = 1.2, PAREDE = 12;
+var ALCANCE = 2.4, SUBIDA = 1.35;   // o que um pulo alcança (pra gerar móvel que dá pra chegar)
+
+var MODOS = [
+    { id:'sobreviver', nome:'Sobreviver', ic:'⏱️', desc:'Os móveis afundam! Fique vivo o máximo que der.', uni:'pontos' },
+    { id:'bots', nome:'Contra Bots', ic:'🤖', desc:'Você contra 3 cogumelos. O último de pé vence!', uni:'vitórias' },
+    { id:'sobe', nome:'A Lava Sobe', ic:'⬆️', desc:'A lava vai subindo: escale as prateleiras!', uni:'metros' }
+];
+var modoSel = 0;
+try { modoSel = Math.max(0, Math.min(MODOS.length - 1, parseInt(localStorage.getItem('lava_modo') || '0', 10) || 0)); } catch (e) {}
+function recorde(id) { try { return parseInt(localStorage.getItem('lava_rec_' + id) || '0', 10) || 0; } catch (e) { return 0; } }
+function gravaRec(id, v) { try { localStorage.setItem('lava_rec_' + id, String(v)); } catch (e) {} }
+
+function montaModos() {
+    var l = document.getElementById('listaModos'); l.innerHTML = '';
+    MODOS.forEach(function (m, i) {
+        var d = document.createElement('div'); d.className = 'modo' + (i === modoSel ? ' sel' : '');
+        d.innerHTML = '<div class="ic">' + m.ic + '</div><b>' + m.nome + '</b><span>' + m.desc + '</span><span class="rec">Recorde: ' + recorde(m.id) + ' ' + m.uni + '</span>';
+        d.onclick = function (e) { e.stopPropagation(); modoSel = i; try { localStorage.setItem('lava_modo', String(i)); } catch (er) {} montaModos(); };
+        l.appendChild(d);
+    });
+}
+function mostra(id) { document.querySelectorAll('.tela').forEach(function (t) { t.classList.toggle('on', t.id === id); }); }
+var avisoT = 0, avisoPeqT = 0;
+function aviso(txt, peq, seg) {
+    var a = document.getElementById('aviso'); a.innerHTML = txt + (peq ? '<small>' + peq + '</small>' : ''); a.style.opacity = 1;
+    clearTimeout(avisoT); avisoT = setTimeout(function () { a.style.opacity = 0; }, (seg || 1.4) * 1000);
+}
+function avisoPeq(txt) {
+    var a = document.getElementById('avisoPeq'); a.textContent = txt; a.style.opacity = 1;
+    clearTimeout(avisoPeqT); avisoPeqT = setTimeout(function () { a.style.opacity = 0; }, 1600);
+}
+
+// ---------------- som (bipes simples) ----------------
+var ac = null;
+function bip(f1, f2, dur, tipo, vol) {
+    if (J.bot) return;
+    try {
+        if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+        var o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+        o.type = tipo || 'square'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+        g.gain.setValueAtTime(vol || 0.08, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur);
+    } catch (e) {}
+}
+
+// ---------------- three.js ----------------
+var canvas = document.getElementById('jogo');
+var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: !CELULAR, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CELULAR ? 1.25 : 1.5));
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0x2a0e08);
+var camera = new THREE.PerspectiveCamera(60, 1, 0.1, 300);
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+// o loop começa ANTES de montar o mundo (lição antiga do site)
+var ultimo = performance.now();
+function loop(t) {
+    requestAnimationFrame(loop);
+    var dt = (t - ultimo) / 1000;
+    if (CELULAR && dt < 1 / 32) return;
+    ultimo = t; dt = Math.min(dt, 0.05);
+    if (!window.MUNDO_OK) return;
+    if (!J.pausa) {
+        var n = dt > 0.02 ? 2 : 1;
+        for (var i = 0; i < n; i++) passo(dt / n);
+    }
+    visual(dt);
+    renderer.render(scene, camera);
+}
+requestAnimationFrame(loop);
+
+scene.add(new THREE.HemisphereLight(0xfff0e0, 0x903010, 0.8));
+var sol = new THREE.DirectionalLight(0xffffff, 0.5); sol.position.set(5, 12, 7); scene.add(sol);
+var luzLava = new THREE.PointLight(0xff5a1a, 1.3, 26); scene.add(luzLava);
+
+function texCanvas(w, h, desenha, rx, ry) {
+    var c = document.createElement('canvas'); c.width = w; c.height = h; desenha(c.getContext('2d'), w, h);
+    var t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); return t;
+}
+var texLava = texCanvas(128, 128, function (x, w, h) {
+    x.fillStyle = '#ff4a00'; x.fillRect(0, 0, w, h);
+    for (var i = 0; i < 46; i++) {
+        var px = Math.random() * w, py = Math.random() * h, r = 6 + Math.random() * 20, quente = Math.random() < 0.55;
+        for (var ox = -1; ox <= 1; ox++) for (var oy = -1; oy <= 1; oy++) {
+            var g = x.createRadialGradient(px + ox * w, py + oy * h, 0, px + ox * w, py + oy * h, r);
+            g.addColorStop(0, quente ? 'rgba(255,230,80,0.9)' : 'rgba(140,10,0,0.75)'); g.addColorStop(1, 'rgba(255,80,0,0)');
+            x.fillStyle = g; x.fillRect(px + ox * w - r, py + oy * h - r, r * 2, r * 2);
+        }
+    }
+}, 5, 5);
+var texParede = texCanvas(64, 64, function (x, w, h) {
+    x.fillStyle = '#f3d9b0'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#e8bf8a'; x.fillRect(0, 0, w / 4, h); x.fillRect(w / 2, 0, w / 4, h);
+    x.fillStyle = '#d98a5a'; for (var i = 0; i < 4; i++) { x.beginPath(); x.arc(w * 0.375 + (i % 2) * w / 2 - w / 4, (i + 0.5) * h / 4, 3, 0, 7); x.fill(); }
+}, 12, 140);
+var texPiso = texCanvas(64, 64, function (x, w, h) {
+    x.fillStyle = '#a8703a'; x.fillRect(0, 0, w, h);
+    x.strokeStyle = '#7a4a22'; x.lineWidth = 2;
+    for (var i = 0; i < 4; i++) { x.strokeRect(0, i * 16, w, 16); x.beginPath(); x.moveTo((i % 2) * 32 + 16, i * 16); x.lineTo((i % 2) * 32 + 16, i * 16 + 16); x.stroke(); }
+}, 8, 8);
+
+// sala: chão de madeira, lava, paredes bem altas (o modo "sobe" usa a altura toda)
+var piso = new THREE.Mesh(new THREE.PlaneGeometry(PAREDE * 2, PAREDE * 2), new THREE.MeshLambertMaterial({ map: texPiso }));
+piso.rotation.x = -Math.PI / 2; scene.add(piso);
+var matLava = new THREE.MeshBasicMaterial({ map: texLava, color: 0xffffff });
+var lava = new THREE.Mesh(new THREE.PlaneGeometry(PAREDE * 2, PAREDE * 2), matLava);
+lava.rotation.x = -Math.PI / 2; scene.add(lava);
+var ALTURA_SALA = 420;
+(function () {
+    var mp = new THREE.MeshLambertMaterial({ map: texParede });
+    [[0, -PAREDE, 0], [0, PAREDE, Math.PI], [-PAREDE, 0, Math.PI / 2], [PAREDE, 0, -Math.PI / 2]].forEach(function (p) {
+        var m = new THREE.Mesh(new THREE.PlaneGeometry(PAREDE * 2, ALTURA_SALA), mp);
+        m.position.set(p[0], ALTURA_SALA / 2 - 1, p[1]); m.rotation.y = p[2]; scene.add(m);
+    });
+    // janela e quadros pra sala parecer uma sala
+    var jan = new THREE.Mesh(new THREE.PlaneGeometry(4, 2.6), new THREE.MeshBasicMaterial({ color: 0x8fd0ff }));
+    jan.position.set(PAREDE - 0.02, 3.4, 2); jan.rotation.y = -Math.PI / 2; scene.add(jan);
+    var mold = new THREE.Mesh(new THREE.PlaneGeometry(4.5, 3.1), new THREE.MeshLambertMaterial({ color: 0xffffff }));
+    mold.position.set(PAREDE - 0.01, 3.4, 2); mold.rotation.y = -Math.PI / 2; scene.add(mold);
+    var cruz = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 2.6), mold.material); cruz.position.set(PAREDE - 0.03, 3.4, 2); cruz.rotation.y = -Math.PI / 2; scene.add(cruz);
+    [[-5, 0xff6a8a], [5, 0x6ad0ff]].forEach(function (q) {
+        var m = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.4), new THREE.MeshLambertMaterial({ color: q[1] }));
+        m.position.set(q[0], 3.6, -PAREDE + 0.02); scene.add(m);
+        var f = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 1.7), new THREE.MeshLambertMaterial({ color: 0x6a3a1a }));
+        f.position.set(q[0], 3.6, -PAREDE + 0.01); scene.add(f);
+    });
+})();
+
+// ---------------- móveis ----------------
+function mt(cor, M) { var m = new THREE.MeshLambertMaterial({ color: cor }); M.push(m); return m; }
+function B(g, M, w, h, d, cor, x, y, z) { var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mt(cor, M)); m.position.set(x, y + h / 2, z); g.add(m); return m; }
+var CORES_PRAT = [0xb07a42, 0x8a5a30, 0xd09a5a, 0x6aa0d0, 0xd06a8a, 0x7ac06a];
+
+function fazMovel(tipo, op) {
+    var g = new THREE.Group(), M = [], bx = [];
+    function cx(x, z, w, d, y1, y2) { bx.push({ cx: x, cz: z, w: w, d: d, y1: y1, y2: y2 }); }
+    var c;
+    switch (tipo) {
+    case 'sofa':
+        c = [0x3a6ad0, 0xd04a4a, 0x4ab06a][Math.floor(Math.random() * 3)];
+        B(g, M, 4.4, 0.6, 1.3, c, 0, 0, 0.25);
+        B(g, M, 2.1, 0.25, 1.2, 0xffffff, -1.08, 0.6, 0.28).material.color.setHex(c).multiplyScalar(1.25);
+        B(g, M, 2.1, 0.25, 1.2, 0xffffff, 1.08, 0.6, 0.28).material.color.setHex(c).multiplyScalar(1.25);
+        B(g, M, 4.4, 1.7, 0.5, c, 0, 0, -0.6);
+        B(g, M, 0.4, 1.15, 1.3, c, -2.0, 0, 0.25); B(g, M, 0.4, 1.15, 1.3, c, 2.0, 0, 0.25);
+        cx(-0.0, 0.25, 3.6, 1.3, 0, 0.85); cx(0, -0.6, 4.4, 0.5, 0, 1.7); cx(-2.0, 0.25, 0.4, 1.3, 0, 1.15); cx(2.0, 0.25, 0.4, 1.3, 0, 1.15);
+        break;
+    case 'mesa':
+        B(g, M, 2.4, 0.15, 1.5, 0x9a6232, 0, 0.9, 0);
+        [[-1.05, -0.6], [1.05, -0.6], [-1.05, 0.6], [1.05, 0.6]].forEach(function (p) { B(g, M, 0.15, 0.9, 0.15, 0x7a4a22, p[0], 0, p[1]); });
+        cx(0, 0, 2.4, 1.5, 0, 1.05);
+        break;
+    case 'cadeira':
+        B(g, M, 0.95, 0.12, 0.85, 0xc0844a, 0, 0.53, 0.1);
+        [[-0.4, -0.25], [0.4, -0.25], [-0.4, 0.45], [0.4, 0.45]].forEach(function (p) { B(g, M, 0.1, 0.53, 0.1, 0x7a4a22, p[0], 0, p[1]); });
+        B(g, M, 0.95, 0.8, 0.12, 0xc0844a, 0, 0.65, -0.42);
+        cx(0, 0.1, 0.95, 0.85, 0, 0.65); cx(0, -0.42, 0.95, 0.15, 0, 1.45);
+        break;
+    case 'estante':
+        B(g, M, 0.7, 2.4, 1.8, 0x6a3a1a, 0, 0, 0);
+        for (var i = 0; i < 3; i++) for (var k = 0; k < 5; k++)
+            B(g, M, 0.1, 0.45, 0.22, [0xff5a5a, 0x5a9aff, 0xffd23a, 0x5ac05a, 0xc05aff][(i + k) % 5], 0.36, 0.2 + i * 0.75, -0.6 + k * 0.3);
+        cx(0, 0, 0.7, 1.8, 0, 2.4);
+        break;
+    case 'geladeira':
+        B(g, M, 1.2, 2.1, 1.1, 0xf4f4f4, 0, 0, 0);
+        B(g, M, 1.22, 0.04, 1.12, 0x999999, 0, 1.35, 0);
+        B(g, M, 0.08, 0.5, 0.08, 0x888888, -0.4, 0.6, 0.58); B(g, M, 0.08, 0.35, 0.08, 0x888888, -0.4, 1.55, 0.58);
+        cx(0, 0, 1.2, 1.1, 0, 2.1);
+        break;
+    case 'cama':
+        B(g, M, 2.4, 0.5, 3.2, 0x8a5a30, 0, 0, -0.1);
+        B(g, M, 2.3, 0.2, 3.1, 0xffffff, 0, 0.5, -0.1);
+        B(g, M, 2.34, 0.06, 2.0, 0x5a8aff, 0, 0.66, -0.6);
+        B(g, M, 0.9, 0.16, 0.5, 0xfff4e0, 0, 0.7, 1.1);
+        B(g, M, 2.4, 1.3, 0.2, 0x6a3a1a, 0, 0, 1.6);
+        cx(0, -0.1, 2.4, 3.2, 0, 0.7); cx(0, 1.6, 2.4, 0.2, 0, 1.3);
+        break;
+    case 'pufe':
+        c = [0xff7a2a, 0xa05aff, 0x2ac0a0][Math.floor(Math.random() * 3)];
+        var pm = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.48, 0.55, 16), mt(c, M)); pm.position.y = 0.275; g.add(pm);
+        cx(0, 0, 0.95, 0.95, 0, 0.55);
+        break;
+    case 'caixa':
+        B(g, M, 1.1, 1.1, 1.1, 0xc8955a, 0, 0, 0);
+        B(g, M, 1.12, 0.02, 0.22, 0xe8d0a0, 0, 1.1, 0);
+        cx(0, 0, 1.1, 1.1, 0, 1.1);
+        break;
+    case 'almofada':
+        c = [0xff7ab0, 0xffd23a, 0x7ad0ff, 0xb07aff][Math.floor(Math.random() * 4)];
+        var am = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), mt(c, M)); am.scale.set(0.66, 0.22, 0.66); am.position.y = 0.2; g.add(am);
+        var bt = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), mt(0xffffff, M)); bt.position.y = 0.42; g.add(bt);
+        cx(0, 0, 1.2, 1.2, 0, 0.42);
+        break;
+    case 'tv':
+        B(g, M, 2.6, 0.65, 0.8, 0x3a2a2a, 0, 0, 0);
+        B(g, M, 1.9, 1.1, 0.15, 0x111111, 0, 0.65, 0.05);
+        var tela = new THREE.Mesh(new THREE.PlaneGeometry(1.75, 0.95), new THREE.MeshBasicMaterial({ color: 0x3a9aff })); tela.position.set(0, 1.2, -0.03); tela.rotation.y = Math.PI; g.add(tela);
+        cx(0, 0, 2.6, 0.8, 0, 0.65); cx(0, 0.05, 1.9, 0.25, 0, 1.75);
+        break;
+    case 'livros':
+        for (var j = 0; j < 6; j++) B(g, M, 0.8 - (j % 2) * 0.08, 0.16, 0.6 - (j % 3) * 0.05, [0xff5a5a, 0x5a9aff, 0xffd23a, 0x5ac05a, 0xc05aff, 0xff9a3a][j], (j % 2) * 0.04, j * 0.16, 0);
+        cx(0, 0, 0.8, 0.6, 0, 0.96);
+        break;
+    case 'prateleira':
+        B(g, M, op.w, 0.3, op.d, CORES_PRAT[Math.floor(Math.random() * CORES_PRAT.length)], 0, -0.3, 0);
+        cx(0, 0, op.w, op.d, -0.3, 0);
+        break;
+    }
+    return { g: g, M: M, bx: bx };
+}
+// tamanho (retângulo que ocupa) de cada tipo, pra sortear lugar livre
+function extensao(bx) {
+    var x1 = 99, x2 = -99, z1 = 99, z2 = -99, top = 0;
+    bx.forEach(function (b) { x1 = Math.min(x1, b.cx - b.w / 2); x2 = Math.max(x2, b.cx + b.w / 2); z1 = Math.min(z1, b.cz - b.d / 2); z2 = Math.max(z2, b.cz + b.d / 2); top = Math.max(top, b.y2); });
+    return { x1: x1, x2: x2, z1: z1, z2: z2, top: top };
+}
+
+// ---------------- estado do jogo ----------------
+var J = { on:false, pausa:false, modo:MODOS[0], t:0, fase:'menu', lavaY:-0.6, lavaOn:false, est:0, maxY:0, fimEm:0, bot:false };
+var plats = [], PB = [], bonecos = [], eu = null, estrelas = [], fx = [];
+var CHAO = { x1:-99, x2:99, z1:-99, z2:99, y1:-1, y2:0, p:null, chao:true };
+
+function criaPlat(tipo, x, z, baseY, op) {
+    var f = fazMovel(tipo, op || {});
+    var p = { tipo:tipo, x:x, z:z, baseY:baseY || 0, s:0, g:f.g, M:f.M, bx:f.bx, estado:'ok', t:0, cai:0, wb:[], ext:extensao(f.bx) };
+    p.g.position.set(x, p.baseY, z); scene.add(p.g); plats.push(p);
+    return p;
+}
+function tiraPlat(p) {
+    scene.remove(p.g);
+    p.g.traverse(function (o) { if (o.geometry) o.geometry.dispose(); });
+    p.M.forEach(function (m) { m.dispose(); });
+    p.estado = 'fora';
+    estrelas.forEach(function (s) { if (s.p === p) s.morta = true; });
+}
+function limpa() {
+    plats.forEach(tiraPlat); plats = []; PB = [];
+    bonecos.forEach(function (b) { scene.remove(b.m); }); bonecos = []; eu = null;
+    estrelas.forEach(function (s) { scene.remove(s.m); }); estrelas = [];
+    fx.forEach(function (f) { scene.remove(f.m); }); fx = [];
+}
+function montaPB() {
+    PB = [];
+    for (var i = 0; i < plats.length; i++) {
+        var p = plats[i]; p.wb = [];
+        if (p.estado === 'caindo' || p.estado === 'fora') continue;
+        for (var k = 0; k < p.bx.length; k++) {
+            var b = p.bx[k], y0 = p.baseY - p.s;
+            var w = { x1:p.x + b.cx - b.w / 2, x2:p.x + b.cx + b.w / 2, z1:p.z + b.cz - b.d / 2, z2:p.z + b.cz + b.d / 2, y1:y0 + b.y1, y2:y0 + b.y2, p:p, i:k };
+            p.wb.push(w); PB.push(w);
+        }
+    }
+    if (!J.lavaOn) PB.push(CHAO);
+}
+function gapRet(a, b) {
+    var dx = Math.max(0, a.x1 - b.x2, b.x1 - a.x2), dz = Math.max(0, a.z1 - b.z2, b.z1 - a.z2);
+    return Math.sqrt(dx * dx + dz * dz);
+}
+
+// sala com móveis (todos alcançáveis pulando: testado com BFS)
+var SALA = [
+    ['sofa', 0, -8.6], ['mesa', 0, -5], ['cadeira', -2.3, -5], ['cadeira', 2.3, -5], ['pufe', -4.5, -2.5],
+    ['almofada', -1.5, -1.5], ['almofada', 1.8, -0.5], ['caixa', 4.6, -2.6], ['tv', 0, 10.2], ['almofada', 0.5, 7.3],
+    ['pufe', 2.3, 2.2], ['caixa', 1.2, 4.8], ['cama', -8, 7], ['livros', -2.2, 7.3], ['pufe', -4.6, 6.5],
+    ['estante', -10.6, -1], ['caixa', -8.8, -1.6], ['almofada', -6.8, -2.4], ['geladeira', 10.4, -8.5], ['caixa', 8.2, -7.2],
+    ['cadeira', 6.4, -4.8], ['livros', 6.2, -0.3], ['almofada', 5.2, 4.6]
+];
+function montaSala(modo) {
+    limpa();
+    var lista = modo === 'sobe' ? SALA.slice(0, 8) : SALA;
+    lista.forEach(function (m) { criaPlat(m[0], m[1], m[2], 0); });
+    if (modo === 'sobe') { J.ultima = { x:0, z:-5, w:2.4, d:1.5, y2:1.05 }; J.subidas = []; montaPB(); PB.forEach(function (b) { if (b !== CHAO) J.subidas.push({ x:(b.x1 + b.x2) / 2, z:(b.z1 + b.z2) / 2, w:b.x2 - b.x1, d:b.z2 - b.z1, y2:b.y2 }); }); geraSobe(30); }
+    montaPB();
+}
+
+// ---------------- modo "a lava sobe": prateleiras pra cima ----------------
+function geraSobe(ateY) {
+    var guard = 0;
+    while (J.ultima.y2 < ateY && guard++ < 400) {
+        var u = J.ultima, ok = null;
+        for (var tent = 0; tent < 50 && !ok; tent++) {
+            var w = 1.6 + Math.random() * 1.1, d = 1.4 + Math.random() * 0.9;
+            var gap = 0.5 + Math.random() * 1.3, dy = 0.7 + Math.random() * 0.6;
+            var dir = Math.floor(Math.random() * 4), lat = (Math.random() - 0.5) * 2;
+            var x, z;
+            if (dir === 0) { x = u.x + u.w / 2 + gap + w / 2; z = u.z + lat; }
+            else if (dir === 1) { x = u.x - u.w / 2 - gap - w / 2; z = u.z + lat; }
+            else if (dir === 2) { z = u.z + u.d / 2 + gap + d / 2; x = u.x + lat; }
+            else { z = u.z - u.d / 2 - gap - d / 2; x = u.x + lat; }
+            if (tent > 40) { x = u.x * 0.4; z = u.z * 0.4; }   // não achou? vai pro meio
+            if (Math.abs(x) + w / 2 > PAREDE - 0.6 || Math.abs(z) + d / 2 > PAREDE - 0.6) continue;
+            var c = { x:x, z:z, w:w, d:d, y2:u.y2 + dy }, r = { x1:x - w / 2, x2:x + w / 2, z1:z - d / 2, z2:z + d / 2 };
+            if (gapRet(r, { x1:u.x - u.w / 2, x2:u.x + u.w / 2, z1:u.z - u.d / 2, z2:u.z + u.d / 2 }) > ALCANCE - 0.2) continue;
+            var bate = false;   // não pode ficar em cima de outra (bate a cabeça)
+            for (var k = Math.max(0, J.subidas.length - 8); k < J.subidas.length && !bate; k++) {
+                var o = J.subidas[k];
+                if (Math.abs(o.y2 - c.y2) < 2.8 && gapRet(r, { x1:o.x - o.w / 2 - 0.9, x2:o.x + o.w / 2 + 0.9, z1:o.z - o.d / 2 - 0.9, z2:o.z + o.d / 2 + 0.9 }) <= 0 && o !== u) bate = true;
+            }
+            if (bate && tent <= 40) continue;
+            ok = c;
+        }
+        if (!ok) break;
+        var p = criaPlat('prateleira', ok.x, ok.z, ok.y2, { w:ok.w, d:ok.d });
+        J.subidas.push(ok); J.ultima = ok;
+        if (Math.random() < 0.22) poeEstrela(p);
+    }
+}
+
+// ---------------- bonecos (cogumelos) ----------------
+function criaCogu(cor) {
+    var g = new THREE.Group(), M = [];
+    var corpo = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.7, 12), mt(0xfff0d8, M)); corpo.position.y = 0.38; g.add(corpo);
+    var ch = new THREE.Mesh(new THREE.SphereGeometry(0.58, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), mt(cor, M)); ch.position.y = 0.68; ch.scale.y = 0.85; g.add(ch);
+    var branco = mt(0xffffff, M);
+    [[0.25, 0.9, 0.3], [-0.3, 0.88, 0.2], [0.05, 1.12, -0.05], [0.0, 0.85, -0.45], [0.42, 0.78, -0.15]].forEach(function (p) {
+        var s = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), branco); s.position.set(p[0], p[1], p[2]); s.scale.y = 0.6; g.add(s);
+    });
+    var preto = mt(0x111111, M);
+    [-0.1, 0.1].forEach(function (x) { var o = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6), preto); o.position.set(x, 0.5, 0.29); g.add(o); });
+    var pe = mt(0x7a4a22, M);
+    [-0.15, 0.15].forEach(function (x) { var o = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), pe); o.position.set(x, 0.05, 0.05); o.scale.set(1, 0.6, 1.4); g.add(o); });
+    g.userData.M = M;
+    return g;
+}
+function novoBoneco(cor, nome, bot, x, y, z) {
+    var m = criaCogu(cor); scene.add(m);
+    var b = { x:x, y:y, z:z, vx:0, vz:0, vy:0, chao:true, coyote:0, buf:0, sup:null, vivo:true, bot:bot, nome:nome, m:m, rot:0, alvo:null, iaT:0, skill:0.9 + Math.random() * 0.08, morteT:0, ultimoPulo:0, errou:null };
+    bonecos.push(b); return b;
+}
+var sombra = new THREE.Mesh(new THREE.CircleGeometry(0.4, 16), new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.35, depthWrite:false }));
+sombra.rotation.x = -Math.PI / 2; scene.add(sombra); sombra.visible = false;
+
+// ---------------- física ----------------
+function dentro(e, b, m) { return e.x > b.x1 - m && e.x < b.x2 + m && e.z > b.z1 - m && e.z < b.z2 + m; }
+function suporte(e) {
+    var best = null;
+    for (var i = 0; i < PB.length; i++) {
+        var b = PB[i];
+        if (b.y2 <= e.y + 0.06 && b.y2 > e.y - 0.3 && dentro(e, b, R * 0.45) && (!best || b.y2 > best.y2)) best = b;
+    }
+    return best;
+}
+function fisica(e, mx, mz, pula, dt) {
+    var vel = e.bot ? VEL * 0.92 : VEL;
+    var k = Math.min(1, dt * (e.chao ? 14 : 8));
+    e.vx += (mx * vel - e.vx) * k; e.vz += (mz * vel - e.vz) * k;
+    e.x += e.vx * dt; e.z += e.vz * dt;
+    var lim = PAREDE - R; e.x = Math.max(-lim, Math.min(lim, e.x)); e.z = Math.max(-lim, Math.min(lim, e.z));
+    for (var i = 0; i < PB.length; i++) {
+        var b = PB[i];
+        if (!(e.y < b.y2 - 0.08 && e.y + ALTP > b.y1)) continue;
+        var ox = Math.min(e.x + R - b.x1, b.x2 - (e.x - R)), oz = Math.min(e.z + R - b.z1, b.z2 - (e.z - R));
+        if (ox <= 0 || oz <= 0) continue;
+        if (e.chao && b.y2 - e.y <= 0.24) { e.y = b.y2; continue; }   // degrauzinho: sobe sozinho
+        if (ox < oz) e.x += e.x < (b.x1 + b.x2) / 2 ? -ox : ox;
+        else e.z += e.z < (b.z1 + b.z2) / 2 ? -oz : oz;
+    }
+    if (pula) e.buf = 0.15; else e.buf -= dt;
+    if (e.buf > 0 && (e.chao || e.coyote > 0)) {
+        e.vy = PULO; e.chao = false; e.coyote = 0; e.buf = 0; e.ultimoPulo = J.t;
+        if (e === eu) bip(300, 600, 0.12, 'square', 0.05);
+    }
+    if (e.chao) {
+        var s = suporte(e);
+        if (s && e.vy <= 0) { e.y = s.y2; e.sup = s; }
+        else { e.chao = false; e.coyote = 0.1; e.sup = null; }
+    }
+    if (!e.chao) {
+        e.coyote -= dt;
+        e.vy = Math.max(-28, e.vy - G * dt);
+        var ny = e.y + e.vy * dt;
+        if (e.vy <= 0) {
+            var best = null;
+            for (var j = 0; j < PB.length; j++) {
+                var c = PB[j];
+                if (dentro(e, c, R * 0.45) && e.y >= c.y2 - 0.05 && ny <= c.y2 && (!best || c.y2 > best.y2)) best = c;
+            }
+            if (best) { e.y = best.y2; e.vy = 0; e.chao = true; e.sup = best; }
+            else e.y = ny;
+        } else {
+            for (var q = 0; q < PB.length; q++) {
+                var h = PB[q];
+                if (dentro(e, h, R * 0.3) && e.y + ALTP <= h.y1 + 0.01 && ny + ALTP > h.y1) { ny = h.y1 - ALTP; e.vy = 0; }
+            }
+            e.y = ny;
+        }
+    }
+    if (J.lavaOn && e.y < J.lavaY + 0.05) queima(e);
+}
+
+// ---------------- IA dos bots ----------------
+function ia(e, dt) {
+    var r = { mx:0, mz:0, pula:false };
+    e.iaT -= dt;
+    var cur = e.chao ? e.sup : null;
+    if (cur && cur !== CHAO) cur = cur.p.wb[cur.i] || null;
+    var alvo = e.alvo;
+    if (alvo && alvo !== CHAO && (alvo.p.estado !== 'ok' || alvo.p.wb[alvo.i] !== alvo)) {
+        alvo = alvo.p.estado === 'ok' && alvo.p.wb[alvo.i] ? alvo.p.wb[alvo.i] : null;
+        e.alvo = alvo;
+    }
+    var perigo = cur && cur !== CHAO && cur.p.estado !== 'ok';
+    if (cur && (!alvo || e.iaT <= 0 || (perigo && alvo.p === cur.p) || (J.lavaOn && cur === CHAO) || (J.modo.id === 'sobe' && alvo === cur))) {
+        var cands = [];
+        for (var i = 0; i < PB.length; i++) {
+            var b = PB[i];
+            if (b === cur || b === CHAO || b.p.estado !== 'ok') continue;
+            if (b.y2 < J.lavaY + 0.3 || (b.x2 - b.x1) < 0.5 || (b.z2 - b.z1) < 0.5) continue;
+            if (cur !== CHAO && (gapRet(b, cur) > ALCANCE - 0.1 || b.y2 - cur.y2 > SUBIDA - 0.05)) continue;
+            if (cur === CHAO && Math.hypot((b.x1 + b.x2) / 2 - e.x, (b.z1 + b.z2) / 2 - e.z) > 4) continue;
+            cands.push(b);
+        }
+        var fica = !perigo && cur !== CHAO && J.modo.id !== 'sobe' && Math.random() < 0.45 && (cur.x2 - cur.x1) > 0.5;
+        if (J.modo.id === 'sobe' && cands.length) {
+            var sobem = cands.filter(function (b) { return b.y2 > cur.y2 + 0.2; }).sort(function (a, b) { return b.y2 - a.y2; });
+            alvo = sobem.length ? sobem[Math.random() < 0.7 ? 0 : Math.floor(Math.random() * sobem.length)] : cur;
+        } else if (fica || !cands.length) alvo = cur;
+        else {
+            // estrela perto? vai nela
+            var comEst = cands.filter(function (b) { return estrelas.some(function (s) { return !s.morta && s.p === b.p; }); });
+            alvo = comEst.length && Math.random() < 0.7 ? comEst[0] : cands[Math.floor(Math.random() * cands.length)];
+        }
+        e.alvo = alvo; e.iaT = 1.2 + Math.random() * 2.8; e.errou = null;
+    }
+    if (!alvo) return r;
+    var mg = 0.35;
+    var px = Math.max(alvo.x1 + mg, Math.min(alvo.x2 - mg, e.x)), pz = Math.max(alvo.z1 + mg, Math.min(alvo.z2 - mg, e.z));
+    if (alvo !== cur) { px = (px + (alvo.x1 + alvo.x2) / 2) / 2; pz = (pz + (alvo.z1 + alvo.z2) / 2) / 2; }
+    else if (alvo !== CHAO) { px = (alvo.x1 + alvo.x2) / 2; pz = (alvo.z1 + alvo.z2) / 2; }
+    var dx = px - e.x, dz = pz - e.z, dist = Math.hypot(dx, dz);
+    if (dist > 0.12) { r.mx = dx / dist; r.mz = dz / dist; }
+    if (e.chao && cur && alvo !== cur) {
+        var olha = 0.09;
+        var fx2 = e.x + r.mx * VEL * olha, fz2 = e.z + r.mz * VEL * olha;
+        var sai = cur === CHAO || !(fx2 > cur.x1 - R * 0.3 && fx2 < cur.x2 + R * 0.3 && fz2 > cur.z1 - R * 0.3 && fz2 < cur.z2 + R * 0.3);
+        var alto = alvo.y2 - cur.y2 > 0.25 && gapRet({ x1:e.x, x2:e.x, z1:e.z, z2:e.z }, alvo) < 1.1;
+        if (sai || alto) {
+            if (e.errou === null) e.errou = Math.random() > e.skill;
+            if (!e.errou) r.pula = true;
+        }
+    }
+    if (!e.chao && e.vy > 0) r.pula = false;
+    return r;
+}
+
+// ---------------- estrelas, efeitos ----------------
+var geoEst = new THREE.OctahedronGeometry(0.32), matEst = new THREE.MeshLambertMaterial({ color:0xffd23a, emissive:0x806000 });
+function poeEstrela(p) {
+    if (!p.wb.length && p.estado === 'caindo') return;
+    var m = new THREE.Mesh(geoEst, matEst); scene.add(m);
+    estrelas.push({ m:m, p:p, morta:false });
+}
+var geoBolha = new THREE.SphereGeometry(1, 8, 6);
+function bolha(x, y, z, cor, v, vida, tam) {
+    if (fx.length > 60) return;
+    var m = new THREE.Mesh(geoBolha, new THREE.MeshBasicMaterial({ color:cor, transparent:true }));
+    m.position.set(x, y, z); m.scale.setScalar(tam); scene.add(m);
+    fx.push({ m:m, vx:v[0], vy:v[1], vz:v[2], vida:vida, max:vida, tam:tam });
+}
+function queima(e) {
+    if (!e.vivo) return;
+    e.vivo = false; e.morteT = 0; e.vy = 9;
+    e.m.userData.M.forEach(function (m) { m.color.setHex(0x2a2220); });
+    for (var i = 0; i < 14; i++) bolha(e.x, J.lavaY + 0.3, e.z, i % 2 ? 0x555555 : 0xff8a1a, [(Math.random() - 0.5) * 4, 3 + Math.random() * 4, (Math.random() - 0.5) * 4], 0.9, 0.18);
+    if (e === eu) { bip(500, 60, 0.6, 'sawtooth', 0.09); aviso('QUEIMOU! 🔥', null, 1.6); }
+    else if (J.on) { avisoPeq('🔥 ' + e.nome + ' queimou!'); bip(400, 120, 0.25, 'triangle', 0.05); }
+}
+
+// ---------------- controles ----------------
+var teclas = {}, puloPedido = false, yaw = Math.PI, pitch = 0.55, joy = null, joyV = { x:0, y:0 };
+document.addEventListener('keydown', function (e) {
+    var k = e.code || e.key; teclas[k] = true; if (e.key === ' ') teclas.Space = true;
+    if (J.on && !J.pausa) {
+        if (e.key === ' ' || k === 'Space') { e.preventDefault(); if (!e.repeat) puloPedido = true; }
+        if (/^Arrow/.test(k)) e.preventDefault();
+        if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') pausar();
+        return;
+    }
+    if (e.repeat) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+        if (J.fimEm && performance.now() - J.fimEm < 900) return;
+        var aberta = document.querySelector('.tela.on'); if (!aberta) return;
+        e.preventDefault();
+        if (aberta.id === 'telaMenu' || aberta.id === 'telaFim') comecar();
+        else if (aberta.id === 'telaPausa') continuar();
+        else if (aberta.id === 'telaComo') mostra('telaMenu');
+    }
+});
+document.addEventListener('keyup', function (e) { var k = e.code || e.key; teclas[k] = false; if (e.key === ' ') teclas.Space = false; });
+function gira(dx, dy) { yaw -= dx * 0.006; pitch = Math.max(0.15, Math.min(1.25, pitch + dy * 0.004)); }
+var arrastaMouse = false;
+canvas.addEventListener('mousedown', function () { arrastaMouse = true; });
+addEventListener('mouseup', function () { arrastaMouse = false; });
+canvas.addEventListener('mousemove', function (e) {
+    if (!e.isTrusted) { gira(e.movementX, e.movementY); return; }   // analógico direito do controle
+    if (arrastaMouse) gira(e.movementX, e.movementY);
+});
+var toqueCam = null;
+canvas.addEventListener('touchstart', function (e) {
+    e.preventDefault();
+    for (var i = 0; i < e.changedTouches.length; i++) {
+        var t = e.changedTouches[i];
+        if (t.clientX < innerWidth * 0.45 && !joy) {
+            joy = { id:t.identifier, x:t.clientX, y:t.clientY };
+            var jb = document.getElementById('joyBase'); jb.style.display = 'block'; jb.style.left = (t.clientX - 60) + 'px'; jb.style.top = (t.clientY - 60) + 'px';
+            mexeJoy(t.clientX, t.clientY);
+        } else if (!toqueCam) toqueCam = { id:t.identifier, x:t.clientX, y:t.clientY };
+    }
+}, { passive:false });
+canvas.addEventListener('touchmove', function (e) {
+    e.preventDefault();
+    for (var i = 0; i < e.changedTouches.length; i++) {
+        var t = e.changedTouches[i];
+        if (joy && t.identifier === joy.id) mexeJoy(t.clientX, t.clientY);
+        else if (toqueCam && t.identifier === toqueCam.id) { gira((t.clientX - toqueCam.x) * 1.4, (t.clientY - toqueCam.y) * 1.2); toqueCam.x = t.clientX; toqueCam.y = t.clientY; }
+    }
+}, { passive:false });
+function fimToque(e) {
+    for (var i = 0; i < e.changedTouches.length; i++) {
+        var t = e.changedTouches[i];
+        if (joy && t.identifier === joy.id) { joy = null; joyV.x = joyV.y = 0; document.getElementById('joyBase').style.display = 'none'; document.getElementById('joyPino').style.display = 'none'; }
+        if (toqueCam && t.identifier === toqueCam.id) toqueCam = null;
+    }
+}
+canvas.addEventListener('touchend', fimToque); canvas.addEventListener('touchcancel', fimToque);
+function mexeJoy(x, y) {
+    var dx = x - joy.x, dy = y - joy.y, d = Math.hypot(dx, dy), m = 50;
+    if (d > m) { dx *= m / d; dy *= m / d; }
+    joyV.x = dx / m; joyV.y = dy / m;
+    var jp = document.getElementById('joyPino'); jp.style.display = 'block'; jp.style.left = (joy.x + dx - 27) + 'px'; jp.style.top = (joy.y + dy - 27) + 'px';
+    document.getElementById('dicaMob').style.display = 'none';
+}
+var btPulo = document.getElementById('btPulo');
+btPulo.addEventListener('touchstart', function (e) { e.preventDefault(); e.stopPropagation(); puloPedido = true; }, { passive:false });
+btPulo.addEventListener('mousedown', function (e) { e.preventDefault(); puloPedido = true; });
+
+function entradaJogador() {
+    var ix = 0, iz = 0;
+    if (teclas.KeyA || teclas.ArrowLeft || teclas.a) ix -= 1;
+    if (teclas.KeyD || teclas.ArrowRight || teclas.d) ix += 1;
+    if (teclas.KeyW || teclas.ArrowUp || teclas.w) iz += 1;
+    if (teclas.KeyS || teclas.ArrowDown || teclas.s) iz -= 1;
+    if (joy) { ix = joyV.x; iz = -joyV.y; }
+    var n = Math.hypot(ix, iz); if (n > 1) { ix /= n; iz /= n; }
+    var fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
+    var p = puloPedido; puloPedido = false;
+    return { mx:fx * iz + rx * ix, mz:fz * iz + rz * ix, pula:p };
+}
+
+// ---------------- partida ----------------
+var CORES_BOT = [[0x2a8aff, 'Cogu Azul'], [0x3ac04a, 'Cogu Verde'], [0xffc81a, 'Cogu Amarelo']];
+function comecar() {
+    J.modo = MODOS[modoSel];
+    J.on = true; J.pausa = false; J.t = 0; J.fase = 'conta'; J.conta = 3.2; J.lavaOn = false; J.lavaY = -0.6;
+    J.est = 0; J.maxY = 0; J.proxAfunda = 2.5; J.proxSpawn = 0; J.proxEst = 4; J.fimT = 0; J.lugar = 0; J.resultado = null; J.ultContaN = 4;
+    montaSala(J.modo.id);
+    eu = novoBoneco(0xe02a2a, 'Você', !!J.bot, 0, 0.85, -8.3);
+    if (J.modo.id === 'bots') {
+        novoBoneco(CORES_BOT[0][0], CORES_BOT[0][1], true, 0, 1.05, -5);
+        novoBoneco(CORES_BOT[1][0], CORES_BOT[1][1], true, -8, 0.7, 6.6);
+        novoBoneco(CORES_BOT[2][0], CORES_BOT[2][1], true, 4.6, 1.1, -2.6);
+    }
+    bonecos.forEach(function (b) { b.sup = null; b.chao = true; });
+    yaw = Math.PI; pitch = 0.55;
+    mostra('');
+    document.getElementById('hud').classList.add('on'); document.getElementById('btPausa').classList.add('on');
+    if (CELULAR) { btPulo.classList.add('on'); document.getElementById('dicaMob').style.display = 'block'; }
+    montaPB();
+}
+function terminar() {
+    J.on = false; J.fimEm = performance.now();
+    var M = J.modo, rec = recorde(M.id), v, linhas = [], titulo, moedas = 0;
+    if (M.id === 'sobreviver') {
+        v = Math.floor(J.t) + J.est * 5; titulo = 'QUEIMOU! 🔥';
+        linhas = [['Tempo vivo', Math.floor(J.t) + 's'], ['Estrelas', J.est]];
+        moedas = Math.floor(J.t / 8) + J.est;
+    } else if (M.id === 'bots') {
+        var venceu = J.lugar === 1; v = rec + (venceu ? 1 : 0);
+        titulo = venceu ? 'VOCÊ VENCEU! 🏆' : 'QUEIMOU! 🔥';
+        linhas = [['Lugar', J.lugar + 'º de 4'], ['Tempo', Math.floor(J.t) + 's']];
+        moedas = venceu ? 12 : (4 - J.lugar) * 3;
+    } else {
+        v = Math.floor(J.maxY); titulo = 'A LAVA TE PEGOU! 🔥';
+        linhas = [['Altura', v + ' m'], ['Estrelas', J.est]];
+        moedas = Math.floor(v / 4) + J.est;
+    }
+    moedas = Math.max(0, Math.min(40, moedas));
+    var novo = M.id === 'bots' ? J.lugar === 1 : v > rec;
+    if (novo && !J.bot) gravaRec(M.id, v);
+    if (moedas > 0 && !J.bot && window.CoguCoins) CoguCoins.ganha(moedas);
+    linhas.push([M.id === 'bots' ? 'Vitórias' : 'Recorde', Math.max(rec, v) + (M.id === 'sobe' ? ' m' : '')]);
+    if (moedas > 0) linhas.push(['Cogu Coins', '+' + moedas + ' 🍄']);
+    document.getElementById('fimTitulo').textContent = titulo;
+    document.getElementById('fimNum').textContent = M.id === 'bots' ? J.lugar + 'º' : v;
+    document.getElementById('fimUni').textContent = M.id === 'bots' ? 'lugar' : M.uni;
+    document.getElementById('novoRec').style.display = novo && M.id !== 'bots' ? 'block' : 'none';
+    document.getElementById('fimTabela').innerHTML = linhas.map(function (l) { return '<span>' + l[0] + '</span><b>' + l[1] + '</b>'; }).join('');
+    escondeHud();
+    if (!J.bot) { mostra('telaFim'); montaModos(); }
+}
+function escondeHud() {
+    document.getElementById('hud').classList.remove('on'); document.getElementById('btPausa').classList.remove('on');
+    btPulo.classList.remove('on'); document.getElementById('dicaMob').style.display = 'none';
+    joy = null; document.getElementById('joyBase').style.display = 'none'; document.getElementById('joyPino').style.display = 'none';
+}
+function pausar() { if (!J.on || J.fimT) return; J.pausa = true; mostra('telaPausa'); }
+function continuar() { J.pausa = false; mostra(''); ultimo = performance.now(); }
+function irMenu() { J.on = false; J.pausa = false; escondeHud(); demo(); mostra('telaMenu'); montaModos(); }
+function demo() {
+    J.modo = MODOS[0]; J.fase = 'demo'; J.lavaOn = true; J.lavaY = 0.12; J.t = 0;
+    montaSala('sobreviver');
+    for (var i = 0; i < 3; i++) {
+        var s = [[0, 1.05, -5], [-8, 0.7, 6.6], [4.6, 1.1, -2.6]][i];
+        novoBoneco(CORES_BOT[i][0], CORES_BOT[i][1], true, s[0], s[1], s[2]);
+    }
+    montaPB();
+}
+
+// tenta colocar um móvel novo caindo do teto, perto de "perto" (ou em qualquer lugar)
+var TIPOS_NOVOS = ['caixa', 'almofada', 'pufe', 'cadeira', 'mesa', 'livros', 'caixa', 'almofada', 'pufe'];
+function tentaSpawn(perto) {
+    for (var t = 0; t < 40; t++) {
+        var tipo = TIPOS_NOVOS[Math.floor(Math.random() * TIPOS_NOVOS.length)];
+        var f = fazMovel(tipo, {}), ext = extensao(f.bx);
+        f.g.traverse(function (o) { if (o.geometry) o.geometry.dispose(); }); f.M.forEach(function (m) { m.dispose(); });
+        var x, z;
+        if (perto && perto !== CHAO) { x = (perto.x1 + perto.x2) / 2 + (Math.random() - 0.5) * 7; z = (perto.z1 + perto.z2) / 2 + (Math.random() - 0.5) * 7; }
+        else { x = (Math.random() - 0.5) * 20; z = (Math.random() - 0.5) * 20; }
+        var r = { x1:x + ext.x1, x2:x + ext.x2, z1:z + ext.z1, z2:z + ext.z2 };
+        if (r.x1 < -PAREDE + 0.3 || r.x2 > PAREDE - 0.3 || r.z1 < -PAREDE + 0.3 || r.z2 > PAREDE - 0.3) continue;
+        var livre = plats.every(function (p) {
+            if (p.estado === 'fora') return true;
+            var o = { x1:p.x + p.ext.x1 - 0.35, x2:p.x + p.ext.x2 + 0.35, z1:p.z + p.ext.z1 - 0.35, z2:p.z + p.ext.z2 + 0.35 };
+            return gapRet(r, o) > 0;
+        });
+        if (!livre) continue;
+        var rr = { x1:r.x1, x2:r.x2, z1:r.z1, z2:r.z2, y2:ext.top };
+        var liga = PB.some(function (b) {
+            return b !== CHAO && b.p.estado === 'ok' && gapRet(rr, b) <= ALCANCE - 0.1 && b.y2 - ext.top <= SUBIDA - 0.1 && ext.top - b.y2 <= SUBIDA - 0.1;
+        });
+        if (!liga) continue;
+        var p = criaPlat(tipo, x, z, 0);
+        p.estado = 'caindo'; p.cai = 12;
+        p.g.position.y = p.cai;
+        return p;
+    }
+    return null;
+}
+
+// ---------------- passo do jogo ----------------
+function passo(dt) {
+    if (J.fase === 'menu') return;
+    // lava
+    if (J.fase === 'conta') {
+        J.conta -= dt;
+        var n = Math.ceil(J.conta - 0.2);
+        if (n !== J.ultContaN && n >= 1) { J.ultContaN = n; aviso(String(n), n === 3 ? 'Suba nos móveis!' : null, 0.8); bip(500, 500, 0.12, 'square', 0.06); }
+        if (J.conta <= 0.2 && J.ultContaN !== 0) { J.ultContaN = 0; aviso('O CHÃO É LAVA! 🌋', null, 1.5); bip(200, 900, 0.5, 'sawtooth', 0.08); }
+        if (J.conta <= 0.2) J.lavaY = Math.min(0.12, J.lavaY + dt * 1.2);
+        if (J.conta <= 0) { J.fase = 'lava'; J.lavaOn = true; J.lavaY = 0.12; }
+    } else if (J.fase === 'lava' || J.fase === 'demo') {
+        J.t += dt;
+        if (J.modo.id === 'sobe' && J.fase === 'lava' && J.t > 2) {
+            var v = Math.min(0.7, 0.25 + J.t * 0.003);
+            if (eu && eu.vivo && eu.y - J.lavaY > 12) v *= 2.2;
+            J.lavaY += v * dt;
+        }
+    }
+    montaPB();
+
+    if (J.lavaOn && J.modo.id !== 'sobe') {
+        // móveis afundando
+        J.proxAfunda -= dt;
+        if (J.proxAfunda <= 0) {
+            var oks = plats.filter(function (p) { return p.estado === 'ok'; });
+            if (oks.length > 5) {
+                var esc = oks[Math.floor(Math.random() * oks.length)];
+                if (eu && eu.vivo && eu.sup && eu.sup !== CHAO && Math.random() < 0.3 && eu.sup.p.estado === 'ok') esc = eu.sup.p;
+                esc.estado = 'aviso'; esc.t = 2.2;
+            }
+            var bots = J.modo.id === 'bots';
+            J.proxAfunda = bots ? Math.max(1.1, 3.0 - J.t * 0.03) : Math.max(1.4, 3.6 - J.t * 0.025);
+        }
+        J.proxSpawn -= dt;
+        var alvoQtd = Math.max(7, 17 - Math.floor(J.t / 8));
+        var qtd = plats.filter(function (p) { return p.estado === 'ok' || p.estado === 'caindo'; }).length;
+        if (qtd < alvoQtd && J.proxSpawn <= 0) {
+            var vivos = bonecos.filter(function (b) { return b.vivo && b.sup; });
+            var quem = vivos.length && Math.random() < 0.6 ? vivos[Math.floor(Math.random() * vivos.length)] : null;
+            if (eu && eu.vivo && eu.sup && Math.random() < 0.5) quem = eu;
+            tentaSpawn(quem ? quem.sup : null);
+            J.proxSpawn = 0.7;
+        }
+        if (J.modo.id === 'sobreviver' && J.fase === 'lava') {
+            J.proxEst -= dt;
+            if (J.proxEst <= 0 && estrelas.filter(function (s) { return !s.morta; }).length < 2) {
+                var ok2 = plats.filter(function (p) { return p.estado === 'ok' && (!eu || !eu.sup || eu.sup.p !== p); });
+                if (ok2.length) poeEstrela(ok2[Math.floor(Math.random() * ok2.length)]);
+                J.proxEst = 5;
+            }
+        }
+    }
+    for (var i = plats.length - 1; i >= 0; i--) {
+        var p = plats[i];
+        if (p.estado === 'aviso') { p.t -= dt; if (p.t <= 0) p.estado = 'afunda'; }
+        else if (p.estado === 'afunda') {
+            p.s += dt * 0.9;
+            if (p.ext.top - p.s < -0.4) tiraPlat(p);
+        } else if (p.estado === 'caindo') {
+            p.cai = Math.max(0, p.cai - dt * 18);
+            if (p.cai <= 0) {
+                p.estado = 'ok';
+                montaPB();
+                bonecos.forEach(function (b) {   // caiu em cima de alguém? a pessoa vai pra cima do móvel
+                    if (!b.vivo) return;
+                    p.wb.forEach(function (w) { if (dentro(b, w, R * 0.6) && b.y < w.y2) { b.y = w.y2; b.vy = 0; b.chao = true; b.sup = w; } });
+                });
+                for (var k = 0; k < 6; k++) bolha(p.x + (Math.random() - 0.5) * 2, 0.3, p.z + (Math.random() - 0.5) * 2, 0xffa03a, [(Math.random() - 0.5) * 3, 2 + Math.random() * 2, (Math.random() - 0.5) * 3], 0.5, 0.12);
+            }
+        } else if (J.modo.id === 'sobe' && p.baseY + p.ext.top < J.lavaY - 4) tiraPlat(p);
+        if (p.estado === 'fora') plats.splice(i, 1);
+    }
+    if (J.modo.id === 'sobe' && eu) geraSobe(Math.max(eu.y, J.lavaY) + 30);
+    montaPB();
+
+    // bonecos
+    for (var b = 0; b < bonecos.length; b++) {
+        var e = bonecos[b];
+        if (!e.vivo) {
+            e.morteT += dt; e.vy -= G * 0.5 * dt; e.y += e.vy * dt;
+            continue;
+        }
+        var ent;
+        if (e === eu && !J.bot) ent = J.fase === 'demo' ? { mx:0, mz:0, pula:false } : entradaJogador();
+        else ent = ia(e, dt);
+        if (J.fase === 'conta' && J.conta > 2.6) { ent.mx = ent.mz = 0; ent.pula = false; }
+        fisica(e, ent.mx, ent.mz, ent.pula, dt);
+        if (Math.abs(e.vx) + Math.abs(e.vz) > 0.5) e.rot = Math.atan2(e.vx, e.vz);
+    }
+    // estrelas
+    estrelas.forEach(function (s) {
+        if (s.morta) return;
+        if (s.p.estado === 'fora' || s.p.estado === 'afunda') { s.morta = true; return; }
+        var w = s.p.wb[0]; if (!w) return;
+        var top = 0; s.p.wb.forEach(function (q) { if ((q.x2 - q.x1) * (q.z2 - q.z1) > (w.x2 - w.x1) * (w.z2 - w.z1)) w = q; });
+        top = w.y2;
+        s.x = (w.x1 + w.x2) / 2; s.y = top + 0.75; s.z = (w.z1 + w.z2) / 2;
+        bonecos.forEach(function (e) {
+            if (!e.vivo || s.morta) return;
+            if (Math.hypot(e.x - s.x, e.y + 0.5 - s.y, e.z - s.z) < 0.95) {
+                s.morta = true;
+                if (e === eu) { J.est++; bip(800, 1600, 0.15, 'triangle', 0.07); avisoPeq('⭐ +' + (J.modo.id === 'sobe' ? '1' : '5')); }
+            }
+        });
+    });
+    for (var q = estrelas.length - 1; q >= 0; q--) if (estrelas[q].morta) { scene.remove(estrelas[q].m); estrelas.splice(q, 1); }
+
+    if (J.fase === 'demo') {   // menu: bot que queima volta num móvel
+        bonecos.forEach(function (e) {
+            if (!e.vivo && e.morteT > 2) {
+                var oks = PB.filter(function (w) { return w !== CHAO && w.p.estado === 'ok'; });
+                if (!oks.length) return;
+                var w = oks[Math.floor(Math.random() * oks.length)];
+                e.vivo = true; e.x = (w.x1 + w.x2) / 2; e.z = (w.z1 + w.z2) / 2; e.y = w.y2; e.vy = 0; e.chao = true; e.sup = w; e.alvo = null;
+                var i0 = bonecos.indexOf(e);
+                e.m.userData.M.forEach(function (m, k) { m.color.setHex(k === 1 ? CORES_BOT[i0 % 3][0] : [0xfff0d8, 0, 0xffffff, 0x111111, 0x7a4a22][Math.min(k, 4)]); });
+            }
+        });
+        return;
+    }
+    if (!J.on) return;
+    if (eu && eu.vivo) J.maxY = Math.max(J.maxY, eu.y);
+    // fim de jogo
+    if (!J.fimT) {
+        var vivos2 = bonecos.filter(function (e) { return e.vivo; }).length;
+        if (!eu.vivo) { J.lugar = vivos2 + 1; J.fimT = 1.6; }
+        else if (J.modo.id === 'bots' && vivos2 === 1 && J.lavaOn) { J.lugar = 1; J.fimT = 1.8; aviso('VOCÊ VENCEU! 🏆', 'O último de pé!', 1.8); bip(500, 1200, 0.4, 'triangle', 0.08); }
+    } else {
+        J.fimT -= dt;
+        if (J.fimT <= 0) terminar();
+    }
+}
+
+// ---------------- visual (câmera, animações, HUD) ----------------
+var hudT = 0, camAlvo = new THREE.Vector3(0, 2, 0), tempo = 0;
+function visual(dt) {
+    tempo += dt;
+    texLava.offset.x = (tempo * 0.03) % 1; texLava.offset.y = (Math.sin(tempo * 0.4) * 0.05);
+    matLava.color.setRGB(1, 0.85 + Math.sin(tempo * 3) * 0.15, 0.85 + Math.sin(tempo * 3) * 0.15);
+    lava.position.y = J.lavaY; luzLava.position.set(0, J.lavaY + 2.5, 0);
+    piso.visible = J.lavaY < 3;
+    if (Math.random() < dt * 12 && J.lavaY > 0) {
+        var bx = (Math.random() - 0.5) * PAREDE * 2, bz = (Math.random() - 0.5) * PAREDE * 2;
+        bolha(bx, J.lavaY, bz, Math.random() < 0.5 ? 0xffd23a : 0xff5a1a, [0, 0.8, 0], 0.7, 0.15);
+    }
+    for (var i = fx.length - 1; i >= 0; i--) {
+        var f = fx[i]; f.vida -= dt;
+        f.vy -= 6 * dt; f.m.position.x += f.vx * dt; f.m.position.y += f.vy * dt; f.m.position.z += f.vz * dt;
+        f.m.material.opacity = Math.max(0, f.vida / f.max);
+        if (f.vida <= 0) { scene.remove(f.m); f.m.material.dispose(); fx.splice(i, 1); }
+    }
+    plats.forEach(function (p) {
+        var y = p.baseY - p.s + (p.estado === 'caindo' ? p.cai : 0), x = p.x, z = p.z;
+        if (p.tipo === 'almofada' && p.estado === 'ok') y += Math.sin(tempo * 2 + p.x) * 0.03;
+        if (p.estado === 'aviso' || p.estado === 'afunda') {
+            x += (Math.random() - 0.5) * 0.12; z += (Math.random() - 0.5) * 0.12;
+            var q = 0.5 + 0.5 * Math.sin(tempo * 18);
+            p.M.forEach(function (m) { m.emissive.setRGB(0.6 * q, 0.1 * q, 0); });
+            if (p.estado === 'afunda' && Math.random() < 0.3) bolha(p.x + (Math.random() - 0.5) * 2, J.lavaY + 0.1, p.z + (Math.random() - 0.5) * 2, 0x666666, [0, 1.5, 0], 0.8, 0.2);
+        }
+        p.g.position.set(x, y, z);
+    });
+    bonecos.forEach(function (e) {
+        e.m.position.set(e.x, e.y, e.z);
+        var alvoR = e.rot, dr = alvoR - e.m.rotation.y;
+        while (dr > Math.PI) dr -= Math.PI * 2; while (dr < -Math.PI) dr += Math.PI * 2;
+        e.m.rotation.y += dr * Math.min(1, dt * 12);
+        if (!e.vivo) { e.m.rotation.z += dt * 8; e.m.visible = e.y > J.lavaY - 2; }
+        else { e.m.rotation.z = 0; e.m.visible = true; var sq = e.chao ? 1 : (e.vy > 0 ? 1.12 : 0.95); e.m.scale.set(2 - sq, sq, 2 - sq); }
+    });
+    estrelas.forEach(function (s) { if (s.x === undefined) { s.m.visible = false; return; } s.m.visible = true; s.m.position.set(s.x, s.y + Math.sin(tempo * 3) * 0.12, s.z); s.m.rotation.y = tempo * 2.5; });
+
+    // sombra do jogador (ajuda a mirar o pulo)
+    var alvoCam;
+    if (eu && J.on) {
+        var topo = J.lavaOn ? J.lavaY : 0;
+        PB.forEach(function (b) { if (b.y2 <= eu.y + 0.05 && b.y2 > topo && dentro(eu, b, 0)) topo = b.y2; });
+        sombra.visible = eu.vivo; sombra.position.set(eu.x, topo + 0.02, eu.z);
+        var tk = (eu.vivo ? 1 : 0.4);
+        if (teclas.KeyQ) yaw += dt * 2.2; if (teclas.KeyE) yaw -= dt * 2.2;
+        alvoCam = new THREE.Vector3(eu.x, Math.max(eu.y, J.lavaY) + 1, eu.z);
+        camAlvo.lerp(alvoCam, Math.min(1, dt * 8 * tk));
+        var dist = CELULAR ? 7 : 7.5;
+        var cx = camAlvo.x + Math.sin(yaw) * Math.cos(pitch) * dist, cz = camAlvo.z + Math.cos(yaw) * Math.cos(pitch) * dist;
+        var lim = PAREDE - 0.4;
+        cx = Math.max(-lim, Math.min(lim, cx)); cz = Math.max(-lim, Math.min(lim, cz));
+        camera.position.set(cx, camAlvo.y + Math.sin(pitch) * dist, cz);
+        camera.lookAt(camAlvo);
+    } else {
+        sombra.visible = false;
+        var a = tempo * 0.12;
+        camera.position.set(Math.sin(a) * 15, 9, Math.cos(a) * 15);
+        camera.lookAt(0, 0.5, 0);
+    }
+
+    hudT -= dt;
+    if (hudT <= 0 && J.on) {
+        hudT = 0.25;
+        var h;
+        if (J.modo.id === 'sobreviver') h = '⏱️ ' + Math.floor(J.t) + 's &nbsp; ⭐ ' + J.est;
+        else if (J.modo.id === 'bots') h = '🍄 Vivos: ' + bonecos.filter(function (e) { return e.vivo; }).length + '/4 &nbsp; ⏱️ ' + Math.floor(J.t) + 's';
+        else h = '📏 ' + Math.floor(J.maxY) + ' m &nbsp; ⭐ ' + J.est + '<br><span style="font-size:15px">🌋 lava a ' + Math.max(0, Math.floor((eu ? eu.y : 0) - J.lavaY)) + ' m de você</span>';
+        document.getElementById('hud').innerHTML = h;
+    }
+}
+
+document.addEventListener('visibilitychange', function () { if (document.hidden) pausar(); });
+
+// ---------------- montar o mundo ----------------
+montaModos();
+demo();
+window.MUNDO_OK = true;
+
+// ---------------- ganchos de teste ----------------
+window.__testeLava = function (modo, segundos) {
+    var antes = modoSel; modoSel = modo; J.bot = true; comecar();
+    var n = Math.round(segundos * 60), i;
+    for (i = 0; i < n && J.on; i++) { passo(1 / 60); }
+    var r = { modo:J.modo.id, segundos:+(i / 60).toFixed(1), vivo:eu.vivo, lugar:J.lugar, alt:Math.floor(J.maxY), plats:plats.length, botsVivos:bonecos.filter(function (e) { return e.vivo && e !== eu; }).length };
+    J.bot = false; modoSel = antes; J.on = false; escondeHud(); demo(); return r;
+};
+window.__bfsSala = function () {
+    montaSala('sobreviver');
+    var bs = PB.filter(function (b) { return b !== CHAO; }), vis = [bs[0]], fila = [bs[0]];
+    while (fila.length) {
+        var a = fila.shift();
+        bs.forEach(function (b) { if (vis.indexOf(b) < 0 && gapRet(a, b) <= ALCANCE && b.y2 - a.y2 <= SUBIDA) { vis.push(b); fila.push(b); } });
+    }
+    var faltam = bs.filter(function (b) { return vis.indexOf(b) < 0; }).map(function (b) { return b.p.tipo + '@' + b.p.x + ',' + b.p.z; });
+    demo();
+    return { total:bs.length, alcancados:vis.length, faltam:faltam };
+};
+</script>
+<script src="/gamepad.js?v=358"></script>
+</body>
+</html>

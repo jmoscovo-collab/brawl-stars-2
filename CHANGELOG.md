@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v639 (2026-11-11)
+- 🌋 Jogo novo (ainda escondido, só pelo link /lava/): **O Chão é Lava 3D**! 3, 2, 1... O CHÃO É LAVA! Pule de móvel em móvel numa sala 3D (sofá, mesa, cama, geladeira, estante, almofadas...). Os móveis tremem, ficam vermelhos e AFUNDAM, e móveis novos caem do teto. 3 modos: **Sobreviver** (pega estrelas ⭐), **Contra Bots** (o último cogumelo de pé vence) e **A Lava Sobe** (escale prateleiras antes que a lava te pegue). Funciona no PC, celular (joystick + botão PULA) e controle
+
 ## v638 (2026-11-11)
 - 🔒 Novo: **Cogumelo Games LITE** (ainda escondido, só pelo link /lite/)! A versão grátis e limitada: só 6 jogos liberados, o resto custa 150 Cogu Coins cada pra destrancar, só 5 de energia ⚡ (cada jogo gasta 1, volta 1 a cada 20 min) e sem chat, comunidade, loja e perfil
 
