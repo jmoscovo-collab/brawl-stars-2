@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v638 (2026-11-11)
+- 🔒 Novo: **Cogumelo Games LITE** (ainda escondido, só pelo link /lite/)! A versão grátis e limitada: só 6 jogos liberados, o resto custa 150 Cogu Coins cada pra destrancar, só 5 de energia ⚡ (cada jogo gasta 1, volta 1 a cada 20 min) e sem chat, comunidade, loja e perfil
+
 ## v637 (2026-11-07)
 - 🏀 LANÇADO: Cogu Basquete 3D agora está na página inicial com o selo NOVO!
 

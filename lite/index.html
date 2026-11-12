@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cogumelo Games LITE</title>
+<meta name="description" content="Versão LITE do Cogumelo Games: poucos jogos liberados, o resto desbloqueia jogando!">
+<link rel="icon" href="/icons/icon-192.png">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #14082a; color: #fff; min-height: 100vh; padding: 16px; }
+  header { text-align: center; margin: 10px 0 14px; }
+  h1 { font-size: 30px; color: #ffcc33; text-shadow: 0 0 14px rgba(255,204,51,.6); }
+  h1 .lite { background: #3ac46a; color: #08210f; font-size: 16px; padding: 3px 10px; border-radius: 10px; vertical-align: middle; margin-left: 6px; text-shadow: none; }
+  .sub { color: #c9b8ff; margin-top: 6px; font-size: 14px; }
+  .barra { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 12px auto; max-width: 720px; }
+  .caixa { background: rgba(255,255,255,.08); border: 2px solid #5a3a9a; border-radius: 14px; padding: 8px 14px; font-weight: bold; text-align: center; }
+  .raios { font-size: 22px; letter-spacing: 2px; }
+  .recarga { font-size: 12px; color: #c9b8ff; font-weight: normal; }
+  .limites { max-width: 720px; margin: 0 auto 14px; background: rgba(255,80,80,.12); border: 2px dashed #ff6a6a; border-radius: 14px; padding: 10px 14px; font-size: 14px; line-height: 1.6; }
+  .limites b { color: #ffd0d0; }
+  h2 { max-width: 720px; margin: 16px auto 8px; font-size: 18px; }
+  .grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; max-width: 720px; margin: 0 auto; }
+  .jogo { position: relative; background: rgba(40,20,80,.9); border: 2px solid #7a4adf; border-radius: 14px; padding: 12px 8px; text-align: center; cursor: pointer; user-select: none; transition: transform .1s; }
+  .jogo:active { transform: scale(.96); }
+  .jogo .ic { font-size: 34px; }
+  .jogo .nome { font-weight: bold; font-size: 14px; margin: 6px 0; min-height: 34px; display: flex; align-items: center; justify-content: center; }
+  .jogo .bt { background: #3ac46a; color: #08210f; border-radius: 10px; padding: 5px; font-weight: bold; font-size: 13px; }
+  .jogo.tranca { background: rgba(30,30,40,.9); border-color: #555; }
+  .jogo.tranca .ic { filter: grayscale(1) brightness(.6); }
+  .jogo.tranca .bt { background: #ffcc33; color: #3a2a00; }
+  .jogo .cad { position: absolute; top: 6px; right: 8px; font-size: 18px; }
+  .completo { display: block; max-width: 720px; margin: 22px auto 30px; text-align: center; background: linear-gradient(135deg,#ff7a00,#c23aff); color: #fff; text-decoration: none; font-weight: bold; font-size: 18px; padding: 14px; border-radius: 16px; box-shadow: 0 0 20px rgba(194,58,255,.5); }
+  #aviso { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #ff4a6a; color: #fff; font-weight: bold; padding: 12px 18px; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,.5); display: none; z-index: 50; text-align: center; max-width: 90%; }
+  #carregando { text-align: center; color: #c9b8ff; margin: 30px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🍄 Cogumelo Games <span class="lite">LITE</span></h1>
+  <div class="sub">A versão grátis e limitada! Jogue pra liberar mais coisas 🔓</div>
+</header>
+
+<div class="barra">
+  <div class="caixa">⚡ Energia<div class="raios" id="raios"></div><div class="recarga" id="recarga"></div></div>
+  <div class="caixa">🍄 Cogu Coins<div class="raios" id="moedas">0</div><div class="recarga">ganha jogando</div></div>
+  <div class="caixa">🔓 Liberados<div class="raios" id="liberados">0</div><div class="recarga" id="totalJogos"></div></div>
+</div>
+
+<div class="limites">
+  🔒 <b>No LITE muitas coisas são limitadas:</b><br>
+  ⚡ Só <b>5 de energia</b>: cada jogo gasta 1 (volta 1 a cada <b>20 min</b>)<br>
+  🎮 Só <b>6 jogos</b> liberados: o resto custa <b>150 Cogu Coins</b> cada<br>
+  🚫 Sem chat, sem comunidade, sem loja e sem perfil
+</div>
+
+<h2>✅ Jogos liberados</h2>
+<div class="grade" id="livres"></div>
+<h2>🔒 Jogos trancados</h2>
+<div class="grade" id="trancados"></div>
+<div id="carregando">Carregando jogos... 🍄</div>
+
+<a class="completo" href="/">🚀 Quero o Cogumelo Games COMPLETO (é de graça!)</a>
+<div id="aviso"></div>
+
+<script src="/cogucoins.js?v=552"></script>
+<script>
+(function () {
+  var ENERGIA_MAX = 5, RECARGA_MS = 20 * 60 * 1000, PRECO = 150, GRATIS = 6;
+  var CH_ENERGIA = 'cg_lite_energia', CH_LIB = 'cg_lite_liberados';
+  // isso não é jogo (ou é coisa que o LITE não tem)
+  var FORA = ['cogucoins', 'comunidade', 'sugestoes', 'loja', 'conta', 'lab', 'pai-recur', 'pai-rpg'];
+
+  function le(k, def) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? def : v; } catch (e) { return def; } }
+  function grava(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+  // energia: {n, t} = quantidade e quando começou a recarregar
+  function energia() {
+    var e = le(CH_ENERGIA, { n: ENERGIA_MAX, t: Date.now() });
+    if (e.n >= ENERGIA_MAX) return { n: ENERGIA_MAX, t: Date.now() };
+    var ganhou = Math.floor((Date.now() - e.t) / RECARGA_MS);
+    if (ganhou > 0) { e.n = Math.min(ENERGIA_MAX, e.n + ganhou); e.t += ganhou * RECARGA_MS; grava(CH_ENERGIA, e); }
+    return e;
+  }
+
+  var jogos = [];
+  var aviTimer;
+  function avisa(txt) {
+    var a = document.getElementById('aviso');
+    a.textContent = txt; a.style.display = 'block';
+    clearTimeout(aviTimer); aviTimer = setTimeout(function () { a.style.display = 'none'; }, 2600);
+  }
+
+  function liberados() {
+    var lib = le(CH_LIB, []);
+    return jogos.filter(function (j, i) { return i < GRATIS || lib.indexOf(j.pasta) >= 0; });
+  }
+
+  function mostraBarra() {
+    var e = energia();
+    document.getElementById('raios').textContent = '⚡'.repeat(e.n) + '▫️'.repeat(ENERGIA_MAX - e.n);
+    if (e.n >= ENERGIA_MAX) document.getElementById('recarga').textContent = 'cheia!';
+    else {
+      var falta = RECARGA_MS - (Date.now() - e.t), m = Math.floor(falta / 60000), s = Math.floor(falta / 1000) % 60;
+      document.getElementById('recarga').textContent = '+1 em ' + m + ':' + (s < 10 ? '0' : '') + s;
+    }
+    var moedas = window.CoguCoins ? CoguCoins.texto() : '0';
+    document.getElementById('moedas').textContent = moedas;
+    document.getElementById('liberados').textContent = liberados().length;
+    document.getElementById('totalJogos').textContent = 'de ' + jogos.length + ' jogos';
+  }
+
+  function card(j, livre) {
+    var d = document.createElement('div');
+    d.className = 'jogo' + (livre ? '' : ' tranca');
+    d.innerHTML = (livre ? '' : '<span class="cad">🔒</span>') +
+      '<div class="ic"></div><div class="nome"></div><div class="bt">' + (livre ? '▶ JOGAR ⚡1' : '🔓 ' + PRECO + ' 🍄') + '</div>';
+    d.querySelector('.ic').textContent = j.icone;
+    d.querySelector('.nome').textContent = j.nome;
+    d.onclick = function () { livre ? joga(j) : desbloqueia(j); };
+    return d;
+  }
+
+  function desenha() {
+    var lib = le(CH_LIB, []);
+    var L = document.getElementById('livres'), T = document.getElementById('trancados');
+    L.innerHTML = ''; T.innerHTML = '';
+    jogos.forEach(function (j, i) {
+      var livre = i < GRATIS || lib.indexOf(j.pasta) >= 0;
+      (livre ? L : T).appendChild(card(j, livre));
+    });
+    mostraBarra();
+  }
+
+  function joga(j) {
+    var e = energia();
+    if (e.n <= 0) { avisa('⚡ Sem energia! Espera recarregar ou vai pro site completo 🚀'); return; }
+    if (e.n >= ENERGIA_MAX) e.t = Date.now();
+    e.n--; grava(CH_ENERGIA, e);
+    location.href = j.href;
+  }
+
+  function desbloqueia(j) {
+    if (!window.CoguCoins || !CoguCoins.gasta(PRECO)) {
+      avisa('🍄 Precisa de ' + PRECO + ' Cogu Coins! Jogue pra ganhar mais');
+      return;
+    }
+    var lib = le(CH_LIB, []);
+    lib.push(j.pasta); grava(CH_LIB, lib);
+    avisa('🎉 ' + j.nome + ' liberado!');
+    desenha();
+  }
+
+  // pega a lista de jogos da home (assim jogo novo aparece sozinho aqui)
+  fetch('/', { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (html) {
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    var vistos = {};
+    doc.querySelectorAll('a.game-card').forEach(function (a) {
+      var href = a.getAttribute('href') || '';
+      var pasta = href.replace(/^\/|\/$/g, '').split('/')[0];
+      if (!pasta || /^https?:/.test(href) || vistos[pasta] || FORA.indexOf(pasta) >= 0) return;
+      if (/display\s*:\s*none/.test(a.getAttribute('style') || '')) return;   // escondido na home = escondido aqui
+      var nome = a.querySelector('.game-name'), ic = a.querySelector('.game-icon');
+      if (!nome) return;
+      vistos[pasta] = 1;
+      jogos.push({ pasta: pasta, href: '/' + pasta + '/', nome: nome.textContent.trim(), icone: ic ? ic.textContent.trim() : '🎮' });
+    });
+    document.getElementById('carregando').style.display = 'none';
+    desenha();
+  }).catch(function () {
+    document.getElementById('carregando').textContent = 'Não deu pra carregar os jogos 😢 Tenta de novo!';
+  });
+
+  setInterval(mostraBarra, 1000);
+  window.addEventListener('cogucoins', mostraBarra);
+})();
+</script>
+</body>
+</html>
