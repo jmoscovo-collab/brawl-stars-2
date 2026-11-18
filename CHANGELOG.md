@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v649 (2026-11-18)
+- 🚒 Jogo novo (ainda escondido, só pelo link /bombeiro/): **Cogu Bombeiro 3D**! A cidade está pegando fogo: corra pelas ruas com a mangueira (ela mira sozinha no fogo), encha a água no caminhão e nos hidrantes, e salve os cogumelos presos gritando SOCORRO! O fogo cresce e pula de casa em casa. 6 fases (2 de noite e uma com ventania) com até 3 estrelas ⭐⭐⭐
+- 🆕 Selo NOVO! de novo só nos 3 jogos mais novos
+
 ## v648 (2026-11-18)
 - 🌊 Alerta de Tsunami 3D com visual NOVO: **sombras de verdade** ☀️ (prédios, carros e cogumelos fazem sombra), rua com asfalto de verdade e faixa amarela dupla, calçadão de pedrinha com ondinhas de praia, meio-fio, prédios com **janelas de vidro**, varandinhas e **lojinhas com vitrine** embaixo, e o morro agora tem **grama com florzinhas e árvores** 🌳
 
