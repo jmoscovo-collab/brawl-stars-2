@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v645 (2026-11-18)
+- 🌊 Alerta de Tsunami 3D ficou MUITO mais bonito: céu azul com sol brilhando, nuvens, gaivotas voando, coqueiros na praia, postes, toldos listrados nas lojas, o mar balançando com espuma na beira, sombrinha embaixo dos cogumelos, e a **ONDA GIGANTE agora enrola de verdade**, com espuma branca e gotas voando! 😱
+
 ## v644 (2026-11-18)
 - 🎉 MEGA EVENTO DE COGU COINS (até 22/11)! Botão novo na página inicial: TODOS os jogos do site têm uma tabela de missões (jogar 3/10/20 minutos, ganhar moedas no jogo) e cada missão completa dá **Cogu Coins DE VERDADE na hora** — e é bastante coisa!
 

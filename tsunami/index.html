@@ -227,8 +227,8 @@ function loop(t) {
 }
 requestAnimationFrame(loop);
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0x6a8a5a, 0.85));
-var sol = new THREE.DirectionalLight(0xffffff, 0.6); sol.position.set(-8, 20, 10); scene.add(sol);
+scene.add(new THREE.HemisphereLight(0xe4f2ff, 0x8a7a5a, 0.8));
+var sol = new THREE.DirectionalLight(0xfff0d0, 0.75); sol.position.set(-8, 20, 10); scene.add(sol);
 
 // altura do chão: a rua vai subindo até o morro
 function H(z) {
@@ -252,6 +252,9 @@ var texMar = texCanvas(64, 64, function (x, w, h) {
     for (var i = 0; i < 6; i++) { x.beginPath(); var y = i * 11 + 4; x.moveTo(0, y); x.quadraticCurveTo(16, y - 4, 32, y); x.quadraticCurveTo(48, y + 4, 64, y); x.stroke(); }
 }, 30, 30);
 
+var TOLDOS = ['#e83a3a', '#2a8ad8', '#3ab04a', '#ff9a1a'].map(function (cor) {
+    return texCanvas(16, 64, function (x, w, h) { for (var i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#ffffff' : cor; x.fillRect(0, i * 8, w, 8); } }, 1, 1);
+});
 function mt(cor) { return new THREE.MeshLambertMaterial({ color:cor }); }
 function caixaMesh(w, h, d, cor, x, y, z, pai) { var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), typeof cor === 'number' ? mt(cor) : cor); m.position.set(x, y + h / 2, z); (pai || scene).add(m); return m; }
 
@@ -274,7 +277,11 @@ var MUNDO = new THREE.Group(); scene.add(MUNDO);
     for (var z = 22; z > -106; z -= 6) { var f = caixaMesh(0.25, 0.02, 2.4, 0xffe04a, 0, H(z) + 0.01, z, MUNDO); f.rotation.x = Math.atan(0.09); }
     // areia e mar
     var areia = new THREE.Mesh(new THREE.PlaneGeometry(120, 20), mt(0xf0d890)); areia.rotation.x = -Math.PI / 2; areia.position.set(0, -0.02, 48); MUNDO.add(areia);
-    var mar = new THREE.Mesh(new THREE.PlaneGeometry(500, 400), new THREE.MeshLambertMaterial({ map:texMar })); mar.rotation.x = -Math.PI / 2; mar.position.set(0, -0.15, 255); MUNDO.add(mar);
+    var mar = new THREE.Mesh(new THREE.PlaneGeometry(500, 400, CELULAR ? 40 : 70, CELULAR ? 30 : 50), new THREE.MeshLambertMaterial({ map:texMar, color:0xa8e8ff })); mar.rotation.x = -Math.PI / 2; mar.position.set(0, -0.25, 258); MUNDO.add(mar);
+    mar.userData.base = mar.geometry.attributes.position.array.slice();
+    // espuminha na beira do mar
+    var beira = new THREE.Mesh(new THREE.PlaneGeometry(120, 1.6), new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0.7, depthWrite:false }));
+    beira.rotation.x = -Math.PI / 2; beira.position.set(0, 0.01, 57.4); MUNDO.add(beira); MUNDO.userData.beira = beira;
     MUNDO.userData.mar = mar;
     // prédios dos dois lados
     var cores2 = [0xffb0a0, 0xa0d0ff, 0xfff0a0, 0xb0f0b0, 0xe0b0ff, 0xffd0a0, 0xffffff];
@@ -283,6 +290,13 @@ var MUNDO = new THREE.Group(); scene.add(MUNDO);
             var d = 7 + Math.random() * 5, w = 8 + Math.random() * 6, h = 6 + Math.random() * 16;
             var m = new THREE.MeshLambertMaterial({ map:texPredio, color:cores2[Math.floor(Math.random() * cores2.length)] });
             caixaMesh(w, h + 4, d - 0.6, m, lado * (12 + w / 2), H(z - d / 2) - 4, z - d / 2, MUNDO);
+            // beiral no telhado, caixa d'água e toldo listrado
+            caixaMesh(w + 0.3, 0.5, d - 0.3, 0xece4d4, lado * (12 + w / 2), H(z - d / 2) + h, z - d / 2, MUNDO);
+            if (Math.random() < 0.4) caixaMesh(1.6, 1.5, 1.6, 0x4a7ab8, lado * (12 + w * 0.6), H(z - d / 2) + h + 0.5, z - d / 2 + 1, MUNDO);
+            if (Math.random() < 0.6) {
+                var tol = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, d - 1.8), new THREE.MeshLambertMaterial({ map:TOLDOS[Math.floor(Math.random() * TOLDOS.length)] }));
+                tol.position.set(lado * 11.25, H(z - d / 2) + 2.7, z - d / 2); tol.rotation.z = lado * 0.35; MUNDO.add(tol);
+            }
             z -= d;
         }
         // lojinhas ao lado do restaurante
@@ -347,6 +361,88 @@ function parede(x1, x2, z1, z2, y2, cor, semMesh) {
     });
 })();
 
+// ---------------- enfeites: céu, sol, nuvens, coqueiros, postes, gaivotas ----------------
+var ENF = { nuvens:[], aves:[] };
+(function () {
+    // céu com degradê
+    var g = new THREE.SphereGeometry(320, 24, 14), p = g.attributes.position, cs = [], c = new THREE.Color(), topo = new THREE.Color(0x2a78e0), hor = new THREE.Color(0xbfe6ff);
+    for (var i = 0; i < p.count; i++) { var t = Math.max(0, p.getY(i) / 320); c.copy(hor).lerp(topo, Math.pow(t, 0.55)); cs.push(c.r, c.g, c.b); }
+    g.setAttribute('color', new THREE.Float32BufferAttribute(cs, 3));
+    ENF.ceu = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors:true, side:THREE.BackSide, fog:false, depthWrite:false }));
+    ENF.ceu.renderOrder = -2; scene.add(ENF.ceu);
+    // sol brilhante
+    var texSol = texCanvas(128, 128, function (x, w, h) {
+        var gr = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+        gr.addColorStop(0, 'rgba(255,255,240,1)'); gr.addColorStop(0.22, 'rgba(255,248,200,1)'); gr.addColorStop(0.35, 'rgba(255,230,150,0.5)'); gr.addColorStop(1, 'rgba(255,220,150,0)');
+        x.fillStyle = gr; x.fillRect(0, 0, w, h);
+    }, 1, 1);
+    ENF.sol = new THREE.Sprite(new THREE.SpriteMaterial({ map:texSol, fog:false, depthWrite:false, transparent:true }));
+    ENF.sol.scale.set(90, 90, 1); ENF.sol.renderOrder = -1; scene.add(ENF.sol);
+    // nuvens fofinhas
+    var matN = new THREE.MeshLambertMaterial({ color:0xffffff, emissive:0x9aaabb, fog:false }), geoN = new THREE.SphereGeometry(1, 10, 8);
+    for (var n = 0; n < (CELULAR ? 6 : 12); n++) {
+        var nv = new THREE.Group();
+        for (var k = 0; k < 5; k++) { var s = new THREE.Mesh(geoN, matN); var r = 5 + Math.random() * 5; s.scale.set(r * 1.4, r * 0.8, r); s.position.set((k - 2) * 7 + Math.random() * 3, Math.random() * 3, Math.random() * 6 - 3); nv.add(s); }
+        nv.position.set(-220 + Math.random() * 440, 70 + Math.random() * 40, -260 + Math.random() * 540);
+        scene.add(nv); ENF.nuvens.push(nv);
+    }
+    // coqueiros
+    var matTronco = mt(0x9a6a3a), matFolha = mt(0x2aa040), matCoco = mt(0x6a4a22);
+    var geoFolha = new THREE.BoxGeometry(0.5, 0.06, 3.4); geoFolha.translate(0, 0, 1.7);
+    function coqueiro(x, z, esc) {
+        var c2 = new THREE.Group(), inc = (Math.random() - 0.5) * 0.5, px = 0, py = 0;
+        for (var i = 0; i < 6; i++) {
+            var seg = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 1.05, 7), matTronco);
+            px += inc * 0.35 * (i / 6 + 0.3); py += 1; seg.position.set(px, py - 0.5, 0); seg.rotation.z = -inc * 0.5; c2.add(seg);
+        }
+        for (var f = 0; f < 7; f++) {
+            var fo = new THREE.Mesh(geoFolha, matFolha); fo.rotation.order = 'YXZ';
+            fo.rotation.y = f / 7 * Math.PI * 2 + Math.random() * 0.3; fo.rotation.x = 0.35 + Math.random() * 0.25; fo.position.set(px, py, 0); c2.add(fo);
+        }
+        for (var q = 0; q < 3; q++) { var co = new THREE.Mesh(new THREE.SphereGeometry(0.22, 7, 6), matCoco); co.position.set(px + Math.cos(q * 2.1) * 0.25, py - 0.25, Math.sin(q * 2.1) * 0.25); c2.add(co); }
+        c2.scale.setScalar(esc); c2.position.set(x, H(z), z); c2.rotation.y = Math.random() * 6; MUNDO.add(c2);
+    }
+    var praia = CELULAR ? [[-40, 47], [-24, 52], [24, 50], [40, 46], [-11, 44], [11, 45]]
+        : [[-48, 50], [-40, 45], [-30, 53], [-22, 46], [-12, 44], [12, 45], [20, 52], [30, 46], [38, 53], [48, 47]];
+    praia.forEach(function (pp) { coqueiro(pp[0], pp[1], 1.1 + Math.random() * 0.4); });
+    [[-11.5, -122], [11.5, -126], [-12, -138], [12, -142]].forEach(function (pp) { coqueiro(pp[0], pp[1], 1); });
+    // postes de luz na calçada
+    var matPoste = mt(0x5a6070), matLuz = new THREE.MeshBasicMaterial({ color:0xfff4c0 });
+    for (var zz = 18; zz > -106; zz -= (CELULAR ? 24 : 14)) {
+        [-1, 1].forEach(function (l) {
+            caixaMesh(0.14, 4.6, 0.14, matPoste, l * 10.9, H(zz), zz, MUNDO);
+            caixaMesh(1.1, 0.1, 0.12, matPoste, l * 10.45, H(zz) + 4.5, zz, MUNDO);
+            caixaMesh(0.45, 0.18, 0.3, matLuz, l * 9.95, H(zz) + 4.38, zz, MUNDO);
+        });
+    }
+    // gaivotas
+    var matAve = mt(0xffffff);
+    for (var a = 0; a < (CELULAR ? 3 : 6); a++) {
+        var av = new THREE.Group(), asas = [];
+        [-1, 1].forEach(function (l) { var pv = new THREE.Group(); var as = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.04, 0.3), matAve); as.position.x = l * 0.45; pv.add(as); av.add(pv); asas.push(pv); });
+        var cp = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.18, 0.6), matAve); av.add(cp);
+        scene.add(av); ENF.aves.push({ g:av, asas:asas, r:12 + Math.random() * 20, h:14 + Math.random() * 10, f:Math.random() * 6, v:0.25 + Math.random() * 0.2, cx:(Math.random() - 0.5) * 30, cz:60 + Math.random() * 20 });
+    }
+})();
+function animaEnfeites(dt) {
+    ENF.ceu.position.copy(camera.position);
+    ENF.sol.position.set(camera.position.x - 90, camera.position.y + 110, camera.position.z + 250);
+    ENF.nuvens.forEach(function (n) { n.position.x += dt * 2; if (n.position.x > 240) n.position.x = -240; });
+    ENF.aves.forEach(function (a) {
+        a.f += dt * a.v; var x = a.cx + Math.cos(a.f) * a.r, z = a.cz + Math.sin(a.f) * a.r;
+        a.g.position.set(x, a.h + Math.sin(a.f * 3) * 1.2, z); a.g.rotation.y = -a.f;
+        var bat = Math.sin(tempo * 9 + a.r) * 0.5; a.asas[0].rotation.z = -bat; a.asas[1].rotation.z = bat;
+    });
+    // mar balançando
+    var mar = MUNDO.userData.mar, p = mar.geometry.attributes.position, b = mar.userData.base;
+    for (var i = 0; i < p.count; i++) {
+        var x = b[i * 3], y = b[i * 3 + 1], perto = Math.min(1, (200 - y) / 14);
+        p.setZ(i, (Math.sin(x * 0.09 + tempo * 1.4) * 0.35 + Math.sin(y * 0.13 + tempo * 1.9) * 0.45) * perto);
+    }
+    p.needsUpdate = true; mar.geometry.computeVertexNormals();
+    var be = MUNDO.userData.beira; be.position.z = 57.2 + Math.sin(tempo * 0.9) * 0.9; be.material.opacity = 0.45 + Math.sin(tempo * 0.9 + 1) * 0.3;
+}
+
 // ---------------- personagens ----------------
 function criaCogu(cor, celular) {
     var g = new THREE.Group();
@@ -362,10 +458,12 @@ function criaCogu(cor, celular) {
     [-0.15, 0.15].forEach(function (x) { var o = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), pe); o.position.set(x, 0.05, 0.05); o.scale.set(1, 0.6, 1.4); g.add(o); });
     return g;
 }
+var GEO_SOMBRA = new THREE.CircleGeometry(0.42, 14), MAT_SOMBRA = new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.28, depthWrite:false });
 var bonecos = [], eu = null, OBS = [], carros = [], BOX = [];
 function novoBoneco(cor, x, z, npc) {
     var m = criaCogu(cor); scene.add(m);
     var b = { x:x, y:H(z), z:z, vx:0, vz:0, vy:0, chao:true, coyote:0, buf:0, m:m, rot:Math.PI, npc:npc, vel:npc ? 4 + Math.random() * 1.6 : VEL, tonto:0, vivo:true, salvo:false, espera:0, lane:x, boia:0 };
+    b.sombra = new THREE.Mesh(GEO_SOMBRA, MAT_SOMBRA); b.sombra.rotation.x = -Math.PI / 2; scene.add(b.sombra);
     bonecos.push(b); return b;
 }
 
@@ -614,7 +712,7 @@ function comecar() {
     J.ondaZ = 45 + J.resta * 2; J.fimT = 0; J.resultado = null; J.tFuga = 0; J.alarmeT = 0;
     J.tremor = 0; J.tremT = J.dif.tremor ? 4 + Math.random() * 3 : 0; J.entT = 2;
     limpaEntulho();
-    bonecos.forEach(function (b) { scene.remove(b.m); }); bonecos = [];
+    bonecos.forEach(function (b) { scene.remove(b.m); scene.remove(b.sombra); }); bonecos = [];
     montaRua(J.dif);
     eu = novoBoneco(0xe02a2a, 0, 34.1, false);
     eu.rot = 0;
@@ -830,13 +928,70 @@ function passoEntulho(dt) {
 
 // ---------------- visual ----------------
 var onda = new THREE.Group(); scene.add(onda);
+// onda gigante: uma folha curvada (perfil enrolando na frente), com espuma e borrifos
+var ONDA = {};
 (function () {
-    var agua = new THREE.MeshLambertMaterial({ color:0x1a6ad0, transparent:true, opacity:0.92 });
-    var corpo = new THREE.Mesh(new THREE.BoxGeometry(70, 14, 10), agua); corpo.position.set(0, 7, 5); onda.add(corpo);
-    var curva = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 70, 16, 1, false, 0, Math.PI), agua); curva.rotation.z = Math.PI / 2; curva.position.set(0, 14, 0); onda.add(curva);
-    var espuma = new THREE.Mesh(new THREE.BoxGeometry(70, 1.2, 3), mt(0xffffff)); espuma.position.set(0, 17.6, -0.5); onda.add(espuma);
-    var atras = new THREE.Mesh(new THREE.BoxGeometry(70, 10, 300), agua); atras.position.set(0, 4, 160); onda.add(atras);
+    // perfil (z, y): da espuma no chão, sobe a parede, enrola no topo e desce pras costas
+    var P = [[-4, 0], [-2.2, 1.6], [-0.6, 4], [0.4, 7], [0.7, 10], [0.2, 12.5], [-1, 13.9], [-1.8, 14.4], [-0.5, 15.4], [1.5, 16], [4, 15.4], [6.5, 13.5], [9, 10.5], [12, 8], [15, 6.3], [19, 5.3], [24, 5]];
+    var C = [0xeaf8ff, 0x0d4f9a, 0x1260b0, 0x1a78c8, 0x2a98d8, 0x5ac8ea, 0xbfefff, 0xffffff, 0xffffff, 0xd8f4ff, 0x7ad0ee, 0x2a98d8, 0x1a78c8, 0x1668b8, 0x1260b0, 0x1260b0, 0x1260b0];
+    var NX = 36, W = 72, pos = [], cor = [], idx = [], cc = new THREE.Color(), i, j;
+    for (j = 0; j < P.length; j++) for (i = 0; i <= NX; i++) { pos.push(-W / 2 + W * i / NX, P[j][1], P[j][0]); cc.setHex(C[j]); cor.push(cc.r, cc.g, cc.b); }
+    for (j = 0; j < P.length - 1; j++) for (i = 0; i < NX; i++) { var a = j * (NX + 1) + i, b = a + 1, c = a + NX + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(cor, 3));
+    geo.setIndex(idx); geo.computeVertexNormals();
+    var folha = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors:true, side:THREE.DoubleSide })); folha.frustumCulled = false; onda.add(folha);
+    ONDA.geo = geo; ONDA.base = pos.slice(); ONDA.NX = NX; ONDA.P = P;
+    var atras = new THREE.Mesh(new THREE.BoxGeometry(W, 14, 300), mt(0x1260b0)); atras.position.set(0, -2, 24 + 150); onda.add(atras);
+    // espuma (bolinhas brancas na crista e no pé da onda)
+    var nF = CELULAR ? 50 : 80;
+    ONDA.esp = new THREE.InstancedMesh(new THREE.SphereGeometry(0.7, 8, 6), new THREE.MeshLambertMaterial({ color:0xffffff, emissive:0x667788 }), nF);
+    ONDA.esp.frustumCulled = false; ONDA.espD = [];
+    for (i = 0; i < nF; i++) ONDA.espD.push({ x:-W / 2 + Math.random() * W, pe:i % 2 === 0, f:Math.random() * 6, s:0.6 + Math.random() * 0.9 });
+    onda.add(ONDA.esp);
+    // borrifos (gotinhas voando)
+    ONDA.nB = CELULAR ? 120 : 280; ONDA.bor = [];
+    for (i = 0; i < ONDA.nB; i++) ONDA.bor.push({ v:0 });
+    ONDA.bg = new THREE.BufferGeometry(); ONDA.bg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ONDA.nB * 3), 3));
+    var pts = new THREE.Points(ONDA.bg, new THREE.PointsMaterial({ color:0xffffff, size:0.6, transparent:true, opacity:0.9, depthWrite:false, map:texCanvas(32, 32, function (x) {
+        var gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.5, 'rgba(230,248,255,0.8)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+        x.fillStyle = gr; x.fillRect(0, 0, 32, 32);
+    }, 1, 1) }));
+    pts.frustumCulled = false; onda.add(pts);
 })();
+function ondula(x, j) { var k = Math.min(1, ONDA.P[j][1] / 14); return Math.sin(x * 0.22 + tempo * 2.2 + j * 0.15) * 0.6 * k + Math.sin(x * 0.07 - tempo * 1.3) * 0.8 * k; }
+var _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _v = new THREE.Vector3();
+function animaOnda(dt) {
+    var p = ONDA.geo.attributes.position, b = ONDA.base, NX = ONDA.NX, j, i, n;
+    for (j = 1; j < ONDA.P.length - 1; j++) for (i = 0; i <= NX; i++) {
+        n = j * (NX + 1) + i;
+        p.setZ(n, b[n * 3 + 2] + ondula(b[n * 3], j));
+        p.setY(n, b[n * 3 + 1] + Math.sin(b[n * 3] * 0.3 + tempo * 3) * 0.25 * Math.min(1, ONDA.P[j][1] / 14));
+    }
+    p.needsUpdate = true; ONDA.geo.computeVertexNormals();
+    ONDA.espD.forEach(function (f, k) {
+        f.f += dt * 3;
+        var sc = f.s * (0.8 + Math.sin(f.f) * 0.25);
+        if (f.pe) _v.set(f.x, 0.25, -4.3 + Math.sin(f.f * 0.7) * 0.6);
+        else _v.set(f.x, 15.6 + Math.sin(f.f) * 0.3, -0.8 + ondula(f.x, 8));
+        _s.set(sc * 1.6, sc, sc); _m4.compose(_v, _q, _s); ONDA.esp.setMatrixAt(k, _m4);
+    });
+    ONDA.esp.instanceMatrix.needsUpdate = true;
+    var bp = ONDA.bg.attributes.position;
+    ONDA.bor.forEach(function (o, k) {
+        if (!o.v || o.y < -0.5) {
+            var topo = Math.random() < 0.6;
+            o.x = -35 + Math.random() * 70; o.y = topo ? 15.5 : 0.5; o.z = topo ? -1.5 : -4;
+            o.vx = (Math.random() - 0.5) * 2; o.vy = topo ? 2 + Math.random() * 4 : 3 + Math.random() * 5; o.vz = -2 - Math.random() * 5;
+            if (!o.v) { var r = Math.random() * 1.2; o.x += o.vx * r; o.y += o.vy * r - 6 * r * r; o.z += o.vz * r; o.vy -= 12 * r; }
+            o.v = 1;
+        }
+        o.vy -= 12 * dt; o.x += o.vx * dt; o.y += o.vy * dt; o.z += o.vz * dt;
+        bp.setXYZ(k, o.x, o.y, o.z);
+    });
+    bp.needsUpdate = true;
+}
 var hudT = 0, tempo = 0, camAlvo = new THREE.Vector3(0, 2, 30);
 function visual(dt) {
     tempo += dt;
@@ -844,11 +999,14 @@ function visual(dt) {
     var mz = J.on || J.fase === 'fim' ? J.ondaZ : 120 + Math.sin(tempo * 0.3) * 4;
     var esc = J.resta > 0 && (J.on || J.fase === 'fim') ? Math.max(0.25, 1 - J.resta / 70) : 1;
     if (!J.on && J.fase !== 'fim') esc = 0.5;
-    onda.position.set(0, H(mz) - 1, mz); onda.scale.set(1, esc, 1);
+    onda.position.set(0, H(mz) - 0.3, mz); onda.scale.set(1, esc, 1);
+    animaOnda(dt);
     if (flashT > 0) { flashT -= dt; document.getElementById('flash').style.opacity = flashT > 0 ? (Math.sin(tempo * 14) > 0 ? 0.25 : 0) : 0; }
     bonecos.forEach(function (e) {
         e.m.position.set(e.x, e.y, e.z);
         e.m.visible = !(e === eu && J.fase === 'celular');
+        e.sombra.visible = e.m.visible && e.vivo;
+        if (e.sombra.visible) { var ys = chaoSob(e, 0.3); e.sombra.position.set(e.x, ys + 0.05, e.z); var ss = Math.max(0.4, 1 - (e.y - ys) * 0.12); e.sombra.scale.set(ss, ss, ss); }
         var dr = e.rot - e.m.rotation.y;
         while (dr > Math.PI) dr -= Math.PI * 2; while (dr < -Math.PI) dr += Math.PI * 2;
         e.m.rotation.y += dr * Math.min(1, dt * 10);
@@ -875,6 +1033,7 @@ function visual(dt) {
         camera.position.set(Math.sin(a) * 6, 9 + Math.sin(a * 0.7) * 2, 10 + Math.cos(a) * 4);
         camera.lookAt(0, 3, 60);
     }
+    animaEnfeites(dt);
     hudT -= dt;
     if (hudT <= 0 && J.on && J.fase === 'fuga') {
         hudT = 0.25;
