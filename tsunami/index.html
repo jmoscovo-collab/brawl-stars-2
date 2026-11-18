@@ -31,6 +31,9 @@ button.cinza { background:#3a4a6a; }
 .modo .rec { color:#ffd84a; font-weight:bold; }
 .caixa { background:rgba(10,30,70,0.95); border:3px solid #7ae0ff; border-radius:18px; padding:18px; max-width:430px; width:100%; text-align:center; margin-top:3vh; }
 .caixa ul { text-align:left; padding-left:20px; color:#eaf6ff; font-size:14px; line-height:1.6; }
+.codigo { font-size:30px; font-weight:900; letter-spacing:5px; color:#ffd84a; text-align:center; margin:8px 0; background:rgba(0,0,0,0.3); border-radius:10px; padding:6px 10px; }
+.jogList { background:rgba(0,0,0,0.35); border-radius:12px; padding:8px 16px; margin:8px auto; min-width:200px; font-size:16px; text-align:left; }
+.jogList div { padding:3px 0; }
 .num { font-size:46px; line-height:1.2; }
 .tabela { display:grid; grid-template-columns:1fr auto; gap:4px 16px; text-align:left; margin:10px auto; max-width:260px; font-size:16px; }
 .tabela b { text-align:right; color:#ffd84a; }
@@ -121,6 +124,7 @@ a.voltar { color:#cfeaff; text-decoration:none; margin-top:16px; font-size:15px;
             <li>Cuidado com os carros cruzando a rua! 🚗</li>
             <li><b>Normal pra cima:</b> coisas caem dos prédios! 🪴 Fuja da <b>sombra vermelha</b> no chão.</li>
             <li><b>Difícil e EXTREMO:</b> a terra <b>TREME</b> 🌋 e todo mundo fica lento. E quando a onda chega ela é bem rápida!</li>
+            <li><b>🌐 Online:</b> crie uma sala pra jogar com amigos ou entre numa Sala Rápida. Todo mundo começa junto depois da contagem — quem chegar primeiro no morro vence a corrida!</li>
         </ul>
         <div class="linha"><button onclick="mostra('telaMenu')">Entendi!</button></div>
     </div>
@@ -130,6 +134,14 @@ a.voltar { color:#cfeaff; text-decoration:none; margin-top:16px; font-size:15px;
     <div class="caixa">
         <h2>Pausado</h2>
         <div class="linha"><button onclick="continuar()">Continuar</button><button class="cinza" onclick="irMenu()">Menu</button></div>
+    </div>
+</div>
+
+<div class="tela" id="telaOnline">
+    <div class="caixa" style="max-width:460px">
+        <h2>🌐 Jogar Online</h2>
+        <div id="onlineCorpo"></div>
+        <div class="linha"><button class="cinza" onclick="netVoltarMenu()">⬅ Voltar</button></div>
     </div>
 </div>
 
@@ -158,17 +170,21 @@ var DIFS = [
     { id:'facil',   nome:'Fácil',   ic:'🙂', desc:'Onda em 50s. Poucos obstáculos.', T:50, alarme:22, porLinha:[1, 2], carros:1, velOnda:12, velCarro:1, entulho:0, tremor:0 },
     { id:'normal',  nome:'Normal',  ic:'😬', desc:'Onda em 40s. Carros e vasos caindo!', T:40, alarme:17, porLinha:[2, 3], carros:3, velOnda:15, velCarro:1.2, entulho:2.6, tremor:0 },
     { id:'dificil', nome:'Difícil', ic:'😱', desc:'Onda em 32s. Ônibus, terremoto e onda rápida!', T:32, alarme:15, porLinha:[2, 3], carros:4, onibus:true, velOnda:18, velCarro:1.4, entulho:1.7, tremor:9 },
-    { id:'extremo', nome:'EXTREMO', ic:'🌋', desc:'Onda em 27s. Tudo junto e MUITO rápido!', T:27, alarme:14, porLinha:[3, 3], carros:5, onibus:true, velOnda:22, velCarro:1.7, entulho:1.1, tremor:6 }
+    { id:'extremo', nome:'EXTREMO', ic:'🌋', desc:'Onda em 27s. Tudo junto e MUITO rápido!', T:27, alarme:14, porLinha:[3, 3], carros:5, onibus:true, velOnda:22, velCarro:1.7, entulho:1.1, tremor:6 },
+    { id:'online',  nome:'Online',  ic:'🌐', desc:'Corra com outros cogumelos de verdade! Crie uma sala ou ache uma Sala Rápida. Quem chegar primeiro no morro vence!' }
 ];
 var difSel = 0;
 try { difSel = Math.max(0, Math.min(DIFS.length - 1, parseInt(localStorage.getItem('tsunami_dif') || '0', 10) || 0)); } catch (e) {}
 function recorde(id) { try { return parseInt(localStorage.getItem('tsunami_rec_' + id) || '0', 10) || 0; } catch (e) { return 0; } }
+function vitoriasOnline() { try { return parseInt(localStorage.getItem('tsunami_online_vit') || '0', 10) || 0; } catch (e) { return 0; } }
+function difIndexPorId(id) { for (var i = 0; i < DIFS.length; i++) if (DIFS[i].id === id) return i; return 1; }
 function montaModos() {
     var l = document.getElementById('listaModos'); l.innerHTML = '';
     DIFS.forEach(function (m, i) {
         var r = recorde(m.id);
         var d = document.createElement('div'); d.className = 'modo' + (i === difSel ? ' sel' : '');
-        d.innerHTML = '<div class="ic">' + m.ic + '</div><b>' + m.nome + '</b><span>' + m.desc + '</span><span class="rec">' + (r ? '⭐'.repeat(r) : 'Ainda não se salvou') + '</span>';
+        var recHtml = m.id === 'online' ? ('🏆 ' + vitoriasOnline() + ' vitórias') : (r ? '⭐'.repeat(r) : 'Ainda não se salvou');
+        d.innerHTML = '<div class="ic">' + m.ic + '</div><b>' + m.nome + '</b><span>' + m.desc + '</span><span class="rec">' + recHtml + '</span>';
         d.onclick = function (e) { e.stopPropagation(); difSel = i; try { localStorage.setItem('tsunami_dif', String(i)); } catch (er) {} montaModos(); };
         l.appendChild(d);
     });
@@ -706,25 +722,47 @@ document.getElementById('btFugir').onclick = function (e) { e.stopPropagation();
 // ---------------- partida ----------------
 var J = { on:false, pausa:false, fase:'menu', dif:DIFS[0], bot:false, resta:60, ondaZ:200, escolha:null, t:0 };
 var CORES_NPC = [0x2a8aff, 0x3ac04a, 0xffc81a, 0xb05aff, 0xff8a1a, 0x1ac0c0];
-function comecar() {
-    J.dif = DIFS[difSel];
-    J.on = true; J.pausa = false; J.fase = 'celular'; J.tCel = 0; J.alertou = false; J.escolha = null; J.resta = J.dif.T; J.t = 0;
-    J.ondaZ = 45 + J.resta * 2; J.fimT = 0; J.resultado = null; J.tFuga = 0; J.alarmeT = 0;
+var ONLINE_POS = [[-3, 26], [-1, 26], [1, 26], [3, 26]];
+var ONLINE_CORES = [0xe02a2a, 0x2a8aff, 0x3ac04a, 0xffc81a];
+function comecar(online) {
+    if (!online && DIFS[difSel].id === 'online') { abreOnline(); return; }
+    J.dif = online ? (DIFS[NET.difIdx] || DIFS[1]) : DIFS[difSel];
+    J.online = !!online;
+    J.on = true; J.pausa = false; J.escolha = null; J.t = 0;
+    J.resta = J.dif.T; J.ondaZ = 45 + J.resta * 2; J.fimT = 0; J.resultado = null; J.tFuga = 0; J.alarmeT = 0; J.lugar = 0;
     J.tremor = 0; J.tremT = J.dif.tremor ? 4 + Math.random() * 3 : 0; J.entT = 2;
+    J.netAcc = 0;
     limpaEntulho();
     bonecos.forEach(function (b) { scene.remove(b.m); scene.remove(b.sombra); }); bonecos = [];
     montaRua(J.dif);
-    eu = novoBoneco(0xe02a2a, 0, 34.1, false);
-    eu.rot = 0;
-    // clientes do restaurante + gente na rua
-    [[-4.5, 36.4], [4.5, 36.4], [-4, 30.1], [4, 31.9], [-5, 34.6]].forEach(function (p, i) { var n = novoBoneco(CORES_NPC[i % 6], p[0], p[1], true); n.espera = 999; n.cliente = true; n.rot = 0; });
-    for (var i = 0; i < 10; i++) { var z = 18 - i * 11 + Math.random() * 4, x = (Math.random() - 0.5) * 16; var n2 = novoBoneco(CORES_NPC[(i + 2) % 6], x, z, true); n2.espera = 999; n2.lane = x; }
-    yaw = 0; pitch = 0.42;
-    celLimpa();
-    document.getElementById('alerta').classList.remove('on');
-    var cel = document.getElementById('celular'); cel.classList.remove('cai', 'treme'); cel.classList.add('on');
-    document.getElementById('celInfo').textContent = '📶 🔋';
-    mostra(''); escondeHud();
+    if (J.online) {
+        J.fase = 'conta'; J.conta = 3.2; J.ultContaN = 4;
+        NET.bonecoPorId = {};
+        NET.jog.forEach(function (j, i) {
+            var p = ONLINE_POS[i] || ONLINE_POS[ONLINE_POS.length - 1];
+            var cor = ONLINE_CORES[i] || ONLINE_CORES[ONLINE_CORES.length - 1];
+            if (j.id === meuId) { eu = novoBoneco(cor, p[0], p[1], false); eu.jog = true; }
+            else if (j.bot) { var nb = novoBoneco(cor, p[0], p[1], true); nb.jog = true; nb.bot = true; nb.vel = 5.5 + Math.random() * 1.8; }
+            else { var rb = novoBoneco(cor, p[0], p[1], false); rb.remoto = true; rb.jog = true; NET.bonecoPorId[j.id] = rb; }
+        });
+        if (!eu) { eu = novoBoneco(ONLINE_CORES[0], ONLINE_POS[0][0], ONLINE_POS[0][1], false); eu.jog = true; }
+        celLimpa();
+        document.getElementById('celular').classList.remove('on', 'cai', 'treme');
+        mostra(''); escondeHud();
+    } else {
+        J.fase = 'celular'; J.tCel = 0; J.alertou = false;
+        eu = novoBoneco(0xe02a2a, 0, 34.1, false);
+        eu.rot = 0;
+        // clientes do restaurante + gente na rua
+        [[-4.5, 36.4], [4.5, 36.4], [-4, 30.1], [4, 31.9], [-5, 34.6]].forEach(function (p, i) { var n = novoBoneco(CORES_NPC[i % 6], p[0], p[1], true); n.espera = 999; n.cliente = true; n.rot = 0; });
+        for (var i = 0; i < 10; i++) { var z = 18 - i * 11 + Math.random() * 4, x = (Math.random() - 0.5) * 16; var n2 = novoBoneco(CORES_NPC[(i + 2) % 6], x, z, true); n2.espera = 999; n2.lane = x; }
+        yaw = 0; pitch = 0.42;
+        celLimpa();
+        document.getElementById('alerta').classList.remove('on');
+        var cel = document.getElementById('celular'); cel.classList.remove('cai', 'treme'); cel.classList.add('on');
+        document.getElementById('celInfo').textContent = '📶 🔋';
+        mostra(''); escondeHud();
+    }
     montaBOX();
 }
 function escolhe(qual) {
@@ -742,8 +780,9 @@ function comecaFuga(alarme) {
     if (CELULAR) btPulo.classList.add('on');
     eu.rot = Math.PI; yaw = 0;
     // todo mundo começa a correr (uns mais rápido que outros)
-    bonecos.forEach(function (b) { if (b.npc) b.espera = alarme ? Math.random() * 1.5 : 1.5 + Math.random() * 5; });
-    if (alarme) aviso('🚨 ALARME! 🚨', 'Todo mundo pra fora! Corre pro morro!', 2.2);
+    bonecos.forEach(function (b) { if (b.npc) b.espera = J.online ? 0 : (alarme ? Math.random() * 1.5 : 1.5 + Math.random() * 5); });
+    if (J.online) aviso('VAI! VAI! VAI! 🏁', 'Corra até o morro ⛰️', 1.8);
+    else if (alarme) aviso('🚨 ALARME! 🚨', 'Todo mundo pra fora! Corre pro morro!', 2.2);
     else aviso('BOA! CORRE! 🏃', 'Vá até o morro ⛰️', 1.8);
 }
 function montaBOX() {
@@ -757,6 +796,21 @@ function escondeHud() {
 }
 function terminar(salvo) {
     J.on = false; J.fase = 'fim'; J.fimEm = performance.now();
+    if (J.online) {
+        var total = bonecos.filter(function (b) { return b.jog; }).length;
+        var venceu = salvo && J.lugar === 1;
+        if (venceu && !J.bot) try { localStorage.setItem('tsunami_online_vit', String(vitoriasOnline() + 1)); } catch (e) {}
+        var moedas2 = Math.max(0, Math.min(30, venceu ? 18 : (salvo ? 10 : 4)));
+        if (moedas2 > 0 && !J.bot && window.CoguCoins) CoguCoins.ganha(moedas2);
+        document.getElementById('fimTitulo').textContent = venceu ? 'VOCÊ VENCEU A CORRIDA! 🏆' : (salvo ? 'VOCÊ SE SALVOU! ⛰️' : 'A ONDA TE PEGOU! 🌊');
+        document.getElementById('fimEst').textContent = venceu ? '🏆' : (salvo ? '⭐'.repeat(Math.max(1, 4 - (J.lugar || total))) : '🛟');
+        var linhasOn = [['Lugar', (J.lugar || total) + 'º de ' + total], ['Tempo correndo', J.tFuga.toFixed(1) + 's']];
+        if (moedas2 > 0) linhasOn.push(['Cogu Coins', '+' + moedas2 + ' 🍄']);
+        document.getElementById('fimTabela').innerHTML = linhasOn.map(function (l) { return '<span>' + l[0] + '</span><b>' + l[1] + '</b>'; }).join('');
+        escondeHud(); netSai();
+        mostra('telaFim'); montaModos();
+        return;
+    }
     var est = 0;
     if (salvo) est = J.escolha === 'fugir' ? 3 : (J.margem > 5 ? 2 : 1);
     var rec = recorde(J.dif.id);
@@ -782,6 +836,7 @@ function terminar(salvo) {
 function pausar() { if (!J.on || J.fimT) return; J.pausa = true; mostra('telaPausa'); }
 function continuar() { J.pausa = false; mostra(''); ultimo = performance.now(); }
 function irMenu() {
+    if (J.online) netSai();
     J.on = false; J.pausa = false; J.fase = 'menu'; escondeHud();
     document.getElementById('celular').classList.remove('on');
     mostra('telaMenu'); montaModos();
@@ -792,7 +847,12 @@ var flashT = 0;
 function passo(dt) {
     if (!J.on) return;
     // relógio da onda (começa quando chega o alerta)
-    if (J.fase === 'celular') {
+    if (J.fase === 'conta') {
+        J.conta -= dt;
+        var nCont = Math.ceil(J.conta - 0.2);
+        if (nCont !== J.ultContaN && nCont >= 1) { J.ultContaN = nCont; aviso(String(nCont), nCont === 3 ? 'Prepare-se! 🏁' : null, 0.8); bip(500, 500, 0.12, 'square', 0.06); }
+        if (J.conta <= 0.2) comecaFuga(false);
+    } else if (J.fase === 'celular') {
         J.tCel += dt;
         if (!J.bot) celPasso(dt);
         if (!J.alertou && J.tCel > 4) {
@@ -852,6 +912,8 @@ function passo(dt) {
     // bonecos
     bonecos.forEach(function (e) {
         if (!e.vivo) { e.boia += dt; e.z = Math.max(e.z - J.dif.velOnda * dt, J.ondaZ - 2); e.y = H(e.z) + 3 + Math.sin(e.boia * 4) * 0.4; return; }
+        if (e.remoto) return;   // posição vem da rede
+        if (e.bot && J.online && !NET.host) return;   // bots só o dono da sala simula
         if (e.salvo) { e.vx *= 0.9; e.vz *= 0.9; fisica(e, 0, e.z > Z_SEGURO - 6 ? -0.5 : 0, false, dt); return; }
         var ent = { mx:0, mz:0, pula:false };
         if (e === eu) {
@@ -870,12 +932,24 @@ function passo(dt) {
         if (Math.abs(e.vx) + Math.abs(e.vz) > 0.5) e.rot = Math.atan2(e.vx, e.vz);
         if (e.z < Z_SEGURO) {
             e.salvo = true;
-            if (e === eu) { J.margem = J.resta > 0 ? J.resta + (45 - Z_SEGURO) / J.dif.velOnda : (J.ondaZ - Z_SEGURO) / J.dif.velOnda; J.fimT = 2; aviso('SALVO! ⛰️🎉', null, 2); bip(500, 1200, 0.4, 'triangle', 0.08); }
+            if (e === eu) {
+                J.margem = J.resta > 0 ? J.resta + (45 - Z_SEGURO) / J.dif.velOnda : (J.ondaZ - Z_SEGURO) / J.dif.velOnda; J.fimT = 2;
+                if (J.online) J.lugar = bonecos.filter(function (b) { return b.jog && b !== eu && b.salvo; }).length + 1;
+                aviso('SALVO! ⛰️🎉', null, 2); bip(500, 1200, 0.4, 'triangle', 0.08);
+            }
         } else if (J.ondaZ - 3 < e.z) {
             e.vivo = false; e.boia = 0;
-            if (e === eu) { J.fimT = 2.2; aviso('SPLASH! 🌊', null, 2); bip(300, 60, 0.7, 'sawtooth', 0.08); }
+            if (e === eu) {
+                J.fimT = 2.2;
+                if (J.online) J.lugar = bonecos.filter(function (b) { return b.jog && b !== eu && b.salvo; }).length + 1;
+                aviso('SPLASH! 🌊', null, 2); bip(300, 60, 0.7, 'sawtooth', 0.08);
+            }
         }
     });
+    if (J.online) {
+        J.netAcc += dt;
+        if (J.netAcc >= 0.1) { J.netAcc = 0; netEnviaEstado(); if (NET.host) netEnviaBots(); }
+    }
     if (J.fimT) { J.fimT -= dt; if (J.fimT <= 0) terminar(eu.salvo); }
 }
 
@@ -1012,7 +1086,7 @@ function visual(dt) {
         e.m.rotation.y += dr * Math.min(1, dt * 10);
         if (!e.vivo) { e.m.rotation.z = Math.sin(e.boia * 3) * 0.4; }
         else { e.m.rotation.z = e.tonto > 0 ? Math.sin(tempo * 30) * 0.3 : 0; var sq = e.chao ? 1 + (Math.abs(e.vx) + Math.abs(e.vz) > 1 ? Math.sin(tempo * 20 + e.x) * 0.06 : 0) : (e.vy > 0 ? 1.12 : 0.95); e.m.scale.set(2 - sq, sq, 2 - sq); }
-        if (e.salvo && e.chao) e.y += Math.max(0, Math.sin(tempo * 8 + e.x)) * 0.25;   // pulando de alegria
+        if (e.salvo && e.chao && !e.remoto) e.y += Math.max(0, Math.sin(tempo * 8 + e.x)) * 0.25;   // pulando de alegria
     });
     if (J.fase === 'celular' && eu) {
         camera.position.set(0, 1.35, 33.4);
@@ -1051,6 +1125,239 @@ function visual(dt) {
 }
 
 document.addEventListener('visibilitychange', function () { if (document.hidden) pausar(); });
+addEventListener('pagehide', function () { if (NET.sala) netEnvia({ t:'sai', host:NET.host }); });
+
+// ---------------- 🌐 ONLINE: crie uma sala ou ache uma Sala Rápida (2, 3 ou 4 jogadores) ----------------
+// mesmo relay de salas usado nos outros jogos do site (kart, arena2, lava, piratas...)
+var WS_URL = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=tsunami';
+var meuId = 'p' + Math.random().toString(36).slice(2, 9);
+var meuNome = '';
+try { meuNome = localStorage.getItem('cg_usuario') || ''; } catch (e) {}
+if (!meuNome) meuNome = 'Cogu ' + (10 + Math.floor(Math.random() * 90));
+var NET = { ws:null, sala:'', host:false, jog:[], tela:'inicio', rapidaN:0, comBots:true, difIdx:1, ping:null, checa:null, esperaI:null, visto:{}, candidatos:{}, bonecoPorId:{}, hostSaiu:false };
+
+function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
+function r1(v) { return Math.round(v * 10) / 10; }
+function netEnvia(o) { if (NET.ws && NET.ws.readyState === 1) try { NET.ws.send(JSON.stringify(Object.assign({ acao:'mp', sala:NET.sala, id:meuId }, o))); } catch (e) {} }
+function codigoSala() { var L = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', s = ''; for (var i = 0; i < 5; i++) s += L[Math.floor(Math.random() * L.length)]; return s; }
+function monstaJogComBots(real, total) {
+    var j = real.slice(), nomesBots = ['Cogu Azul', 'Cogu Verde', 'Cogu Amarelo'], bi = 0;
+    while (j.length < total) { j.push({ id:'bot' + (bi + 1), nome:nomesBots[bi % 3], bot:true }); bi++; }
+    return j.slice(0, 4);
+}
+function netAbreWs(sala) {
+    try { NET.ws = new WebSocket(WS_URL); } catch (e) { NET.tela = 'erro'; netRender(); return; }
+    var ws = NET.ws;
+    ws.onopen = function () { netEnvia({ t:'oi', nome:meuNome }); netRender(); };
+    ws.onmessage = netRecebe;
+    ws.onerror = function () {};
+    ws.onclose = function () { if (NET.ws === ws && NET.sala === sala) { NET.ws = null; setTimeout(function () { if (NET.sala === sala && !NET.ws) netAbreWs(sala); }, 2000); } };
+}
+function netLigaPing() {
+    clearInterval(NET.ping);
+    NET.ping = setInterval(function () {
+        netEnvia({ t:'ping' });
+        if (NET.host && NET.tela !== 'jogando') {
+            var agora = Date.now(), antes = NET.jog.length;
+            NET.jog = NET.jog.filter(function (j) { return j.bot || j.id === meuId || agora - (NET.visto[j.id] || agora) < 12000; });
+            if (NET.jog.length !== antes) { netMandaLista(); netRender(); }
+        }
+    }, 4000);
+}
+function netConecta(sala, host) {
+    netSai();
+    NET.sala = sala; NET.host = host; NET.hostSaiu = false; NET.visto = {}; NET.rapidaN = 0; NET.difIdx = 1;
+    NET.jog = host ? [{ id:meuId, nome:meuNome, bot:false }] : [];
+    NET.tela = host ? 'sala' : 'entrando';
+    netAbreWs(sala);
+    netLigaPing();
+    if (!host) NET.checa = setTimeout(function () { if (!NET.jog.length) { NET.tela = 'erro'; netRender(); } }, 7000);
+    netRender();
+}
+function netSai() {
+    if (NET.ws) { if (NET.sala) netEnvia({ t:'sai', host:NET.host }); try { NET.ws.close(); } catch (e) {} }
+    NET.ws = null; NET.sala = ''; NET.host = false; NET.jog = []; J.online = false;
+    clearInterval(NET.ping); clearTimeout(NET.checa); clearInterval(NET.esperaI);
+    NET.ping = null; NET.checa = null; NET.esperaI = null;
+}
+function netMandaLista() { netEnvia({ t:'lista', jog:NET.jog, dif:DIFS[NET.difIdx].id }); }
+function netVoltarMenu() { netSai(); NET.tela = 'inicio'; mostra('telaMenu'); montaModos(); }
+function abreOnline() { if (!NET.sala) NET.tela = 'inicio'; mostra('telaOnline'); netRender(); }
+
+function netCriarSala() { netConecta(codigoSala(), true); mostra('telaOnline'); netRender(); }
+function netEntrarPeloCodigo() {
+    var c = (document.getElementById('codigoIn').value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (c.length < 4) return;
+    netConecta(c, false);
+    mostra('telaOnline'); netRender();
+}
+function netSalaRapida(n) {
+    netSai();
+    NET.sala = 'RAPIDO' + n; NET.host = false; NET.rapidaN = n; NET.hostSaiu = false; NET.visto = {}; NET.difIdx = 1;
+    NET.jog = []; NET.candidatos = {}; NET.tela = 'procurando'; NET.comBots = true;
+    netAbreWs(NET.sala);
+    netLigaPing();
+    mostra('telaOnline'); netRender();
+    NET.checa = setTimeout(netDecideHostRapida, 1400);
+}
+function netDecideHostRapida() {
+    if (NET.tela !== 'procurando') return;
+    var ids = Object.keys(NET.candidatos);
+    if (!ids.length) { netViraHostRapida(); return; }
+    ids.push(meuId); ids.sort();
+    if (ids[0] === meuId) netViraHostRapida();
+    else NET.checa = setTimeout(function () { if (NET.tela === 'procurando') netViraHostRapida(); }, 2500);
+}
+function netViraHostRapida() {
+    if (NET.tela !== 'procurando') return;
+    NET.host = true; NET.tela = 'sala';
+    if (!NET.jog.some(function (j) { return j.id === meuId; })) NET.jog.push({ id:meuId, nome:meuNome, bot:false });
+    netMandaLista();
+    netIniciaEsperaRapida();
+    netRender();
+}
+function netIniciaEsperaRapida() {
+    clearInterval(NET.esperaI);
+    var t0 = 0;
+    NET.esperaI = setInterval(function () {
+        if (!NET.host || NET.tela !== 'sala') { clearInterval(NET.esperaI); return; }
+        t0 += 1;
+        if (NET.jog.length >= NET.rapidaN) { clearInterval(NET.esperaI); netComecaRapidaComContagem(); }
+        else if (t0 >= 20) { clearInterval(NET.esperaI); netComecaRapidaComBots(); }
+        else netRender();
+    }, 1000);
+}
+function netComecaRapidaComContagem() {
+    NET.tela = 'comecando'; netRender();
+    setTimeout(function () { if (NET.host) netIniciaPartida(NET.jog.slice(0, NET.rapidaN)); }, 2200);
+}
+function netComecaRapidaComBots() { netIniciaPartida(monstaJogComBots(NET.jog, NET.rapidaN)); }
+function netCicladif() { NET.difIdx = (NET.difIdx + 1) % 4; netRender(); }
+function hostComeca() {
+    if (!NET.host || NET.jog.length < 2) return;
+    netIniciaPartida(NET.comBots ? monstaJogComBots(NET.jog, 4) : NET.jog.slice());
+}
+function netIniciaPartida(jog) {
+    NET.jog = jog; NET.tela = 'jogando';
+    clearInterval(NET.ping); clearInterval(NET.esperaI);
+    netEnvia({ t:'start', jog:jog, dif:DIFS[NET.difIdx].id });
+    comecar(true);
+}
+function aplicaRemoto(b, a) {
+    if (!b || !a) return;
+    b.x = a[0]; b.y = a[1]; b.z = a[2]; b.rot = a[3]; b.vivo = !!a[4]; b.salvo = !!a[5];
+}
+function netEnviaEstado() {
+    if (!eu) return;
+    netEnvia({ t:'st', a:[r1(eu.x), r1(eu.y), r1(eu.z), Math.round(eu.rot * 100) / 100, eu.vivo ? 1 : 0, eu.salvo ? 1 : 0] });
+}
+function netEnviaBots() {
+    var bs = bonecos.filter(function (x) { return x.bot; });
+    if (!bs.length) return;
+    netEnvia({ t:'bots', l:bs.map(function (b) { return [r1(b.x), r1(b.y), r1(b.z), Math.round(b.rot * 100) / 100, b.vivo ? 1 : 0, b.salvo ? 1 : 0]; }) });
+}
+function netFimForcado(msg) {
+    if (!J.on) return;
+    J.on = false; escondeHud(); netSai();
+    document.getElementById('fimTitulo').textContent = msg;
+    document.getElementById('fimEst').textContent = ''; document.getElementById('fimTabela').innerHTML = '';
+    mostra('telaFim'); montaModos();
+}
+function netRecebe(ev) {
+    var m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    if (!m || m.sala !== NET.sala || !m.id || m.id === meuId) return;
+    NET.visto[m.id] = Date.now();
+    switch (m.t) {
+    case 'oi':
+        if (NET.tela === 'procurando') { NET.candidatos[m.id] = m.nome || 'Jogador'; break; }
+        if (!NET.host) break;
+        var cap = NET.rapidaN || 4;
+        if (!NET.jog.some(function (j) { return j.id === m.id; }) && NET.jog.filter(function (j) { return !j.bot; }).length < cap) {
+            NET.jog.push({ id:m.id, nome:String(m.nome || 'Jogador').slice(0, 20), bot:false });
+        }
+        netMandaLista(); netRender();
+        break;
+    case 'lista':
+        if (NET.host) { if (String(m.id) < meuId) { NET.host = false; NET.jog = m.jog || []; NET.difIdx = difIndexPorId(m.dif); NET.tela = 'sala'; netRender(); } break; }
+        clearTimeout(NET.checa);
+        NET.jog = m.jog || []; if (m.dif) NET.difIdx = difIndexPorId(m.dif);
+        if (!NET.jog.some(function (j) { return j.id === meuId; })) { NET.tela = 'cheia'; netRender(); break; }
+        NET.tela = 'sala'; netRender();
+        break;
+    case 'start':
+        if (NET.host) break;
+        clearTimeout(NET.checa); clearInterval(NET.ping);
+        NET.jog = m.jog || []; NET.difIdx = difIndexPorId(m.dif);
+        if (!NET.jog.some(function (j) { return j.id === meuId; })) { NET.tela = 'cheia'; netRender(); break; }
+        NET.tela = 'jogando';
+        comecar(true);
+        break;
+    case 'st':
+        if (J.online) aplicaRemoto(NET.bonecoPorId[m.id], m.a);
+        break;
+    case 'bots':
+        if (J.online && !NET.host) {
+            var bs = bonecos.filter(function (x) { return x.bot; });
+            (m.l || []).forEach(function (a, i) { if (bs[i]) aplicaRemoto(bs[i], a); });
+        }
+        break;
+    case 'sai':
+        if (NET.host) { NET.jog = NET.jog.filter(function (j) { return j.id !== m.id; }); netMandaLista(); netRender(); }
+        else if (m.host) {
+            NET.hostSaiu = true; NET.tela = 'erro';
+            if (J.online && J.on) netFimForcado('😢 O dono da sala saiu');
+            else netRender();
+        }
+        break;
+    }
+}
+function netRender() {
+    var el = document.getElementById('onlineCorpo'); if (!el) return;
+    function listaJog() {
+        return '<div class="jogList">' + NET.jog.map(function (j) {
+            return '<div>' + (j.bot ? '🤖' : '🍄') + ' ' + escHtml(j.nome) + (j.id === meuId ? ' <b>(você)</b>' : '') + '</div>';
+        }).join('') + '</div>';
+    }
+    if (NET.tela === 'inicio') {
+        el.innerHTML =
+            '<button onclick="netCriarSala()">➕ CRIAR SALA PRA AMIGOS</button>' +
+            '<div class="sub" style="margin:10px 0 4px">ou digite o código que seu amigo mandou:</div>' +
+            '<div class="linha"><input id="codigoIn" maxlength="5" placeholder="CÓDIGO" autocomplete="off" onkeydown="if(event.key==\'Enter\')netEntrarPeloCodigo()"><button onclick="netEntrarPeloCodigo()">ENTRAR</button></div>' +
+            '<h2 style="margin-top:18px">⚡ Sala Rápida</h2>' +
+            '<div class="sub">Ache outros jogadores na hora! Escolha quantos cogumelos:</div>' +
+            '<div class="linha">' + [2, 3, 4].map(function (n) { return '<button class="rosa" onclick="netSalaRapida(' + n + ')">' + n + ' 🍄</button>'; }).join('') + '</div>';
+        return;
+    }
+    if (NET.tela === 'erro') {
+        el.innerHTML = '<div class="sub" style="font-size:18px">😢 ' + (NET.hostSaiu ? 'O dono da sala saiu.' : 'Não achei essa sala. Confere o código!') + '</div>' +
+            '<button onclick="netSai();NET.tela=\'inicio\';netRender();">🔁 Tentar de novo</button>';
+        return;
+    }
+    if (NET.tela === 'cheia') { el.innerHTML = '<div class="sub" style="font-size:18px">😢 Essa sala já está cheia!</div><button onclick="netSai();NET.tela=\'inicio\';netRender();">🔁 Voltar</button>'; return; }
+    if (NET.tela === 'entrando' || NET.tela === 'procurando') {
+        el.innerHTML = '<div class="sub" style="font-size:18px">⏳ ' + (NET.tela === 'procurando' ? 'Procurando outros jogadores...' : 'Entrando na sala...') + '</div>';
+        return;
+    }
+    if (NET.tela === 'comecando') { el.innerHTML = '<div class="sub" style="font-size:22px">🚀 Corrida começando...</div>'; return; }
+    if (NET.tela === 'sala') {
+        var cap = NET.rapidaN || 4, rapida = NET.sala.indexOf('RAPIDO') === 0, h = '';
+        if (!rapida) h += '<div class="sub">Código da sala:</div><div class="codigo">' + NET.sala + '</div><div class="sub">Mande esse código pro seu amigo! 👆</div>';
+        else h += '<div class="sub">⚡ Sala Rápida — ' + cap + ' jogadores</div>';
+        h += '<div class="sub">👥 Jogadores (' + NET.jog.length + '/' + cap + ')</div>' + listaJog();
+        if (NET.host) {
+            h += '<div class="sub">Dificuldade da corrida:</div><button class="cinza" onclick="netCicladif()">' + DIFS[NET.difIdx].ic + ' <b>' + DIFS[NET.difIdx].nome + '</b></button>';
+            if (rapida) h += '<div class="sub">⏳ Esperando encher (ou preenche com bots em alguns segundos)...</div>';
+            else {
+                h += '<button class="cinza" onclick="NET.comBots=!NET.comBots;netRender();">🤖 Completar com bots: <b>' + (NET.comBots ? 'SIM' : 'NÃO') + '</b></button>';
+                if (NET.jog.length >= 2) h += '<button onclick="hostComeca()">▶️ COMEÇAR!</button>';
+                else h += '<div class="sub">⏳ Esperando mais alguém entrar...</div>';
+            }
+        } else h += '<div class="sub">⏳ Esperando o dono da sala começar...</div>';
+        el.innerHTML = h;
+        return;
+    }
+}
+
 montaModos();
 window.MUNDO_OK = true;
 

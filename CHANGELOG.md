@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v647 (2026-11-18)
+- 🌊 Alerta de Tsunami 3D agora está no cartão da página inicial (antes só dava pra jogar pelo link)! E ganhou modo **Online** 🌐: crie uma sala e mande o código pros seus amigos, ou use a **Sala Rápida** pra cair numa corrida com 2, 3 ou 4 cogumelos de verdade (completa com bots se faltar gente). Depois da contagem 3-2-1, todo mundo corre pro morro ao mesmo tempo — quem chegar primeiro vence a corrida!
+
 ## v646 (2026-11-18)
 - 🌋 O Chão é Lava 3D ganhou **Top 5** de cada modo (os melhores tempos/pontos/alturas ficam guardados no seu aparelho — clique em "🏆 Top 5" no cartão do modo) e um modo novo: **Online** 🌐! Crie uma sala e mande o código pros seus amigos, ou use a **Sala Rápida** pra cair direto numa partida com 2, 3 ou 4 cogumelos de verdade (se não tiver gente suficiente, completa com bots). É o último cogumelo de pé que vence!
 
