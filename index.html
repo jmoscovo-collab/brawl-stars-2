@@ -177,7 +177,7 @@
         html.fundo-branco #redes > div:first-child { color:#b07a00 !important; }
     </style>
 <script>try{ localStorage.removeItem('cg_fundo'); if(sessionStorage.getItem('cg_fundo')==='branco') document.documentElement.classList.add('fundo-branco'); }catch(e){}</script>  <!-- branco só vale nessa visita: entrou no site de novo = preto -->
-<script src="/cogucoins.js?v=552"></script>
+<script src="/cogucoins.js?v=553"></script>
 <script src="/letra.js"></script>
 <script src="/capas.js?v=14"></script>
 </head>
@@ -234,7 +234,7 @@
           <path class="logo-brilho b3" d="M196 160 l2 7 7 2 -7 2 -2 7 -2 -7 -7 -2 7 -2z" fill="#80d8ff"/>
         </svg></div>
         <div class="title">COGUMELO GAMES</div>
-        <div class="subtitle">JOGOS ONLINE GRÁTIS <span style="color:#00ff88; font-weight:bold; border:1px solid rgba(0,255,136,0.4); border-radius:10px; padding:2px 8px; margin-left:6px; font-size:12px">v643</span></div>
+        <div class="subtitle">JOGOS ONLINE GRÁTIS <span style="color:#00ff88; font-weight:bold; border:1px solid rgba(0,255,136,0.4); border-radius:10px; padding:2px 8px; margin-left:6px; font-size:12px">v644</span></div>
     </div>
 
     <input id="busca" type="search" placeholder="🔍 Pesquisar jogo..." autocomplete="off"
@@ -242,6 +242,7 @@
                border-radius:30px; border:2px solid #444; background:rgba(20,20,50,0.9); color:#fff; outline:none;">
     <button id="caracsAbre" style="display:block; margin:-18px auto 26px; border:2px solid #444; border-radius:20px; padding:7px 16px; font-size:15px; font-weight:bold; cursor:pointer; background:rgba(20,20,50,0.9); color:#fff; font-family:inherit;">🏷️ Características ▾</button>
     <button id="btnHalloween" style="display:block; margin:-18px auto 26px; border:2px solid #ff7a00; border-radius:20px; padding:8px 18px; font-size:16px; font-weight:bold; cursor:pointer; background:linear-gradient(135deg,#ff7a00,#6a1b9a); color:#fff; font-family:inherit; box-shadow:0 0 18px rgba(255,122,0,.6);">🎃 Evento de Halloween</button>
+    <button id="btnMega" style="display:block; margin:-18px auto 26px; border:2px solid #ffcc33; border-radius:20px; padding:8px 18px; font-size:16px; font-weight:bold; cursor:pointer; background:linear-gradient(135deg,#ff2a6a,#ffcc33); color:#fff; font-family:inherit; box-shadow:0 0 18px rgba(255,42,106,.6);">🎉 Mega Evento de Cogu Coins</button>
     <div id="caracs" style="max-width:820px; margin:-18px auto 26px; display:none; flex-wrap:wrap; justify-content:center; gap:8px; padding:0 10px;"></div>
     <div id="caracsMsg" style="display:none; text-align:center; color:#ffd23a; margin:-14px 0 20px; font-weight:bold;"></div>
     <div class="games-grid">
@@ -1386,6 +1387,149 @@
         if(location.hash === '#halloween') abre();
         else if(location.hash === '#halloween-loja'){ aba = 'loja'; abre(); }
         else if(location.hash.indexOf('#halloween=') === 0){ jogoSel = location.hash.slice(11); abre(); }
+    })();
+    </script>
+    <script>
+    // 🎉 MEGA EVENTO (até 22/11): MISSÕES em TODOS os jogos do site dão Cogu Coins DE VERDADE (muitas!)
+    // O que você joga é anotado no cogucoins.js (minutos jogados e moedas ganhas por jogo).
+    (function(){
+        var M = window.cgMegaEvento;
+        var btn = document.getElementById('btnMega');
+        if(!M || !M.ativo()){ btn.style.display = 'none'; return; }
+
+        function leJ(k, d){ try { return JSON.parse(localStorage.getItem(k)) || d; } catch(e){ return d; } }
+        function gravaJ(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+
+        // ---- TODOS os jogos do site: [pasta, nome, ícone] ----
+        var JOGOS = [
+            ['brawl','Arena Cogumelo 1','🤖'], ['capivara','Capivara Run','🐾'], ['clicker','Cogumelo Clicker','🍄'], ['corrida','Turbo Racing','🏎️'], ['space','Street Drive','🚗'],
+            ['labirinto','Labirinto Assombrado','👻'], ['zombie','Zombie Survival','🧟'], ['parkour','Parkour do Cogumelo','🍄'], ['fps','Rua Suja 3D','🔫'], ['ninja','Cogumelo Ninja','🥷'],
+            ['prisao','Fuga da Prisão 3D','🏃'], ['demo3d','Demo Gráficos','✨'], ['capyio','Capy.io','🐍'], ['dino','Fuga do Dino','🦖'], ['furacao','Furacão.io','🌪️'],
+            ['desenha','Desenha e Adivinha','🎨'], ['estaciona','Estacionamento Maluco','🚗'], ['quiz','Perguntas e Respostas','❓'], ['minijogos','Minijogos','🎲'], ['emojiquiz','Quiz de Emoji','😂'],
+            ['pais','Adivinha o País','🌍'], ['golf','Golf Maluco','⛳'], ['boliche','Boliche do Cogumelo','🎳'], ['aviao','Corrida no Céu','✈️'], ['voador','Cogumelo Voador','🍄'],
+            ['sorte','Sorte do Cogumelo','🎰'], ['ladrao','Polícia VS Ladrão','🚓'], ['laser','Desvia do Laser','🔴'], ['piso','Piso Certo','🟦'], ['chuva','Chuva de Cogumelos','🍄'],
+            ['chuva2','Chuva de Cogumelos 2','⛈️'], ['cogumelo','Chuva de Cogumelos 3','🍄'], ['luta','Luta de Capivara','🦫'], ['parkour2d','Cogumelo Parkour','🍄'], ['pescaria','Pescaria Maluca','🎣'],
+            ['caindo','Capivara Caindo','🪂'], ['caboguerra','Cabo de Guerra','🪢'], ['salsicha','Salsicha Comilão','🌭'], ['meteoros','Chuva de Meteoros','☄️'], ['capivara2','Capivara Run 2 — Sombras','👤'],
+            ['capivara-pet','Cuidar da Capivara','🦫'], ['barbeiro','Barbeiro Maluco','💈'], ['pescaria2','Pescaria Maluca 2','🎣'], ['penaltis','Pênaltis','⚽'], ['figurinhas','Álbum de Figurinhas','🏆'],
+            ['cavando','Cavando Fundo','⛏️'], ['cozinha','Cozinha da Capivara','🦫'], ['merge','Merge Cogumelo','🍄'], ['spcity','Mega SP','🌆'], ['cidade','Cidade Capivara','🦫'],
+            ['capydash','Capy Dash','⚡'], ['tesouro','Caça ao Tesouro','🏴‍☠️'], ['tubarao','Tubarão Faminto','🦈'], ['portas','Portas Misteriosas','🚪'], ['piano','Piano Mágico','🎹'],
+            ['kart','Cogumelo Kart','🏁'], ['piratas','Batalha Pirata','🏴‍☠️'], ['bolas','Bola vs Bola','⚔️'], ['capibalao','Capivara no Balão','🎈'], ['armas','Cogumelo Armas','🔫'],
+            ['invasao','Invasão Pixel','👾'], ['ovos','Ovo de Dragão','🥚'], ['arena2','Arena Cogumelo 2','🥊'], ['arqueiro','Arqueiro Maluco','🏹'], ['polvo','Polvo Fujão','🐙'],
+            ['cogurock','Cogu Rock','🎸'], ['torre','Defesa da Torre','🏰'], ['chefoes','Cogu vs Chefões','🔥'], ['volei','Vôlei do Cogu','🏐'], ['blocos','Quebra-Blocos','🧱'],
+            ['lab','Laboratório Maluco','🧪'], ['trem','Trem do Cogu','🚂'], ['pinta','Pinta o Chão','🎨'], ['cogumelo-detetive','Cogumelo Detetive','🔍'], ['detetive','Cachorro Detetive','🐕🔍'],
+            ['monstro','Cria o seu Monstro','🐉'], ['espacial','Cogumelo Espacial','🚀'], ['pizzaria','Pizzaria Maluca','🍕'], ['cogu-zumbis','Cogumelos vs Zumbis da Floresta','🧟'],
+            ['futebol','Cogu Futebol','⚽'], ['esqui','Cogu Esqui 3D','⛷️'], ['empilha','Cogu Empilha 3D','🧱'], ['basquete','Cogu Basquete 3D','🏀'], ['lava','O Chão é Lava 3D','🌋'],
+            ['tsunami','Alerta de Tsunami 3D','🌊']
+        ];
+        function jogo(p){ return JOGOS.filter(function(j){ return j[0] === p; })[0]; }
+        function fmt(n){ return n.toLocaleString('pt-BR'); }
+        // nome da moeda de cada jogo (quem não está aqui usa "moedas")
+        var NOMES_MOEDA = { pescaria: 'dinheiro', pescaria2: 'dinheiro', clicker: 'pontos', ninja: 'cogumelos', aviao: 'vitórias' };
+        // ---- MISSÕES de cada jogo: [id, texto, tipo, alvo, Cogu Coins] — da mais fácil pra mais difícil ----
+        var PREMIO_MIN = { 3: 60, 10: 150, 20: 400 };
+        function missoesDe(p){
+            var l = M.MINUTOS.map(function(mi){ return [p + '_m' + mi, 'Jogue ' + mi + ' minutos', 'min', mi, PREMIO_MIN[mi] || 60]; });
+            var a = M.alvoMoedas(p);
+            if(a){
+                var nome = NOMES_MOEDA[p] || 'moedas';
+                l.push([p + '_g1', 'Ganhe ' + fmt(a[0]) + ' ' + nome, 'moedas', a[0], 100]);
+                l.push([p + '_g2', 'Ganhe ' + fmt(a[1]) + ' ' + nome, 'moedas', a[1], 300]);
+            }
+            return l.sort(function(x, y){ return x[4] - y[4]; });
+        }
+        function progresso(p, m){
+            var v = m[2] === 'min' ? Math.floor((M.tempo()[p] || 0) / 60) : (M.ganho()[p] || 0);
+            return Math.min(v, m[3]);
+        }
+        function pegas(){ return leJ('mega_missoes', []); }
+        function prontasDe(p, pg){ pg = pg || pegas(); return missoesDe(p).filter(function(m){ return progresso(p, m) >= m[3] && pg.indexOf(m[0]) < 0; }).length; }
+        function feitasDe(p, pg){ pg = pg || pegas(); return missoesDe(p).filter(function(m){ return pg.indexOf(m[0]) >= 0; }).length; }
+        function prontas(){ var pg = pegas(), n = 0; JOGOS.forEach(function(j){ n += prontasDe(j[0], pg); }); return n; }
+        function semAcento(s){ return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+
+        function pintaBtn(){ var k = prontas(); btn.textContent = '🎉 Mega Evento' + (k ? ' (' + k + ' 🎁)' : ''); }
+        pintaBtn();
+
+        var jogoSel = null;
+        var BTN = 'border:none; border-radius:10px; padding:7px 14px; font-weight:bold; font-size:15px; cursor:pointer; font-family:inherit;';
+        function fecha(){ var m = document.getElementById('megaModal'); if(m) m.remove(); }
+        function avisa(txt){
+            var d = document.createElement('div');
+            d.textContent = txt;
+            d.style.cssText = 'position:fixed; left:50%; top:18px; transform:translateX(-50%); z-index:260; background:#ff2a6a; color:#fff; font-weight:bold; font-size:16px; padding:10px 18px; border-radius:16px; box-shadow:0 4px 16px rgba(0,0,0,.5); text-align:center; max-width:90vw;';
+            document.body.appendChild(d); setTimeout(function(){ d.remove(); }, 2600);
+        }
+
+        function abre(){
+            var velho = document.getElementById('megaModal'); if(velho) velho.remove();
+            var m = document.createElement('div');
+            m.id = 'megaModal';
+            m.style.cssText = 'position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.75); display:flex; align-items:center; justify-content:center; padding:16px;';
+            var corpo = '';
+            if(jogoSel && jogo(jogoSel)){
+                var p = pegas(), jg = jogo(jogoSel);
+                corpo = '<button data-volta="1" style="' + BTN + 'background:rgba(255,255,255,.12); color:#fff; margin-bottom:8px">⬅ Todos os jogos</button>' +
+                    '<div style="display:flex; align-items:center; gap:10px; margin:4px 0 8px"><span style="font-size:36px">' + jg[2] + '</span>' +
+                    '<div style="flex:1; font-size:19px; font-weight:bold">' + jg[1] + '</div>' +
+                    '<a href="/' + jg[0] + '/" style="' + BTN + 'background:#7dff9a; color:#0a3a1a; text-decoration:none; white-space:nowrap">▶ Jogar</a></div>' +
+                    missoesDe(jogoSel).map(function(ms){
+                        var v = progresso(jogoSel, ms), feito = p.indexOf(ms[0]) >= 0, pode = v >= ms[3] && !feito;
+                        var dir = feito ? '<span style="color:#7dff9a; white-space:nowrap">✅ Pego</span>'
+                            : pode ? '<button data-m="' + ms[0] + '" style="' + BTN + 'background:#ffcc33; color:#3a1a00; white-space:nowrap">Pegar!</button>'
+                            : '<span style="opacity:.7; white-space:nowrap">' + fmt(v) + '/' + fmt(ms[3]) + '</span>';
+                        var barra = feito ? '' : '<div style="height:6px; border-radius:4px; background:rgba(255,255,255,.12); margin-top:5px"><div style="height:100%; width:' + Math.round(v / ms[3] * 100) + '%; border-radius:4px; background:linear-gradient(90deg,#ff2a6a,#ffcc33)"></div></div>';
+                        return '<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 12px; margin:6px 0; border-radius:12px; background:' + (pode ? 'rgba(255,42,106,.35)' : 'rgba(255,255,255,.07)') + (feito ? '; opacity:.6' : '') + '">' +
+                            '<div style="flex:1; min-width:0"><div>' + ms[1] + '</div><div style="font-size:13px; color:#ffcc33; font-weight:bold">🍄 ' + ms[4] + ' Cogu Coins</div>' + barra + '</div>' + dir + '</div>';
+                    }).join('');
+            } else {
+                var pg = pegas();
+                var lista = JOGOS.map(function(j, i){ return { j: j, i: i, pr: prontasDe(j[0], pg), fe: feitasDe(j[0], pg), tot: missoesDe(j[0]).length }; });
+                lista.sort(function(a, b){ return (b.pr > 0) - (a.pr > 0) || a.i - b.i; });   // quem tem prêmio pra pegar vem primeiro
+                corpo = '<div style="font-size:13px; opacity:.85; margin:2px 0 8px">TODOS os jogos do site participam! Escolha um jogo, complete as missões jogando e ganhe <b>🍄 Cogu Coins DE VERDADE</b> na hora.</div>' +
+                    '<input id="megaBusca" type="search" placeholder="🔍 Digite o nome do jogo..." autocomplete="off" style="width:100%; box-sizing:border-box; font-size:16px; padding:10px 14px; border-radius:12px; border:2px solid #ff2a6a; background:rgba(0,0,0,.35); color:#fff; font-family:inherit; margin-bottom:8px">' +
+                    '<div id="megaJogos" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px">' +
+                    lista.map(function(o){
+                        var tudo = o.fe >= o.tot;
+                        return '<button data-j="' + o.j[0] + '" data-busca="' + semAcento(o.j[1]) + '" style="' + BTN + 'position:relative; padding:10px 6px; color:#fff; text-align:center; background:' + (o.pr ? 'rgba(255,42,106,.4)' : 'rgba(255,255,255,.08)') + '; border:2px solid ' + (o.pr ? '#ffcc33' : 'rgba(255,255,255,.12)') + '">' +
+                            (o.pr ? '<span style="position:absolute; top:-8px; right:-4px; background:#ff2a6a; font-size:12px; padding:2px 7px; border-radius:10px">🎁 ' + o.pr + '</span>' : '') +
+                            '<div style="font-size:28px">' + o.j[2] + '</div><div style="font-size:13px; margin:4px 0">' + o.j[1] + '</div>' +
+                            '<div style="font-size:12px; font-weight:normal; color:' + (tudo ? '#7dff9a' : '#ffcc33') + '">' + (tudo ? '✅ Completo!' : '📜 ' + o.fe + '/' + o.tot) + '</div></button>';
+                    }).join('') + '</div>' +
+                    '<div id="megaNada" style="display:none; text-align:center; opacity:.7; padding:14px">Nenhum jogo com esse nome 😕</div>';
+            }
+            m.innerHTML = '<div style="background:linear-gradient(160deg,#4a0a2a,#3a2a00); border:3px solid #ffcc33; border-radius:20px; padding:18px; max-width:460px; width:100%; max-height:90vh; overflow:auto; color:#fff; text-align:center;">' +
+                '<div style="font-size:40px">🎉🍄🎊</div>' +
+                '<div style="font-size:22px; font-weight:bold; color:#ffcc33">MEGA EVENTO DE COGU COINS</div>' +
+                '<div style="font-size:13px; opacity:.8; margin-bottom:10px">Vai até <b>22/11</b> — TODOS os jogos participam!</div>' +
+                (jogoSel ? '' : '<div style="font-size:15px; margin-bottom:8px">📜 Missões prontas pra pegar: <b style="color:#ffcc33">' + prontas() + '</b></div>') +
+                '<div style="text-align:left">' + corpo + '</div>' +
+                '<button id="megaFecha" style="margin-top:14px; font-size:16px; font-weight:bold; padding:10px 28px; border:none; border-radius:14px; cursor:pointer; background:#ff2a6a; color:#fff; font-family:inherit;">Fechar</button></div>';
+            document.body.appendChild(m);
+            m.onclick = function(e){ if(e.target === m) fecha(); };
+            m.querySelector('#megaFecha').onclick = fecha;
+            m.querySelectorAll('button[data-j]').forEach(function(b){ b.onclick = function(){ jogoSel = b.getAttribute('data-j'); abre(); }; });
+            m.querySelectorAll('button[data-volta]').forEach(function(b){ b.onclick = function(){ jogoSel = null; abre(); }; });
+            var busca = m.querySelector('#megaBusca');
+            if(busca) busca.oninput = function(){
+                var q = semAcento(busca.value.trim()), vis = 0;
+                m.querySelectorAll('button[data-j]').forEach(function(b){ var ok = !q || b.getAttribute('data-busca').indexOf(q) >= 0; b.style.display = ok ? '' : 'none'; if(ok) vis++; });
+                m.querySelector('#megaNada').style.display = vis ? 'none' : 'block';
+            };
+            m.querySelectorAll('button[data-m]').forEach(function(b){
+                b.onclick = function(){
+                    var id = b.getAttribute('data-m'), lista = pegas();
+                    var ms = missoesDe(jogoSel).filter(function(x){ return x[0] === id; })[0];
+                    if(!ms || lista.indexOf(id) >= 0 || progresso(jogoSel, ms) < ms[3]) return;
+                    lista.push(id); gravaJ('mega_missoes', lista);
+                    if(window.CoguCoins) window.CoguCoins.ganhaSilencioso(ms[4]);
+                    avisa('🍄 +' + ms[4] + ' Cogu Coins!');
+                    pintaBtn(); abre();
+                };
+            });
+        }
+        btn.onclick = abre;
+        if(location.hash === '#mega') abre();
+        else if(location.hash.indexOf('#mega=') === 0){ jogoSel = location.hash.slice(6); abre(); }
     })();
     </script>
     <script>

@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v644 (2026-11-18)
+- 🎉 MEGA EVENTO DE COGU COINS (até 22/11)! Botão novo na página inicial: TODOS os jogos do site têm uma tabela de missões (jogar 3/10/20 minutos, ganhar moedas no jogo) e cada missão completa dá **Cogu Coins DE VERDADE na hora** — e é bastante coisa!
+
 ## v643 (2026-11-12)
 - 🤖 O jogo Arena Cogumelo agora se chama **Arena Cogumelo 1** (pra não confundir com a Arena Cogumelo 2)
 

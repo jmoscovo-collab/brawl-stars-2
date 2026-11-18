@@ -590,3 +590,84 @@
     } catch (e) {}
   }, 5000);
 })();
+
+/* === 🎉 MEGA EVENTO (até 22/11) ===
+   TODO jogo do site participa! Anota pras MISSÕES de cada jogo: minutos jogados e moedas ganhas.
+   Completou a missão = ganha Cogu Coins DE VERDADE na hora (bastante!). Fica no botão 🎉 da home. */
+(function () {
+  var FIM = new Date(2026, 10, 23).getTime();        // acaba no fim do dia 22/11/2026
+  var KT = 'mega_tempo';                             // { pasta: segundos jogados }
+  var KG = 'mega_ganho';                             // { pasta: moedas ganhas }
+  var MINUTOS = [3, 10, 20];                         // missões de tempo que todo jogo tem
+  var FORA = /^\/(conta|loja|cogucoins|comunidade|excluir-conta|privacidade|politica|pai-|sugestoes)/;
+  // jogos com moeda: pasta -> [chave, campo dentro do JSON, taxa (moedas do jogo por 🍄)]
+  var MOEDA = {
+    zombie: ['zombie_coins', null, 40], dino: ['dino_moedas', null, 40], corrida: ['corrida_coins', null, 40],
+    parkour2d: ['parkour2d_moedas', null, 40], pescaria: ['pescaria_dinheiro', null, 60], pescaria2: ['pescaria2', 'din', 120],
+    brawl: ['arenaCogumeloSave', 'gold', 400], capivara: ['capivara_run_progress', 'coins', 40], capivara2: ['capivara2_moedas', null, 900],
+    clicker: ['capivara_clicker_save', 'score', 500], luta: ['luta_moedas', null, 40], voador: ['voador_moedas', null, 40],
+    ladrao: ['ladrao_coins', null, 300], figurinhas: ['figurinhas_moedas', null, 180], cozinha: ['cozinha_moedas', null, 40],
+    cavando: ['cavando_moedas', null, 40], penaltis: ['penaltis_moedas', null, 400], meteoros: ['meteoros_moedas', null, 900],
+    ninja: ['ninja_cogumelos', null, 2500], prisao: ['prisao_moedas', null, 40], golf: ['golf_coins', null, 40],
+    boliche: ['boliche_coins', null, 40], barbeiro: ['barbeiro_coins', null, 40], estaciona: ['estaciona_coins', null, 100],
+    furacao: ['furacao_moedas', null, 60], parkour: ['parkour_carteira', null, 80], chuva: ['chuva_coins', null, 40],
+    chuva2: ['chuva2_coins', null, 40], cidade: ['cidade_moedas', null, 40], tesouro: ['tesouro_moedas', null, 40],
+    portas: ['portas_moedas', null, 40], sorte: ['sorte_moedas', null, 40], laser: ['laser_coins', null, 40],
+    caindo: ['caindo_moedas', null, 40], quiz: ['quiz_moedas', null, 40], emojiquiz: ['emojiquiz_moedas', null, 40],
+    pais: ['pais_moedas', null, 40], aviao: ['avc_vitorias', null, 20]
+  };
+  function redondo(n) { var mag = Math.pow(10, Math.max(0, String(Math.round(n)).length - 2)); return Math.max(1, Math.round(n / mag) * mag); }
+  function alvoMoedas(pasta) { var m = MOEDA[pasta]; return m ? [redondo(m[2] * 5), redondo(m[2] * 25)] : null; }
+  function leJ(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } }
+  function gravaJ(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  window.cgMegaEvento = { ativo: function () { return Date.now() < FIM; }, MINUTOS: MINUTOS,
+    alvoMoedas: alvoMoedas, temMoeda: function (p) { return !!MOEDA[p]; },
+    tempo: function () { return leJ(KT, {}); }, ganho: function () { return leJ(KG, {}); } };
+  if (Date.now() >= FIM || location.pathname === '/' || FORA.test(location.pathname)) return;
+  var pasta = location.pathname.split('/')[1] || '';
+  if (!pasta) return;
+
+  function moedaAgora() {
+    var m = MOEDA[pasta];
+    try {
+      var raw = localStorage.getItem(m[0]);
+      if (raw === null) return 0;
+      if (m[1]) { var v = JSON.parse(raw); return Number((v && v[m[1]]) || 0) || 0; }
+      return parseInt(raw, 10) || 0;
+    } catch (e) { return 0; }
+  }
+  var ultimo = MOEDA[pasta] ? moedaAgora() : 0;
+  // trocou Cogu Coins pela moeda do jogo? isso não conta como moeda ganha jogando
+  if (MOEDA[pasta]) window.addEventListener('cogucoins', function () { setTimeout(function () { ultimo = moedaAgora(); }, 50); });
+
+  function avisa() {
+    try {
+      var d = document.createElement('a');
+      d.href = '/#mega=' + pasta;
+      d.textContent = '🎉 Missão do Mega Evento completa! Toque aqui pra pegar suas Cogu Coins';
+      d.style.cssText = 'position:fixed; left:50%; top:14px; transform:translateX(-50%); z-index:2147481600;' +
+        'background:#ff2a6a; color:#fff; font:bold 15px Arial,Helvetica,sans-serif; padding:10px 18px;' +
+        'border-radius:16px; box-shadow:0 4px 16px rgba(0,0,0,.5); text-decoration:none; transition:opacity .6s; text-align:center; max-width:90vw;';
+      document.body.appendChild(d);
+      setTimeout(function () { d.style.opacity = '0'; }, 4500);
+      setTimeout(function () { d.remove(); }, 5200);
+    } catch (e) {}
+  }
+
+  var jogado = 0;
+  setInterval(function () {
+    if (document.hidden) return;                    // aba escondida não conta
+    jogado += 5;
+    var t = leJ(KT, {}), antes = t[pasta] || 0; t[pasta] = antes + 5; gravaJ(KT, t);
+    var completou = MINUTOS.some(function (mi) { return antes < mi * 60 && t[pasta] >= mi * 60; });
+    if (MOEDA[pasta]) {
+      var m = moedaAgora();
+      if (m > ultimo) {
+        var g = leJ(KG, {}), ga = g[pasta] || 0; g[pasta] = ga + (m - ultimo); gravaJ(KG, g);
+        completou = completou || alvoMoedas(pasta).some(function (a) { return ga < a && g[pasta] >= a; });
+      }
+      ultimo = m;
+    }
+    if (completou) avisa();
+  }, 5000);
+})();
