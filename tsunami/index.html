@@ -243,8 +243,20 @@ function loop(t) {
 }
 requestAnimationFrame(loop);
 
-scene.add(new THREE.HemisphereLight(0xe4f2ff, 0x8a7a5a, 0.8));
-var sol = new THREE.DirectionalLight(0xfff0d0, 0.75); sol.position.set(-8, 20, 10); scene.add(sol);
+var SOMBRAS = !CELULAR;   // sombra de verdade só no computador (no celular fica a bolinha escura)
+scene.add(new THREE.HemisphereLight(0xdcefff, 0x9a8a62, SOMBRAS ? 0.62 : 0.8));
+var sol = new THREE.DirectionalLight(0xfff2d8, SOMBRAS ? 0.95 : 0.75); sol.position.set(-8, 20, 10); scene.add(sol); scene.add(sol.target);
+var SOL_OFF = new THREE.Vector3(-18, 34, 22);
+if (SOMBRAS) {
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    sol.castShadow = true; sol.shadow.mapSize.set(2048, 2048);
+    var sc = sol.shadow.camera; sc.left = -34; sc.right = 34; sc.top = 34; sc.bottom = -34; sc.near = 1; sc.far = 110;
+    sol.shadow.bias = -0.0006; sol.shadow.normalBias = 0.03;
+}
+function ligaSombras(obj, recebe) {
+    if (!SOMBRAS) return;
+    obj.traverse(function (m) { if (m.isMesh && !m.material.transparent) { m.castShadow = true; m.receiveShadow = recebe !== false; } });
+}
 
 // altura do chão: a rua vai subindo até o morro
 function H(z) {
@@ -271,26 +283,86 @@ var texMar = texCanvas(64, 64, function (x, w, h) {
 var TOLDOS = ['#e83a3a', '#2a8ad8', '#3ab04a', '#ff9a1a'].map(function (cor) {
     return texCanvas(16, 64, function (x, w, h) { for (var i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#ffffff' : cor; x.fillRect(0, i * 8, w, 8); } }, 1, 1);
 });
+// ---- texturas desenhadas (rua, grama, janelas) ----
+function ruido(x, w, h, n, cores, tam) { for (var i = 0; i < n; i++) { x.fillStyle = cores[i % cores.length]; var s = tam * (0.5 + Math.random()); x.fillRect(Math.random() * w, Math.random() * h, s, s); } }
+var TEX = {};
+TEX.rua = texCanvas(1024, 256, function (x, w, h) {
+    var u = w / 28;   // pixels por metro (a rua tem 28 m de largura e a textura cobre 6 m de comprimento)
+    // calçada de pedrinha portuguesa
+    x.fillStyle = '#d8d0c2'; x.fillRect(0, 0, w, h);
+    ruido(x, w, h, 2500, ['rgba(120,110,95,0.14)', 'rgba(255,255,255,0.3)'], 2);
+    x.strokeStyle = 'rgba(110,100,85,0.35)'; x.lineWidth = 1;
+    for (var i = 0; i <= w; i += u) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, h); x.stroke(); }
+    for (var j = 0; j <= h; j += u) { x.beginPath(); x.moveTo(0, j); x.lineTo(w, j); x.stroke(); }
+    // ondinhas pretas de calçadão de praia
+    x.strokeStyle = 'rgba(40,40,45,0.55)'; x.lineWidth = 8;
+    [1.6, 26.4].forEach(function (cx) { x.beginPath(); for (var y = 0; y <= h; y += 2) x.lineTo(cx * u + Math.sin(y / h * Math.PI * 4) * u * 0.8, y); x.stroke(); });
+    // asfalto
+    x.fillStyle = '#4b4d55'; x.fillRect(4 * u, 0, 20 * u, h);
+    x.save(); x.translate(4 * u, 0); ruido(x, 20 * u - 3, h, 7000, ['rgba(0,0,0,0.12)', 'rgba(255,255,255,0.06)', 'rgba(90,90,100,0.2)'], 1.6); x.restore();
+    // remendos e manchas
+    for (var k = 0; k < 4; k++) { x.fillStyle = 'rgba(30,30,35,0.18)'; x.beginPath(); x.ellipse((5 + Math.random() * 18) * u, Math.random() * h, 10 + Math.random() * 18, 6 + Math.random() * 10, 0, 0, 7); x.fill(); }
+    // linhas brancas da borda e faixa amarela dupla tracejada no meio
+    x.fillStyle = '#f2f2ee'; x.fillRect(4.5 * u, 0, 0.18 * u, h); x.fillRect(23.32 * u, 0, 0.18 * u, h);
+    x.fillStyle = '#ffd23a'; x.fillRect(13.82 * u, 0, 0.14 * u, h * 0.42); x.fillRect(14.04 * u, 0, 0.14 * u, h * 0.42);
+}, 1, 1);
+TEX.grama = texCanvas(128, 128, function (x, w, h) {
+    x.fillStyle = '#5aae46'; x.fillRect(0, 0, w, h);
+    ruido(x, w, h, 900, ['#4a9a3a', '#6cc254', '#3f8a32', '#78cc5e'], 2.5);
+    for (var i = 0; i < 10; i++) { x.fillStyle = ['#ffffff', '#ffe04a', '#ff7aa8'][i % 3]; x.beginPath(); x.arc(Math.random() * w, Math.random() * h, 1.6, 0, 7); x.fill(); }
+}, 1, 1);
+TEX.predio = [0, 1, 2].map(function (tipo) {
+    return texCanvas(128, 128, function (x, w, h) {
+        x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, h);
+        ruido(x, w, h, 300, ['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.03)'], 3);
+        x.fillStyle = 'rgba(0,0,0,0.10)'; x.fillRect(0, h - 6, w, 3);   // linha entre andares
+        function janela(jx, jy, jw, jh) {
+            x.fillStyle = '#f6f2ea'; x.fillRect(jx - 5, jy - 5, jw + 10, jh + 10);           // moldura
+            x.fillStyle = 'rgba(0,0,0,0.18)'; x.fillRect(jx - 7, jy + jh + 5, jw + 14, 5);   // sombra do peitoril
+            var g = x.createLinearGradient(jx, jy, jx + jw * 0.4, jy + jh);
+            g.addColorStop(0, '#cfeeff'); g.addColorStop(0.45, '#6aa6d8'); g.addColorStop(1, '#2a4e80');
+            x.fillStyle = g; x.fillRect(jx, jy, jw, jh);
+            x.fillStyle = 'rgba(255,255,255,0.35)'; x.beginPath(); x.moveTo(jx + jw * 0.15, jy + jh); x.lineTo(jx + jw * 0.55, jy); x.lineTo(jx + jw * 0.75, jy); x.lineTo(jx + jw * 0.35, jy + jh); x.fill();
+            x.fillStyle = '#f6f2ea'; x.fillRect(jx + jw / 2 - 2, jy, 4, jh); x.fillRect(jx, jy + jh * 0.4, jw, 3);   // caixilho
+        }
+        if (tipo === 0) janela(30, 26, 68, 70);
+        else if (tipo === 1) { janela(16, 22, 38, 80); janela(74, 22, 38, 80); }
+        else {
+            janela(26, 18, 76, 72);
+            x.fillStyle = 'rgba(0,0,0,0.2)'; x.fillRect(12, 96, 104, 6);
+            x.strokeStyle = '#3a3a44'; x.lineWidth = 3; x.strokeRect(14, 80, 100, 18);
+            for (var i = 22; i < 112; i += 10) { x.beginPath(); x.moveTo(i, 80); x.lineTo(i, 98); x.stroke(); }
+        }
+    }, 1, 1);
+});
+// ajusta o UV de uma caixa pra textura repetir do tamanho certo (um módulo a cada mx × my metros)
+function uvCaixa(geo, w, h, d, mx, my) {
+    var uv = geo.attributes.uv, esc = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
+    for (var f = 0; f < 6; f++) for (var v = 0; v < 4; v++) { var i = f * 4 + v; uv.setXY(i, uv.getX(i) * esc[f][0] / mx, uv.getY(i) * esc[f][1] / my); }
+}
 function mt(cor) { return new THREE.MeshLambertMaterial({ color:cor }); }
 function caixaMesh(w, h, d, cor, x, y, z, pai) { var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), typeof cor === 'number' ? mt(cor) : cor); m.position.set(x, y + h / 2, z); (pai || scene).add(m); return m; }
 
 // ---- mundo fixo: rua, praia, mar, prédios, morro ----
 var MUNDO = new THREE.Group(); scene.add(MUNDO);
 (function () {
-    var geo = new THREE.PlaneGeometry(28, 190, 14, 190); geo.rotateX(-Math.PI / 2);
-    var pos = geo.attributes.position, cores = [];
-    for (var i = 0; i < pos.count; i++) {
-        var x = pos.getX(i), z = pos.getZ(i) - 68; pos.setZ(i, z); pos.setY(i, H(z));
-        var c;
-        if (z < Z_SEGURO + 2) c = [0.35, 0.75, 0.3];
-        else if (Math.abs(x) > 10) c = [0.78, 0.78, 0.74];
-        else c = [0.33, 0.34, 0.38];
-        cores.push(c[0], c[1], c[2]);
+    // chão em faixas: rua (asfalto + calçada de pedrinha) até o morro, depois grama
+    function chao(z1, z2, mat, vRep) {
+        var n = Math.ceil((z1 - z2) / 1), geo = new THREE.PlaneGeometry(28, z1 - z2, 1, n); geo.rotateX(-Math.PI / 2);
+        var pos = geo.attributes.position, uv = geo.attributes.uv;
+        for (var i = 0; i < pos.count; i++) {
+            var z = pos.getZ(i) + (z1 + z2) / 2; pos.setZ(i, z); pos.setY(i, H(z));
+            uv.setXY(i, (pos.getX(i) + 14) / 28 * (vRep ? 28 / vRep : 1), -z / (vRep || 6));
+        }
+        geo.computeVertexNormals();
+        var m = new THREE.Mesh(geo, mat); m.receiveShadow = true; MUNDO.add(m); return m;
     }
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(cores, 3)); geo.computeVertexNormals();
-    MUNDO.add(new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors:true })));
-    // faixas no meio da rua
-    for (var z = 22; z > -106; z -= 6) { var f = caixaMesh(0.25, 0.02, 2.4, 0xffe04a, 0, H(z) + 0.01, z, MUNDO); f.rotation.x = Math.atan(0.09); }
+    chao(27, Z_SEGURO + 2, new THREE.MeshLambertMaterial({ map:TEX.rua }));
+    chao(Z_SEGURO + 2, -164, new THREE.MeshLambertMaterial({ map:TEX.grama }), 6);
+    // meio-fio
+    [-1, 1].forEach(function (l) {
+        for (var z = 26; z > Z_SEGURO + 3; z -= 8) { var mf = caixaMesh(0.3, 0.16, 8.02, 0xb8b4ac, l * 10.05, H(z - 4) - 0.05, z - 4, MUNDO); mf.rotation.x = Math.atan(0.09); }
+    });
     // areia e mar
     var areia = new THREE.Mesh(new THREE.PlaneGeometry(120, 20), mt(0xf0d890)); areia.rotation.x = -Math.PI / 2; areia.position.set(0, -0.02, 48); MUNDO.add(areia);
     var mar = new THREE.Mesh(new THREE.PlaneGeometry(500, 400, CELULAR ? 40 : 70, CELULAR ? 30 : 50), new THREE.MeshLambertMaterial({ map:texMar, color:0xa8e8ff })); mar.rotation.x = -Math.PI / 2; mar.position.set(0, -0.25, 258); MUNDO.add(mar);
@@ -304,8 +376,13 @@ var MUNDO = new THREE.Group(); scene.add(MUNDO);
     [-1, 1].forEach(function (lado) {
         for (var z = 25; z > -108; ) {
             var d = 7 + Math.random() * 5, w = 8 + Math.random() * 6, h = 6 + Math.random() * 16;
-            var m = new THREE.MeshLambertMaterial({ map:texPredio, color:cores2[Math.floor(Math.random() * cores2.length)] });
-            caixaMesh(w, h + 4, d - 0.6, m, lado * (12 + w / 2), H(z - d / 2) - 4, z - d / 2, MUNDO);
+            var m = new THREE.MeshLambertMaterial({ map:TEX.predio[Math.floor(Math.random() * 3)], color:cores2[Math.floor(Math.random() * cores2.length)] });
+            var pr = caixaMesh(w, h + 4, d - 0.6, m, lado * (12 + w / 2), H(z - d / 2) - 4, z - d / 2, MUNDO);
+            uvCaixa(pr.geometry, w, h + 4, d - 0.6, 3.2, 3.4);
+            // lojinha no térreo: vitrine escura + faixa colorida do letreiro
+            var yb = Math.min(H(z), H(z - d)) - 0.6;
+            caixaMesh(0.14, 3.1, d - 2.2, 0x2e4a66, lado * 11.97, yb, z - d / 2, MUNDO);
+            caixaMesh(0.18, 0.55, d - 1.6, [0xff5a4a, 0x2a8ad8, 0xffc21a, 0x3ab04a, 0xb05ae0][Math.floor(Math.random() * 5)], lado * 11.95, Math.max(H(z), H(z - d)) + 2.95, z - d / 2, MUNDO);
             // beiral no telhado, caixa d'água e toldo listrado
             caixaMesh(w + 0.3, 0.5, d - 0.3, 0xece4d4, lado * (12 + w / 2), H(z - d / 2) + h, z - d / 2, MUNDO);
             if (Math.random() < 0.4) caixaMesh(1.6, 1.5, 1.6, 0x4a7ab8, lado * (12 + w * 0.6), H(z - d / 2) + h + 0.5, z - d / 2 + 1, MUNDO);
@@ -318,10 +395,24 @@ var MUNDO = new THREE.Group(); scene.add(MUNDO);
         // lojinhas ao lado do restaurante
         caixaMesh(14, 5, 12, lado < 0 ? 0xffc0d0 : 0xc0ffd0, lado * 15.5, 0, 34, MUNDO);
         // morro dos lados
-        caixaMesh(30, 40, 60, 0x4aa040, lado * 26, -20, -135, MUNDO);
+        var mr = caixaMesh(30, 40, 60, new THREE.MeshLambertMaterial({ map:TEX.grama, color:0xe8f0e0 }), lado * 26, -20, -135, MUNDO);
+        uvCaixa(mr.geometry, 30, 40, 60, 6, 6);
     });
     // morro do fundo
-    var cone = new THREE.Mesh(new THREE.ConeGeometry(40, 45, 10), mt(0x3a8a3a)); cone.position.set(0, 20, -190); MUNDO.add(cone);
+    var cone = new THREE.Mesh(new THREE.ConeGeometry(40, 45, 14), new THREE.MeshLambertMaterial({ map:TEX.grama, color:0xc8e0c0 })); cone.position.set(0, 20, -190); MUNDO.add(cone);
+    cone.geometry.attributes.uv.array.forEach(function (v, i, a) { a[i] = v * 8; });
+    // árvores redondinhas no morro
+    var matTr = mt(0x8a5a32), copas = [mt(0x3a9a3a), mt(0x4ab04a), mt(0x2e8a3e)], geoTr = new THREE.CylinderGeometry(0.25, 0.35, 2, 7), geoCopa = new THREE.IcosahedronGeometry(1.5, 1);
+    function arvore(x, y, z, esc) {
+        var a = new THREE.Group(), t = new THREE.Mesh(geoTr, matTr); t.position.y = 1; a.add(t);
+        for (var k = 0; k < 3; k++) { var c = new THREE.Mesh(geoCopa, copas[(k + Math.floor(Math.abs(x) * 7)) % 3]); c.position.set((k - 1) * 0.7, 2.6 + (k % 2) * 0.8, (k % 2 - 0.5) * 0.6); c.scale.setScalar(0.8 + (k % 2) * 0.3); a.add(c); }
+        a.position.set(x, y, z); a.scale.setScalar(esc); a.rotation.y = Math.random() * 6; MUNDO.add(a);
+    }
+    for (var ai = 0; ai < (CELULAR ? 14 : 30); ai++) {
+        var lx = (Math.random() < 0.5 ? -1 : 1) * (13 + Math.random() * 22), lz = -108 - Math.random() * 54;
+        arvore(lx, 20, lz, 0.9 + Math.random() * 0.7);
+    }
+    [[-11.4, -150], [11.4, -146], [-6, -160], [7, -162], [-11.6, -138], [11.6, -134]].forEach(function (p) { arvore(p[0], H(p[1]), p[1], 1.1); });
     // ponto seguro: placa + bandeira
     var py = H(-128);
     caixaMesh(0.25, 5, 0.25, 0xffffff, -4, py, -128, MUNDO);
@@ -477,7 +568,7 @@ function criaCogu(cor, celular) {
 var GEO_SOMBRA = new THREE.CircleGeometry(0.42, 14), MAT_SOMBRA = new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.28, depthWrite:false });
 var bonecos = [], eu = null, OBS = [], carros = [], BOX = [];
 function novoBoneco(cor, x, z, npc) {
-    var m = criaCogu(cor); scene.add(m);
+    var m = criaCogu(cor); scene.add(m); ligaSombras(m, false);
     var b = { x:x, y:H(z), z:z, vx:0, vz:0, vy:0, chao:true, coyote:0, buf:0, m:m, rot:Math.PI, npc:npc, vel:npc ? 4 + Math.random() * 1.6 : VEL, tonto:0, vivo:true, salvo:false, espera:0, lane:x, boia:0 };
     b.sombra = new THREE.Mesh(GEO_SOMBRA, MAT_SOMBRA); b.sombra.rotation.x = -Math.PI / 2; scene.add(b.sombra);
     bonecos.push(b); return b;
@@ -512,7 +603,7 @@ function fazObs(tipo, x, z) {
     } else {
         caixaMesh(t.w, t.h, t.d, cor, 0, 0, 0, g); caixaMesh(t.w + 0.02, 0.02, 0.25, 0xe8d0a0, 0, t.h, 0, g);
     }
-    scene.add(g);
+    scene.add(g); ligaSombras(g);
     var o = { tipo:tipo, g:g, x1:x - t.w / 2, x2:x + t.w / 2, z1:z - t.d / 2, z2:z + t.d / 2, y1:y0 - 0.3, y2:y0 + t.h };
     OBS.push(o); return o;
 }
@@ -971,7 +1062,7 @@ function soltaEntulho() {
         var v = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.32, 0.7, 10), mt(0xc0602a)); v.position.y = 0.35; g.add(v);
         var pl = new THREE.Mesh(new THREE.SphereGeometry(0.42, 8, 6), mt(0x3aa040)); pl.position.y = 0.85; g.add(pl);
     } else { caixaMesh(1.3, 0.5, 1.0, 0xd04a2a, 0, 0, 0, g); caixaMesh(1.32, 0.08, 0.3, 0xffffff, 0, 0.5, 0, g); }
-    g.position.set(x, y0 + 16, z); scene.add(g);
+    g.position.set(x, y0 + 16, z); scene.add(g); ligaSombras(g, false);
     ENT.push({ g:g, sombra:sombra, x:x, z:z, y0:y0, t:0, cai:1.25, caiu:false });
     bip(1200, 900, 0.15, 'sine', 0.04);
 }
@@ -1028,7 +1119,7 @@ var ONDA = {};
     ONDA.nB = CELULAR ? 120 : 280; ONDA.bor = [];
     for (i = 0; i < ONDA.nB; i++) ONDA.bor.push({ v:0 });
     ONDA.bg = new THREE.BufferGeometry(); ONDA.bg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ONDA.nB * 3), 3));
-    var pts = new THREE.Points(ONDA.bg, new THREE.PointsMaterial({ color:0xffffff, size:0.6, transparent:true, opacity:0.9, depthWrite:false, map:texCanvas(32, 32, function (x) {
+    var pts = new THREE.Points(ONDA.bg, new THREE.PointsMaterial({ color:0xffffff, size:0.4, transparent:true, opacity:0.9, depthWrite:false, map:texCanvas(32, 32, function (x) {
         var gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.5, 'rgba(230,248,255,0.8)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
         x.fillStyle = gr; x.fillRect(0, 0, 32, 32);
     }, 1, 1) }));
@@ -1079,7 +1170,7 @@ function visual(dt) {
     bonecos.forEach(function (e) {
         e.m.position.set(e.x, e.y, e.z);
         e.m.visible = !(e === eu && J.fase === 'celular');
-        e.sombra.visible = e.m.visible && e.vivo;
+        e.sombra.visible = !SOMBRAS && e.m.visible && e.vivo;
         if (e.sombra.visible) { var ys = chaoSob(e, 0.3); e.sombra.position.set(e.x, ys + 0.05, e.z); var ss = Math.max(0.4, 1 - (e.y - ys) * 0.12); e.sombra.scale.set(ss, ss, ss); }
         var dr = e.rot - e.m.rotation.y;
         while (dr > Math.PI) dr -= Math.PI * 2; while (dr < -Math.PI) dr += Math.PI * 2;
@@ -1108,6 +1199,7 @@ function visual(dt) {
         camera.lookAt(0, 3, 60);
     }
     animaEnfeites(dt);
+    sol.target.position.copy(camAlvo); sol.position.copy(camAlvo).add(SOL_OFF);
     hudT -= dt;
     if (hudT <= 0 && J.on && J.fase === 'fuga') {
         hudT = 0.25;
@@ -1359,6 +1451,8 @@ function netRender() {
 }
 
 montaModos();
+ligaSombras(MUNDO);
+TEX.rua.anisotropy = TEX.grama.anisotropy = renderer.capabilities.getMaxAnisotropy();
 window.MUNDO_OK = true;
 
 // ---------------- gancho de teste ----------------

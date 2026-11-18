@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v648 (2026-11-18)
+- 🌊 Alerta de Tsunami 3D com visual NOVO: **sombras de verdade** ☀️ (prédios, carros e cogumelos fazem sombra), rua com asfalto de verdade e faixa amarela dupla, calçadão de pedrinha com ondinhas de praia, meio-fio, prédios com **janelas de vidro**, varandinhas e **lojinhas com vitrine** embaixo, e o morro agora tem **grama com florzinhas e árvores** 🌳
+
 ## v647 (2026-11-18)
 - 🌊 Alerta de Tsunami 3D agora está no cartão da página inicial (antes só dava pra jogar pelo link)! E ganhou modo **Online** 🌐: crie uma sala e mande o código pros seus amigos, ou use a **Sala Rápida** pra cair numa corrida com 2, 3 ou 4 cogumelos de verdade (completa com bots se faltar gente). Depois da contagem 3-2-1, todo mundo corre pro morro ao mesmo tempo — quem chegar primeiro vence a corrida!
 
