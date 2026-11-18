@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v646 (2026-11-18)
+- 🌋 O Chão é Lava 3D ganhou **Top 5** de cada modo (os melhores tempos/pontos/alturas ficam guardados no seu aparelho — clique em "🏆 Top 5" no cartão do modo) e um modo novo: **Online** 🌐! Crie uma sala e mande o código pros seus amigos, ou use a **Sala Rápida** pra cair direto numa partida com 2, 3 ou 4 cogumelos de verdade (se não tiver gente suficiente, completa com bots). É o último cogumelo de pé que vence!
+
 ## v645 (2026-11-18)
 - 🌊 Alerta de Tsunami 3D ficou MUITO mais bonito: céu azul com sol brilhando, nuvens, gaivotas voando, coqueiros na praia, postes, toldos listrados nas lojas, o mar balançando com espuma na beira, sombrinha embaixo dos cogumelos, e a **ONDA GIGANTE agora enrola de verdade**, com espuma branca e gotas voando! 😱
 
