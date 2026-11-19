@@ -369,12 +369,19 @@ function atualizaPlacar() { document.getElementById('pA').textContent = J.pts[0]
 function passo(dt) {
     J.t += dt;
     // controle das raquetes
-    var k0 = { x:0, z:0 }, k1 = { x:0, z:0 };
-    if (teclas.KeyA) k0.x -= 1; if (teclas.KeyD) k0.x += 1; if (teclas.KeyW) k0.z -= 1; if (teclas.KeyS) k0.z += 1;
-    var setas = { x:(teclas.ArrowRight ? 1 : 0) - (teclas.ArrowLeft ? 1 : 0), z:(teclas.ArrowDown ? 1 : 0) - (teclas.ArrowUp ? 1 : 0) };
-    if (J.modo === 'dois') { k1.x = -setas.x; k1.z = -setas.z; } else { k0.x += setas.x; k0.z += setas.z; }
-    [k0, k1].forEach(function (k, i) {
-        if (k.x || k.z) { usouTeclado[i] = true; var r = RAQ[i]; r.tx = r.x + k.x * 3; r.tz = r.z + k.z * 3; }
+    // WASD e setas mexem na direção da TELA (direita = direita, cima = cima), seja qual for a câmera
+    var wasd = { x:(teclas.KeyD ? 1 : 0) - (teclas.KeyA ? 1 : 0), y:(teclas.KeyW ? 1 : 0) - (teclas.KeyS ? 1 : 0) };
+    var setas = { x:(teclas.ArrowRight ? 1 : 0) - (teclas.ArrowLeft ? 1 : 0), y:(teclas.ArrowUp ? 1 : 0) - (teclas.ArrowDown ? 1 : 0) };
+    var tec = J.modo === 'dois' ? [wasd, setas] : [{ x:wasd.x + setas.x, y:wasd.y + setas.y }, { x:0, y:0 }];
+    camera.updateMatrixWorld();
+    var me = camera.matrixWorld.elements, dirX = new THREE.Vector2(me[0], me[2]).normalize(), dirY = new THREE.Vector2(me[4], me[6]);
+    if (dirY.lengthSq() < 0.01) dirY.set(-me[8], -me[10]);
+    dirY.normalize();
+    tec.forEach(function (k, i) {
+        if (!k.x && !k.y) return;
+        var l = Math.hypot(k.x, k.y), mx = (dirX.x * k.x + dirY.x * k.y) / l, mz = (dirX.y * k.x + dirY.y * k.y) / l;
+        var r = RAQ[i], vel = 13;   // velocidade da raquete no teclado
+        usouTeclado[i] = true; r.tx = r.x + mx * vel * dt * 1.5; r.tz = r.z + mz * vel * dt * 1.5;
     });
     if (J.modo !== 'dois' || J.teste) cerebro(1, dt);
     if (J.teste) cerebro(0, dt);

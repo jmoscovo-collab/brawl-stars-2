@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v654 (2026-11-18)
+- 🏒 Cogu Hockey 3D: agora dá pra jogar com **WASD e setinhas** direitinho (a raquete vai pra onde você aperta na tela e para quando solta). No modo 2 jogadores: WASD = jogador 1, setas = jogador 2
+
 ## v653 (2026-11-18)
 - 🏒 Jogo novo (ainda escondido, só pelo link /hockey/): **Cogu Hockey 3D**! Hóquei de mesa numa arena neon com raquetes de cogumelo e torcida pulando. Contra o robô (Fácil, Médio, Difícil e IMPOSSÍVEL 👽), 2 jogadores no mesmo aparelho ou o modo MALUCO com 3 discos ao mesmo tempo. Quem fizer 7 gols ganha!
 
