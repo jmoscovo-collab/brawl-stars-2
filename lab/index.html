@@ -25,6 +25,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a0f2e;font-family:
 .ing small{font-size:11px;margin-top:4px;font-weight:bold}
 .ing.sel{border-color:#ffd23a;box-shadow:0 0 12px #ffd23a}
 .ing:active{transform:scale(.92)}
+#monstros{display:flex;justify-content:center;gap:5px;flex-wrap:wrap;max-height:min(150px,22vh);overflow-y:auto;margin-top:6px;padding:2px;border-radius:12px;background:rgba(0,0,0,.18)}
+.ing.mon{width:62px;height:66px;padding:0}
+.ing.mon canvas{width:44px;height:44px}
+.ing.mon small{font-size:9px;margin-top:1px;max-width:58px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ing.mon.sec{border-color:rgba(255,210,58,.7)}
+.ing.novo{animation:brilha 1s ease-in-out 4}
+@media(max-width:440px){ #prateleira .ing{width:52px;height:64px;font-size:26px} #prateleira .ing small{font-size:9px} .ing.mon{width:56px} }
+@keyframes brilha{50%{box-shadow:0 0 18px #7dff9a;border-color:#7dff9a;transform:scale(1.08)}}
 #acoes{display:flex;justify-content:center;gap:10px;margin-top:8px}
 .grande{border:3px solid rgba(255,255,255,.5);border-radius:16px;padding:10px 18px;font-weight:bold;font-size:20px;color:#fff;cursor:pointer;font-family:inherit}
 .verde{background:linear-gradient(#4ccf6a,#1f8a3a)} .verm{background:linear-gradient(#ff4a6a,#a01a3a)}
@@ -50,12 +58,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a0f2e;font-family:
 <body>
 <div class="tela" id="inicio">
   <h1>🧪 Laboratório Maluco</h1>
-  <div class="sub">Coloque <b>2 ou 3 ingredientes</b> no caldeirão e aperte <b>MISTURAR</b> pra criar um monstrinho! Cada mistura dá um monstro diferente. Complete o <b>álbum</b> e descubra as <b>receitas secretas</b> 🤫</div>
+  <div class="sub">Coloque <b>2 ou 3 ingredientes</b> no caldeirão e aperte <b>MISTURAR</b> pra criar um monstrinho! Cada monstro que você cria <b>vira ingrediente</b> pra misturar de novo — são <b>300 misturas</b>! Complete o <b>álbum</b> e descubra as <b>receitas secretas</b> 🤫</div>
   <div class="sub" id="progIni" style="font-size:20px;color:#ffd23a;font-weight:bold"></div>
   <button class="btn" id="bLab" style="background:linear-gradient(#4ccf6a,#1f8a3a)">🧪 Entrar no laboratório</button>
   <button class="btn" id="bEnc" style="background:linear-gradient(#ffb03a,#c06a00)">📦 Encomendas (1 minuto)</button>
   <button class="btn" id="bAlbIni">📖 Álbum de monstros</button>
-  <div class="sub" style="font-size:14px">💻 Teclas 1 a 6 = ingredientes · Espaço/Enter = misturar · Backspace = esvaziar<br>🎮 Controle: ← → escolhe · ❌ coloca · ⬜ mistura · ↓ esvazia</div>
+  <div class="sub" style="font-size:14px">💻 Teclas 1 a 6 = ingredientes · ← → escolhe monstro · ↑ coloca · Espaço/Enter = misturar · Backspace = esvaziar · H = dica<br>🎮 Controle: ← → escolhe · ❌ coloca · ⬜ mistura · ↓ esvazia</div>
   <a class="voltar" href="/">⬅ Voltar pro Cogumelo Games</a>
 </div>
 
@@ -72,8 +80,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a0f2e;font-family:
   </div>
   <div id="base">
     <div id="prateleira"></div>
+    <div id="monstros"></div>
     <div id="acoes">
       <button class="grande verm" id="bLimpa">🗑️</button>
+      <button class="grande" id="bDica" style="background:linear-gradient(#ffd23a,#b08a00)">💡</button>
       <button class="grande verde" id="bMix">🧪 MISTURAR!</button>
     </div>
   </div>
@@ -124,14 +134,46 @@ const SECRETAS={
  '000':{n:'Meteorão',x:'cometa',d:'Muito, muito, MUITO fogo'},
  '234':{n:'Yeti Elétrico',x:'pelo',d:'Planta, raio e gelo da montanha'}
 };
+// ---------- 300 MISTURAS: cada monstro que você descobre vira ingrediente! ----------
+const BASE=['0','1','2','3','4','5'];
+const RECEITA={};   // 'a+b' (ids em ordem) -> monstro
+const PAIS={};      // monstro -> ingredientes da receita
+const COMP={};      // monstro -> ingredientes base (pro desenho)
+const rk=l=>l.slice().sort().join('+');
+for(const k of Object.keys(NOMES).concat(Object.keys(SECRETAS))){ RECEITA[rk([...k])]=k; PAIS[k]=[...k]; COMP[k]=k; }
+(function(){
+    let s=20261118; const rnd=()=>{ s=(s+0x6D2B79F5)|0; let t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+    const P=['Bolo','Zum','Plim','Tchu','Gru','Pipo','Fofo','Turbo','Mega','Nano','Zig','Bubu','Croc','Flim','Glub','Ronc','Tuti','Bzz','Kabu','Lulu'];
+    const S=['nildo','zão','tito','gudo','rex','bolha','zinho','mon','ludo','raio','ponga','tron','fofa','bito','zila','gão','lete','cuco','mito','dudu'];
+    const nomes=[]; for(const a of P) for(const b of S) nomes.push(a+b);
+    for(let i=nomes.length-1;i>0;i--){ const j=rnd()*(i+1)|0; [nomes[i],nomes[j]]=[nomes[j],nomes[i]]; }
+    const mons=Object.keys(NOMES).slice(); let ni=0;
+    while(mons.length<300){
+        const rec=mons.slice(-30);
+        const a=rnd()<.7?rec[rnd()*rec.length|0]:mons[rnd()*mons.length|0];
+        const b=rnd()<.75?BASE[rnd()*6|0]:mons[rnd()*mons.length|0];
+        const r=rk([a,b]); if(RECEITA[r]) continue;
+        const k='g'+mons.length;
+        RECEITA[r]=k; PAIS[k]=[a,b];
+        const cb=COMP[b]||b;
+        COMP[k]=[...COMP[a].slice(-3)+cb[rnd()*cb.length|0]].sort().join('');
+        NOMES[k]=nomes[ni++]; mons.push(k);
+    }
+})();
 const TODOS=Object.keys(NOMES).concat(Object.keys(SECRETAS));
-const chave=r=>r.slice().sort((a,b)=>a-b).join('');
+const chave=rk;
 const nomeDe=k=>NOMES[k]||(SECRETAS[k]&&SECRETAS[k].n)||'Gosma';
+const ehBase=id=>BASE.includes(id);
+const nomeItem=id=>ehBase(id)?ING[+id].e+' '+ING[+id].n:nomeDe(id);
+const curtoItem=id=>ehBase(id)?ING[+id].e:nomeDe(id);
 function hashK(k){ let h=7; for(const ch of k) h=(h*31+ch.charCodeAt(0))>>>0; return h; }
 
 // ---------- save ----------
 let save={a:{},rec:0};
 try{ const s=JSON.parse(localStorage.getItem('lab_save')); if(s&&s.a) save=s; }catch(e){}
+// ordem em que você descobriu (o mais novo aparece primeiro na prateleira)
+if(!Array.isArray(save.o)) save.o=Object.keys(save.a);
+save.o=save.o.filter(k=>save.a[k]&&PAIS[k]);
 function grava(){ try{ localStorage.setItem('lab_save',JSON.stringify(save)); }catch(e){} }
 const achados=()=>TODOS.filter(k=>save.a[k]).length;
 const achadosNormais=()=>Object.keys(NOMES).filter(k=>save.a[k]).length;
@@ -161,9 +203,13 @@ function corDe(k){
     const s=SECRETAS[k];
     if(s&&s.x==='capi') return [170,110,60];
     if(s&&s.x==='pelo') return [235,240,255];
-    const c=[0,0,0]; for(const ch of k){ const i=ING[+ch].cor; c[0]+=i[0]; c[1]+=i[1]; c[2]+=i[2]; }
-    return c.map(v=>v/k.length);
+    const cp=COMP[k]||k;
+    const c=[0,0,0]; for(const ch of cp){ const i=ING[+ch].cor; c[0]+=i[0]; c[1]+=i[1]; c[2]+=i[2]; }
+    const m=c.map(v=>v/cp.length);
+    if(k[0]==='g'){ const p=PALETA[hashK(k)%PALETA.length]; return m.map((v,i)=>v*.45+p[i]*.55); }
+    return m;
 }
+const PALETA=[[255,120,200],[120,90,255],[60,220,200],[255,170,40],[150,230,60],[255,80,80],[90,180,255],[200,120,60],[240,240,120],[180,80,200],[40,160,110],[255,200,160]];
 function chama(c,x,y,s,t){
     for(let i=0;i<3;i++){ const w=s*(1-i*.28), a=Math.sin(t*12+i*2)*s*.12;
         c.fillStyle=['#ff4a1a','#ff9a1a','#ffe23a'][i];
@@ -191,7 +237,7 @@ function cristal(c,x,y,s,ang){
 // desenha o monstro da receita k, centrado em (x,y), com tamanho sz (~altura)
 function desenhaMonstro(c,k,x,y,sz,t,sombra){
     const h=hashK(k), cor=corDe(k), cnt=[0,0,0,0,0,0];
-    if(k!=='gosma') for(const ch of k) cnt[+ch]++;
+    if(k!=='gosma') for(const ch of (COMP[k]||k)) cnt[+ch]++;
     const sec=SECRETAS[k]||null, X=sec?sec.x:'';
     c.save(); c.translate(x,y); c.scale(sz/100,sz/100);
     if(sombra){ c.fillStyle='#000'; c.globalAlpha=.85; }
@@ -259,6 +305,13 @@ function desenhaMonstro(c,k,x,y,sz,t,sombra){
         chapeu(c,0,topo+2,13); c.strokeStyle='#8a5a2a'; c.lineWidth=4; c.beginPath(); c.moveTo(bw+12,cy-4-ab); c.lineTo(bw+22,cy-34-ab); c.stroke();
         c.font='20px serif'; c.textAlign='center'; c.fillText('⭐',bw+24,cy-34-ab); }
     if(X==='asas'){ c.fillStyle='#ffe23a'; for(const sx of [-1,1]){ c.beginPath(); c.moveTo(sx*bw*.3,topo+6); c.lineTo(sx*bw*.45,topo-14); c.lineTo(sx*bw*.6,topo+10); c.fill(); } }
+    // enfeites dos monstros novos (cada um fica diferente)
+    if(k[0]==='g'){
+        if((h>>5)%3===0){ c.fillStyle='#fff4d0'; c.strokeStyle='#a08a50'; c.lineWidth=2; for(const sx of [-1,1]){ c.beginPath(); c.moveTo(sx*bw*.55,topo+10); c.quadraticCurveTo(sx*bw*.95,topo-6,sx*bw*.85,topo-22); c.lineTo(sx*bw*.35,topo+8); c.closePath(); c.fill(); c.stroke(); } }
+        if((h>>7)%3===0){ c.fillStyle=rgb(cor,.65); for(let i=0;i<5;i++){ const a=i*1.3+h%5; c.beginPath(); c.arc(Math.cos(a)*bw*.55,cy+Math.sin(a)*bh*.5,5+i%3*2,0,7); c.fill(); } }
+        if((h>>9)%4===0){ c.strokeStyle='#222'; c.lineWidth=3; c.beginPath(); c.arc(-bw*.28,oy,11,0,7); c.moveTo(bw*.28+11,oy); c.arc(bw*.28,oy,11,0,7); c.moveTo(-bw*.28+11,oy); c.lineTo(bw*.28-11,oy); c.stroke(); }
+        if((h>>11)%4===1){ c.fillStyle='#ff4a8a'; c.beginPath(); c.arc(-8,topo-2,7,0,7); c.arc(8,topo-2,7,0,7); c.fill(); c.fillStyle='#c02060'; c.beginPath(); c.arc(0,topo-2,4,0,7); c.fill(); }
+    }
     c.restore();
 }
 
@@ -268,22 +321,49 @@ function resize(){ const r=cv.getBoundingClientRect(); DPR=Math.min(1.5,devicePi
 addEventListener('resize',resize);
 
 let pote=[], estado='parado', anim=0, resultado=null, voando=[], bolhas=[], selIng=0, modo='lab';
-function corPote(){ if(!pote.length) return [80,200,120]; const c=[0,0,0]; pote.forEach(i=>{ c[0]+=ING[i].cor[0]; c[1]+=ING[i].cor[1]; c[2]+=ING[i].cor[2]; }); return c.map(v=>v/pote.length); }
+function corPote(){ if(!pote.length) return [80,200,120]; const c=[0,0,0]; pote.forEach(id=>{ const k=ehBase(id)?ING[+id].cor:corDe(id); c[0]+=k[0]; c[1]+=k[1]; c[2]+=k[2]; }); return c.map(v=>v/pote.length); }
 
+// prateleira = 6 ingredientes + TODOS os monstros que você já descobriu (o mais novo primeiro)
+let LISTA=BASE.slice(), novoK=null;
 function montaPrateleira(){
-    $('prateleira').innerHTML=ING.map((g,i)=>`<button class="ing${i===selIng?' sel':''}" data-i="${i}">${g.e}<small>${i+1} ${g.n}</small></button>`).join('');
-    $('prateleira').querySelectorAll('.ing').forEach(b=>b.onclick=()=>{ selIng=+b.dataset.i; marcaSel(); poe(selIng); });
+    const mons=save.o.slice().reverse();
+    LISTA=BASE.concat(mons);
+    $('prateleira').innerHTML=ING.map((g,i)=>`<button class="ing" data-x="${i}">${g.e}<small>${i+1} ${g.n}</small></button>`).join('');
+    $('monstros').innerHTML=mons.length?mons.map((k,j)=>`<button class="ing mon${k===novoK?' novo':''}${SECRETAS[k]?' sec':''}" data-x="${j+6}"><canvas width="88" height="88"></canvas><small>${nomeDe(k)}</small></button>`).join('')
+        :'<div style="opacity:.7;font-size:13px;padding:6px">Os monstros que você criar aparecem aqui pra misturar de novo! ✨</div>';
+    $('monstros').querySelectorAll('canvas').forEach((c,j)=>desenhaMonstro(c.getContext('2d'),mons[j],44,58,58,0,false));
+    $('base').querySelectorAll('.ing').forEach(b=>b.onclick=()=>{ selIng=+b.dataset.x; marcaSel(); poe(LISTA[selIng]); });
+    if(selIng>=LISTA.length) selIng=0;
+    marcaSel();
 }
-function marcaSel(){ $('prateleira').querySelectorAll('.ing').forEach((b,i)=>b.classList.toggle('sel',i===selIng)); }
+function marcaSel(){ $('base').querySelectorAll('.ing').forEach(b=>b.classList.toggle('sel',+b.dataset.x===selIng));
+    const b=$('base').querySelector('.ing.mon.sel'); if(b) b.scrollIntoView({block:'nearest'}); }
 function atualizaBotoes(){ $('bMix').disabled=pote.length<2||estado!=='parado'; $('cont').textContent=achados()+'/'+TODOS.length; }
 
-function poe(i){
+function poe(id){
     audio();
+    if(id===undefined) return;
     if(estado==='mostra'){ estado='parado'; resultado=null; }
     if(estado!=='parado'||pote.length>=3) return;
-    pote.push(i); som.plop();
-    voando.push({e:ING[i].e,t:0,x0:(0.15+i*0.14),i});
+    pote.push(id); som.plop();
+    voando.push({id,t:0,x0:ehBase(id)?(0.15+(+id)*0.14):0.5});
     atualizaBotoes();
+}
+// desenha um ingrediente (emoji) ou um monstro pequeno
+function desenhaItem(c,id,x,y,sz){
+    if(ehBase(id)){ c.font=(sz|0)+'px serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(ING[+id].e,x,y); }
+    else desenhaMonstro(c,id,x,y+sz*.3,sz*1.1,T,false);
+}
+// 💡 dica: mostra um ingrediente de uma mistura que você já consegue fazer
+let dicaTxt='', dicaT=0;
+function dica(){
+    audio();
+    const tem=id=>ehBase(id)||save.a[id];
+    const l=Object.keys(PAIS).filter(k=>!save.a[k]&&!SECRETAS[k]&&PAIS[k].every(tem));
+    if(!l.length) dicaTxt='🏆 Você descobriu TODAS as misturas!';
+    else { const p=PAIS[l[Math.random()*l.length|0]], a=p.find(x=>!ehBase(x))||p[0];
+        dicaTxt='💡 Tente misturar '+nomeItem(a)+' com alguma coisa!'; }
+    dicaT=5; som.velho();
 }
 function limpa(){ if(estado==='borbulha') return; pote=[]; resultado=null; estado='parado'; atualizaBotoes(); }
 function mistura(){
@@ -292,15 +372,16 @@ function mistura(){
     estado='borbulha'; anim=0; som.borbulha(); atualizaBotoes();
 }
 function terminaMistura(){
-    const k=chave(pote);
+    const k=RECEITA[rk(pote)];
     let tipo;
-    if(pote.length===3&&!SECRETAS[k]) tipo='gosma';
+    if(!k) tipo='gosma';
     else if(save.a[k]) tipo='velho';
     else tipo=SECRETAS[k]?'secreto':'novo';
-    const kk=tipo==='gosma'?'gosma':k;
+    const kk=k||'gosma';
     resultado={k:kk,tipo,t:0};
-    if(tipo==='novo'){ save.a[k]=1; grava(); moedas(5); som.novo(); }
-    else if(tipo==='secreto'){ save.a[k]=1; grava(); moedas(20); som.secreto(); }
+    if(tipo==='novo'||tipo==='secreto'){ save.a[k]=1; save.o.push(k); grava(); novoK=k; selIng=6; montaPrateleira(); }
+    if(tipo==='novo'){ moedas(5); som.novo(); }
+    else if(tipo==='secreto'){ moedas(20); som.secreto(); }
     else if(tipo==='gosma') som.gosma(); else som.velho();
     if(modo==='enc') confereEncomenda(kk);
     pote=[]; estado='mostra'; anim=0; atualizaBotoes();
@@ -337,11 +418,11 @@ let albumDe='inicio';
 function abreAlbum(de){
     albumDe=de; abre('album');
     const nn=achadosNormais(), dicas=Math.floor(nn/4);
-    $('albSub').innerHTML=`Você achou <b>${achados()}</b> de <b>${TODOS.length}</b>! Cada 4 monstros normais libera uma dica secreta 🤫`;
+    $('albSub').innerHTML=`Você achou <b>${achados()}</b> de <b>${TODOS.length}</b>! (300 misturas + ${Object.keys(SECRETAS).length} secretas) · Cada 4 monstros normais libera uma dica secreta 🤫`;
     let i=0;
     $('grade').innerHTML=TODOS.map(k=>{
         const sec=!!SECRETAS[k], tem=!!save.a[k];
-        const rec=tem?[...k].map(ch=>ING[+ch].e).join(' + '):'';
+        const rec=tem?PAIS[k].map(curtoItem).join(' + '):'';
         let dica='';
         if(sec&&!tem){ const idx=Object.keys(SECRETAS).indexOf(k); dica=idx<dicas?'💡 '+SECRETAS[k].d:'🔒 dica com '+(idx+1)*4+' monstros'; }
         return `<div class="card${sec?' sec':''}"><canvas data-k="${k}" data-tem="${tem?1:0}" width="144" height="144"></canvas><b>${tem?nomeDe(k):'???'}</b><i>${rec}</i>${dica?'<div class="dica">'+dica+'</div>':''}</div>`;
@@ -358,7 +439,7 @@ $('bAlbIni').onclick=()=>abreAlbum('inicio');
 $('bAlb').onclick=()=>{ if(modo==='enc') return; abreAlbum('lab'); };
 $('bAlbVolta').onclick=()=>{ if(albumDe==='lab') abre(null); else inicio(); };
 $('bSair').onclick=()=>{ if(modo==='enc'){ enc.tempo=0; return; } inicio(); };
-$('bMix').onclick=mistura; $('bLimpa').onclick=limpa;
+$('bMix').onclick=mistura; $('bLimpa').onclick=limpa; $('bDica').onclick=dica;
 $('bEncDeNovo').onclick=comecaEnc; $('bEncSai').onclick=inicio;
 
 addEventListener('keydown',e=>{
@@ -366,10 +447,13 @@ addEventListener('keydown',e=>{
         if(e.key==='Enter'&&$('inicio').style.display!=='none'){ audio(); modo='lab'; abreLab(); }
         return;
     }
-    if(e.key>='1'&&e.key<='6'){ selIng=+e.key-1; marcaSel(); poe(selIng); }
-    else if(e.key==='ArrowLeft'){ selIng=(selIng+5)%6; marcaSel(); }
-    else if(e.key==='ArrowRight'){ selIng=(selIng+1)%6; marcaSel(); }
-    else if(e.code==='Space'){ e.preventDefault(); if(e.isTrusted) mistura(); else poe(selIng); }
+    const NL=LISTA.length;
+    if(e.key>='1'&&e.key<='6'){ selIng=+e.key-1; marcaSel(); poe(LISTA[selIng]); }
+    else if(e.key==='ArrowLeft'){ selIng=(selIng+NL-1)%NL; marcaSel(); }
+    else if(e.key==='ArrowRight'){ selIng=(selIng+1)%NL; marcaSel(); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); poe(LISTA[selIng]); }
+    else if(e.key==='h'||e.key==='H') dica();
+    else if(e.code==='Space'){ e.preventDefault(); if(e.isTrusted) mistura(); else poe(LISTA[selIng]); }
     else if(e.key==='Enter'){ if(e.isTrusted) mistura(); }
     else if(e.key==='e'||e.key==='j') mistura();
     else if(e.key==='Backspace'||e.key==='ArrowDown'||e.key==='Delete') limpa();
@@ -379,7 +463,8 @@ addEventListener('keydown',e=>{
 let ult=performance.now(), T=0;
 function loop(agora){
     const dt=Math.min(.05,(agora-ult)/1000); ult=agora; T+=dt;
-    if($('album').style.display==='flex'){ desenhaAlbum(T); requestAnimationFrame(loop); return; }
+    if($('album').style.display==='flex'){ requestAnimationFrame(loop); return; }   // álbum é desenhado 1 vez (são 306 monstros!)
+    if(dicaT>0) dicaT-=dt;
     if(modo==='enc'&&$('jogo').style.display!=='none'&&$('inicio').style.display==='none'&&$('fimEnc').style.display!=='flex'){
         enc.tempo-=dt; if(enc.tempo<=0){ enc.tempo=0; acabaEnc(); }
         else { const g=$('pedC').getContext('2d'); g.clearRect(0,0,140,140); desenhaMonstro(g,enc.quer,70,92,86,T,false); }
@@ -427,17 +512,16 @@ function desenha(dt){
     // ingredientes voando
     voando=voando.filter(v=>{ v.t+=dt*2.2; const a=Math.min(1,v.t), sx=W*v.x0, sy=H+10;
         const x=sx+(px-sx)*a, y=sy+(py-40*s-sy)*a-Math.sin(a*Math.PI)*120*s;
-        ctx.font=(34*s|0)+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(v.e,x,y); return v.t<1; });
+        desenhaItem(ctx,v.id,x,y,34*s); return v.t<1; });
     // o que tem no pote
-    ctx.textAlign='center'; ctx.textBaseline='middle';
     for(let i=0;i<3;i++){ const x=px+(i-1)*56*s, y=py+20*s; ctx.fillStyle='rgba(255,255,255,.12)'; ctx.beginPath(); ctx.arc(x,y,22*s,0,7); ctx.fill();
-        if(pote[i]!==undefined){ ctx.font=(28*s|0)+'px serif'; ctx.fillText(ING[pote[i]].e,x,y+2*s); } }
+        if(pote[i]!==undefined) desenhaItem(ctx,pote[i],x,y+2*s,28*s); }
     // texto de cima
     let txt='';
-    if(estado==='parado') txt=pote.length===0?'Escolha os ingredientes! 👇':pote.length===1?'Mais um! (ou dois 🤫)':'Aperte MISTURAR! 🧪';
+    if(estado==='parado') txt=dicaT>0?dicaTxt:pote.length===0?'Escolha os ingredientes ou monstros! 👇':pote.length===1?'Mais um! (ou dois 🤫)':'Aperte MISTURAR! 🧪';
     if(estado==='borbulha') txt='Borbulhando... ♨️';
     if(estado==='mostra'&&resultado){ const r=resultado;
-        txt=r.tipo==='novo'?'✨ NOVO! '+nomeDe(r.k)+' +5 🍄':r.tipo==='secreto'?'🌟 SECRETO!!! '+nomeDe(r.k)+' +20 🍄':r.tipo==='gosma'?'🤢 Eca! Virou gosma... tente outra':'Ah, o '+nomeDe(r.k)+' de novo 😄'; }
+        txt=r.tipo==='novo'?'✨ NOVO! '+nomeDe(r.k)+' +5 🍄<br><span style="font-size:14px">Ele já tá na prateleira pra você misturar! 👇</span>':r.tipo==='secreto'?'🌟 SECRETO!!! '+nomeDe(r.k)+' +20 🍄':r.tipo==='gosma'?'🤢 Eca! Virou gosma... tente outra':'Ah, o '+nomeDe(r.k)+' de novo 😄'; }
     const hud=modo==='enc'?`⏱️ ${Math.ceil(enc.tempo)}s · 📦 ${enc.pontos}`+(estado==='mostra'?'<br><span style="font-size:15px">'+txt+'</span>':''):txt;
     if(hud!==desenha.hud){ desenha.hud=hud; $('hud').innerHTML=hud; }
 }

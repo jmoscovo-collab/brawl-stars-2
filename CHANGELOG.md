@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v658 (2026-11-19)
+- 🧪 **Laboratório Maluco**: agora cada monstro que você cria vira ingrediente pra misturar de novo! São **300 misturas** (+6 secretas), com botão 💡 de dica.
+- 🎉 **Mega Evento**: os jogos escondidos não aparecem mais na lista.
+
 ## v657 (2026-11-18)
 - 🏒 **Cogu Hockey 3D LANÇADO** na página inicial!
 
