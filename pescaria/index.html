@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="Pescaria Maluca — pesque peixes de 5 raridades, venda pro comprador e compre varas melhores! Cogumelo Games.">
+<meta name="description" content="Pescaria Maluca — pesque mais de 1.800 peixes, venda pro comprador e compre varas melhores! Cogumelo Games.">
 <title>🎣 Pescaria Maluca — Cogumelo Games</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -253,6 +253,45 @@ const PEIXES = {
                ['Rei dos Abismos','🫅'],['Peixe Constelação','✨'],['Sombra de Netuno','🔱'],['Peixe Enigma','❓'],['Cometa dos Mares','☄️']]
 };
 
+// ============ +300 PEIXES em cada raridade (Secreto e Ultra continuam raríssimos, sem peixe novo) ============
+// cada peixe novo tem um código curtinho (#co12) pro save não ficar gigante
+const GERA_PEIXES = {
+    comum: [[['Lambari','🐟'],['Sardinha','🐟'],['Tilápia','🐠'],['Bagre','🐟'],['Carpa','🐟'],['Piaba','🐟'],['Cascudo','🐟'],['Traíra','🐟'],['Acará','🐠'],['Manjuba','🐟'],
+             ['Corvina','🐟'],['Piau','🐟'],['Jundiá','🐟'],['Peixinho','🐟'],['Barrigudinho','🐠'],['Mandi','🐟'],['Tambica','🐟'],['Guaru','🐠'],['Sarapó','🐟'],['Pacuzinho','🐠']],
+            [['do Brejo','🌾'],['da Lagoa','💧'],['de Bolinha','⚪'],['de Pijama','🩳'],['do Riacho','🏞️'],['da Poça','💦'],['de Chapéu','🎩'],['de Óculos','👓'],['do Barranco','🪨'],
+             ['da Represa','🚧'],['de Botas','👢'],['do Açude','🌊'],['da Ponte','🌉'],['de Gravata','👔'],['do Quintal','🏡'],['da Chuva','🌧️'],['de Meia','🧦'],['do Sítio','🐓']]],
+    raro:  [[['Dourado','🐠'],['Tucunaré','🐠'],['Pintado','🐟'],['Robalo','🐠'],['Pacu','🐟'],['Matrinxã','🐠'],['Curimba','🐟'],['Truta','🐟'],['Salmão','🍣'],['Enguia','🪱'],
+             ['Baiacu','🐡'],['Piranha','🦷'],['Peixe-Palhaço','🤡'],['Peixe-Cirurgião','🩺'],['Peixe-Anjo','😇'],['Garoupa','🐟'],['Badejo','🐠'],['Pargo','🐟'],['Tainha','🐟'],['Cioba','🐠']],
+            [['Neon','💡'],['das Ondas','🌊'],['Turbo','🚀'],['do Coral','🪸'],['Cantor','🎤'],['de Prata','🥈'],['Relâmpago','⚡'],['Ninja','🥷'],['do Farol','🗼'],
+             ['Pirata','🏴‍☠️'],['Astronauta','👨‍🚀'],['Skatista','🛹'],['Gamer','🎮'],['Mágico','🎩'],['DJ','🎧'],['Detetive','🔍'],['Bombeiro','🚒'],['Super','🦸']]],
+    epico: [[['Barracuda','💨'],['Moreia','🐍'],['Arraia','🐟'],['Polvo','🐙'],['Lula','🦑'],['Espadarte','⚔️'],['Peixe-Espada','🗡️'],['Peixe-Leão','🦁'],['Pirarucu','🐊'],['Atum','🐟'],
+             ['Peixe-Serra','🪚'],['Caranguejo','🦀'],['Lagosta','🦞'],['Tartaruga','🐢'],['Peixe-Lua','🌙'],['Marlim','🐟'],['Cação','🦈'],['Peixe-Voador','🪽'],['Tubarão-Tigre','🐯'],['Peixe-Pedra','🪨']],
+            [['Tempestade','🌩️'],['Gladiador','🛡️'],['Trovão','⚡'],['Samurai','⚔️'],['Cristal','🔷'],['Vulcão','🌋'],['Sombra','🌑'],['Ciclone','🌀'],['Meteoro','☄️'],
+             ['Robô','🤖'],['Viking','🪓'],['Titã','🗿'],['Cavaleiro','🏇'],['Furacão','🌪️'],['Laser','🔴'],['Ômega','💠'],['Dinamite','🧨'],['Blindado','🔩']]],
+    mistico: [[['Peixe','🐟'],['Carpa','🎏'],['Boto','🐬'],['Salamandra','🦎'],['Tartaruga','🐢'],['Enguia','🪱'],['Cavalo-Marinho','🐴'],['Medusa','🪼'],['Sapo','🐸'],['Axolote','🦎'],
+             ['Caramujo','🐌'],['Peixe-Fada','🧚'],['Peixe-Duende','🧝'],['Raia','🐟'],['Siri','🦀'],['Jacaré','🐊'],['Lontra','🦦'],['Peixe-Coruja','🦉'],['Peixe-Gnomo','🍄'],['Peixe-Bruxo','🧙']],
+            [['da Floresta','🌲'],['do Luar','🌙'],['Esmeralda','💚'],['de Jade','🟢'],['da Névoa','🌫️'],['do Arco-Íris','🌈'],['das Fadas','🧚'],['do Feitiço','🪄'],['da Poção','🧪'],
+             ['Xamã','🪶'],['Oráculo','🔮'],['da Aurora','🌅'],['do Orvalho','💧'],['Amuleto','🧿'],['do Trevo','🍀'],['das Estrelas','✨'],['do Pântano','🐸'],['Rúnico','🗿']]],
+    lendario: [[['Dragão-Marinho','🐉'],['Kraken','🦑'],['Leviatã','🐋'],['Serpente','🐍'],['Fênix','🐦‍🔥'],['Baleia','🐳'],['Hidra','🐲'],['Narval','🦄'],['Orca','🐳'],['Tubarão','🦈'],
+             ['Megalodonte','🦈'],['Quimera','🦁'],['Tritão','🔱'],['Sereia','🧜'],['Basilisco','🐍'],['Titã-do-Mar','🗿'],['Golfinho','🐬'],['Cavalo-Marinho','🐴'],['Grifo-do-Mar','🦅'],['Peixe-Rei','👑']],
+            [['Imperial','👑'],['Ancião','🧓'],['Real','💍'],['Dourado','✨'],['de Diamante','💎'],['do Trovão','⚡'],['Celestial','🌠'],['do Sol','☀️'],['da Eternidade','♾️'],
+             ['Supremo','🏆'],['de Platina','🥈'],['do Abismo','🕳️'],['Galáctico','🌌'],['do Destino','🔮'],['Infinito','♾️'],['Sagrado','😇'],['Primordial','🌋'],['Cósmico','💫']]]
+};
+(function(){
+    const usados = new Set(); Object.values(PEIXES).forEach(l=>l.forEach(p=>usados.add(p[0])));
+    for(const rar in GERA_PEIXES){
+        const [bases, comps] = GERA_PEIXES[rar]; let n = 0;
+        for(let c=0; c<comps.length && n<300; c++) for(let b=0; b<bases.length && n<300; b++){
+            const nome = bases[b][0] + ' ' + comps[c][0];
+            if(usados.has(nome)) continue;
+            usados.add(nome);
+            PEIXES[rar].push([nome, (n%2 ? bases[b][1] : comps[c][1]), '#' + rar.slice(0,2) + n]);
+            n++;
+        }
+    }
+})();
+const chaveIdx = p => p.cod || p.nome;   // chave do peixe no Livro
+
 // ============ TESOUROS (chance rara de fisgar um item em vez de peixe!) ============
 // peso = chance relativa (itens valiosos são MUITO difíceis)
 const TESOUROS = [
@@ -296,7 +335,7 @@ const TESOUROS = [
 ];
 const CHANCE_TESOURO = 0.08; // 8% da fisgada ser um tesouro
 
-// ============ VARAS (36!) ============
+// ============ VARAS (336!) ============
 // janela = tempo pra fisgar | sorte = chance de raridades altas | forca = quanto cada clique enche a barra na briga
 const VARAS_DEF = [
     ['graveto','Graveto','🥢',0,'Um graveto com barbante. Funciona... às vezes.'],
@@ -336,12 +375,29 @@ const VARAS_DEF = [
     ['divina','Vara Divina','✨',3800000,'Os deuses pescam com ela.'],
     ['suprema','Vara SUPREMA','🏆',4000000,'A ÚLTIMA. A MELHOR. A LENDA.']
 ];
-const VARAS = VARAS_DEF.map(([id,nome,icone,preco,desc],i)=>({
-    id, nome, icone, preco, desc,
-    janela: 0.55 + i*0.045,                 // mais tempo pra fisgar
-    sorte: 1 + i*0.55,                      // até ~20x de sorte na última
-    forca: 1 + i*0.12                       // cada clique enche mais a barra
-}));
+// ============ +300 VARAS depois da Suprema (cada uma um pouquinho melhor e mais cara) ============
+const N_VARAS_ORIG = VARAS_DEF.length;
+(function(){
+    const TEMAS = [['Rubi','❤️'],['Safira','💙'],['Esmeralda','💚'],['Ametista','💜'],['Topázio','💛'],['Tubarão','🦈'],['Polvo','🐙'],['Baleia','🐳'],['Coral','🪸'],['Pérola','🦪'],
+                   ['Neve','☃️'],['Fogo','🔥'],['Vento','🌬️'],['Raio','⚡'],['Terra','🌍'],['Estrela','⭐'],['Cometa','☄️'],['Planeta','🪐'],['Nebulosa','🌌'],['Buraco Negro','🕳️'],
+                   ['Pirata','🏴‍☠️'],['Samurai','⚔️'],['Viking','🪓'],['Mago','🧙'],['Robô','🤖'],['Alien','👽'],['Capivara','🦫'],['Cogumelo','🍄'],['Dragão','🐉'],['Unicórnio','🦄']];
+    const NIVEIS = ['Nova','Turbo','Mega','Ultra','Hiper','Neon','Brilhante','Lendária','Cósmica','MÁXIMA'];
+    let j = 0;
+    NIVEIS.forEach((nv,ni)=>TEMAS.forEach(([tm,ic])=>{
+        j++;
+        const bruto = 4000000 * Math.pow(1.02, j);
+        const mag = Math.pow(10, Math.floor(Math.log10(bruto)) - 1);
+        VARAS_DEF.push(['v'+j, 'Vara '+tm+' '+nv, ic, Math.round(bruto/mag)*mag, `Nível ${N_VARAS_ORIG+j}! ${['Mais sorte','Puxa mais forte','Brilha no escuro','Os peixes fazem fila','Nem o Kraken escapa'][j%5]}.`]);
+    }));
+})();
+const VARAS = VARAS_DEF.map(([id,nome,icone,preco,desc],i)=>{
+    const j = Math.max(0, i-(N_VARAS_ORIG-1));    // 0 até a Suprema, depois cresce devagar
+    const k = Math.min(i, N_VARAS_ORIG-1);
+    return { id, nome, icone, preco, desc,
+        janela: 0.55 + k*0.045 + j*0.005,       // mais tempo pra fisgar
+        sorte: 1 + k*0.55 + j*0.08,             // ~20x na Suprema, ~44x na última
+        forca: 1 + k*0.12 + j*0.02 };           // cada clique enche mais a barra
+});
 
 // ============ SAVE ============
 let dinheiro = parseInt(localStorage.getItem('pescaria_dinheiro')||'0');
@@ -367,7 +423,7 @@ function sorteiaRaridade(){
     const s = varaAtual().sorte;
     // EXCLUSIVO: tão raro que nem aparece no Livro — só com uma das 5 MELHORES varas!
     const idxVara = VARAS.findIndex(v=>v.id===varaEq);
-    if(idxVara >= VARAS.length-5 && Math.random() < 0.0005) return 'exclusivo';
+    if(idxVara >= N_VARAS_ORIG-5 && Math.random() < 0.0005) return 'exclusivo';
     // sorte multiplica as chances das raridades altas; comum absorve o resto
     const pesos = {
         ultra: RARIDADES.ultra.chance * s,
@@ -397,10 +453,10 @@ function sorteiaTesouro(){
 function sorteiaPeixe(){
     if(Math.random() < CHANCE_TESOURO) return sorteiaTesouro();
     const rar = sorteiaRaridade();
-    const [nome, emoji] = PEIXES[rar][Math.floor(Math.random()*PEIXES[rar].length)];
+    const [nome, emoji, cod] = PEIXES[rar][Math.floor(Math.random()*PEIXES[rar].length)];
     const [vMin, vMax] = RARIDADES[rar].valor;
     const valor = vMin + Math.floor(Math.random()*(vMax-vMin+1));
-    return { nome, emoji, rar, valor };
+    return cod ? { nome, emoji, rar, valor, cod } : { nome, emoji, rar, valor };
 }
 
 // ============ JOGO / CENA ============
@@ -519,8 +575,8 @@ document.addEventListener('keydown', e=>{
 
 function pegouPeixe(p){
     inventario.push(p);
-    const novoNoIndice = !indiceCapturados.has(p.nome);
-    indiceCapturados.add(p.nome);
+    const novoNoIndice = !indiceCapturados.has(chaveIdx(p));
+    indiceCapturados.add(chaveIdx(p));
     if(novoNoIndice) setTimeout(()=>mostraMsg('📖 NOVO no Índice!','#00ccff',1300), 2400);
     totalPescados++;
     salva(); atualizaHud();
@@ -600,25 +656,25 @@ function mudaPagina(d){
 }
 function entradasDaPagina(chave){
     if(chave==='tesouros') return TESOUROS.map(t=>({nome:t.nome, emoji:t.emoji, rar:'item'}));
-    return PEIXES[chave].map(([nome,emoji])=>({nome, emoji, rar:chave}));
+    return PEIXES[chave].map(([nome,emoji,cod])=>({nome, emoji, rar:chave, cod}));
 }
 function montaIndice(){
     const pg = PAGINAS[paginaAtual];
     document.getElementById('indiceTitulo').textContent = pg.titulo;
     const entradas = entradasDaPagina(pg.chave);
-    const pegos = entradas.filter(e=>indiceCapturados.has(e.nome)).length;
+    const pegos = entradas.filter(e=>indiceCapturados.has(chaveIdx(e))).length;
     // progresso total do livro
     let total=0, totalPegos=0;
     PAGINAS.forEach(p=>{
         const es = entradasDaPagina(p.chave);
         total += es.length;
-        totalPegos += es.filter(e=>indiceCapturados.has(e.nome)).length;
+        totalPegos += es.filter(e=>indiceCapturados.has(chaveIdx(e))).length;
     });
     document.getElementById('indiceProgresso').textContent =
         `Nesta página: ${pegos}/${entradas.length} — Livro completo: ${totalPegos}/${total}` +
         (totalPegos===total ? ' 🏆 COMPLETOU TUDO!!!' : '');
     document.getElementById('listaIndice').innerHTML = entradas.map(e=>{
-        const tem = indiceCapturados.has(e.nome);
+        const tem = indiceCapturados.has(chaveIdx(e));
         if(tem) return `<div class="item b-${e.rar}">
             <div class="icone">${e.emoji}</div>
             <div class="inome">${e.nome}</div>
@@ -672,7 +728,7 @@ function montaLoja(){
         let btn;
         if(eq) btn = `<button class="equipado" disabled>✅ EQUIPADA</button>`;
         else if(tem) btn = `<button class="equipar" onclick="equipaVara('${v.id}')">EQUIPAR</button>`;
-        else btn = `<button onclick="compraVara('${v.id}')" ${dinheiro<v.preco?'disabled':''}>💰 ${v.preco}</button>`;
+        else btn = `<button onclick="compraVara('${v.id}')" ${dinheiro<v.preco?'disabled':''}>💰 ${fmtD(v.preco)}</button>`;
         return `<div class="item ${eq?'equipadoBorda':''}">
             <div class="icone">${v.icone}</div>
             <div class="inome">${v.nome}</div>

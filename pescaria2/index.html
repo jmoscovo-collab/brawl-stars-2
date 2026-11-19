@@ -64,6 +64,7 @@ h2{font-size:21px;color:#6fd8ff}
   <div class="chip b" id="hLoja">🛒 Loja</div>
   <div class="chip b" id="hMapa">🗺️ Mapa</div>
   <div class="chip b" id="hAqua">🐠 Álbum</div>
+  <div class="chip b" id="hMiss">📜 Missões</div>
 </div>
 <div id="dica"></div>
 
@@ -71,7 +72,7 @@ h2{font-size:21px;color:#6fd8ff}
 <div class="tela" id="tMenu">
   <h1>🎣 Pescaria Maluca 2<br><span style="font-size:17px;color:#6fd8ff">MAR ABERTO</span></h1>
   <div class="sub">Pegue o barco e viaje por <b>6 lugares</b>. Mire, lance a linha, espere o peixe morder e
-  <b>lute</b> pra não deixar escapar. São <b>60 peixes</b> — dá pra pegar todos?</div>
+  <b>lute</b> pra não deixar escapar. São <b>1.560 peixes</b>, <b>307 varas</b>, 📜 <b>missões</b>, 🎯 <b>pedidos</b> e ✨ <b>peixes brilhantes</b>!</div>
   <button class="bt" id="btJogar">▶ PESCAR</button>
   <button class="bt cinza" id="btComo">❓ Como joga</button>
   <a class="bt cinza" href="/pescaria/" style="text-decoration:none;text-align:center;line-height:1.3">🎣 Pescaria Maluca 1</a>
@@ -88,7 +89,9 @@ h2{font-size:21px;color:#6fd8ff}
     <b>Toque rápido!</b> Se demorar, ele foge.<br><br>
     <b>3. Lutar</b> — <b>CLICA CLICA CLICA!</b> Cada clique enche a barra. Encheu antes do tempo acabar,
     o peixe é seu. Vara melhor enche mais por clique; linha melhor te dá mais tempo.<br><br>
-    <b>4. Vender e melhorar</b> — venda no 🛒 e compre vara, linha e isca melhores. Peixe mais fundo vale mais!
+    <b>4. Vender e melhorar</b> — venda no 🛒 e compre vara, linha e isca melhores. Peixe mais fundo vale mais!<br><br>
+    <b>5. Missões e pedidos</b> — no 📜 tem missões que dão dinheiro e um cliente pedindo um peixe certo: entrega e ganha MUITO!<br><br>
+    <b>6. Brilhantes ✨</b> — às vezes vem um peixe brilhante que vale 10x mais!
   </div>
   <button class="bt" id="btComoOk">Entendi!</button>
 </div>
@@ -122,6 +125,13 @@ h2{font-size:21px;color:#6fd8ff}
   <button class="bt cinza" id="btAquaOk">Voltar</button>
 </div>
 
+<!-- ===== MISSÕES + PEDIDO ===== -->
+<div class="tela off" id="tMiss">
+  <h2 id="missTit">📜 Missões</h2>
+  <div class="lista rolar" id="listaMiss"></div>
+  <button class="bt cinza" id="btMissOk">Voltar pro barco</button>
+</div>
+
 <!-- ===== PEGOU ===== -->
 <div class="tela off" id="tPegou">
   <div style="font-size:78px" id="pgEmoji">🐟</div>
@@ -145,9 +155,9 @@ function resize(){
 window.addEventListener('resize', resize);
 
 function el(id){ return document.getElementById(id); }
-function mostra(id){ ['tMenu','tComo','tMapa','tLoja','tAqua','tPegou'].forEach(function(t){
+function mostra(id){ ['tMenu','tComo','tMapa','tLoja','tAqua','tPegou','tMiss'].forEach(function(t){
   el(t).classList.toggle('off', t !== id); }); }
-function escondeTudo(){ ['tMenu','tComo','tMapa','tLoja','tAqua','tPegou'].forEach(function(t){
+function escondeTudo(){ ['tMenu','tComo','tMapa','tLoja','tAqua','tPegou','tMiss'].forEach(function(t){
   el(t).classList.add('off'); }); }
 function dinTxt(n){ return 'R$ ' + Math.round(n).toLocaleString('pt-BR'); }
 function clamp(v,a,b){ return v < a ? a : (v > b ? b : v); }
@@ -230,6 +240,34 @@ var LUGARES = [
             ['Leviatã','🐋','epico'],['Nave Afundada','🛸','lendario'],['O Sem Nome','🌀','mistico']] }
 ];
 
+// ===== +300 PEIXES em cada raridade (menos Místico, que continua só 1 por lugar) =====
+// 50 por lugar em cada raridade, com nome do lugar. Código curtinho (g0_12) pro save não pesar.
+var GERA2 = {
+  comum:    [['Peixinho','🐟'],['Lambari','🐟'],['Sardinha','🐟'],['Girino','🦐'],['Camarão','🦐'],['Bagrinho','🐠'],['Piaba','🐟'],['Guaru','🐟'],['Caramujo','🐌'],['Siri','🦀']],
+  incomum:  [['Carpa','🎏'],['Baiacu','🐡'],['Enguia','🪱'],['Caranguejo','🦀'],['Traíra','🐡'],['Peixe-Palhaço','🐠'],['Água-Viva','🪼'],['Polvinho','🐙'],['Ostra','🦪'],['Sapo','🐸']],
+  raro:     [['Tartaruga','🐢'],['Dourado','🐠'],['Atum','🐟'],['Lula','🦑'],['Golfinho','🐬'],['Salmão','🍣'],['Lagosta','🦞'],['Foca','🦭'],['Cavalo-Marinho','🐴'],['Lontra','🦦']],
+  epico:    [['Tubarão','🦈'],['Jacaré','🐊'],['Polvo Gigante','🐙'],['Peixe-Espada','🗡️'],['Orca','🐳'],['Serpente','🐍'],['Peixe-Robô','🤖'],['Peixe-Ninja','🥷'],['Lula Gigante','🦑'],['Arraia Elétrica','⚡']],
+  lendario: [['Dragão','🐉'],['Baleia','🐳'],['Kraken','🐙'],['Fênix','🐦‍🔥'],['Sereia','🧜'],['Leviatã','🐋'],['Hidra','🐲'],['Unicórnio-do-Mar','🦄'],['Tritão','🔱'],['Megalodonte','🦈']]
+};
+var COMPL2 = {
+  lago:   ['do Lago','da Lagoa','do Junco','da Margem','do Pedalinho','da Vitória-Régia','das Pedrinhas','da Neblina','do Píer','do Remanso'],
+  rio:    ['do Rio','da Correnteza','da Cachoeira','do Barranco','da Ponte','do Igarapé','da Canoa','da Pedra','do Redemoinho','da Mata'],
+  mar:    ['do Mar','da Onda','do Coral','da Praia','do Farol','da Maré','do Navio','da Concha','do Recife','da Espuma'],
+  gelo:   ['do Gelo','da Neve','do Iceberg','da Nevasca','do Polo','do Iglu','da Geleira','da Aurora','do Inverno','do Floco'],
+  vulcao: ['da Lava','do Magma','da Cratera','da Brasa','do Enxofre','da Fumaça','da Erupção','do Carvão','da Chama','das Cinzas'],
+  abismo: ['do Abismo','da Escuridão','das Trevas','da Fossa','do Breu','do Vazio','da Sombra','do Eco','da Pressão','do Silêncio']
+};
+LUGARES.forEach(function(l){
+  ['comum','incomum','raro','epico','lendario'].forEach(function(rar, ri){
+    var bases = GERA2[rar], comps = COMPL2[l.id];
+    for(var i = 0; i < 50; i++){
+      var b = bases[i % 10], c = comps[(Math.floor(i / 10) + i) % 10];
+      l.peixes.push([b[0] + ' ' + c, b[1], rar, 'g' + ri + '_' + i]);
+    }
+  });
+});
+var TOTAL_PEIXES = LUGARES.reduce(function(a, l){ return a + l.peixes.length; }, 0);
+
 var VARAS = [
   { id:'graveto', nome:'Graveto',        ic:'🥢', preco:0,      forca:1.0,  janela:1100, desc:'Um galho com barbante.' },
   { id:'bambu',   nome:'Vara de Bambu',  ic:'🎋', preco:450,    forca:1.3,  janela:1200, desc:'Leve e boa pro lago.' },
@@ -237,8 +275,23 @@ var VARAS = [
   { id:'carbono', nome:'Carbono',        ic:'🖤', preco:12000,  forca:2.4,  janela:1400, desc:'Forte e levíssima.' },
   { id:'titanio', nome:'Titânio',        ic:'⚙️', preco:58000,  forca:3.3,  janela:1550, desc:'Nem tubarão entorta.' },
   { id:'lendaria',nome:'Vara Lendária',  ic:'🌟', preco:150000, forca:4.6,  janela:1750, desc:'Dizem que ela escolhe você.' },
-  { id:'cogumelo',nome:'Vara Cogumelo',  ic:'🍄', preco:520000, forca:6.5,  janela:2000, desc:'A melhor que existe.' }
+  { id:'cogumelo',nome:'Vara Cogumelo',  ic:'🍄', preco:520000, forca:6.5,  janela:2000, desc:'Era a melhor que existe... até agora!' }
 ];
+// ===== +300 VARAS depois da Vara Cogumelo =====
+(function(){
+  var TEMAS = [['Rubi','❤️'],['Safira','💙'],['Esmeralda','💚'],['Ametista','💜'],['Topázio','💛'],['Tubarão','🦈'],['Polvo','🐙'],['Baleia','🐳'],['Coral','🪸'],['Pérola','🦪'],
+               ['Neve','☃️'],['Fogo','🔥'],['Vento','🌬️'],['Raio','⚡'],['Terra','🌍'],['Estrela','⭐'],['Cometa','☄️'],['Planeta','🪐'],['Nebulosa','🌌'],['Buraco Negro','🕳️'],
+               ['Pirata','🏴‍☠️'],['Samurai','⚔️'],['Viking','🪓'],['Mago','🧙'],['Robô','🤖'],['Alien','👽'],['Capivara','🦫'],['Cogumelo','🍄'],['Dragão','🐉'],['Unicórnio','🦄']];
+  var NIVEIS = ['Nova','Turbo','Mega','Ultra','Hiper','Neon','Brilhante','Lendária','Cósmica','MÁXIMA'];
+  var FRASES = ['Puxa mais forte.','Mais tempo pra fisgar.','Brilha no fundo do mar.','Os peixes fazem fila.','Nem o Kraken escapa.'];
+  var j = 0;
+  NIVEIS.forEach(function(nv){ TEMAS.forEach(function(tm){
+    j++;
+    var bruto = 520000 * Math.pow(1.02, j), mag = Math.pow(10, Math.floor(Math.log10(bruto)) - 1);
+    VARAS.push({ id:'v' + j, nome:'Vara ' + tm[0] + ' ' + nv, ic:tm[1], preco:Math.round(bruto / mag) * mag,
+                 forca:+(6.5 + j * 0.05).toFixed(2), janela:2000 + j * 5, desc:'Nível ' + (7 + j) + '! ' + FRASES[j % 5] });
+  }); });
+})();
 var LINHAS = [
   { id:'barbante', nome:'Barbante',    ic:'🧶', preco:0,      res:1.0, desc:'Arrebenta fácil.' },
   { id:'nylon',    nome:'Nylon',       ic:'🧵', preco:800,    res:1.45,desc:'Dá pra confiar um pouco.' },
@@ -260,8 +313,11 @@ var ISCAS = [
 var S = {
   din: 0, vara: 'graveto', linha: 'barbante', isca: 'nenhuma',
   varas: ['graveto'], linhas: ['barbante'], iscas: ['nenhuma'],
-  lugares: ['lago'], lugar: 'lago', balde: [], album: [], total: 0, recorde: 0
+  lugares: ['lago'], lugar: 'lago', balde: [], album: [], total: 0, recorde: 0,
+  st: stNovo(), miss: [], pedido: null
 };
+// estatísticas pras MISSÕES
+function stNovo(){ return { rar:{ comum:0, incomum:0, raro:0, epico:0, lendario:0, mistico:0 }, vend:0, brilho:0, ped:0 }; }
 function carrega(){
   try {
     var raw = localStorage.getItem('pescaria2');
@@ -277,6 +333,9 @@ function carrega(){
   if(!Array.isArray(S.balde)) S.balde = [];
   if(!Array.isArray(S.album)) S.album = [];
   if(!achaLugar(S.lugar)) S.lugar = 'lago';
+  if(!S.st || typeof S.st !== 'object' || !S.st.rar) S.st = stNovo();
+  if(!Array.isArray(S.miss)) S.miss = [];
+  if(S.pedido && !achaLugar(S.pedido.lugar)) S.pedido = null;
   S.din = Math.max(0, Number(S.din) || 0);
 }
 function salva(){
@@ -338,8 +397,13 @@ function sorteiaPeixe(profundidade){
   var idxRar = ORDEM_RAR.indexOf(rar);
   var tam = +( (0.4 + Math.random()*1.3) * (1 + idxRar*0.55) ).toFixed(2);  // em kg
   var valor = Math.round(l.base * RAR[rar].mult * (0.75 + profundidade*0.9) * (0.7 + tam*0.6));
-  return { nome:p[0], emoji:p[1], rar:rar, tam:tam, valor:Math.max(1, valor),
+  var brilho = Math.random() < 0.03;            // ✨ 3% de chance: peixe BRILHANTE vale 10x!
+  if(brilho) valor *= 10;
+  var o = { nome:p[0], emoji:p[1], rar:rar, tam:tam, valor:Math.max(1, valor),
            forca: (1 + idxRar*0.85) * (0.8 + tam*0.35), lugar:l.id };
+  if(p[3]) o.cod = p[3];
+  if(brilho) o.br = 1;
+  return o;
 }
 
 // ====================== FLUXO DA PESCARIA ======================
@@ -428,19 +492,24 @@ function pescou(){
   if(S.balde.length > 60) S.balde.shift();
   S.total++;
   if(p.valor > S.recorde) S.recorde = p.valor;
-  var chaveAlbum = p.lugar + '|' + p.nome;
+  var chaveAlbum = p.lugar + '|' + (p.cod || p.nome);
   var novo = S.album.indexOf(chaveAlbum) < 0;
   if(novo) S.album.push(chaveAlbum);
+  S.st.rar[p.rar] = (S.st.rar[p.rar] || 0) + 1;
+  if(p.br) S.st.brilho++;
+  var txtPed = conferePedido(p);
   salva();
   atualizaHud();
 
   el('pgEmoji').textContent = p.emoji;
-  el('pgNome').textContent = p.nome;
+  el('pgNome').textContent = (p.br ? '✨ ' : '') + p.nome + (p.br ? ' BRILHANTE ✨' : '');
   el('pgNome').style.color = RAR[p.rar].cor;
   el('pgInfo').innerHTML =
     '<b style="color:' + RAR[p.rar].cor + '">' + RAR[p.rar].nome + '</b> · ' + p.tam.toFixed(2) + ' kg<br>' +
     'Vale <b>' + dinTxt(p.valor) + '</b> — venda lá no 🛒 Loja!' +
-    (novo ? '<br><b style="color:#ffcc33">🆕 Peixe novo no álbum!</b>' : '');
+    (p.br ? '<br><b style="color:#fff59a">✨ PEIXE BRILHANTE! Vale 10x mais! ✨</b>' : '') +
+    (novo ? '<br><b style="color:#ffcc33">🆕 Peixe novo no álbum!</b>' : '') + txtPed +
+    (missProntas() ? '<br><b style="color:#6cff9f">📜 Tem missão pronta pra pegar!</b>' : '');
   mostra('tPegou');
 }
 // 💪 cada clique enche a barra — igual ao Pescaria Maluca 1
@@ -754,6 +823,8 @@ function loop(ts){
 function atualizaHud(){
   el('hDin').textContent = dinTxt(S.din);
   el('hLugar').textContent = lugar().icone + ' ' + lugar().nome;
+  var k = missProntas();
+  el('hMiss').textContent = '📜 Missões' + (k ? ' (' + k + '🎁)' : '');
 }
 
 el('hLoja').onclick = abreLoja;
@@ -847,7 +918,7 @@ function pintaLoja(){
     tudo.className = 'bt ouro';
     tudo.textContent = '💰 Vender tudo — ' + dinTxt(total);
     tudo.onclick = function(){
-      S.din += total; S.balde = []; salva(); snd.moeda(); pintaLoja(); atualizaHud();
+      S.din += total; S.st.vend += total; S.balde = []; salva(); snd.moeda(); pintaLoja(); atualizaHud();
     };
     lista.appendChild(tudo);
 
@@ -856,7 +927,7 @@ function pintaLoja(){
       var li = document.createElement('div'); li.className = 'linha ok';
       var ic = document.createElement('div'); ic.className='ic'; ic.textContent = p.emoji;
       var inf = document.createElement('div'); inf.className='in';
-      var b = document.createElement('b'); b.textContent = p.nome;
+      var b = document.createElement('b'); b.textContent = (p.br ? '✨ ' : '') + p.nome;
       b.style.color = RAR[p.rar].cor;
       var s = document.createElement('small');
       s.textContent = RAR[p.rar].nome + ' · ' + p.tam.toFixed(2) + ' kg';
@@ -864,7 +935,7 @@ function pintaLoja(){
       var bt = document.createElement('button');
       bt.textContent = dinTxt(p.valor);
       bt.onclick = function(){
-        S.din += p.valor; S.balde.splice(idx,1); salva(); snd.moeda(); pintaLoja(); atualizaHud();
+        S.din += p.valor; S.st.vend += p.valor; S.balde.splice(idx,1); salva(); snd.moeda(); pintaLoja(); atualizaHud();
       };
       li.append(ic, inf, bt);
       lista.appendChild(li);
@@ -933,7 +1004,7 @@ function abreAlbum(){
   var g = el('gridAqua');
   g.textContent = '';
   l2.peixes.forEach(function(p){
-    var tem = S.album.indexOf(l2.id + '|' + p[0]) >= 0;
+    var tem = S.album.indexOf(l2.id + '|' + (p[3] || p[0])) >= 0;
     var d = document.createElement('div');
     d.className = 'px' + (tem ? '' : ' no');
     d.style.borderColor = tem ? RAR[p[2]].cor : 'rgba(255,255,255,.12)';
@@ -943,11 +1014,99 @@ function abreAlbum(){
     d.append(e, n);
     g.appendChild(d);
   });
-  var total = LUGARES.reduce(function(a,l){ return a + l.peixes.length; }, 0);
+  var total = TOTAL_PEIXES;
   el('aquaTit').textContent = '🐠 Álbum — ' + S.album.length + '/' + total +
     ' · 🏆 Maior peixe: ' + dinTxt(S.recorde);
   mostra('tAqua');
 }
+
+// ====================== 🎯 PEDIDOS (um cliente pede um peixe e paga MUITO) ======================
+function novoPedido(){
+  var lid = sorteia(S.lugares), l = achaLugar(lid) || LUGARES[0];
+  var r = Math.random(), rar = r < 0.5 ? 'comum' : r < 0.8 ? 'incomum' : r < 0.95 ? 'raro' : 'epico';
+  var p = sorteia(l.peixes.filter(function(x){ return x[2] === rar; }));
+  var qtd = rar === 'comum' ? 3 : rar === 'incomum' ? 2 : 1;
+  S.pedido = { lugar:l.id, chave:p[3] || p[0], nome:p[0], emoji:p[1], rar:rar, qtd:qtd, feitos:0,
+               premio: Math.round(l.base * RAR[rar].mult * qtd * 8) };
+}
+function conferePedido(p){
+  if(!S.pedido) novoPedido();
+  var P = S.pedido;
+  if(p.lugar !== P.lugar || (p.cod || p.nome) !== P.chave) return '';
+  P.feitos++;
+  if(P.feitos < P.qtd) return '<br><b style="color:#ff9f43">🎯 Pedido: ' + P.feitos + '/' + P.qtd + '</b>';
+  S.din += P.premio; S.st.ped++;
+  var txt = '<br><b style="color:#ff9f43">🎯 PEDIDO ENTREGUE! +' + dinTxt(P.premio) + '</b>';
+  novoPedido(); snd.moeda();
+  return txt;
+}
+
+// ====================== 📜 MISSÕES ======================
+// [id, texto, valor atual, alvo, prêmio]
+function listaMissoes(){
+  var l = [], st = S.st;
+  function serie(id, txt, atual, alvos, premios){
+    alvos.forEach(function(a, i){ l.push([id + a, txt.replace('#', a.toLocaleString('pt-BR')), atual, a, premios[i]]); });
+  }
+  serie('tot', 'Pesque # peixes', S.total, [10,50,200,500,1000,3000], [500,3000,15000,50000,150000,600000]);
+  serie('inc', 'Pesque # peixes Incomuns', st.rar.incomum, [10,50,200], [1500,9000,40000]);
+  serie('rar', 'Pesque # peixes Raros', st.rar.raro, [5,30,100,300], [3000,20000,80000,300000]);
+  serie('epi', 'Pesque # peixes Épicos', st.rar.epico, [3,15,50,150], [8000,50000,200000,700000]);
+  serie('len', 'Pesque # peixes Lendários', st.rar.lendario, [1,5,20,60], [20000,120000,500000,2000000]);
+  serie('mis', 'Pesque # peixes Místicos', st.rar.mistico, [1,3,6], [100000,600000,3000000]);
+  serie('bri', 'Pesque # peixes Brilhantes ✨', st.brilho, [1,5,20], [10000,80000,400000]);
+  serie('alb', 'Tenha # peixes no álbum', S.album.length, [20,100,300,700,1200], [2000,15000,80000,400000,2000000]);
+  serie('lug', 'Desbloqueie # lugares', S.lugares.length, [2,3,4,5,6], [1000,5000,20000,80000,300000]);
+  serie('ven', 'Venda R$ # em peixes', st.vend, [10000,100000,1000000,10000000,100000000], [2000,15000,100000,800000,5000000]);
+  serie('ped', 'Entregue # pedidos 🎯', st.ped, [1,5,20,50], [3000,25000,120000,500000]);
+  serie('var', 'Tenha # varas', S.varas.length, [3,10,30,100,307], [2000,20000,200000,2000000,50000000]);
+  return l;
+}
+function missProntas(){ return listaMissoes().filter(function(m){ return m[2] >= m[3] && S.miss.indexOf(m[0]) < 0; }).length; }
+function abreMissoes(){
+  if(modo === 'luta') return;
+  modo = 'parado';
+  if(!S.pedido){ novoPedido(); salva(); }
+  var lista = el('listaMiss');
+  lista.textContent = '';
+  // pedido do cliente
+  var P = S.pedido, lp = achaLugar(P.lugar);
+  var pd = document.createElement('div'); pd.className = 'linha ok'; pd.style.borderColor = '#ff9f43';
+  var ic = document.createElement('div'); ic.className = 'ic'; ic.textContent = P.emoji;
+  var inf = document.createElement('div'); inf.className = 'in';
+  var b = document.createElement('b'); b.textContent = '🎯 Pedido: ' + P.qtd + 'x ' + P.nome; b.style.color = RAR[P.rar].cor;
+  var s1 = document.createElement('small'); s1.textContent = 'Pesque no ' + lp.icone + ' ' + lp.nome + ' · ' + RAR[P.rar].nome + ' · já tem ' + P.feitos + '/' + P.qtd;
+  var s2 = document.createElement('small'); s2.textContent = 'Prêmio: ' + dinTxt(P.premio);
+  inf.append(b, s1, s2);
+  var bt = document.createElement('button'); bt.textContent = 'Trocar'; bt.title = 'Trocar por outro pedido';
+  bt.onclick = function(){ novoPedido(); salva(); abreMissoes(); };
+  pd.append(ic, inf, bt);
+  lista.appendChild(pd);
+  // missões: as prontas primeiro, depois as que faltam, as pegas no fim
+  var ms = listaMissoes().map(function(m){ var feita = S.miss.indexOf(m[0]) >= 0; return { m:m, feita:feita, pronta:!feita && m[2] >= m[3] }; });
+  ms.sort(function(a, c){ return (c.pronta - a.pronta) || (a.feita - c.feita); });
+  ms.forEach(function(o){
+    var m = o.m;
+    var li = document.createElement('div'); li.className = 'linha ' + (o.feita ? 'eq' : o.pronta ? 'ok' : '');
+    if(o.feita) li.style.opacity = '.5';
+    var ic2 = document.createElement('div'); ic2.className = 'ic'; ic2.textContent = o.feita ? '✅' : o.pronta ? '🎁' : '📜';
+    var in2 = document.createElement('div'); in2.className = 'in';
+    var b2 = document.createElement('b'); b2.textContent = m[1];
+    var s3 = document.createElement('small'); s3.textContent = 'Prêmio: ' + dinTxt(m[4]) + (o.feita ? '' : ' · ' + Math.min(m[2], m[3]).toLocaleString('pt-BR') + '/' + m[3].toLocaleString('pt-BR'));
+    in2.append(b2, s3);
+    var bt2 = document.createElement('button');
+    if(o.feita){ bt2.textContent = 'Feita'; bt2.disabled = true; }
+    else { bt2.textContent = 'Pegar!'; bt2.disabled = !o.pronta;
+      bt2.onclick = function(){ if(S.miss.indexOf(m[0]) >= 0 || m[2] < m[3]) return; S.miss.push(m[0]); S.din += m[4]; salva(); snd.pegou(); atualizaHud(); abreMissoes(); }; }
+    li.append(ic2, in2, bt2);
+    lista.appendChild(li);
+  });
+  var prontas = missProntas();
+  el('missTit').textContent = '📜 Missões — ' + S.miss.length + '/' + ms.length + (prontas ? ' · 🎁 ' + prontas + ' pra pegar!' : '');
+  mostra('tMiss');
+}
+el('hMiss').onclick = abreMissoes;
+el('btMissOk').onclick = aoBarco;
 
 // ====================== LIGA ======================
 carrega();
