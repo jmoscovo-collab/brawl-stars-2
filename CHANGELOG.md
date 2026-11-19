@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v653 (2026-11-18)
+- 🏒 Jogo novo (ainda escondido, só pelo link /hockey/): **Cogu Hockey 3D**! Hóquei de mesa numa arena neon com raquetes de cogumelo e torcida pulando. Contra o robô (Fácil, Médio, Difícil e IMPOSSÍVEL 👽), 2 jogadores no mesmo aparelho ou o modo MALUCO com 3 discos ao mesmo tempo. Quem fizer 7 gols ganha!
+
 ## v652 (2026-11-18)
 - 🍄 Cogumelo Clicker 2: agora as **skins e as auras multiplicam as moedas do clique**! Skins de x1,5 até x20 (Diamante) e auras de x1,5 até x25 (Fogo Dourado). Uma multiplica a outra! Lá em cima aparece quanto você ganha por clique 💰
 
