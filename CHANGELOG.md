@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v655 (2026-11-18)
+- 🍄 Cogumelo Clicker 2 ficou GIGANTE: **+50 skins** (Morango, Rubi, Galáxia, Robô, Panda, Pixel, SUPREMO...) e **+50 auras** (Fênix, Plasma, Supernova, Holográfica, SUPREMA...), cada uma multiplicando mais o clique. **9 inimigos novos** (até O COGUMELO SUPREMO com 30 milhões de força). **Comida dá 4x mais força**. **🏋️ Academia**: compre aparelhos (Halter, Esteira, Kung Fu, Treino no Espaço...) e o cogumelo treina sozinho ganhando força por segundo. **🌐 BATALHA ONLINE** contra outros jogadores de verdade!
+
 ## v654 (2026-11-18)
 - 🏒 Cogu Hockey 3D: agora dá pra jogar com **WASD e setinhas** direitinho (a raquete vai pra onde você aperta na tela e para quando solta). No modo 2 jogadores: WASD = jogador 1, setas = jogador 2
 

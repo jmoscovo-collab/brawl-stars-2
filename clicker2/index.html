@@ -32,7 +32,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0b0716; font-
 #bandejaVazia { font-size:13px; color:var(--suave); padding:12px 14px; }
 /* abas de baixo */
 #abas { position:fixed; left:50%; transform:translateX(-50%); bottom:14px; z-index:6; display:flex; gap:4px; padding:6px; border-radius:22px; background:rgba(20,14,40,0.75); border:1px solid var(--borda); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:0 12px 30px rgba(0,0,0,0.4); }
-.aba { border:none; background:none; color:var(--suave); font-family:inherit; font-size:11px; font-weight:600; padding:6px 12px; border-radius:16px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:1px; min-width:58px; }
+.aba { border:none; background:none; color:var(--suave); font-family:inherit; font-size:11px; font-weight:600; padding:6px 7px; border-radius:16px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:1px; min-width:50px; }
 .aba span { font-size:22px; line-height:1.1; }
 .aba.on { background:linear-gradient(135deg, rgba(139,92,246,0.45), rgba(244,114,182,0.35)); color:#fff; }
 /* folhas (loja, skins, auras, batalha) */
@@ -97,6 +97,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0b0716; font-
 <div id="abas">
     <button class="aba on" data-aba="clicar"><span>🍄</span>Clicar</button>
     <button class="aba" data-aba="loja"><span>🛒</span>Loja</button>
+    <button class="aba" data-aba="academia"><span>🏋️</span>Treino</button>
     <button class="aba" data-aba="batalha"><span>⚔️</span>Batalha</button>
     <button class="aba" data-aba="skins"><span>🎨</span>Skins</button>
     <button class="aba" data-aba="auras"><span>✨</span>Auras</button>
@@ -171,6 +172,58 @@ var INIMIGOS = [
 // skins e auras MULTIPLICAM as moedas de cada clique (pedido do Davi)
 [1, 1.5, 2, 3, 4, 6, 8, 12, 20].forEach(function (m, i) { SKINS[i].mult = m; });
 [1, 1.5, 2, 3, 4, 6, 8, 12, 16, 25].forEach(function (m, i) { AURAS[i].mult = m; });
+// cada comida agora dá 4x mais força (pedido do Davi)
+COMIDAS.forEach(function (c) { c.forca *= 4; });
+
+// +50 skins: [nome, cor clara, cor escura, bolinhas ('' = sem), enfeite]
+[['Morango', '#fda4af', '#e11d48', '#fff1f2', ''], ['Uva', '#d8b4fe', '#6b21a8', '#faf5ff', ''], ['Limão', '#ecfccb', '#65a30d', '#ffffff', 'brilho'], ['Chiclete', '#fbcfe8', '#db2777', '#ffffff', ''],
+ ['Oceano', '#7dd3fc', '#0c4a6e', '#e0f2fe', 'brilho'], ['Floresta', '#86efac', '#14532d', '#f0fdf4', ''], ['Pôr do Sol', '#fdba74', '#be123c', '', 'brilho'], ['Algodão Doce', '#fbcfe8', '#a5b4fc', '#ffffff', ''],
+ ['Coral', '#fecaca', '#f97316', '#fff7ed', ''], ['Esmeralda', '#6ee7b7', '#065f46', '', 'diamante'], ['Rubi', '#fca5a5', '#7f1d1d', '', 'diamante'], ['Safira', '#93c5fd', '#1e3a8a', '', 'diamante'],
+ ['Ametista', '#e9d5ff', '#581c87', '', 'diamante'], ['Topázio', '#fef08a', '#a16207', '', 'diamante'], ['Jade', '#a7f3d0', '#047857', '#ecfdf5', 'brilho'], ['Bronze', '#fed7aa', '#9a3412', '', 'brilho'],
+ ['Prata', '#f1f5f9', '#64748b', '', 'brilho'], ['Platina', '#ffffff', '#94a3b8', '', 'diamante'], ['Obsidiana', '#475569', '#020617', '', 'diamante'], ['Neve', '#ffffff', '#cbd5e1', '#e0f2fe', 'estrelas'],
+ ['Tempestade', '#64748b', '#1e293b', '', 'rachadura'], ['Trovão', '#fef08a', '#1e1b4b', '', 'rachadura'], ['Vulcão', '#f97316', '#450a0a', '', 'rachadura'], ['Magma', '#fb923c', '#7c2d12', '#fde047', 'rachadura'],
+ ['Aurora', '#5eead4', '#7c3aed', '', 'estrelas'], ['Nebulosa', '#f0abfc', '#312e81', '', 'estrelas'], ['Cometa', '#bae6fd', '#0f172a', '', 'estrelas'], ['Lua', '#f8fafc', '#475569', '#cbd5e1', 'estrelas'],
+ ['Sol', '#fef9c3', '#f59e0b', '#ffffff', 'brilho'], ['Eclipse', '#1f2937', '#000000', '', 'estrelas'], ['Pirata', '#57534e', '#1c1917', '#fafaf9', 'faixa'], ['Cavaleiro', '#cbd5e1', '#334155', '', 'faixa'],
+ ['Robô', '#e2e8f0', '#475569', '#38bdf8', 'diamante'], ['Zumbi', '#bef264', '#365314', '#a3a3a3', 'rachadura'], ['Vampiro', '#7f1d1d', '#0a0a0a', '', 'faixa'], ['Fantasma', '#f8fafc', '#a5b4fc', '', 'brilho'],
+ ['Abóbora', '#fdba74', '#c2410c', '', 'faixa'], ['Natal', '#4ade80', '#b91c1c', '#ffffff', 'estrelas'], ['Panda', '#ffffff', '#d4d4d4', '#171717', ''], ['Tigre', '#fdba74', '#ea580c', '', 'faixa'],
+ ['Zebra', '#ffffff', '#a3a3a3', '', 'faixa'], ['Dálmata', '#ffffff', '#e5e5e5', '#171717', ''], ['Melancia', '#4ade80', '#166534', '#fecdd3', ''], ['Sorvete', '#fbcfe8', '#a78bfa', '#fef3c7', ''],
+ ['Chocolate', '#a16207', '#422006', '#fef3c7', ''], ['Pixel', '#22d3ee', '#4f46e5', '#f0abfc', 'diamante'], ['Neon', '#f0abfc', '#06b6d4', '', 'arco'], ['Lendário', '#fde68a', '#7c2d12', '', 'arco'],
+ ['Mítico', '#c4b5fd', '#4c1d95', '', 'arco'], ['SUPREMO', '#ffffff', '#f59e0b', '', 'arco']
+].forEach(function (d, i) {
+    SKINS.push({ id:'s' + i, nome:d[0], preco:Math.round(100000 * Math.pow(1.25, i) / 1000) * 1000, chap:[d[1], d[2]], bol:d[3] || null, cabo:['#fffbf5', '#e7dccf'], extra:d[4] || undefined, mult:Math.round(25 * Math.pow(1.1, i)) });
+});
+// +50 auras: [nome, tipo, cor (matiz 0-360)]
+[['Fogo Rosa', 'fogo', 330], ['Fogo Roxo', 'fogo', 275], ['Fogo Branco', 'fogo', 50], ['Chama Neon', 'fogo', 170], ['Brasa', 'fogo', 15], ['Plasma', 'fogo', 300], ['Fogo Fantasma', 'fogo', 190], ['Fogo Infernal', 'fogo', 0],
+ ['Fogo do Dragão', 'fogo', 25], ['Fênix', 'dourado', 35], ['Raio Azul', 'raio', 210], ['Raio Roxo', 'raio', 280], ['Raio Vermelho', 'raio', 355], ['Tempestade', 'raio', 230], ['Trovão Verde', 'raio', 120],
+ ['Nevasca', 'gelo', 200], ['Cristal', 'gelo', 180], ['Geada Rosa', 'gelo', 320], ['Aurora Boreal', 'gelo', 150], ['Polar', 'gelo', 220], ['Sombra Vermelha', 'sombra', 350], ['Sombra Azul', 'sombra', 225],
+ ['Vazio', 'sombra', 260], ['Abismo', 'sombra', 240], ['Pesadelo', 'sombra', 300], ['Constelação', 'estrelas', 220], ['Galáxia', 'estrelas', 270], ['Supernova', 'estrelas', 20], ['Poeira Estelar', 'estrelas', 45],
+ ['Cometa', 'estrelas', 195], ['Arco-íris Turbo', 'arco', 0], ['Disco', 'arco', 0], ['Festa', 'arco', 0], ['Neon Mix', 'arco', 0], ['Holográfica', 'arco', 0], ['Ouro Rosa', 'dourado', 345],
+ ['Prata', 'gelo', 210], ['Platina', 'dourado', 200], ['Diamante', 'gelo', 190], ['Lendária', 'dourado', 40], ['Mítica', 'raio', 265], ['Divina', 'dourado', 55], ['Cósmica', 'estrelas', 285],
+ ['Solar', 'fogo', 45], ['Lunar', 'gelo', 230], ['Elétrica', 'raio', 60], ['Tóxica', 'fogo', 95], ['Lava', 'fogo', 10], ['Oceano', 'gelo', 205], ['SUPREMA', 'arco', 0]
+].forEach(function (d, i) {
+    var h = d[2], cores = d[1] === 'arco' ? null : ['hsl(' + h + ',100%,93%)', 'hsl(' + h + ',100%,62%)', 'hsl(' + h + ',95%,38%)'];
+    AURAS.push({ id:'a' + i, nome:d[0], preco:Math.round(150000 * Math.pow(1.25, i) / 1000) * 1000, cores:cores, tipo:d[1] === 'fogo' ? undefined : d[1], mult:Math.round(30 * Math.pow(1.1, i)) });
+});
+// inimigos novos, bem mais fortes
+[['Cogu Titã', 30000, 's20', 'a13'], ['Cogu Robô', 70000, 's32', 'a10'], ['Cogu Fantasma', 150000, 's35', 'a21'], ['Cogu Ciclope', 350000, 's9', 'a3'], ['Cogu Vampiro', 800000, 's34', 'a20'],
+ ['Cogu Dragão', 2000000, 's22', 'a8'], ['Cogu Cósmico', 5000000, 's25', 'a26'], ['Cogu Divino', 12000000, 's28', 'a41'], ['O COGUMELO SUPREMO', 30000000, 's49', 'a49']].forEach(function (d) {
+    INIMIGOS.push({ nome:d[0], forca:d[1], skin:d[2], aura:d[3] });
+});
+// academia: cada aparelho treina o cogumelo sozinho (força por segundo); dá pra comprar vários níveis
+var APARELHOS = [
+    { id:'halter', ic:'🏋️', nome:'Halter', preco:300, fps:0.5 },
+    { id:'corda', ic:'🪢', nome:'Pular Corda', preco:1500, fps:2 },
+    { id:'saco', ic:'🥊', nome:'Saco de Pancada', preco:6000, fps:8 },
+    { id:'esteira', ic:'🏃', nome:'Esteira', preco:25000, fps:30 },
+    { id:'bike', ic:'🚴', nome:'Bicicleta', preco:100000, fps:110 },
+    { id:'supino', ic:'💪', nome:'Supino Gigante', preco:450000, fps:450 },
+    { id:'escalada', ic:'🧗', nome:'Parede de Escalada', preco:2000000, fps:1800 },
+    { id:'kungfu', ic:'🥋', nome:'Mestre de Kung Fu', preco:9000000, fps:7500 },
+    { id:'espaco', ic:'🚀', nome:'Treino no Espaço', preco:40000000, fps:30000 },
+    { id:'deus', ic:'⚡', nome:'Treino dos Deuses', preco:200000000, fps:140000 }
+];
+function precoAparelho(a) { return Math.round(a.preco * Math.pow(1.4, (S.academia && S.academia[a.id]) || 0)); }
+function forcaPorSeg() { var t = 0; APARELHOS.forEach(function (a) { t += a.fps * ((S.academia && S.academia[a.id]) || 0); }); return t; }
 function premio(i) { return Math.round(INIMIGOS[i].forca * 7 + 25); }
 function perda(i) { return Math.round(premio(i) * 0.25); }
 function achaSkin(id) { return SKINS.filter(function (s) { return s.id === id; })[0] || SKINS[0]; }
@@ -186,7 +239,9 @@ function salva() { S.t = Date.now(); try { localStorage.setItem('clicker2_save',
 setInterval(function () { salva(); }, 4000);
 addEventListener('pagehide', salva);
 
-function fmt(n) { n = Math.floor(n); if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1).replace('.', ',') + 'M'; if (n >= 1e4) return (n / 1e3).toFixed(n >= 1e5 ? 0 : 1).replace('.', ',') + 'mil'; return n.toLocaleString('pt-BR'); }
+if (!S.academia) S.academia = {};
+if (!S.vitOnline) S.vitOnline = 0;
+function fmt(n) { n = Math.floor(n); if (n >= 1e15) return (n / 1e15).toFixed(1).replace('.', ',') + 'Q'; if (n >= 1e12) return (n / 1e12).toFixed(1).replace('.', ',') + 'T'; if (n >= 1e9) return (n / 1e9).toFixed(1).replace('.', ',') + 'B'; if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1).replace('.', ',') + 'M'; if (n >= 1e4) return (n / 1e3).toFixed(n >= 1e5 ? 0 : 1).replace('.', ',') + 'mil'; return n.toLocaleString('pt-BR'); }
 function nivel() { return Math.floor(Math.sqrt(S.forca / 3)) + 1; }
 function multi() { return achaSkin(S.skin).mult * achaAura(S.aura).mult; }
 function porClique() { return Math.max(1, Math.floor((1 + Math.floor(S.forca / 4)) * multi() * (S.fome >= 100 ? 0.5 : 1))); }
@@ -385,6 +440,7 @@ var EU = { sq:1, alvoSq:1, pisca:0, piscaT:2, come:0, aura:novaAura(), olhar:0 }
 var B = null;   // batalha em andamento
 function posCogu() { var s = Math.min(W * 0.26, H * 0.17, 150) * (1 + Math.min(0.35, Math.log10(1 + S.forca) * 0.07)); return { x:W / 2, y:H * 0.5 + s * 0.55, s:s }; }
 
+var treinoFx = 0;
 function loop(t) {
     requestAnimationFrame(loop);
     var dt = Math.min(0.05, (t - ultimo) / 1000); ultimo = t;
@@ -392,6 +448,8 @@ function loop(t) {
     tempo += dt;
     // fome sobe com o tempo
     if (!B) S.fome = Math.min(100, S.fome + dt / 1.5);
+    // academia: treina sozinho (faminto não treina)
+    var fps = forcaPorSeg(); if (fps > 0 && S.fome < 100) { S.forca += fps * dt; treinoFx -= dt; if (treinoFx <= 0 && !B && abaAtual === 'clicar') { treinoFx = 1; var pc = posCogu(); texto(pc.x - pc.s * 1.2, pc.y - pc.s * 0.4, '+' + fmt(fps) + ' 💪', '#86efac', 16); } }
     ctx.clearRect(0, 0, W, H);
     if (B) passoBatalha(dt); else desenhaPrincipal(dt);
     passaFX(dt); desenhaFX(ctx);
@@ -469,7 +527,7 @@ function trocaAba(a) {
     document.querySelectorAll('.aba').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-aba') === a); });
     var f = document.getElementById('folha');
     if (a === 'clicar') { f.classList.remove('on'); return; }
-    f.innerHTML = a === 'loja' ? htmlLoja() : a === 'batalha' ? htmlBatalha() : a === 'skins' ? htmlSkins() : htmlAuras();
+    f.innerHTML = a === 'loja' ? htmlLoja() : a === 'academia' ? htmlAcademia() : a === 'batalha' ? htmlBatalha() : a === 'skins' ? htmlSkins() : htmlAuras();
     f.classList.add('on'); f.scrollTop = 0;
     if (a === 'skins') desenhaMiniaturas();
 }
@@ -509,8 +567,96 @@ function escolheAura(id) {
     if (S.auras.indexOf(id) < 0) { if (S.moedas < a.preco) { toast('💰 Faltam ' + fmt(a.preco - S.moedas) + ' moedas'); return; } S.moedas -= a.preco; S.auras.push(id); somVitoria(); toast('✨ Aura ' + a.nome + ' desbloqueada!'); }
     S.aura = id; EU.aura = novaAura(); trocaAba('auras'); hud();
 }
+// ---------------- academia ----------------
+function htmlAcademia() {
+    var fps = forcaPorSeg();
+    return '<h2>🏋️ Academia</h2><div class="dica">Compre aparelhos e o seu cogumelo <b>treina sozinho</b>, ganhando força toda hora! Agora: <b style="color:#86efac">+' + fmt(fps) + ' 💪 por segundo</b>' + (S.fome >= 100 ? '<br><b style="color:#fca5a5">😭 Faminto não treina! Dê comida pra ele.</b>' : '') + '</div><div class="grade">' +
+        APARELHOS.map(function (a) { var n = S.academia[a.id] || 0, p = precoAparelho(a), pode = S.moedas >= p;
+            return '<div class="item' + (pode ? '' : ' trava') + '" onclick="compraAparelho(\'' + a.id + '\')"><div class="ic">' + a.ic + '</div><b>' + a.nome + (n ? ' <span style="color:#a78bfa">Nv ' + n + '</span>' : '') + '</b><div class="info" style="color:#86efac;font-weight:800">+' + fmt(a.fps) + ' 💪/seg cada nível</div><span class="preco' + (pode ? '' : ' cinza') + '">💰 ' + fmt(p) + '</span></div>'; }).join('') + '</div>';
+}
+function compraAparelho(id) {
+    var a = APARELHOS.filter(function (q) { return q.id === id; })[0], p = precoAparelho(a);
+    if (S.moedas < p) { toast('💰 Faltam ' + fmt(p - S.moedas) + ' moedas'); return; }
+    S.moedas -= p; S.academia[id] = (S.academia[id] || 0) + 1; somVitoria(); toast(a.ic + ' ' + a.nome + ' nível ' + S.academia[id] + '!');
+    document.getElementById('folha').innerHTML = htmlAcademia(); hud();
+}
+
+// ---------------- 🌐 batalha online (mesmo relay de salas dos outros jogos do site) ----------------
+var WS_URL = 'wss://zxbmtlkq6b.execute-api.sa-east-1.amazonaws.com/prod?jogo=clicker2';
+var meuId = 'p' + Math.random().toString(36).slice(2, 9);
+var meuNome = '';
+try { meuNome = localStorage.getItem('cg_usuario') || ''; } catch (e) {}
+if (!meuNome) meuNome = 'Cogu ' + (10 + Math.floor(Math.random() * 90));
+var NET = { ws:null, sala:'ARENA', estado:'', alvo:null, oponente:null, visto:0, procT:null, tempoProc:0 };
+function netEnvia(o) { if (NET.ws && NET.ws.readyState === 1) try { NET.ws.send(JSON.stringify(Object.assign({ acao:'mp', sala:NET.sala, id:meuId }, o))); } catch (e) {} }
+function meusDados() { return { nome:meuNome.slice(0, 20), f:Math.floor(S.forca), skin:S.skin, aura:S.aura }; }
+function procurarOnline() {
+    audio();
+    if (NET.estado) return;
+    NET.estado = 'procurando'; NET.alvo = null; NET.oponente = null; NET.tempoProc = Date.now();
+    try { NET.ws = new WebSocket(WS_URL); } catch (e) { erroOnline(); return; }
+    NET.ws.onopen = function () { netEnvia(Object.assign({ t:'procuro' }, meusDados())); };
+    NET.ws.onmessage = netRecebe;
+    NET.ws.onerror = function () {};
+    NET.ws.onclose = function () {
+        if (NET.estado === 'lutando' && B && !B.fim) {   // a MINHA internet caiu: a luta acaba sem ganhar nem perder
+            B.fim = true; fechaOnline();
+            abreModal('<div class="grande">📡</div><h3>A conexão caiu</h3><p>A luta online acabou sem vencedor. Ninguém ganhou nem perdeu moedas.</p><button class="bt" onclick="saiLuta()">Continuar</button>');
+        } else if (NET.estado === 'procurando') erroOnline();
+    };
+    clearInterval(NET.procT);
+    NET.procT = setInterval(function () {
+        if (NET.estado === 'procurando') {
+            netEnvia(Object.assign({ t:'procuro' }, meusDados()));
+            var seg = Math.round((Date.now() - NET.tempoProc) / 1000);
+            var el = document.getElementById('procSeg'); if (el) el.textContent = seg + 's';
+        }
+        if (NET.estado === 'lutando' && B && !B.fim) {
+            netEnvia({ t:'hp', para:NET.oponente.id, hp:Math.max(0, B.hpEu) });
+            if (Date.now() - NET.visto > 10000) { toast('📡 O outro jogador saiu!'); fimLuta(true, true); }
+        }
+    }, 2000);
+    abreModal('<div class="grande">🌐</div><h3>Procurando oponente...</h3><p>Esperando outro jogador entrar na batalha online <span id="procSeg">0s</span><br><small>Chame um amigo pra abrir o jogo também! 😄</small></p><button class="bt" onclick="cancelaOnline()">Cancelar</button>');
+}
+function erroOnline() { fechaOnline(); abreModal('<div class="grande">📡</div><h3>Sem conexão</h3><p>Não deu pra conectar no online agora. Tente de novo daqui a pouco!</p><button class="bt" onclick="fechaModal()">Ok</button>'); }
+function fechaOnline() { clearInterval(NET.procT); NET.procT = null; if (NET.ws) { try { NET.ws.close(); } catch (e) {} } NET.ws = null; NET.estado = ''; }
+function cancelaOnline() { fechaOnline(); fechaModal(); }
+function netRecebe(ev) {
+    var m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    if (!m || m.sala !== NET.sala || !m.id || m.id === meuId) return;
+    if (m.para && m.para !== meuId) return;
+    var dados = { id:m.id, nome:String(m.nome || 'Jogador').slice(0, 20), f:Math.max(1, +m.f || 1), skin:String(m.skin || 'classico'), aura:String(m.aura || 'nada') };
+    if (NET.estado === 'procurando') {
+        // quem tem o id "menor" desafia; o outro aceita; quem desafiou confirma com "vai"
+        if (m.t === 'procuro' && meuId < m.id) { NET.alvo = m.id; netEnvia(Object.assign({ t:'desafio', para:m.id }, meusDados())); }
+        else if (m.t === 'desafio') { NET.estado = 'aceitando'; NET.oponente = dados; netEnvia(Object.assign({ t:'aceito', para:m.id }, meusDados())); setTimeout(function () { if (NET.estado === 'aceitando') NET.estado = 'procurando'; }, 3000); }
+        else if (m.t === 'aceito' && m.id === NET.alvo) { NET.oponente = dados; netEnvia({ t:'vai', para:m.id }); comecaOnline(); }
+        return;
+    }
+    if (NET.estado === 'aceitando' && m.t === 'vai' && NET.oponente && m.id === NET.oponente.id) { comecaOnline(); return; }
+    if (NET.estado !== 'lutando' || !B || !NET.oponente || m.id !== NET.oponente.id) return;
+    NET.visto = Date.now();
+    if (m.t === 'dano' && !B.fim && B.t > 0) {
+        var v = Math.max(0, +m.v || 0);
+        B.hpEu -= v; B.sqEu = 0.8; B.tremor = 0.15; if (m.auto) { B.quem = 1; B.golpe = 0.3; }
+        var pEu = posLuta(0); texto(pEu.x, pEu.y - pEu.s * 2.2, '-' + fmt(v), '#fca5a5', m.auto ? 30 : 20); faiscas(pEu.x, pEu.y - pEu.s, '#fb7185', m.auto ? 12 : 4); somSoco();
+        if (B.hpEu <= 0) { netEnvia({ t:'perdi', para:NET.oponente.id }); fimLuta(false); }
+    }
+    if (m.t === 'hp' && !B.fim) B.hpEle = Math.min(B.hpEle, Math.max(1, +m.hp || 0));
+    if (m.t === 'perdi' && !B.fim) fimLuta(true);
+}
+function comecaOnline() {
+    NET.estado = 'lutando'; NET.visto = Date.now(); fechaModal();
+    var o = NET.oponente;
+    lutar(-1, { nome:o.nome, forca:o.f, skin:achaSkin(o.skin).id, aura:achaAura(o.aura).id, online:true });
+}
+function premioOnline(f) { return Math.round(100 + f * 6); }
+var danoAcum = 0;
+
 function htmlBatalha() {
-    return '<h2>⚔️ Batalhas</h2><div class="dica">Seu cogumelo tem <b>' + fmt(S.forca) + ' 💪</b>. Ganhe e leve a recompensa! Se perder, perde moedas. Na luta, <b>toque rápido</b> pra bater mais forte!</div><div class="grade">' +
+    return '<h2>⚔️ Batalhas</h2>' +
+        '<div class="item" onclick="procurarOnline()" style="margin-bottom:12px;background:linear-gradient(135deg,rgba(56,189,248,0.25),rgba(139,92,246,0.3));border-color:rgba(125,211,252,0.6)"><div class="ic">🌐</div><b>BATALHA ONLINE</b><div class="info">Lute contra outro jogador de verdade! Ganhou: 💰 100 + 6x a força dele · Perdeu: perde um pouco 😬<br>Vitórias online: <b style="color:#ffd36a">' + S.vitOnline + '</b></div><span class="preco">⚔️ Procurar oponente</span></div>' +
+        '<div class="dica">Seu cogumelo tem <b>' + fmt(S.forca) + ' 💪</b>. Ganhe e leve a recompensa! Se perder, perde moedas. Na luta, <b>toque rápido</b> pra bater mais forte!</div><div class="grade">' +
         INIMIGOS.map(function (n, i) {
             var ganhou = S.venceu[i], r = S.forca / n.forca, cor = r >= 1.3 ? '#86efac' : r >= 0.8 ? '#fde047' : '#fca5a5', dif = r >= 1.3 ? 'Fácil' : r >= 0.8 ? 'Parelho' : r >= 0.5 ? 'Difícil' : 'Muito forte!';
             return '<div class="item" onclick="lutar(' + i + ')"><canvas data-ini="' + i + '" width="168" height="168"></canvas><b>' + n.nome + (ganhou ? ' 🏆' : '') + '</b><div class="info">' + fmt(n.forca) + ' 💪 · <span style="color:' + cor + '">' + dif + '</span></div><span class="preco">💰 +' + fmt(premio(i)) + '</span><div class="info" style="margin-top:4px">perde ' + fmt(perda(i)) + ' se perder</div></div>';
@@ -519,12 +665,12 @@ function htmlBatalha() {
 setInterval(function () {
     if (abaAtual === 'batalha') document.querySelectorAll('canvas[data-ini]').forEach(function (c) { var n = INIMIGOS[+c.getAttribute('data-ini')], g = c.getContext('2d'); g.clearRect(0, 0, 168, 168); desenhaCogu(g, 84, 150, 62, achaSkin(n.skin), { t:tempo, humor:'bravo', vira:true }); });
     if (abaAtual === 'skins') desenhaMiniaturas();
-}, 120);
+}, 300);
 
 // ---------------- batalha ----------------
-function lutar(i) {
+function lutar(i, online) {
     audio();
-    var n = INIMIGOS[i];
+    var n = online || INIMIGOS[i];
     trocaAba('clicar');
     var forEu = S.forca, forEle = n.forca;
     B = { i:i, n:n, hpEu:60 + forEu * 8, hpEle:60 + forEle * 8, t:-1.4, vez:0, golpe:0, quem:-1, socos:0, fim:false, auraEle:novaAura(), sqEu:1, sqEle:1, tremor:0 };
@@ -542,6 +688,7 @@ function soco() {
     B.ultSoco = performance.now();
     var dano = Math.max(1, S.forca * 0.35);
     B.hpEle -= dano; B.sqEle = 0.85; B.socos++;
+    if (B.n.online) danoAcum += dano;   // manda os socos juntos a cada pouquinho (pra não encher a internet)
     var pe = posLuta(1); texto(pe.x + (Math.random() - 0.5) * 60, pe.y - pe.s * 2, '-' + fmt(dano), '#fda4af', 20); faiscas(pe.x, pe.y - pe.s, '#fda4af', 4);
     somSoco();
 }
@@ -550,8 +697,20 @@ function passoBatalha(dt) {
     desenhaFundo(ctx, tempo, '#3b0f2e');
     B.t += dt;
     var pEu = posLuta(0), pEle = posLuta(1), skinEu = achaSkin(S.skin), skinEle = achaSkin(B.n.skin);
+    // online: eu só calculo os MEUS golpes e mando pro outro; os dele chegam pela internet
+    if (B.n.online && !B.fim && B.t > 0) {
+        B.vez -= dt; B.envio = (B.envio || 0) - dt;
+        if (B.vez <= 0) {
+            B.vez = 1.5; B.quem = 0; B.golpe = 0.3;
+            var dOn = Math.max(1, S.forca * (1.6 + Math.random() * 0.8));
+            B.hpEle -= dOn; B.sqEle = 0.8; texto(pEle.x, pEle.y - pEle.s * 2.2, '-' + fmt(dOn), '#fff', 30); faiscas(pEle.x, pEle.y - pEle.s, '#fde047', 12); somSoco();
+            netEnvia({ t:'dano', para:NET.oponente.id, v:Math.round(dOn), auto:1 });
+        }
+        if (B.envio <= 0 && danoAcum > 0) { B.envio = 0.3; netEnvia({ t:'dano', para:NET.oponente.id, v:Math.round(danoAcum) }); danoAcum = 0; }
+        if (B.hpEle < 1) B.hpEle = 1;   // quem decide que perdeu é o próprio outro jogador
+    }
     // golpes automáticos alternados
-    if (!B.fim && B.t > 0) {
+    else if (!B.fim && B.t > 0) {
         B.vez -= dt;
         if (B.vez <= 0) {
             B.vez = 0.75; B.quem = B.quem === 0 ? 1 : 0; B.golpe = 0.3;
@@ -583,9 +742,26 @@ function passoBatalha(dt) {
     document.getElementById('hpEuNum').textContent = fmt(Math.max(0, B.hpEu)) + ' ❤️';
     document.getElementById('hpEleNum').textContent = '❤️ ' + fmt(Math.max(0, B.hpEle));
 }
-function fimLuta(ganhou) {
+function fimLuta(ganhou, wo) {
+    if (B.fim) return;
     B.fim = true; B.ganhou = ganhou;
     var i = B.i, txt;
+    if (B.n.online) {
+        var pr = premioOnline(B.n.forca);
+        if (ganhou) {
+            if (wo) pr = Math.round(pr / 2);
+            S.moedas += pr; S.vitorias++; S.vitOnline++; B.hpEle = 0;
+            somVitoria(); faiscas(W / 2, H * 0.4, '#ffd36a', 40);
+            txt = '<div class="grande">🏆🌐</div><h3>VOCÊ GANHOU ONLINE!</h3><p>Derrotou o <b>' + B.n.nome + '</b>' + (wo ? ' (ele saiu da luta)' : '') + ' e ganhou <b style="color:#ffd36a">💰 ' + fmt(pr) + '</b></p>';
+        } else {
+            var pdo = Math.min(S.moedas, Math.round(pr * 0.25)); S.moedas -= pdo;
+            som(400, 120, 0.6, 'sawtooth', 0.07);
+            txt = '<div class="grande">😵</div><h3>Você perdeu...</h3><p>O <b>' + B.n.nome + '</b> foi mais forte. Você perdeu <b style="color:#fca5a5">💰 ' + fmt(pdo) + '</b>.<br>Treine na 🏋️ academia e coma mais! 💪</p>';
+        }
+        fechaOnline(); salva();
+        setTimeout(function () { abreModal(txt + '<button class="bt" onclick="saiLuta()">Continuar</button>'); }, 1200);
+        return;
+    }
     if (ganhou) {
         var r = premio(i), primeira = !S.venceu[i];
         if (primeira) r *= 2;
