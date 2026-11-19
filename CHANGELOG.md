@@ -1,5 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
+## v659 (2026-11-19)
+- 🧪 **Laboratório Maluco LANÇADO** na página inicial (com as 300 misturas)!
+- 🎨 **Pinta o Chão LANÇADO** na página inicial!
+
 ## v658 (2026-11-19)
 - 🧪 **Laboratório Maluco**: agora cada monstro que você cria vira ingrediente pra misturar de novo! São **300 misturas** (+6 secretas), com botão 💡 de dica.
 - 🎉 **Mega Evento**: os jogos escondidos não aparecem mais na lista.
