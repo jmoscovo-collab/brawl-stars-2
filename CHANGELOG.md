@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+
+## v661 (2026-11-19)
+- 🎉 **Mega Evento**: agora as missões dão o **TRIPLO** de Cogu Coins! (3 min = 180, 10 min = 450, 20 min = 1.200, missões de moedas = 300 e 900) 🔥
 ## v660 (2026-11-19)
 - 🎣 **Pescaria Maluca 1**: +300 peixes em cada raridade (Comum, Raro, Épico, Místico e Lendário) e +300 varas novas depois da Suprema!
 - 🎣 **Pescaria Maluca 2**: +300 peixes em cada raridade (menos Místico), +300 varas, 📜 51 missões com prêmio, 🎯 pedidos de clientes e ✨ peixes brilhantes que valem 10x!
