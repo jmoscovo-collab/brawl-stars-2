@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v656 (2026-11-18)
+- 🏒 Cogu Hockey 3D: **⚡ SUPER-CHUTE!** Segure **F** pra carregar (o anel em volta da raquete enche), solte, e a próxima batida no disco vira um FOGUETE pegando fogo direto pro gol, que atravessa a raquete do outro e deixa ela tonta! (celular: botão ⚡; jogador 2: tecla L). Cuidado: o robô Difícil e o IMPOSSÍVEL também usam!
+
 ## v655 (2026-11-18)
 - 🍄 Cogumelo Clicker 2 ficou GIGANTE: **+50 skins** (Morango, Rubi, Galáxia, Robô, Panda, Pixel, SUPREMO...) e **+50 auras** (Fênix, Plasma, Supernova, Holográfica, SUPREMA...), cada uma multiplicando mais o clique. **9 inimigos novos** (até O COGUMELO SUPREMO com 30 milhões de força). **Comida dá 4x mais força**. **🏋️ Academia**: compre aparelhos (Halter, Esteira, Kung Fu, Treino no Espaço...) e o cogumelo treina sozinho ganhando força por segundo. **🌐 BATALHA ONLINE** contra outros jogadores de verdade!
 

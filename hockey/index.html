@@ -42,6 +42,11 @@ a.voltar { color:#c8b8ff; text-decoration:none; margin-top:16px; font-size:15px;
 #placar small { font-size:13px; color:#d8d0ff; letter-spacing:0; display:block; text-align:center; margin-top:-4px; }
 #btPausa { position:fixed; top:10px; right:10px; z-index:4; display:none; padding:8px 14px; font-size:15px; }
 #btPausa.on { display:block; }
+#btSuper { position:fixed; right:18px; bottom:24px; width:92px; height:92px; border-radius:50%; z-index:4; display:none; font-size:34px; padding:0; line-height:1; background:radial-gradient(circle at 40% 35%, #ffe04a, #ff5a1a); border:4px solid rgba(255,255,255,0.7); }
+#btSuper small { display:block; font-size:12px; letter-spacing:1px; }
+#btSuper.on { display:block; }
+#dicaSuper { position:fixed; left:50%; bottom:12px; transform:translateX(-50%); z-index:3; display:none; font-size:14px; color:#ffe9a0; background:rgba(0,0,0,0.45); padding:4px 14px; border-radius:12px; pointer-events:none; white-space:nowrap; }
+#dicaSuper.on { display:block; }
 #aviso { position:fixed; top:36%; left:0; right:0; text-align:center; font-size:64px; font-weight:900; pointer-events:none; opacity:0; transition:opacity .2s, transform .2s;
     color:#ffe04a; text-shadow:0 0 16px #ff8a00, 0 4px 0 #a03000; z-index:4; padding:0 10px; transform:scale(0.7); }
 #aviso.on { opacity:1; transform:scale(1); }
@@ -54,6 +59,8 @@ a.voltar { color:#c8b8ff; text-decoration:none; margin-top:16px; font-size:15px;
 <div id="placar"><span class="a" id="pA">0</span> × <span class="b" id="pB">0</span><small id="pInfo">primeiro a 7</small></div>
 <button id="btPausa" class="cinza" onclick="pausar()">⏸</button>
 <div id="aviso"></div>
+<button id="btSuper">⚡<small>SUPER</small></button>
+<div id="dicaSuper">Segure <b>F</b> pra carregar o ⚡ SUPER-CHUTE</div>
 
 <div class="tela on" id="telaMenu">
     <h1>COGU HOCKEY<small>3 D</small></h1>
@@ -74,6 +81,7 @@ a.voltar { color:#c8b8ff; text-decoration:none; margin-top:16px; font-size:15px;
         <h2>🏒 Como jogar</h2>
         <ul>
             <li><b>Computador:</b> mexa o mouse (ou WASD / setas) pra mover a sua raquete 🔴</li>
+            <li>⚡ <b>SUPER-CHUTE:</b> segure <b>F</b> pra carregar, solte, e a próxima batida no disco vira um FOGUETE pro gol! (celular: botão ⚡ · jogador 2: tecla L)</li>
             <li><b>Celular:</b> arraste o dedo na sua metade da mesa</li>
             <li>Bata no disco <b>com velocidade</b> pra ele ir rápido!</li>
             <li>Faça o disco entrar no gol lá do outro lado 🥅</li>
@@ -256,7 +264,27 @@ function criaRaquete(cor, corEsc) {
     var chap = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), mt(cor)); chap.position.y = 0.66; chap.scale.y = 0.8; g.add(chap);
     [[0.2, 0.86, 0.2], [-0.22, 0.84, 0.12], [0.02, 1.02, -0.1], [0.05, 0.8, -0.38]].forEach(function (p) { var s = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), mt(0xffffff)); s.position.set(p[0], p[1], p[2]); s.scale.y = 0.6; g.add(s); });
     var b = brilho(cor, 3.4, 0.35); b.position.y = 0.1; g.add(b);
+    // anel do SUPER-CHUTE (enche enquanto segura F)
+    var anel = new THREE.Mesh(new THREE.RingGeometry(RR + 0.12, RR + 0.32, 32), new THREE.MeshBasicMaterial({ color:0xffa01a, side:THREE.DoubleSide, transparent:true, opacity:0.95 }));
+    anel.rotation.x = -Math.PI / 2; anel.position.y = 0.03; g.add(anel); g.userData.anel = anel;
+    var fogoB = brilho(0xff6a00, 5, 0); fogoB.position.y = 0.3; g.add(fogoB); g.userData.fogo = fogoB;
     scene.add(g); return g;
+}
+// ⚡ SUPER-CHUTE: segure F (jogador 1) ou L (jogador 2) pra carregar, solte pra armar; a próxima batida no disco é um foguete!
+var CARGA_T = 1.0;
+function atualizaSuper(r, segurando, dt) {
+    if (segurando && !(r.superT > 0)) { r.carga = Math.min(1, (r.carga || 0) + dt / CARGA_T); if (r.carga >= 1 && !r.avisouCheio) { r.avisouCheio = true; bip(800, 1600, 0.15, 'square', 0.06); } }
+    else if (r.carga > 0) {
+        if (r.carga >= 0.25) { r.super = r.carga; r.superT = 2; bip(300, 1200, 0.25, 'sawtooth', 0.08); }
+        r.carga = 0; r.avisouCheio = false;
+    }
+    if (r.superT > 0) { r.superT -= dt; if (r.superT <= 0) r.super = 0; }
+}
+function superBoom(d, r) {
+    J.tremor = 0.35;
+    if (J.teste) return;
+    bip(120, 40, 0.5, 'sawtooth', 0.16); bip(1400, 300, 0.4, 'square', 0.08);
+    aviso('⚡ SUPER-CHUTE!', '', 0.8);
 }
 var RAQ = [
     { x:0, z:HL - 2, vx:0, vz:0, tx:0, tz:HL - 2, lado:1, m:criaRaquete(0xff5a7a, 0x8a1030) },    // você (embaixo)
@@ -340,7 +368,10 @@ function montaMenu() {
 }
 var avisoT = 0;
 function aviso(txt, sub, dur) { var a = document.getElementById('aviso'); a.innerHTML = txt + (sub ? '<small>' + sub + '</small>' : ''); a.classList.add('on'); avisoT = dur || 1.2; }
-function hudLiga(on) { document.getElementById('placar').classList.toggle('on', on); document.getElementById('btPausa').classList.toggle('on', on); }
+function hudLiga(on) { document.getElementById('placar').classList.toggle('on', on); document.getElementById('btPausa').classList.toggle('on', on); document.getElementById('btSuper').classList.toggle('on', on && CELULAR); document.getElementById('dicaSuper').classList.toggle('on', on && !CELULAR); }
+var superToque = false, btSuper = document.getElementById('btSuper');
+btSuper.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); superToque = true; audio(); });
+['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { btSuper.addEventListener(ev, function () { superToque = false; }); });
 function pausar() { if (!J.on) return; J.pausa = true; mostra('telaPausa'); }
 function continuar() { J.pausa = false; mostra(null); ultimo = performance.now(); }
 function irMenu() { J.on = false; J.pausa = false; hudLiga(false); montaMenu(); mostra('telaMenu'); }
@@ -351,7 +382,7 @@ function comecar() {
     J.modo = MODOS[modoSel].id; J.dif = DIFS[difSel]; J.on = true; J.pausa = false; J.fim = false;
     J.pts = [0, 0]; J.t = 0; J.reacao = 0; J.ia = { tx:0, tz:-HL + 2 };
     RAQ[0].x = RAQ[0].tx = 0; RAQ[0].z = RAQ[0].tz = HL - 2; RAQ[1].x = RAQ[1].tx = 0; RAQ[1].z = RAQ[1].tz = -HL + 2;
-    RAQ.forEach(function (r) { r.vx = r.vz = 0; });
+    RAQ.forEach(function (r) { r.vx = r.vz = 0; r.carga = 0; r.super = 0; r.superT = 0; });
     var n = J.modo === 'maluco' ? 3 : 1;
     DISCOS.forEach(function (d, i) { d.ativo = i < n; d.m.visible = d.ativo; d.hist = []; d.rastro.forEach(function (r) { r.visible = false; }); if (d.ativo) saque(d, i === 0 ? (Math.random() < 0.5 ? 1 : -1) : (i === 1 ? 1 : -1), i); });
     document.getElementById('pInfo').textContent = J.modo === 'dois' ? '🔴 Jogador 1 × Jogador 2 🔵' : '🔴 Você × ' + J.dif.ic + ' Robô ' + J.dif.nome;
@@ -361,7 +392,7 @@ function comecar() {
 }
 // coloca o disco parado do lado de quem vai sacar
 function saque(d, lado, i) {
-    d.x = (i === 0 ? 0 : (i === 1 ? -2.5 : 2.5)); d.z = lado * 2.6; d.vx = d.vz = 0; d.espera = 0.8; d.hist = [];
+    d.x = (i === 0 ? 0 : (i === 1 ? -2.5 : 2.5)); d.z = lado * 2.6; d.vx = d.vz = 0; d.espera = 0.8; d.hist = []; d.fogo = 0; d.dono = null;
 }
 function atualizaPlacar() { document.getElementById('pA').textContent = J.pts[0]; document.getElementById('pB').textContent = J.pts[1]; }
 
@@ -383,6 +414,9 @@ function passo(dt) {
         var r = RAQ[i], vel = 13;   // velocidade da raquete no teclado
         usouTeclado[i] = true; r.tx = r.x + mx * vel * dt * 1.5; r.tz = r.z + mz * vel * dt * 1.5;
     });
+    atualizaSuper(RAQ[0], !!(teclas.KeyF || superToque), dt);
+    if (J.modo === 'dois') atualizaSuper(RAQ[1], !!teclas.KeyL, dt);
+    else { atualizaSuper(RAQ[1], false, dt); if (difSel >= 2 && !(RAQ[1].super > 0) && Math.random() < dt * 0.12 * (difSel - 1)) { RAQ[1].super = 0.5 + Math.random() * 0.5; RAQ[1].superT = 2.5; } }
     if (J.modo !== 'dois' || J.teste) cerebro(1, dt);
     if (J.teste) cerebro(0, dt);
     RAQ.forEach(function (r, i) {
@@ -393,6 +427,7 @@ function passo(dt) {
         var nvx = 0, nvz = 0;
         if (d > 0.001) { var v = Math.min(vmax, d / dt); nvx = dx / d * v; nvz = dz / d * v; }
         r.vx = nvx; r.vz = nvz;
+        if (r.tonto > 0) { r.tonto -= dt; r.vx = r.vz = 0; }   // tonta: não mexe
     });
     // sub-passos pra o disco rápido não atravessar nada
     var N = 6, h = dt / N;
@@ -404,6 +439,7 @@ function passo(dt) {
 }
 function moveDisco(d, h) {
     if (d.espera > 0) { d.espera -= h; }
+    if (d.fogo > 0) d.fogo -= h;
     d.x += d.vx * h; d.z += d.vz * h;
     var atrito = Math.pow(0.82, h); d.vx *= atrito; d.vz *= atrito;   // mesa de ar: quase sem atrito
     // paredes do lado
@@ -414,7 +450,7 @@ function moveDisco(d, h) {
         if (f * d.z > HL - RD) {
             if (Math.abs(d.x) < GOL / 2 - RD * 0.3) {
                 if (f * d.z > HL + RD * 1.5) gol(d, f);
-            } else if (f * d.z < HL + 0.2) { d.z = f * (HL - RD); d.vz = -f * Math.abs(d.vz) * 0.92; batida(d, 'parede'); }
+            } else { d.z = f * (HL - RD); d.vz = -f * Math.abs(d.vz) * 0.92; batida(d, 'parede'); }
         }
         // traves (quinas do gol)
         [-1, 1].forEach(function (l) {
@@ -428,12 +464,19 @@ function moveDisco(d, h) {
     // raquetes
     RAQ.forEach(function (r) {
         var dx = d.x - r.x, dz = d.z - r.z, dd = Math.hypot(dx, dz), min = RD + RR;
+        if (d.fogo > 0 && d.dono && d.dono !== r && dd < min) { if (!(r.tonto > 0)) { r.tonto = 0.7; J.tremor = 0.25; if (!J.teste) bip(200, 80, 0.3, 'square', 0.1); } return; }   // o foguete atravessa e deixa a raquete tonta
         if (dd < min) {
             if (dd < 0.0001) { dx = 0; dz = -r.lado; dd = 1; }
             var nx = dx / dd, nz = dz / dd;
             d.x = r.x + nx * min; d.z = r.z + nz * min;
             var rvx = d.vx - r.vx, rvz = d.vz - r.vz, vn = rvx * nx + rvz * nz;
-            if (vn < 0) {
+            if (r.super > 0) {
+                // ⚡ SUPER-CHUTE: o disco sai voando em direção ao gol do outro, pegando fogo
+                var gx = (Math.random() - 0.5) * GOL * 0.6, gz = -r.lado * (HL + 1), ax = gx - d.x, az = gz - d.z, al = Math.hypot(ax, az) || 1;
+                var vs = 24 + r.super * 22;
+                d.vx = ax / al * vs; d.vz = az / al * vs; d.fogo = 1.5; d.dono = r;
+                superBoom(d, r); r.super = 0; r.superT = 0;
+            } else if (vn < 0) {
                 d.vx -= 1.85 * vn * nx; d.vz -= 1.85 * vn * nz;
                 var v = Math.hypot(d.vx, d.vz); if (v > VMAX) { d.vx *= VMAX / v; d.vz *= VMAX / v; }
                 batida(d, 'raquete', -vn);
@@ -542,6 +585,12 @@ function visual(dt) {
     tempo += dt; batT -= dt;
     if (avisoT > 0) { avisoT -= dt; if (avisoT <= 0) document.getElementById('aviso').classList.remove('on'); }
     if (J.on && J.fim) { J.fimT -= dt; if (J.fimT <= 0) termina(); }
+    RAQ.forEach(function (r) {
+        var an = r.m.userData.anel, fb = r.m.userData.fogo, c = r.carga || 0, armado = r.super > 0;
+        an.visible = c > 0 || armado; r.m.rotation.y = r.tonto > 0 ? tempo * 25 : 0;
+        if (armado) { an.scale.setScalar(1 + Math.sin(tempo * 18) * 0.12); an.material.color.setHex(Math.sin(tempo * 18) > 0 ? 0xff3a00 : 0xffe04a); fb.material.opacity = 0.55 + Math.sin(tempo * 14) * 0.2; }
+        else { an.scale.setScalar(0.55 + c * 0.45); an.material.color.setHex(c >= 1 ? 0xff3a00 : 0xffa01a); an.material.opacity = 0.4 + c * 0.6; fb.material.opacity = c * 0.4; }
+    });
     RAQ.forEach(function (r) { r.m.position.set(r.x, 0, r.z); var sp = Math.hypot(r.vx, r.vz); r.m.rotation.z = -r.vx * 0.006; r.m.rotation.x = r.vz * 0.006; r.m.children[1].scale.setScalar(1 + Math.min(0.3, sp * 0.01)); });
     DISCOS.forEach(function (d) {
         if (!d.ativo) return;
@@ -549,7 +598,10 @@ function visual(dt) {
         d.hist.unshift([d.x, d.z]); if (d.hist.length > 16) d.hist.pop();
         var v = Math.hypot(d.vx, d.vz);
         d.rastro.forEach(function (r, k) { var p = d.hist[k * 2]; r.visible = !!p && v > 6; if (p) { r.position.set(p[0], 0.12, p[1]); var s = (1 - k / 8) * 0.9; r.scale.set(s, s, 1); r.material.opacity = 0.35 * (1 - k / 8); } });
-        d.m.children[2].material.color.setHex(v > 20 ? 0xff6a1a : 0xffe04a);
+
+        var emFogo = d.fogo > 0 && v > 8;
+        d.m.children[2].material.color.setHex(emFogo ? 0xff2a00 : (v > 20 ? 0xff6a1a : 0xffe04a)); d.m.children[2].scale.setScalar(emFogo ? 4.5 : 2.2);
+        d.rastro.forEach(function (r) { r.material.color.setHex(emFogo ? 0xff4a00 : 0xffe04a); if (emFogo) r.scale.multiplyScalar(2.2); });
         if (d.espera > 0) d.m.children[1].scale.setScalar(1 + Math.sin(tempo * 12) * 0.15); else d.m.children[1].scale.setScalar(1);
     });
     TORCIDA.forEach(function (c) { if (c.pula > 0) c.pula -= dt; c.g.position.y = c.y0 + (c.pula > 0 ? Math.abs(Math.sin(tempo * 10 + c.f)) * 0.6 : Math.abs(Math.sin(tempo * 2 + c.f)) * 0.08); });
