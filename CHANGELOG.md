@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v652 (2026-11-18)
+- 🍄 Cogumelo Clicker 2: agora as **skins e as auras multiplicam as moedas do clique**! Skins de x1,5 até x20 (Diamante) e auras de x1,5 até x25 (Fogo Dourado). Uma multiplica a outra! Lá em cima aparece quanto você ganha por clique 💰
+
 ## v651 (2026-11-18)
 - 🍄 Jogo novo, ideia do Davi: **Cogumelo Clicker 2**! Clique no cogumelo pra ganhar moedas, compre comida na loja e dê pra ele **só quando ele estiver com fome** (tem barra de fome). Cada comida deixa ele mais forte 💪. Lute contra 10 cogumelos (toque rápido pra bater mais forte!): ganhou, leva recompensa; perdeu, perde moedas. 9 skins e 10 **auras brilhantes** (fogo, fogo azul, raio, gelo, sombra, estrelas, arco-íris, fogo dourado...) ✨
 

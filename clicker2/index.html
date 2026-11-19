@@ -85,7 +85,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#0b0716; font-
 <canvas id="cena"></canvas>
 <a id="voltar" href="/" title="Voltar">←</a>
 <div id="topo">
-    <div class="chip">💰 <span id="moedas">0</span></div>
+    <div class="chip">💰 <span id="moedas">0</span> <small id="multi">x1</small></div>
     <div class="chip">💪 <span id="forca">1</span> <small id="nivel">Nv 1</small></div>
     <div class="chip">🏆 <span id="vitorias">0</span></div>
 </div>
@@ -168,6 +168,9 @@ var INIMIGOS = [
     { nome:'Cogu das Sombras', forca:5500, skin:'ninja', aura:'sombra' },
     { nome:'REI DOS COGUS', forca:12000, skin:'diamante', aura:'dourado' }
 ];
+// skins e auras MULTIPLICAM as moedas de cada clique (pedido do Davi)
+[1, 1.5, 2, 3, 4, 6, 8, 12, 20].forEach(function (m, i) { SKINS[i].mult = m; });
+[1, 1.5, 2, 3, 4, 6, 8, 12, 16, 25].forEach(function (m, i) { AURAS[i].mult = m; });
 function premio(i) { return Math.round(INIMIGOS[i].forca * 7 + 25); }
 function perda(i) { return Math.round(premio(i) * 0.25); }
 function achaSkin(id) { return SKINS.filter(function (s) { return s.id === id; })[0] || SKINS[0]; }
@@ -185,7 +188,8 @@ addEventListener('pagehide', salva);
 
 function fmt(n) { n = Math.floor(n); if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1).replace('.', ',') + 'M'; if (n >= 1e4) return (n / 1e3).toFixed(n >= 1e5 ? 0 : 1).replace('.', ',') + 'mil'; return n.toLocaleString('pt-BR'); }
 function nivel() { return Math.floor(Math.sqrt(S.forca / 3)) + 1; }
-function porClique() { return Math.max(1, Math.floor((1 + Math.floor(S.forca / 4)) * (S.fome >= 100 ? 0.5 : 1))); }
+function multi() { return achaSkin(S.skin).mult * achaAura(S.aura).mult; }
+function porClique() { return Math.max(1, Math.floor((1 + Math.floor(S.forca / 4)) * multi() * (S.fome >= 100 ? 0.5 : 1))); }
 var FOME_MIN = 40;   // só come quando a fome passa disso
 
 // ---------------- som ----------------
@@ -480,9 +484,9 @@ function compraComida(id) {
     document.getElementById('folha').innerHTML = htmlLoja(); montaBandeja(); hud();
 }
 function htmlSkins() {
-    return '<h2>🎨 Skins</h2><div class="dica">Deixe o seu cogumelo do seu jeito!</div><div class="grade">' +
+    return '<h2>🎨 Skins</h2><div class="dica">Cada skin <b>multiplica as moedas do clique</b>! Junto com a aura, multiplica mais ainda 💰 (agora: x' + String(multi()).replace('.', ',') + ')</div><div class="grade">' +
         SKINS.map(function (s) { var tem = S.skins.indexOf(s.id) >= 0, usa = S.skin === s.id;
-            return '<div class="item' + (usa ? ' usando' : '') + '" onclick="escolheSkin(\'' + s.id + '\')"><canvas data-skin="' + s.id + '" width="168" height="168"></canvas><b>' + s.nome + '</b>' +
+            return '<div class="item' + (usa ? ' usando' : '') + '" onclick="escolheSkin(\'' + s.id + '\')"><canvas data-skin="' + s.id + '" width="168" height="168"></canvas><b>' + s.nome + '</b><div class="info" style="color:#ffd36a;font-weight:800">' + (s.mult > 1 ? 'x' + String(s.mult).replace('.', ',') + ' no clique 💰' : 'normal') + '</div>' +
                 (usa ? '<span class="preco verde">✓ Usando</span>' : tem ? '<span class="preco cinza">Usar</span>' : '<span class="preco' + (S.moedas >= s.preco ? '' : ' cinza') + '">💰 ' + fmt(s.preco) + '</span>') + '</div>'; }).join('') + '</div>';
 }
 function desenhaMiniaturas() {
@@ -494,10 +498,10 @@ function escolheSkin(id) {
     S.skin = id; EU.alvoSq = 1.2; trocaAba('skins'); hud();
 }
 function htmlAuras() {
-    return '<h2>✨ Auras</h2><div class="dica">Um fogo brilhante que fica em volta do seu cogumelo! 🔥</div><div class="grade">' +
+    return '<h2>✨ Auras</h2><div class="dica">Um fogo brilhante em volta do seu cogumelo, que também <b>multiplica o clique</b>! 🔥💰 (agora: x' + String(multi()).replace('.', ',') + ')</div><div class="grade">' +
         AURAS.map(function (a) { var tem = S.auras.indexOf(a.id) >= 0, usa = S.aura === a.id;
             var bola = a.tipo === 'arco' ? 'conic-gradient(#f43f5e,#f59e0b,#84cc16,#06b6d4,#8b5cf6,#f43f5e)' : a.cores ? 'radial-gradient(circle,' + a.cores[0] + ' 10%,' + a.cores[1] + ' 45%,' + a.cores[2] + ' 75%,transparent 76%)' : 'rgba(255,255,255,0.08)';
-            return '<div class="item' + (usa ? ' usando' : '') + '" onclick="escolheAura(\'' + a.id + '\')"><div style="width:64px;height:64px;margin:6px auto;border-radius:50%;background:' + bola + ';box-shadow:0 0 26px ' + (a.cores ? a.cores[1] : 'transparent') + '"></div><b>' + a.nome + '</b>' +
+            return '<div class="item' + (usa ? ' usando' : '') + '" onclick="escolheAura(\'' + a.id + '\')"><div style="width:64px;height:64px;margin:6px auto;border-radius:50%;background:' + bola + ';box-shadow:0 0 26px ' + (a.cores ? a.cores[1] : 'transparent') + '"></div><b>' + a.nome + '</b><div class="info" style="color:#ffd36a;font-weight:800">' + (a.mult > 1 ? 'x' + String(a.mult).replace('.', ',') + ' no clique 💰' : 'normal') + '</div>' +
                 (usa ? '<span class="preco verde">✓ Usando</span>' : tem ? '<span class="preco cinza">Usar</span>' : '<span class="preco' + (S.moedas >= a.preco ? '' : ' cinza') + '">💰 ' + fmt(a.preco) + '</span>') + '</div>'; }).join('') + '</div>';
 }
 function escolheAura(id) {
@@ -606,7 +610,7 @@ function saiLuta() {
 
 // ---------------- hud, modal, toast ----------------
 function hud() {
-    document.getElementById('moedas').textContent = fmt(S.moedas);
+    document.getElementById('moedas').textContent = fmt(S.moedas); document.getElementById('multi').textContent = '+' + fmt(porClique()) + '/clique';
     document.getElementById('forca').textContent = fmt(S.forca);
     document.getElementById('nivel').textContent = 'Nv ' + nivel();
     document.getElementById('vitorias').textContent = S.vitorias;
