@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v651 (2026-11-18)
+- 🍄 Jogo novo, ideia do Davi: **Cogumelo Clicker 2**! Clique no cogumelo pra ganhar moedas, compre comida na loja e dê pra ele **só quando ele estiver com fome** (tem barra de fome). Cada comida deixa ele mais forte 💪. Lute contra 10 cogumelos (toque rápido pra bater mais forte!): ganhou, leva recompensa; perdeu, perde moedas. 9 skins e 10 **auras brilhantes** (fogo, fogo azul, raio, gelo, sombra, estrelas, arco-íris, fogo dourado...) ✨
+
 ## v650 (2026-11-18)
 - 🚒 **Cogu Bombeiro 3D LANÇADO** na página inicial! E com **fogo novo de verdade**: chamas 3D vermelhas, laranjas e amarelas que tremem e balançam com o vento, chaminhas do lado, faíscas voando e fumaça 🔥
 
