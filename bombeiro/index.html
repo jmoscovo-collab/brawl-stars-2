@@ -279,6 +279,9 @@ function sombras(obj, recebe) {
     obj.traverse(function (m) { if (m.isMesh && !m.material.transparent) { m.castShadow = true; m.receiveShadow = recebe !== false; } });
 }
 
+// forma da chaminha: gota com ponta fina em cima
+var GEO_CH = new THREE.LatheGeometry([[0, 0], [0.32, 0.05], [0.48, 0.2], [0.5, 0.42], [0.42, 0.66], [0.28, 0.92], [0.13, 1.18], [0, 1.45]].map(function (p) { return new THREE.Vector2(p[0], p[1]); }), 12);
+var MAT_CH = [0xff3a0a, 0xff8a10, 0xffe23a].map(function (c, i) { return new THREE.MeshBasicMaterial({ color:c, transparent:i < 2, opacity:[0.55, 0.85, 1][i], depthWrite:i === 2 }); });
 // ---------------- mundo ----------------
 var MUNDO = new THREE.Group(); scene.add(MUNDO);
 var SOLIDOS = [];   // caixas de colisão {x1,x2,z1,z2}
@@ -368,7 +371,7 @@ var caminhao = null;
                 FOGOS.push(novoFogo(C, cx + l[0] * 4.4 + (l[1] ? off : 0), y, cz + l[1] * 4.4 + (l[0] ? off : 0), l[0], 0, l[1]));
             });
         });
-        FOGOS.push(novoFogo(C, cx, hh + 2.9, cz, 0, 1, 0));
+        FOGOS.push(novoFogo(C, cx, hh + 3.3, cz, 0, 1, 0));
         CASAS.push(C);
     });
     // árvores e cerquinhas
@@ -398,11 +401,83 @@ function novoFogo(casa, x, y, z, nx, ny, nz) {
     s1.visible = s2.visible = false; scene.add(s1); scene.add(s2);
     var gl = new THREE.Sprite(new THREE.SpriteMaterial({ map:TEX.bola, color:0xff7a1a, blending:THREE.AdditiveBlending, depthWrite:false, transparent:true, opacity:0.5 }));
     gl.visible = false; scene.add(gl);
-    var f = { casa:casa, p:new THREE.Vector3(x, y, z), n:new THREE.Vector3(nx, ny, nz), f:0, s1:s1, s2:s2, gl:gl, fase:Math.random() * 6 };
+    // chama de desenho animado: 3 gotas 3D (vermelha por fora, laranja, amarela no meio) que tremem
+    var cg = new THREE.Group(), cam = [];
+    [[MAT_CH[0], 1], [MAT_CH[1], 0.76], [MAT_CH[2], 0.56]].forEach(function (c, i) { var m = new THREE.Mesh(GEO_CH, c[0]); m.scale.setScalar(c[1]); m.position.set(0, i * 0.05, i * 0.1); m.renderOrder = 4 - i; cg.add(m); cam.push(m); });
+    // duas chaminhas menores dos lados
+    var lx = ny ? 1 : nz, lz = ny ? 0 : -nx, minis = [];
+    [-1, 1].forEach(function (k) {
+        var mg = new THREE.Group();
+        [[MAT_CH[1], 1], [MAT_CH[2], 0.6]].forEach(function (c, i) { var m = new THREE.Mesh(GEO_CH, c[0]); m.scale.setScalar(c[1]); m.position.set(0, i * 0.05, i * 0.1); m.renderOrder = 3 - i; mg.add(m); });
+        mg.position.set(lx * 0.48 * k, -0.05, lz * 0.48 * k); mg.scale.setScalar(0.55); cg.add(mg); minis.push(mg);
+    });
+    cg.visible = false; scene.add(cg);
+    var f = { casa:casa, p:new THREE.Vector3(x, y, z), n:new THREE.Vector3(nx, ny, nz), f:0, s1:s1, s2:s2, gl:gl, cg:cg, cam:cam, minis:minis, fase:Math.random() * 6 };
     casa.fogos.push(f);
     return f;
 }
 function acende(f, quanto) { if (f.casa.queimada || f.f > 0) return false; f.f = quanto || 0.35; return true; }
+
+// ---- chamas de verdade: um monte de partículas que sobem e mudam de cor (1 desenho só, shader próprio) ----
+var NCH = CELULAR ? 320 : 760, CH = [], chI = 0;
+var chPos = new Float32Array(NCH * 3), chCor = new Float32Array(NCH * 4), chTam = new Float32Array(NCH);
+var geoCh = new THREE.BufferGeometry();
+geoCh.setAttribute('position', new THREE.BufferAttribute(chPos, 3));
+geoCh.setAttribute('cor', new THREE.BufferAttribute(chCor, 4));
+geoCh.setAttribute('tam', new THREE.BufferAttribute(chTam, 1));
+var TEX_CHAMA = texCanvas(64, 64, function (x) {
+    // gota de fogo apontando pra cima (ponta fina em cima, barriga redonda embaixo), com borda suave
+    x.filter = 'blur(3px)';
+    var g = x.createRadialGradient(32, 44, 0, 32, 40, 30);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.5, 'rgba(255,255,255,0.8)'); g.addColorStop(1, 'rgba(255,255,255,0.15)');
+    x.fillStyle = g;
+    x.beginPath(); x.moveTo(32, 3); x.bezierCurveTo(40, 18, 54, 30, 52, 44); x.quadraticCurveTo(50, 60, 32, 60); x.quadraticCurveTo(14, 60, 12, 44); x.bezierCurveTo(10, 30, 24, 18, 32, 3); x.fill();
+});
+var matCh = new THREE.ShaderMaterial({
+    uniforms:{ mapa:{ value:TEX.bola }, escala:{ value:500 } },
+    vertexShader:'attribute vec4 cor; attribute float tam; uniform float escala; varying vec4 vCor;' +
+        'void main(){ vCor = cor; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_PointSize = tam * escala / max(0.1, -mv.z); gl_Position = projectionMatrix * mv; }',
+    fragmentShader:'uniform sampler2D mapa; varying vec4 vCor;' +
+        'void main(){ vec4 t = texture2D(mapa, gl_PointCoord); gl_FragColor = vec4(vCor.rgb, t.a * vCor.a); }',
+    transparent:true, depthWrite:false, blending:THREE.NormalBlending
+});
+var ptsCh = new THREE.Points(geoCh, matCh); ptsCh.frustumCulled = false; ptsCh.renderOrder = 3; scene.add(ptsCh);
+for (var ci = 0; ci < NCH; ci++) CH.push({ vida:0 });
+function escalaChamas() { matCh.uniforms.escala.value = renderer.getDrawingBufferSize(new THREE.Vector2()).y / (2 * Math.tan(camera.fov * Math.PI / 360)); }
+addEventListener('resize', escalaChamas); escalaChamas();
+function chama(f, sz) {
+    var c = CH[chI]; chI = (chI + 1) % NCH;
+    var faisca = Math.random() < 0.3, a = Math.random() * 6.283, r = Math.random() * 0.4 * sz;
+    // sai da janela (um pouco pra fora da parede) ou do telhado
+    c.x = f.p.x + Math.cos(a) * r + f.n.x * 0.5; c.y = f.p.y - 0.3 * sz + Math.random() * 0.3; c.z = f.p.z + Math.sin(a) * r + f.n.z * 0.5;
+    c.vx = f.n.x * 0.6 + (Math.random() - 0.5) * 0.5 + J.ventoX * 1.2; c.vz = f.n.z * 0.6 + (Math.random() - 0.5) * 0.5;
+    c.vy = (2.0 + Math.random() * 1.8) * (0.7 + sz * 0.4);
+    c.s = faisca ? 0.16 + Math.random() * 0.1 : sz * (0.5 + Math.random() * 0.4);
+    c.max = c.vida = faisca ? 1.2 + Math.random() * 0.8 : 0.45 + Math.random() * 0.45;
+    c.faisca = faisca; c.fase = Math.random() * 6;
+    if (faisca) { c.vy *= 1.6; c.vx += (Math.random() - 0.5) * 2; c.vz += (Math.random() - 0.5) * 2; }
+}
+function animaChamas(dt) {
+    for (var i = 0; i < NCH; i++) {
+        var c = CH[i], k3 = i * 3, k4 = i * 4;
+        if (c.vida <= 0) { chTam[i] = 0; chCor[k4 + 3] = 0; continue; }
+        c.vida -= dt;
+        var u = 1 - Math.max(0, c.vida) / c.max;   // 0 = nasceu, 1 = sumiu
+        c.x += (c.vx + Math.sin(tempo * 7 + c.fase) * 0.6) * dt; c.y += c.vy * dt; c.z += c.vz * dt;
+        chPos[k3] = c.x; chPos[k3 + 1] = c.y; chPos[k3 + 2] = c.z;
+        var rr, gg, bb;
+        if (c.faisca) { rr = 1; gg = 0.7 - u * 0.4; bb = 0.2; chTam[i] = c.s; chCor[k4 + 3] = 1 - u; }
+        else {
+            // branco-amarelo -> laranja -> vermelho escuro
+            if (u < 0.3) { var q = u / 0.3; rr = 1; gg = 0.95 - q * 0.4; bb = 0.55 - q * 0.47; }
+            else { var q2 = (u - 0.3) / 0.7; rr = 1 - q2 * 0.35; gg = 0.55 - q2 * 0.45; bb = 0.08 - q2 * 0.06; }
+            chTam[i] = c.s * (u < 0.2 ? 0.7 + u * 1.5 : 1 - (u - 0.2) * 1.0);
+            chCor[k4 + 3] = (u < 0.1 ? u / 0.1 : 1) * (1 - u * u) * 0.75;
+        }
+        chCor[k4] = rr; chCor[k4 + 1] = gg; chCor[k4 + 2] = bb;
+    }
+    geoCh.attributes.position.needsUpdate = true; geoCh.attributes.cor.needsUpdate = true; geoCh.attributes.tam.needsUpdate = true;
+}
 
 // fumaça (pool de sprites)
 var FUM = [];
@@ -871,16 +946,26 @@ function visual(dt) {
     var noite = J.F && J.F.noite;
     for (var i = 0; i < FOGOS.length; i++) {
         var f = FOGOS[i], on = f.f > 0;
-        f.s1.visible = f.s2.visible = f.gl.visible = on;
+        f.s1.visible = f.s2.visible = false;
+        f.gl.visible = f.cg.visible = on;
         if (!on) continue;
         var t = tempo * 9 + f.fase, sz = 0.6 + f.f * 1.6;
-        f.s1.scale.set(sz * (1 + Math.sin(t) * 0.08), sz * 1.8 * (1 + Math.sin(t * 1.3) * 0.12), 1);
-        f.s1.position.set(f.p.x, f.p.y + sz * 0.6, f.p.z);
-        f.s2.scale.set(sz * 0.7, sz * 1.3 * (1 + Math.cos(t * 1.7) * 0.15), 1);
-        f.s2.position.set(f.p.x + Math.sin(t * 0.7) * 0.3, f.p.y + sz * 0.5, f.p.z + Math.cos(t * 0.6) * 0.3);
-        f.gl.scale.setScalar(sz * (noite ? 7 : 4)); f.gl.position.copy(f.p); f.gl.material.opacity = (noite ? 0.55 : 0.3) * (0.85 + Math.sin(t * 2.3) * 0.15);
-        if (Math.random() < dt * (1.5 + f.f * 2.5)) fumaca(f.p.x, f.p.y + sz * 1.3, f.p.z, noite ? 0x2a2a2a : 0x4a4a4a, 1.6 + f.f, 2.2);
+        // chama 3D: cresce com o fogo, treme, gira devagar e deita com o vento
+        var e3 = sz * 1.05;
+        f.cg.position.set(f.p.x + f.n.x * 0.55, f.p.y - (f.n.y ? 0.5 : 0.75) * sz, f.p.z + f.n.z * 0.55);
+        f.cg.scale.set(e3, e3 * 1.3, e3); f.cg.rotation.z = -J.ventoX * 0.35 + Math.sin(t * 0.5) * 0.06; f.cg.rotation.x = Math.cos(t * 0.43) * 0.06;
+        for (var L = 0; L < 3; L++) {
+            var mm = f.cam[L], base = [1, 0.76, 0.56][L];
+            mm.scale.set(base * (1 + Math.sin(t * 1.9 + L * 2.1) * 0.07), base * (1 + Math.sin(t * 2.6 + L * 1.3) * 0.16), base * (1 + Math.cos(t * 1.7 + L) * 0.07));
+        }
+        f.minis[0].scale.set(0.55, 0.55 * (1 + Math.sin(t * 2.3 + 1) * 0.25), 0.55); f.minis[1].scale.set(0.5, 0.5 * (1 + Math.sin(t * 2.7 + 4) * 0.25), 0.5);
+        f.gl.scale.setScalar(sz * (noite ? 6 : 3.2)); f.gl.position.set(f.p.x, f.p.y + sz * 0.3, f.p.z); f.gl.material.opacity = (noite ? 0.5 : 0.22) * (0.8 + Math.sin(t * 2.3) * 0.2);
+        // chaminhas novas saindo do fogo (quanto maior o fogo, mais chamas)
+        f.acum = (f.acum || 0) + dt * (CELULAR ? 0.55 : 1) * (6 + f.f * 12);
+        while (f.acum >= 1) { f.acum -= 1; chama(f, sz); }
+        if (Math.random() < dt * (1.5 + f.f * 2.5)) fumaca(f.p.x, f.p.y + sz * 1.8, f.p.z, noite ? 0x222222 : 0x3a3a3a, 1.8 + f.f * 1.4, 2.4);
     }
+    animaChamas(dt);
     // fumaça
     for (var s = 0; s < FUM.length; s++) {
         var o = FUM[s]; if (o.vida <= 0) continue;
@@ -907,7 +992,7 @@ function visual(dt) {
     camAlvo.lerp(new THREE.Vector3(eu.x, 0, eu.z), Math.min(1, dt * 6));
     if (J.on || J.fimT >= 0) {
         var alto = camera.aspect < 1 ? 1.35 : 1;
-        camera.position.set(camAlvo.x, 27 * alto, camAlvo.z + 10 * alto);
+        camera.position.set(camAlvo.x, 23 * alto, camAlvo.z + 13 * alto);
         camera.lookAt(camAlvo.x, 0, camAlvo.z - 0.5);
     } else {
         var a = tempo * 0.12;

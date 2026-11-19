@@ -1,5 +1,8 @@
 # Changelog - Cogumelo Games (site)
 
+## v650 (2026-11-18)
+- 🚒 **Cogu Bombeiro 3D LANÇADO** na página inicial! E com **fogo novo de verdade**: chamas 3D vermelhas, laranjas e amarelas que tremem e balançam com o vento, chaminhas do lado, faíscas voando e fumaça 🔥
+
 ## v649 (2026-11-18)
 - 🚒 Jogo novo (ainda escondido, só pelo link /bombeiro/): **Cogu Bombeiro 3D**! A cidade está pegando fogo: corra pelas ruas com a mangueira (ela mira sozinha no fogo), encha a água no caminhão e nos hidrantes, e salve os cogumelos presos gritando SOCORRO! O fogo cresce e pula de casa em casa. 6 fases (2 de noite e uma com ventania) com até 3 estrelas ⭐⭐⭐
 - 🆕 Selo NOVO! de novo só nos 3 jogos mais novos
