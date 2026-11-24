@@ -7,6 +7,7 @@
 <meta name="description" content="Vôlei do Cogu: vôlei de praia 2D! Contra a Capivara, 2 jogadores ou ONLINE 1v1 e 2v2. Top de vitórias.">
 <script src="/letra.js"></script>
 <script src="/cogucoins.js?v=553"></script>
+<script src="/rank.js?v=1"></script>
 <script src="/gamepad.js?v=358"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -878,6 +879,7 @@ function acaba(){
         const ganhei=placar[meuTime]>placar[1-meuTime];
         // só conta vitória online se tinha gente de verdade no outro time
         const outroTime=mp.humanos.some((id,i)=>id&&(jogo==='cima'?i%2:i)!==meuTime);
+        try{ if(window.CgRank) CgRank.resultado(ganhei?'ganhou':'perdeu'); }catch(_){}
         $('fimT').textContent=ganhei?'🏆 Seu time ganhou!':'😢 Seu time perdeu...';
         if(ganhei){ som.vence(); if(outroTime){ $('fimC').textContent='+1 vitória online 🌐'; ganhouTop(4); } else $('fimC').textContent='(contra robôs não conta pro top)'; }
         else som.perde();
@@ -895,6 +897,7 @@ function acaba(){
         $('fimC').textContent='+'+m+' 🍄 Cogu Coins';
         ganhouTop(modo);
     } else { som.perde(); $('fimT').textContent='😢 A Capivara ganhou...'; $('fimC').textContent='Tenta de novo! Pule pra cortar a bola 💪'; }
+    if(modo!=='online'&&modo!=='2p'){ try{ if(window.CgRank) CgRank.resultado(placar[0]>placar[1]?'ganhou':'perdeu'); }catch(_){} }
     mostra('fim');
 }
 function mostra(id){

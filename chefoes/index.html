@@ -7,6 +7,7 @@
 <meta name="description" content="Cogu vs Chefões: desvie de centenas de tiros e derrote 6 chefões gigantes! Jogo de ação DIFÍCIL.">
 <script src="/letra.js"></script>
 <script src="/cogucoins.js?v=553"></script>
+<script src="/rank.js?v=1"></script>
 <script src="/gamepad.js?v=358"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -320,6 +321,7 @@ function venceu(){
         mostra('fim'); return;
     }
     const est=pl.hp, antes=save.est[chefeI]||0;
+    try{ if(window.CgRank) CgRank.resultado('ganhou'); }catch(_){}
     let moedas=0;
     if(est>antes){ moedas+=est-antes; save.est[chefeI]=est; }
     save.lib=Math.max(save.lib,chefeI+1);
@@ -337,6 +339,7 @@ function venceu(){
 function perdeu(){
     estado='fim'; som.perde();
     $('fimT').textContent='💀 O '+atual.nome+' ganhou...';
+    try{ if(!atual.meu && window.CgRank) CgRank.resultado('perdeu'); }catch(_){}
     $('fimE').textContent='';
     const pct=Math.round((1-Math.max(0,boss.hp)/boss.max)*100);
     $('fimP').textContent='Você tirou '+pct+'% da vida dele! Tenta de novo 💪';

@@ -1,6 +1,12 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v662 (2026-11-24)
+- 🏆 **MODO RANQUEADO!** Bronze 🥉 → Prata 🥈 → Ouro 🥇 → Platina 💠 → Diamante 💎 → Lendário 🔥 → Mestre 👑 → Campeão 🏆 → Mega Campeão 🌟 → ⚡ ULTRA
+- Funciona em: Arena Cogumelo 1 e 2, Luta de Capivara, Vôlei, Hockey, Futebol, Cabo de Guerra, Bola vs Bola e Cogu vs Chefões
+- Vitória +30 (mais bônus de vitórias seguidas), derrota −15, e você nunca cai do rank que já alcançou 🛡️. Cada rank novo dá Cogu Coins de prêmio!
+- Botão 🏆 Ranks na home mostra seu rank em todos os jogos
+
 ## v661 (2026-11-19)
 - 🎉 **Mega Evento**: agora as missões dão o **TRIPLO** de Cogu Coins! (3 min = 180, 10 min = 450, 20 min = 1.200, missões de moedas = 300 e 900) 🔥
 ## v660 (2026-11-19)
