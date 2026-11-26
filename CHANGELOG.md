@@ -1,6 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v663 (2026-11-25)
+- 🚦 **Jogo novo: Sinal Verde!**: você controla os semáforos de uma cidade e não pode deixar os carros baterem. 10 fases com estrelas, Modo Infinito com recorde, ambulância 🚑, ônibus 🚌, moto 🏍️ e motorista nervoso que fura o sinal 😡 (ainda escondido da home: só pela URL /sinal/)
+
 ## v662 (2026-11-24)
 - 🏆 **MODO RANQUEADO!** Bronze 🥉 → Prata 🥈 → Ouro 🥇 → Platina 💠 → Diamante 💎 → Lendário 🔥 → Mestre 👑 → Campeão 🏆 → Mega Campeão 🌟 → ⚡ ULTRA
 - Funciona em: Arena Cogumelo 1 e 2, Luta de Capivara, Vôlei, Hockey, Futebol, Cabo de Guerra, Bola vs Bola e Cogu vs Chefões
