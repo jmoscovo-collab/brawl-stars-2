@@ -1,6 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v665 (2026-11-26)
+- ⚽ **Jogo novo: Super Chute 3D!** O menino chuta a bola e aparece quantos metros ela foi. Com as moedas você compra melhorias: 🦵 Força, 🏀 Bola Saltitante, 🛼 Bola Lisa, 💰 Patrocínio e 🚀 Rampas Turbo. É infinito e a cada 3.000 m muda de bioma: Campo, Floresta, Deserto, Neve, Praia, Vulcão, Terra dos Doces, Lua (gravidade baixa!) e Cristais. Cada bioma novo dá +10 Cogu Coins (ainda escondido da home: só pela URL /chute/)
+
 ## v663 (2026-11-25)
 - 🚦 **Jogo novo: Sinal Verde!**: você controla os semáforos de uma cidade e não pode deixar os carros baterem. 10 fases com estrelas, Modo Infinito com recorde, ambulância 🚑, ônibus 🚌, moto 🏍️ e motorista nervoso que fura o sinal 😡 (ainda escondido da home: só pela URL /sinal/)
 

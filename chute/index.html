@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Super Chute 3D — Cogumelo Games</title>
+<meta name="description" content="Super Chute 3D: chute a bola o mais longe que conseguir, compre melhorias e atravesse biomas infinitos: neve, floresta, deserto, vulcão, lua e muito mais!">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { width:100%; height:100%; overflow:hidden; background:#8fd3ff; font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif; color:#fff; user-select:none; -webkit-user-select:none; }
+#c3d { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+.hud { position:fixed; z-index:3; pointer-events:none; }
+#topo { top:10px; left:10px; right:10px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap; }
+.chip { background:rgba(10,20,40,.55); border:2px solid rgba(255,255,255,.35); border-radius:14px; padding:6px 12px; font-weight:bold; font-size:16px; text-shadow:0 2px 0 rgba(0,0,0,.35); white-space:nowrap; }
+#bioma { position:fixed; top:54px; left:50%; transform:translateX(-50%); z-index:3; pointer-events:none; }
+#dist { position:fixed; top:16%; left:0; right:0; text-align:center; z-index:3; pointer-events:none; font-size:64px; font-weight:900; letter-spacing:-1px;
+  text-shadow:0 4px 0 rgba(0,0,0,.35), 0 0 22px rgba(0,0,0,.25); display:none; }
+#dist small { display:block; font-size:18px; letter-spacing:1px; opacity:.9; }
+#banner { position:fixed; top:34%; left:50%; transform:translate(-50%,-50%) scale(.6); z-index:4; pointer-events:none; font-size:40px; font-weight:900; text-align:center;
+  text-shadow:0 4px 0 rgba(0,0,0,.4); opacity:0; transition:opacity .3s, transform .3s; white-space:nowrap; }
+#banner.on { opacity:1; transform:translate(-50%,-50%) scale(1); }
+#banner small { display:block; font-size:18px; color:#ffe14a; }
+#baixo { position:fixed; left:0; right:0; bottom:16px; z-index:3; display:flex; flex-direction:column; align-items:center; gap:10px; padding:0 12px; }
+#medidor { width:min(420px,90vw); height:26px; border-radius:14px; position:relative; overflow:hidden; border:3px solid #fff;
+  background:linear-gradient(90deg,#ff4a4a 0%,#ffb83a 25%,#52e06a 44%,#52e06a 56%,#ffb83a 75%,#ff4a4a 100%); box-shadow:0 4px 0 rgba(0,0,0,.3); }
+#medidor .perf { position:absolute; left:44%; width:12%; top:0; bottom:0; background:repeating-linear-gradient(45deg,rgba(255,255,255,.35) 0 6px,transparent 6px 12px); }
+#agulha { position:absolute; top:-4px; bottom:-4px; width:6px; margin-left:-3px; background:#10182a; border-radius:3px; box-shadow:0 0 0 2px #fff; left:50%; }
+.linha { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+button { font-family:inherit; font-weight:900; border:none; border-radius:18px; cursor:pointer; color:#fff; box-shadow:0 6px 0 rgba(0,0,0,.3); transition:transform .08s; }
+button:active { transform:translateY(4px); box-shadow:0 2px 0 rgba(0,0,0,.3); }
+#bChutar { font-size:30px; padding:16px 46px; background:linear-gradient(180deg,#ff7a2a,#e8501a); letter-spacing:1px; }
+#bLoja { font-size:20px; padding:16px 22px; background:linear-gradient(180deg,#2f8ff0,#1f6fd0); position:relative; }
+#bLoja .ponto { position:absolute; top:-6px; right:-6px; background:#ff3a5a; border-radius:12px; font-size:12px; padding:3px 7px; display:none; }
+.painel { position:fixed; inset:0; z-index:6; display:none; align-items:center; justify-content:center; padding:14px; background:rgba(5,15,35,.55); }
+.painel.on { display:flex; }
+.caixa { background:#fdfaf2; color:#1d2a3a; border-radius:24px; padding:18px; width:100%; max-width:460px; max-height:92vh; overflow:auto; text-align:center; box-shadow:0 16px 50px rgba(0,0,0,.45); }
+.caixa h2 { font-size:28px; margin-bottom:6px; }
+.grande { font-size:56px; font-weight:900; color:#e8501a; line-height:1.1; }
+.up { display:flex; align-items:center; gap:10px; background:#fff; border:2px solid #e7e0d0; border-radius:16px; padding:9px 10px; margin:7px 0; text-align:left; }
+.up .ic { font-size:30px; width:40px; text-align:center; }
+.up .tx { flex:1; min-width:0; } .up .tx b { font-size:16px; } .up .tx div { font-size:12px; color:#5a6676; }
+.up button { font-size:15px; padding:10px 12px; background:#2fbf5a; white-space:nowrap; min-width:92px; }
+.up button:disabled { background:#b9c0c8; box-shadow:none; cursor:default; }
+.bOk { font-size:20px; padding:13px 30px; margin-top:12px; background:#ff7a2a; }
+.bCinza { font-size:16px; padding:11px 22px; margin-top:12px; background:#7d8896; }
+#carregando { position:fixed; inset:0; z-index:9; display:flex; align-items:center; justify-content:center; background:#8fd3ff; font-size:26px; font-weight:900; text-shadow:0 3px 0 rgba(0,0,0,.25); }
+#voltar { position:fixed; left:10px; bottom:14px; z-index:3; color:#fff; font-size:13px; text-decoration:none; background:rgba(10,20,40,.45); padding:6px 10px; border-radius:10px; }
+@media (max-width:520px) { #dist { font-size:48px; } #bChutar { font-size:24px; padding:14px 30px; } #bLoja { font-size:17px; padding:14px 16px; } .chip { font-size:14px; } #voltar { display:none; } }
+</style>
+<script src="/cogucoins.js?v=553"></script>
+</head>
+<body>
+<canvas id="c3d"></canvas>
+<div id="carregando">⚽ Carregando...</div>
+<div class="hud" id="topo">
+  <div class="chip" id="hMoedas">💰 0</div>
+  <div class="chip" id="hRec">🏆 0 m</div>
+</div>
+<div class="hud chip" id="bioma">🌱 Campo</div>
+<div id="dist">0 m<small>DISTÂNCIA</small></div>
+<div id="banner"></div>
+<div id="baixo">
+  <div id="medidor"><div class="perf"></div><div id="agulha"></div></div>
+  <div class="linha"><button id="bLoja">🛒 Melhorias<span class="ponto">!</span></button><button id="bChutar">⚽ CHUTAR!</button></div>
+</div>
+<a id="voltar" href="/">⬅ Site</a>
+
+<div class="painel" id="pFim"><div class="caixa">
+  <h2 id="fT">🏁 Chegou!</h2>
+  <div class="grande" id="fD">0 m</div>
+  <div id="fS" style="margin:8px 0; font-size:16px; line-height:1.5"></div>
+  <div class="linha"><button class="bOk" id="bDeNovo">⚽ Chutar de novo</button><button class="bOk" id="bFimLoja" style="background:#2f8ff0">🛒 Melhorias</button></div>
+</div></div>
+
+<div class="painel" id="pLoja"><div class="caixa">
+  <h2>🛒 Melhorias</h2>
+  <div style="font-size:18px; font-weight:bold; color:#c7861a" id="lMoedas">💰 0</div>
+  <div id="lLista"></div>
+  <button class="bCinza" id="bFechaLoja">Fechar</button>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// =====================================================================
+//  SUPER CHUTE 3D — chute longe, compre melhorias, atravesse biomas
+// =====================================================================
+var $ = function (id) { return document.getElementById(id); };
+var celular = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+
+// ---------------- SAVE ----------------
+var save = { moedas: 0, rec: 0, lv: { forca: 0, quique: 0, rola: 0, grana: 0, rampa: 0 }, biomas: 0, chutes: 0 };
+try { var sv = JSON.parse(localStorage.getItem('superchute_save')); if (sv) { save.moedas = sv.moedas || 0; save.rec = sv.rec || 0; save.biomas = sv.biomas || 0; save.chutes = sv.chutes || 0; for (var k in save.lv) save.lv[k] = (sv.lv && sv.lv[k]) || 0; } } catch (e) {}
+function grava() { try { localStorage.setItem('superchute_save', JSON.stringify(save)); } catch (e) {} }
+
+// ---------------- MELHORIAS ----------------
+var UPS = [
+  { id: 'forca', ic: '🦵', nome: 'Força do Chute', desc: function (l) { return 'Velocidade do chute: ' + Math.round(vel(l)) + ' → ' + Math.round(vel(l + 1)) + ' m/s'; }, custo: function (l) { return Math.round(15 * Math.pow(1.42, l)); } },
+  { id: 'quique', ic: '🏀', nome: 'Bola Saltitante', max: 30, desc: function (l) { return 'A bola quica mais: ' + Math.round(quique(l) * 100) + '% → ' + Math.round(quique(l + 1) * 100) + '%'; }, custo: function (l) { return Math.round(40 * Math.pow(1.6, l)); } },
+  { id: 'rola', ic: '🛼', nome: 'Bola Lisa', max: 30, desc: function (l) { return 'Rola mais longe no chão (atrito ' + atrito(l).toFixed(2) + ' → ' + atrito(l + 1).toFixed(2) + ')'; }, custo: function (l) { return Math.round(30 * Math.pow(1.55, l)); } },
+  { id: 'grana', ic: '💰', nome: 'Patrocínio', desc: function (l) { return 'Ganha ' + mult(l).toFixed(2) + 'x → ' + mult(l + 1).toFixed(2) + 'x moedas por metro'; }, custo: function (l) { return Math.round(100 * Math.pow(1.7, l)); } },
+  { id: 'rampa', ic: '🚀', nome: 'Rampas Turbo', max: 20, desc: function (l) { return l ? 'A bola usa até ' + l + ' → ' + (l + 1) + ' rampas por chute' : 'Aparecem rampas no caminho que jogam a bola pro alto!'; }, custo: function (l) { return Math.round(250 * Math.pow(1.9, l)); } }
+];
+function vel(l) { return 14 * Math.pow(1.13, l); }
+function quique(l) { return 0.3 + 0.5 * (1 - Math.pow(0.9, l)); }
+function atrito(l) { return Math.max(0.03, 0.6 * Math.pow(0.88, l)); }
+function mult(l) { return 1 + 0.25 * l; }
+function fmt(n) {
+  n = Math.floor(n);
+  if (n >= 1e9) return (n / 1e9).toFixed(2).replace('.', ',') + ' bi';
+  if (n >= 1e6) return (n / 1e6).toFixed(2).replace('.', ',') + ' mi';
+  return n.toLocaleString('pt-BR');
+}
+
+// ---------------- BIOMAS (muda a cada 3000 m) ----------------
+var TAM = 3000;
+var BIOMAS = [
+  { n: 'Campo', e: '🌱', c1: '#6cc04a', c2: '#62b442', ceu: 0x8fd3ff, prop: 'arvore', part: null, g: 1 },
+  { n: 'Floresta', e: '🌲', c1: '#3f8f3a', c2: '#388434', ceu: 0x86c4a4, prop: 'pinheiro', part: 'folha', g: 1 },
+  { n: 'Deserto', e: '🏜️', c1: '#e8c27a', c2: '#e0b86e', ceu: 0xffd29a, prop: 'cacto', part: null, g: 1 },
+  { n: 'Neve', e: '❄️', c1: '#f4f8fc', c2: '#e4eef6', ceu: 0xb8d2ea, prop: 'pinheiroNeve', part: 'neve', g: 1 },
+  { n: 'Praia', e: '🏖️', c1: '#f3dfa6', c2: '#ecd597', ceu: 0x6fd0ff, prop: 'coqueiro', part: null, g: 1 },
+  { n: 'Vulcão', e: '🌋', c1: '#3a2a26', c2: '#30231f', ceu: 0x5a1e10, prop: 'pedraLava', part: 'brasa', g: 1 },
+  { n: 'Terra dos Doces', e: '🍭', c1: '#ffb3d9', c2: '#ffa6d1', ceu: 0xffd0ee, prop: 'pirulito', part: null, g: 1 },
+  { n: 'Lua', e: '🌕', c1: '#a0a0a8', c2: '#96969e', ceu: 0x070818, prop: 'cratera', part: 'estrela', g: 0.5 },
+  { n: 'Cristais', e: '💎', c1: '#5a3a8a', c2: '#52347e', ceu: 0x2a1a4a, prop: 'cristal', part: 'brilho', g: 1 }
+];
+function bIdx(d) { return Math.floor(Math.max(0, d) / TAM); }
+function bDe(d) { return BIOMAS[bIdx(d) % BIOMAS.length]; }
+function nomeB(i) { var b = BIOMAS[i % BIOMAS.length], v = Math.floor(i / BIOMAS.length); return b.e + ' ' + b.n + (v ? ' ' + (v + 1) : ''); }
+function hash(a, b) { var x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); }
+
+// ---------------- SOM ----------------
+var AC = null;
+function audio() { try { if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) {} }
+function tom(f, d, tipo, vol, f2) {
+  if (!AC) return;
+  try { var o = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime; o.type = tipo || 'sine'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+    g.gain.setValueAtTime(vol || .15, t); g.gain.exponentialRampToValueAtTime(.0008, t + d); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + d + .02); } catch (e) {}
+}
+var som = {
+  chute: function (p) { tom(160, .18, 'sine', .4, 50); tom(900 * p, .06, 'square', .05); },
+  quica: function () { tom(220, .1, 'sine', .15, 90); },
+  rampa: function () { tom(300, .35, 'sawtooth', .08, 1200); },
+  bioma: function () { [523, 659, 784, 1046, 1318].forEach(function (f, i) { setTimeout(function () { tom(f, .2, 'triangle', .12); }, i * 90); }); },
+  moeda: function () { tom(1200, .08, 'square', .05); setTimeout(function () { tom(1600, .12, 'square', .05); }, 80); },
+  compra: function () { tom(700, .08, 'triangle', .12); setTimeout(function () { tom(1050, .14, 'triangle', .12); }, 70); }
+};
+
+// ---------------- THREE ----------------
+var cv = $('c3d');
+var ren = new THREE.WebGLRenderer({ canvas: cv, antialias: !celular });
+ren.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
+var cena = new THREE.Scene();
+var cam = new THREE.PerspectiveCamera(60, 1, 0.1, 3000);
+cena.background = new THREE.Color(0x8fd3ff);
+cena.fog = new THREE.Fog(0x8fd3ff, 60, 320);
+var hemi = new THREE.HemisphereLight(0xffffff, 0x557744, 0.75); cena.add(hemi);
+var sol = new THREE.DirectionalLight(0xffffff, 0.75); sol.position.set(30, 60, 20); cena.add(sol);
+function redim() { var w = window.innerWidth, h = window.innerHeight; ren.setSize(w, h, false); cam.aspect = w / h; cam.fov = w < h ? 72 : 60; cam.updateProjectionMatrix(); }
+window.addEventListener('resize', redim); redim();
+
+// estado (o loop começa ANTES de montar o mundo)
+var estado = 'carregando', D = 0.75, bY = 0.35, vZ = 0, vY = 0, rampasUsadas = 0, tChute = 0, potencia = 1, agulha = 0, agDir = 1;
+var hudT = 0, ultimo = 0, acum = 0, giro = 0, biomaAtual = 0, maxD = 0, bannerT = null;
+var corCeu = new THREE.Color(0x8fd3ff), corAlvo = new THREE.Color(0x8fd3ff);
+var BOLA_R = 0.35;
+
+// ---------------- TEXTURAS ----------------
+function texChao(b) {
+  var c = document.createElement('canvas'); c.width = 128; c.height = 128; var g = c.getContext('2d');
+  g.fillStyle = b.c1; g.fillRect(0, 0, 128, 64); g.fillStyle = b.c2; g.fillRect(0, 64, 128, 64);
+  for (var i = 0; i < 120; i++) { g.fillStyle = 'rgba(0,0,0,' + (0.03 + Math.random() * 0.05) + ')'; g.fillRect(Math.random() * 128, Math.random() * 128, 2 + Math.random() * 3, 2 + Math.random() * 3); }
+  if (b.prop === 'pedraLava') { g.strokeStyle = '#ff6a1a'; g.lineWidth = 2; for (var j = 0; j < 6; j++) { g.beginPath(); var x = Math.random() * 128, y = Math.random() * 128; g.moveTo(x, y); for (var s = 0; s < 4; s++) { x += (Math.random() - .5) * 30; y += (Math.random() - .5) * 30; g.lineTo(x, y); } g.stroke(); } }
+  if (b.prop === 'cratera') { for (var k = 0; k < 8; k++) { g.fillStyle = 'rgba(60,60,70,.35)'; g.beginPath(); g.arc(Math.random() * 128, Math.random() * 128, 3 + Math.random() * 8, 0, 7); g.fill(); } }
+  if (b.prop === 'cristal') { for (var m = 0; m < 25; m++) { g.fillStyle = 'rgba(180,140,255,.5)'; g.fillRect(Math.random() * 128, Math.random() * 128, 2, 2); } }
+  if (b.prop === 'pirulito') { for (var p = 0; p < 30; p++) { g.fillStyle = ['#fff', '#7fd4ff', '#ffe066', '#b5ff9a'][p % 4]; g.fillRect(Math.random() * 128, Math.random() * 128, 3, 1.5); } }
+  var t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(14, 1); return t;
+}
+var MAT_CHAO = BIOMAS.map(function (b) { return new THREE.MeshLambertMaterial({ map: texChao(b) }); });
+
+// ---------------- PROPS (árvores, cactos...) ----------------
+function mL(c, em) { return new THREE.MeshLambertMaterial({ color: c, emissive: em || 0x000000, flatShading: true }); }
+var G = {
+  tronco: new THREE.CylinderGeometry(0.25, 0.35, 2, 6), copa: new THREE.IcosahedronGeometry(1.6, 0), cone: new THREE.ConeGeometry(1.5, 3, 7),
+  cacto: new THREE.CylinderGeometry(0.4, 0.45, 3, 7), braco: new THREE.CylinderGeometry(0.25, 0.25, 1.2, 6), pedra: new THREE.DodecahedronGeometry(1.2, 0),
+  palito: new THREE.CylinderGeometry(0.1, 0.1, 3, 6), disco: new THREE.CylinderGeometry(1.1, 1.1, 0.3, 14), anel: new THREE.TorusGeometry(1.8, 0.45, 5, 12),
+  cristal: new THREE.OctahedronGeometry(1, 0), folha: new THREE.ConeGeometry(0.5, 2.4, 4), nuvem: new THREE.IcosahedronGeometry(3, 0)
+};
+var M = {
+  tronco: mL(0x8a5a32), verde: mL(0x4caf50), escuro: mL(0x2e6b34), neve: mL(0xffffff), cacto: mL(0x4f9a3c), pedra: mL(0x8a7a6a),
+  lava: mL(0x2a1a18), brasa: mL(0xff5a1a, 0xff3a00), branco: mL(0xffffff), lua: mL(0x8c8c95), cr1: mL(0x9a6aff, 0x3a1a8a), cr2: mL(0x5ae0ff, 0x10507a),
+  palmeira: mL(0x3fae4a), nuvem: new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true, transparent: true, opacity: 0.9 })
+};
+var DOCES = [mL(0xff4a8a), mL(0x7a5aff), mL(0xffb02a), mL(0x2ac0ff)];
+function mesh(g, m, x, y, z, s) { var o = new THREE.Mesh(g, m); o.position.set(x || 0, y || 0, z || 0); if (s) o.scale.set(s[0], s[1], s[2]); return o; }
+function criaProp(tipo) {
+  var g = new THREE.Group();
+  if (tipo === 'arvore') { g.add(mesh(G.tronco, M.tronco, 0, 1, 0)); g.add(mesh(G.copa, M.verde, 0, 3, 0)); }
+  else if (tipo === 'pinheiro' || tipo === 'pinheiroNeve') {
+    g.add(mesh(G.tronco, M.tronco, 0, 1, 0, [1, 0.8, 1]));
+    g.add(mesh(G.cone, tipo === 'pinheiro' ? M.escuro : M.escuro, 0, 2.6, 0, [1.1, 1, 1.1])); g.add(mesh(G.cone, tipo === 'pinheiro' ? M.escuro : M.neve, 0, 4, 0, [0.8, 0.8, 0.8]));
+  }
+  else if (tipo === 'cacto') { g.add(mesh(G.cacto, M.cacto, 0, 1.5, 0)); var b1 = mesh(G.braco, M.cacto, 0.6, 1.8, 0); b1.rotation.z = -0.9; g.add(b1); var b2 = mesh(G.braco, M.cacto, -0.55, 2.2, 0); b2.rotation.z = 0.9; g.add(b2); }
+  else if (tipo === 'coqueiro') { var t = mesh(G.tronco, M.tronco, 0.3, 2, 0, [0.7, 2, 0.7]); t.rotation.z = -0.15; g.add(t);
+    for (var i = 0; i < 6; i++) { var f = mesh(G.folha, M.palmeira, 0.9, 4.1, 0); f.rotation.set(0, i * Math.PI / 3, 1.9); var p = new THREE.Group(); p.add(f); p.position.set(0, 0, 0); p.rotation.y = i * Math.PI / 3; f.position.set(1, 4, 0); g.add(p); } }
+  else if (tipo === 'pedraLava') { g.add(mesh(G.pedra, M.lava, 0, 0.8, 0, [1.3, 1, 1.2])); g.add(mesh(G.pedra, M.brasa, 0.4, 1.4, 0.3, [0.35, 0.35, 0.35])); }
+  else if (tipo === 'pirulito') { g.add(mesh(G.palito, M.branco, 0, 1.5, 0)); var d = mesh(G.disco, DOCES[Math.floor(Math.random() * 4)], 0, 3.3, 0); d.rotation.x = Math.PI / 2; g.add(d); }
+  else if (tipo === 'cratera') { var a = mesh(G.anel, M.lua, 0, 0.1, 0, [1, 1, 0.5]); a.rotation.x = Math.PI / 2; g.add(a); g.add(mesh(G.pedra, M.lua, 2.5, 0.4, 1, [0.5, 0.4, 0.5])); }
+  else if (tipo === 'cristal') { g.add(mesh(G.cristal, M.cr1, 0, 1.8, 0, [0.7, 2, 0.7])); g.add(mesh(G.cristal, M.cr2, 0.9, 1, 0.3, [0.4, 1.1, 0.4])); }
+  else if (tipo === 'nuvem') { g.add(mesh(G.nuvem, M.nuvem, 0, 0, 0, [1.4, 0.6, 1])); g.add(mesh(G.nuvem, M.nuvem, 2.5, 0.3, 0.5, [1, 0.5, 0.9])); g.add(mesh(G.nuvem, M.nuvem, -2.4, 0.1, -0.3, [0.9, 0.45, 0.8])); }
+  cena.add(g); return g;
+}
+var POOL = {}, ATIVOS = {};      // ATIVOS: chave -> {o, z}
+function pega(tipo) { var p = POOL[tipo] || (POOL[tipo] = []); var o = p.pop() || criaProp(tipo); o.visible = true; o.userData.tipo = tipo; return o; }
+function devolve(o) { o.visible = false; (POOL[o.userData.tipo] || (POOL[o.userData.tipo] = [])).push(o); }
+
+// ---------------- CHÃO (pedaços de 25 m) ----------------
+var TILE = 25, TILES = {}, poolTile = [];
+var geoTile = new THREE.PlaneGeometry(400, TILE);
+function atualizaMundo() {
+  // chão
+  var k0 = Math.floor((D - 120) / TILE), k1 = Math.floor((D + 520) / TILE), k;
+  for (var key in TILES) { k = +key; if (k < k0 || k > k1) { TILES[key].visible = false; poolTile.push(TILES[key]); delete TILES[key]; } }
+  for (k = k0; k <= k1; k++) {
+    var t = TILES[k];
+    if (!t) { t = poolTile.pop(); if (!t) { t = new THREE.Mesh(geoTile, MAT_CHAO[0]); t.rotation.x = -Math.PI / 2; cena.add(t); } t.visible = true; t.material = MAT_CHAO[bIdx(k * TILE + 1) % BIOMAS.length]; TILES[k] = t; }
+    t.position.set(0, 0, -(k * TILE + TILE / 2 - D));
+  }
+  // enfeites dos lados (um "slot" a cada 9 m de cada lado)
+  var SL = 9, s0 = Math.floor((D - 60) / SL), s1 = Math.floor((D + 420) / SL), vivos = {};
+  for (var s = s0; s <= s1; s++) for (var lado = 0; lado < 2; lado++) {
+    if (hash(s, lado) > 0.72) continue;
+    var ch = s * 2 + lado; vivos[ch] = 1;
+    var z = s * SL + hash(s, lado + 5) * SL, a = ATIVOS[ch];
+    if (!a) {
+      var bb = bDe(z), o = pega(bb.prop), x = (lado ? 1 : -1) * (6 + hash(s, lado + 9) * 34), sc = 0.7 + hash(s, lado + 13) * 0.8;
+      o.position.x = x; o.position.y = 0; o.scale.set(sc, sc, sc); o.rotation.y = hash(s, lado + 17) * 6.28;
+      a = ATIVOS[ch] = { o: o, z: z };
+    }
+    a.o.position.z = -(a.z - D);
+  }
+  // nuvens (menos na Lua e no vulcão)
+  var NS = 45, n0 = Math.floor((D - 100) / NS), n1 = Math.floor((D + 600) / NS);
+  for (var n = n0; n <= n1; n++) {
+    var nb = bDe(n * NS);
+    if (nb.prop === 'cratera' || nb.prop === 'pedraLava' || hash(n, 77) > 0.6) continue;
+    var cn = 'n' + n; vivos[cn] = 1;
+    var an = ATIVOS[cn];
+    if (!an) { var on = pega('nuvem'); on.position.x = (hash(n, 3) - .5) * 160; on.position.y = 25 + hash(n, 4) * 90; var es = 1 + hash(n, 6) * 1.5; on.scale.set(es, es, es); an = ATIVOS[cn] = { o: on, z: n * NS }; }
+    an.o.position.z = -(an.z - D);
+  }
+  for (var c in ATIVOS) if (!vivos[c]) { devolve(ATIVOS[c].o); delete ATIVOS[c]; }
+  atualizaMarcas(); atualizaArco(); atualizaRampas();
+}
+
+// ---------------- MARCAS DE DISTÂNCIA ----------------
+function placa(texto, cor, w, h) {
+  var c = document.createElement('canvas'); c.width = w || 256; c.height = h || 96;
+  var t = new THREE.CanvasTexture(c); var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, fog: true }));
+  sp.userData.c = c; sp.userData.t = t; escrevePlaca(sp, texto, cor); return sp;
+}
+function escrevePlaca(sp, texto, cor) {
+  var c = sp.userData.c, g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height);
+  g.fillStyle = 'rgba(15,25,45,.75)'; var r = 20; g.beginPath(); g.moveTo(r, 0); g.arcTo(c.width, 0, c.width, c.height, r); g.arcTo(c.width, c.height, 0, c.height, r); g.arcTo(0, c.height, 0, 0, r); g.arcTo(0, 0, c.width, 0, r); g.fill();
+  g.fillStyle = cor || '#fff'; g.font = 'bold ' + Math.round(c.height * 0.5) + 'px Trebuchet MS, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(texto, c.width / 2, c.height / 2 + 2);
+  sp.userData.t.needsUpdate = true;
+}
+var MARCAS = {}, poolMarca = [], geoLinha = new THREE.PlaneGeometry(14, 0.35), matLinha = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+function passoMarca() { return D > 20000 ? 1000 : D > 4000 ? 500 : 100; }
+function atualizaMarcas() {
+  var P = passoMarca(), m0 = Math.ceil((D - 40) / P), m1 = Math.floor((D + 400) / P), vivos = {};
+  for (var m = Math.max(1, m0); m <= m1; m++) {
+    var z = m * P, key = String(z); vivos[key] = 1;
+    var mk = MARCAS[key];
+    if (!mk) {
+      mk = poolMarca.pop();
+      if (!mk) { mk = new THREE.Group(); var ln = new THREE.Mesh(geoLinha, matLinha); ln.rotation.x = -Math.PI / 2; ln.position.y = 0.03; mk.add(ln); var sp = placa('', '#fff'); sp.scale.set(4, 1.5, 1); sp.position.set(-8.5, 2, 0); mk.add(sp); mk.userData.sp = sp; cena.add(mk); }
+      escrevePlaca(mk.userData.sp, fmt(z) + ' m', '#ffe14a'); mk.visible = true; mk.userData.z = z; MARCAS[key] = mk;
+    }
+    mk.position.z = -(z - D);
+  }
+  for (var k in MARCAS) if (!vivos[k]) { MARCAS[k].visible = false; poolMarca.push(MARCAS[k]); delete MARCAS[k]; }
+}
+
+// ---------------- ARCO NA TROCA DE BIOMA ----------------
+var arco = new THREE.Group(), arcoZ = -1;
+(function () {
+  var mp = mL(0xffffff), g1 = new THREE.BoxGeometry(1.2, 12, 1.2);
+  arco.add(mesh(g1, mp, -10, 6, 0)); arco.add(mesh(g1, mp, 10, 6, 0)); arco.add(mesh(new THREE.BoxGeometry(22, 1.4, 1.4), mL(0xff7a2a), 0, 12, 0));
+  var sp = placa('', '#fff', 512, 110); sp.scale.set(16, 3.4, 1); sp.position.set(0, 15.5, 0); arco.add(sp); arco.userData.sp = sp; cena.add(arco);
+})();
+function atualizaArco() {
+  var bi = bIdx(D), z = (bi + 1) * TAM;
+  if (bi > 0 && D - bi * TAM < 60) z = bi * TAM;              // acabou de passar: continua mostrando
+  if (z !== arcoZ) { arcoZ = z; escrevePlaca(arco.userData.sp, nomeB(z / TAM) + ' — ' + fmt(z) + ' m', '#fff'); }
+  arco.position.z = -(arcoZ - D);
+}
+
+// ---------------- RAMPAS TURBO ----------------
+var RP = 170, RAMPAS = {}, poolRampa = [];
+var geoRampa = new THREE.BoxGeometry(4, 0.4, 3), matRampa = mL(0xff7a1a, 0x5a2000), geoSeta = new THREE.ConeGeometry(0.8, 1.4, 3), matSeta = mL(0xffe14a, 0x5a4a00);
+function temRampa(i) { return i >= 1 && hash(i, 42) < 0.75; }
+function atualizaRampas() {
+  var vivos = {};
+  if (save.lv.rampa > 0) {
+    var r0 = Math.ceil((D - 30) / RP), r1 = Math.floor((D + 400) / RP);
+    for (var i = Math.max(1, r0); i <= r1; i++) {
+      if (!temRampa(i)) continue; vivos[i] = 1;
+      var rp = RAMPAS[i];
+      if (!rp) { rp = poolRampa.pop(); if (!rp) { rp = new THREE.Group(); var b = new THREE.Mesh(geoRampa, matRampa); b.rotation.x = 0.25; b.position.y = 0.35; rp.add(b); var s = new THREE.Mesh(geoSeta, matSeta); s.rotation.x = -Math.PI / 2; s.position.set(0, 0.9, 0); rp.add(s); cena.add(rp); } rp.visible = true; RAMPAS[i] = rp; }
+      rp.position.z = -(i * RP - D);
+    }
+  }
+  for (var k in RAMPAS) if (!vivos[k]) { RAMPAS[k].visible = false; poolRampa.push(RAMPAS[k]); delete RAMPAS[k]; }
+}
+
+// ---------------- MENINO ----------------
+var menino = new THREE.Group(), pernaD, pernaE, bracoD, bracoE;
+(function () {
+  var pele = mL(0xf1c08f), camisa = mL(0x1f7ae0), short = mL(0xffffff), tenis = mL(0xff3a3a), cabelo = mL(0x3a2414), meiao = mL(0x1f7ae0);
+  function perna(x) {
+    var p = new THREE.Group(); p.position.set(x, 0.85, 0);
+    p.add(mesh(new THREE.BoxGeometry(0.2, 0.3, 0.22), short, 0, -0.12, 0));
+    p.add(mesh(new THREE.BoxGeometry(0.16, 0.3, 0.17), pele, 0, -0.38, 0));
+    p.add(mesh(new THREE.BoxGeometry(0.17, 0.2, 0.18), meiao, 0, -0.62, 0));
+    p.add(mesh(new THREE.BoxGeometry(0.2, 0.12, 0.34), tenis, 0, -0.78, -0.07));
+    menino.add(p); return p;
+  }
+  pernaD = perna(0.13); pernaE = perna(-0.13);
+  menino.add(mesh(new THREE.BoxGeometry(0.52, 0.55, 0.3), camisa, 0, 1.15, 0));
+  menino.add(mesh(new THREE.BoxGeometry(0.54, 0.12, 0.32), short, 0, 0.88, 0));
+  menino.add(mesh(new THREE.BoxGeometry(0.14, 0.1, 0.14), pele, 0, 1.47, 0));
+  menino.add(mesh(new THREE.SphereGeometry(0.24, 12, 10), pele, 0, 1.68, 0));
+  var cab = mesh(new THREE.SphereGeometry(0.26, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), cabelo, 0, 1.71, 0.02); menino.add(cab);
+  menino.add(mesh(new THREE.BoxGeometry(0.06, 0.06, 0.02), mL(0x1a1a1a), 0.09, 1.7, -0.23)); menino.add(mesh(new THREE.BoxGeometry(0.06, 0.06, 0.02), mL(0x1a1a1a), -0.09, 1.7, -0.23));
+  function braco(x) { var b = new THREE.Group(); b.position.set(x, 1.38, 0); b.add(mesh(new THREE.BoxGeometry(0.14, 0.24, 0.16), camisa, 0, -0.1, 0)); b.add(mesh(new THREE.BoxGeometry(0.12, 0.3, 0.13), pele, 0, -0.36, 0)); menino.add(b); return b; }
+  bracoD = braco(0.34); bracoE = braco(-0.34);
+  menino.position.set(-0.25, 0, 0);
+  cena.add(menino);
+})();
+var sombraMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false });
+var sombraM = new THREE.Mesh(new THREE.CircleGeometry(0.5, 16), sombraMat); sombraM.rotation.x = -Math.PI / 2; sombraM.position.y = 0.02; cena.add(sombraM);
+
+// ---------------- BOLA ----------------
+var bola;
+(function () {
+  var c = document.createElement('canvas'); c.width = 256; c.height = 128; var g = c.getContext('2d');
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, 256, 128); g.fillStyle = '#16181d';
+  for (var i = 0; i < 10; i++) { var x = (i % 5) * 52 + (i < 5 ? 10 : 36), y = i < 5 ? 34 : 92; g.beginPath(); for (var k = 0; k < 5; k++) { var a = k / 5 * 6.283 - 1.57; g.lineTo(x + Math.cos(a) * 15, y + Math.sin(a) * 15); } g.fill(); }
+  var t = new THREE.CanvasTexture(c);
+  bola = new THREE.Mesh(new THREE.SphereGeometry(BOLA_R, 20, 14), new THREE.MeshLambertMaterial({ map: t }));
+  cena.add(bola);
+})();
+var sombraB = new THREE.Mesh(new THREE.CircleGeometry(BOLA_R, 16), sombraMat); sombraB.rotation.x = -Math.PI / 2; sombraB.position.y = 0.025; cena.add(sombraB);
+
+// rastro da bola
+var RASTRO = 24, rastroPos = new Float32Array(RASTRO * 3), rastroGeo = new THREE.BufferGeometry();
+rastroGeo.setAttribute('position', new THREE.BufferAttribute(rastroPos, 3));
+var rastro = new THREE.Points(rastroGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.35, transparent: true, opacity: 0.6, depthWrite: false })); cena.add(rastro);
+var rastroHist = [];
+
+// ---------------- PARTÍCULAS DO BIOMA (neve, brasas, estrelas...) ----------------
+var NP = celular ? 220 : 400, pPos = new Float32Array(NP * 3), pGeo = new THREE.BufferGeometry();
+for (var i = 0; i < NP; i++) { pPos[i * 3] = (Math.random() - .5) * 80; pPos[i * 3 + 1] = Math.random() * 40; pPos[i * 3 + 2] = -Math.random() * 120 + 20; }
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+var pMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.4, transparent: true, opacity: 0.85, depthWrite: false });
+var parts = new THREE.Points(pGeo, pMat); parts.frustumCulled = false; cena.add(parts);
+var PART = { neve: [0xffffff, 0.45, -3], brasa: [0xff7a2a, 0.35, 3], folha: [0x6abf4a, 0.4, -1.5], estrela: [0xffffff, 0.6, 0], brilho: [0xc8a8ff, 0.4, 1] };
+
+// ---------------- CHUTE ----------------
+function podeChutar() { return estado === 'pronto'; }
+function chuta() {
+  if (!podeChutar()) return;
+  audio();
+  var off = Math.abs(agulha - 0.5);
+  potencia = off < 0.06 ? 1.12 : 0.55 + 0.45 * (1 - off * 2);
+  estado = 'chutando'; tChute = 0;
+  $('baixo').style.visibility = 'hidden';
+  if (off < 0.06) mostraBanner('⚡ PERFEITO!', 'chute com +12% de força');
+}
+function solta() {
+  var v = vel(save.lv.forca) * potencia, ang = 28 * Math.PI / 180;
+  vZ = v * Math.cos(ang); vY = v * Math.sin(ang); estado = 'voando'; rampasUsadas = 0; rastroHist = [];
+  som.chute(potencia); $('dist').style.display = 'block';
+}
+function fisica(dt) {
+  var g = 9.8 * bDe(D).g, velT = Math.hypot(vZ, vY);
+  var ts = Math.max(1, Math.min(150, velT / 12));               // bola muito rápida: acelera o tempo pra não demorar demais
+  var total = dt * ts, passos = Math.ceil(total / 0.02), h = total / passos;
+  for (var p = 0; p < passos; p++) {
+    var antes = D;
+    vY -= g * h; D += vZ * h; bY += vY * h;
+    if (bY <= BOLA_R) {
+      bY = BOLA_R;
+      if (vY < -2.5) { vY = -vY * quique(save.lv.quique); vZ *= 0.82 + quique(save.lv.quique) * 0.12; if (p === 0) som.quica(); }
+      else { vY = 0; vZ -= atrito(save.lv.rola) * g * h * 1.4; if (vZ < 0) vZ = 0; }
+    }
+    // rampas turbo
+    if (save.lv.rampa > rampasUsadas && bY < 1.6) {
+      var a = Math.floor(antes / RP), b = Math.floor(D / RP);
+      if (b > a && temRampa(b)) { rampasUsadas++; vZ = vZ * 1.2 + 6; vY = Math.max(vY, vZ * 0.5); bY = Math.max(bY, BOLA_R + 0.4); som.rampa(); mostraBanner('🚀 RAMPA TURBO!', (save.lv.rampa - rampasUsadas) + ' sobrando'); }
+    }
+    if (vZ < 0.25 && bY <= BOLA_R + 0.001) { vZ = 0; fim(); return; }
+  }
+  giro += vZ * dt * ts / BOLA_R;
+  // passou de bioma?
+  var bi = bIdx(D);
+  if (bi !== biomaAtual) {
+    biomaAtual = bi; som.bioma();
+    var novo = bi > save.biomas;
+    mostraBanner(nomeB(bi) + '!', fmt(bi * TAM) + ' m' + (novo ? ' — NOVO BIOMA! +10 🍄' : ''));
+    if (novo) { save.biomas = bi; grava(); try { if (window.CoguCoins) CoguCoins.ganha(10); } catch (e) {} }
+  }
+}
+function fim() {
+  estado = 'fim';
+  var dist = Math.max(0, D - 0.75), ganho = Math.floor(dist * mult(save.lv.grana)), rec = dist > save.rec;
+  save.moedas += ganho; save.chutes++; if (rec) save.rec = dist; grava();
+  som.moeda();
+  setTimeout(function () {
+    $('fT').textContent = rec && save.chutes > 1 ? '🏆 NOVO RECORDE!' : '🏁 A bola parou!';
+    $('fD').textContent = fmt(dist) + ' m';
+    $('fS').innerHTML = '💰 +' + fmt(ganho) + ' moedas<br>' + nomeB(bIdx(D)) + (potencia > 1 ? '<br>⚡ Chute perfeito!' : '') +
+      (proximaMelhoria() ? '<br><b style="color:#2fbf5a">Dá pra comprar melhoria! 🛒</b>' : '');
+    $('pFim').classList.add('on'); hud(true);
+  }, 700);
+}
+function volta() {
+  $('pFim').classList.remove('on');
+  D = 0.75; bY = BOLA_R; vZ = vY = 0; biomaAtual = 0; estado = 'pronto'; giro = 0; rastroHist = [];
+  $('baixo').style.visibility = 'visible'; $('dist').style.display = 'none';
+  pernaD.rotation.x = 0; bracoD.rotation.x = bracoE.rotation.x = 0; bracoD.rotation.z = bracoE.rotation.z = 0;
+  hud(true);
+}
+function proximaMelhoria() { return UPS.some(function (u) { var l = save.lv[u.id]; return (!u.max || l < u.max) && save.moedas >= u.custo(l); }); }
+
+// ---------------- HUD / LOJA ----------------
+function hud(forca) {
+  $('hMoedas').textContent = '💰 ' + fmt(save.moedas);
+  $('hRec').textContent = '🏆 ' + fmt(save.rec) + ' m';
+  var b = nomeB(bIdx(D)); if ($('bioma').textContent !== b) $('bioma').textContent = b;
+  if (estado === 'voando' || estado === 'fim') $('dist').firstChild.nodeValue = fmt(Math.max(0, D - 0.75)) + ' m';
+  $('bLoja').querySelector('.ponto').style.display = proximaMelhoria() ? 'block' : 'none';
+}
+function mostraBanner(t, s) {
+  var b = $('banner'); b.innerHTML = t + (s ? '<small>' + s + '</small>' : ''); b.classList.add('on');
+  clearTimeout(bannerT); bannerT = setTimeout(function () { b.classList.remove('on'); }, 1800);
+}
+function abreLoja() {
+  if (estado !== 'pronto' && estado !== 'fim') return;
+  audio();
+  $('pFim').classList.remove('on'); if (estado === 'fim') volta();
+  pintaLoja(); $('pLoja').classList.add('on');
+}
+function pintaLoja() {
+  $('lMoedas').textContent = '💰 ' + fmt(save.moedas) + ' moedas';
+  $('lLista').innerHTML = UPS.map(function (u) {
+    var l = save.lv[u.id], max = u.max && l >= u.max, c = u.custo(l);
+    return '<div class="up"><div class="ic">' + u.ic + '</div><div class="tx"><b>' + u.nome + ' <span style="color:#c7861a">nv ' + l + '</span></b><div>' + (max ? 'NÍVEL MÁXIMO! 🏆' : u.desc(l)) + '</div></div>' +
+      '<button data-u="' + u.id + '"' + (max || save.moedas < c ? ' disabled' : '') + '>' + (max ? 'MÁX' : '💰 ' + fmt(c)) + '</button></div>';
+  }).join('');
+  $('lLista').querySelectorAll('[data-u]').forEach(function (b) {
+    b.onclick = function () {
+      var u = UPS.filter(function (x) { return x.id === b.getAttribute('data-u'); })[0], l = save.lv[u.id], c = u.custo(l);
+      if (save.moedas < c || (u.max && l >= u.max)) return;
+      save.moedas -= c; save.lv[u.id]++; grava(); som.compra(); pintaLoja(); hud(true); atualizaRampas();
+    };
+  });
+}
+$('bChutar').onclick = chuta;
+$('bLoja').onclick = abreLoja;
+$('bFimLoja').onclick = abreLoja;
+$('bDeNovo').onclick = function () { audio(); volta(); };
+$('bFechaLoja').onclick = function () { $('pLoja').classList.remove('on'); };
+window.addEventListener('keydown', function (e) {
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if ($('pLoja').classList.contains('on')) return; if (estado === 'pronto') chuta(); else if (estado === 'fim') volta(); }
+  if (e.key === 'm' || e.key === 'M') { if ($('pLoja').classList.contains('on')) $('pLoja').classList.remove('on'); else abreLoja(); }
+});
+
+// ---------------- LOOP ----------------
+var camPos = new THREE.Vector3(4, 2.2, 5.5), camOlha = new THREE.Vector3(0, 0.8, -3), tmpV = new THREE.Vector3(), tempo = 0;
+function loop(t) {
+  requestAnimationFrame(loop);
+  var dt = Math.min(0.05, ultimo ? (t - ultimo) / 1000 : 0.016); ultimo = t;
+  if (celular) { acum += dt; if (acum < 1 / 31) return; dt = Math.min(0.05, acum); acum = 0; }
+  if (estado === 'carregando') return;
+  tempo += dt;
+  // agulha do medidor
+  if (estado === 'pronto') {
+    agulha += agDir * dt * 1.25; if (agulha > 1) { agulha = 1; agDir = -1; } if (agulha < 0) { agulha = 0; agDir = 1; }
+    $('agulha').style.left = (agulha * 100) + '%';
+    pernaD.rotation.x = Math.sin(tempo * 2) * 0.05; bracoD.rotation.x = -Math.sin(tempo * 2) * 0.08; bracoE.rotation.x = Math.sin(tempo * 2) * 0.08;
+  }
+  // animação do chute
+  if (estado === 'chutando') {
+    tChute += dt;
+    if (tChute < 0.28) { pernaD.rotation.x = -1.1 * (tChute / 0.28); bracoE.rotation.x = 0.8 * (tChute / 0.28); bracoD.rotation.x = -0.6 * (tChute / 0.28); }
+    else { var k = Math.min(1, (tChute - 0.28) / 0.1); pernaD.rotation.x = -1.1 + 2.6 * k; if (k >= 1) solta(); }
+  } else if (estado === 'voando' || estado === 'fim') {
+    if (estado === 'voando') fisica(dt);
+    pernaD.rotation.x += (0 - pernaD.rotation.x) * Math.min(1, dt * 4);
+    bracoD.rotation.z = bracoE.rotation.z = 0;
+    var com = Math.min(1, tempo % 0.6 / 0.3); bracoD.rotation.x = -2.6 + Math.sin(tempo * 8) * 0.3; bracoE.rotation.x = -2.6 - Math.sin(tempo * 8) * 0.3;   // comemorando
+  }
+  // posições (o mundo anda; a bola fica perto do zero)
+  bola.position.set(0, bY, 0); bola.rotation.x = -giro;
+  sombraB.position.set(0, 0.025, 0); var sh = Math.max(0.2, 1 - bY / 25); sombraB.scale.set(sh, sh, sh); sombraB.visible = bY < 40;
+  menino.position.z = D - 0.75 + 0.55; sombraM.position.z = menino.position.z; menino.visible = sombraM.visible = D < 260;
+  atualizaMundo();
+  // rastro
+  if (estado === 'voando') {
+    rastroHist.unshift([D, bY]); if (rastroHist.length > RASTRO) rastroHist.pop();
+    for (var r = 0; r < RASTRO; r++) { var hh = rastroHist[r] || [D, bY]; rastroPos[r * 3] = 0; rastroPos[r * 3 + 1] = hh[1]; rastroPos[r * 3 + 2] = -(hh[0] - D); }
+    rastroGeo.attributes.position.needsUpdate = true; rastro.visible = Math.hypot(vZ, vY) > 12;
+  } else rastro.visible = false;
+  // câmera
+  if (estado === 'pronto' || estado === 'chutando') { camPos.set(3.6, 2, 5.2); camOlha.set(0, 0.7, -4); }
+  else { var y = bY, af = Math.min(18, y * 0.12); camPos.set(5 + af, y + 2.2 + af * 0.5 + Math.min(4, vZ * 0.03), 8 + af); camOlha.set(0, y - Math.min(4, y * 0.1), -8); }
+  cam.position.lerp(camPos, Math.min(1, dt * (estado === 'voando' ? 6 : 3)));
+  tmpV.copy(camOlha); cam.lookAt(tmpV);
+  // céu e neblina do bioma (troca suave)
+  var bb = bDe(D); corAlvo.setHex(bb.ceu); corCeu.lerp(corAlvo, Math.min(1, dt * 2));
+  cena.background.copy(corCeu); cena.fog.color.copy(corCeu);
+  cena.fog.far = 320 + bY * 1.6; cena.fog.near = 60 + bY * 0.4;
+  hemi.intensity = bb.prop === 'cratera' ? 0.55 : 0.75;
+  // partículas
+  var pt = PART[bb.part];
+  parts.visible = !!pt;
+  if (pt) {
+    pMat.color.setHex(pt[0]); pMat.size = pt[1];
+    var mov = vZ * dt * Math.max(1, Math.min(150, Math.hypot(vZ, vY) / 12));
+    for (var i = 0; i < NP; i++) {
+      var iz = i * 3 + 2, iy = i * 3 + 1;
+      pPos[iz] += mov; pPos[iy] += pt[2] * dt;
+      if (pPos[iz] > 25) pPos[iz] -= 140;
+      if (pPos[iy] < bY - 10) pPos[iy] += 50; if (pPos[iy] > bY + 40) pPos[iy] -= 50;
+    }
+    pGeo.attributes.position.needsUpdate = true;
+  }
+  hudT -= dt; if (hudT <= 0) { hudT = 0.25; hud(); }
+  ren.render(cena, cam);
+}
+requestAnimationFrame(loop);
+
+// tudo pronto
+estado = 'pronto'; bY = BOLA_R; atualizaMundo(); hud(true);
+cam.position.set(3.6, 2, 5.2);
+$('carregando').style.display = 'none';
+if (!save.chutes) setTimeout(function () { mostraBanner('Aperte CHUTAR!', 'quando a agulha estiver no verde ⚡'); }, 600);
+</script>
+<script src="/stats.js?v=496"></script>
+</body>
+</html>
