@@ -1,6 +1,9 @@
 # Changelog - Cogumelo Games (site)
 
 
+## v666 (2026-11-26)
+- ⚽ **Super Chute 3D foi LANÇADO na home!** Ficou mais bonito: o menino tem rosto, cabelo espetado, camisa 10, chuteira vermelha e meião listrado, tudo com contorno de desenho animado. A bola agora é de futebol de verdade, com gomos pretos e brancos e brilho
+
 ## v665 (2026-11-26)
 - ⚽ **Jogo novo: Super Chute 3D!** O menino chuta a bola e aparece quantos metros ela foi. Com as moedas você compra melhorias: 🦵 Força, 🏀 Bola Saltitante, 🛼 Bola Lisa, 💰 Patrocínio e 🚀 Rampas Turbo. É infinito e a cada 3.000 m muda de bioma: Campo, Floresta, Deserto, Neve, Praia, Vulcão, Terra dos Doces, Lua (gravidade baixa!) e Cristais. Cada bioma novo dá +10 Cogu Coins (ainda escondido da home: só pela URL /chute/)
 

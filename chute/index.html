@@ -316,25 +316,72 @@ function atualizaRampas() {
 
 // ---------------- MENINO ----------------
 var menino = new THREE.Group(), pernaD, pernaE, bracoD, bracoE;
+// estilo desenho animado: material "toon" (3 tons de sombra) + contorno preto
+var GRAD = new THREE.DataTexture(new Uint8Array([105, 180, 255]), 3, 1, THREE.LuminanceFormat);
+GRAD.minFilter = GRAD.magFilter = THREE.NearestFilter; GRAD.needsUpdate = true;
+function mT(c) { return new THREE.MeshToonMaterial({ color: c, gradientMap: GRAD }); }
+var CONTORNO = new THREE.MeshBasicMaterial({ color: 0x15171d, side: THREE.BackSide });
+function P(geo, mat, x, y, z, s, borda) {
+  var m = mesh(geo, mat, x, y, z, s);
+  if (borda !== 0) { var o = new THREE.Mesh(geo, CONTORNO); o.scale.setScalar(borda || 1.08); m.add(o); }
+  return m;
+}
 (function () {
-  var pele = mL(0xf1c08f), camisa = mL(0x1f7ae0), short = mL(0xffffff), tenis = mL(0xff3a3a), cabelo = mL(0x3a2414), meiao = mL(0x1f7ae0);
+  var pele = mT(0xf4c49a), camisa = mT(0x1f7ae0), amarelo = mT(0xffd23a), short = mT(0xffffff), meiao = mT(0x1f7ae0),
+      chuteira = mT(0xff3a3a), sola = mT(0x222222), cabelo = mT(0x3a2414), olho = mT(0xffffff), preto = new THREE.MeshBasicMaterial({ color: 0x111111 }),
+      boca = new THREE.MeshBasicMaterial({ color: 0x8a2222 }), rosa = new THREE.MeshBasicMaterial({ color: 0xff9a9a, transparent: true, opacity: 0.55 }),
+      brilho = new THREE.MeshBasicMaterial({ color: 0xffffff });
   function perna(x) {
     var p = new THREE.Group(); p.position.set(x, 0.85, 0);
-    p.add(mesh(new THREE.BoxGeometry(0.2, 0.3, 0.22), short, 0, -0.12, 0));
-    p.add(mesh(new THREE.BoxGeometry(0.16, 0.3, 0.17), pele, 0, -0.38, 0));
-    p.add(mesh(new THREE.BoxGeometry(0.17, 0.2, 0.18), meiao, 0, -0.62, 0));
-    p.add(mesh(new THREE.BoxGeometry(0.2, 0.12, 0.34), tenis, 0, -0.78, -0.07));
+    p.add(P(new THREE.CylinderGeometry(0.105, 0.095, 0.3, 12), short, 0, -0.13, 0));
+    p.add(P(new THREE.CylinderGeometry(0.08, 0.07, 0.3, 12), pele, 0, -0.4, 0));
+    p.add(P(new THREE.CylinderGeometry(0.088, 0.08, 0.22, 12), meiao, 0, -0.62, 0));
+    p.add(P(new THREE.CylinderGeometry(0.091, 0.089, 0.045, 12), short, 0, -0.55, 0, null, 0));          // listra do meião
+    p.add(P(new THREE.SphereGeometry(0.1, 14, 10), chuteira, 0, -0.77, -0.06, [1, 0.7, 1.75]));          // chuteira
+    p.add(P(new THREE.BoxGeometry(0.17, 0.03, 0.33), sola, 0, -0.825, -0.06, null, 0));
+    p.add(P(new THREE.BoxGeometry(0.02, 0.05, 0.16), short, 0.09, -0.76, -0.08, null, 0));               // risquinho branco da chuteira
     menino.add(p); return p;
   }
   pernaD = perna(0.13); pernaE = perna(-0.13);
-  menino.add(mesh(new THREE.BoxGeometry(0.52, 0.55, 0.3), camisa, 0, 1.15, 0));
-  menino.add(mesh(new THREE.BoxGeometry(0.54, 0.12, 0.32), short, 0, 0.88, 0));
-  menino.add(mesh(new THREE.BoxGeometry(0.14, 0.1, 0.14), pele, 0, 1.47, 0));
-  menino.add(mesh(new THREE.SphereGeometry(0.24, 12, 10), pele, 0, 1.68, 0));
-  var cab = mesh(new THREE.SphereGeometry(0.26, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), cabelo, 0, 1.71, 0.02); menino.add(cab);
-  menino.add(mesh(new THREE.BoxGeometry(0.06, 0.06, 0.02), mL(0x1a1a1a), 0.09, 1.7, -0.23)); menino.add(mesh(new THREE.BoxGeometry(0.06, 0.06, 0.02), mL(0x1a1a1a), -0.09, 1.7, -0.23));
-  function braco(x) { var b = new THREE.Group(); b.position.set(x, 1.38, 0); b.add(mesh(new THREE.BoxGeometry(0.14, 0.24, 0.16), camisa, 0, -0.1, 0)); b.add(mesh(new THREE.BoxGeometry(0.12, 0.3, 0.13), pele, 0, -0.36, 0)); menino.add(b); return b; }
-  bracoD = braco(0.34); bracoE = braco(-0.34);
+  // corpo: camisa azul com gola amarela e o 10 nas costas
+  menino.add(P(new THREE.CylinderGeometry(0.25, 0.21, 0.5, 16), camisa, 0, 1.13, 0));
+  var gola = P(new THREE.TorusGeometry(0.13, 0.035, 8, 16), amarelo, 0, 1.38, 0, null, 0); gola.rotation.x = Math.PI / 2; menino.add(gola);
+  var c = document.createElement('canvas'); c.width = c.height = 128; var g = c.getContext('2d');
+  g.font = 'bold 92px Arial Black, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 10; g.strokeStyle = '#0d2a5a';
+  g.strokeText('10', 64, 68); g.fillStyle = '#ffd23a'; g.fillText('10', 64, 68);
+  var num = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.28), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true }));
+  num.position.set(0, 1.15, 0.236); menino.add(num);
+  menino.add(P(new THREE.CylinderGeometry(0.23, 0.25, 0.18, 16), short, 0, 0.86, 0));
+  menino.add(P(new THREE.BoxGeometry(0.02, 0.17, 0.06), camisa, 0.245, 0.86, 0, null, 0)); menino.add(P(new THREE.BoxGeometry(0.02, 0.17, 0.06), camisa, -0.245, 0.86, 0, null, 0));
+  menino.add(P(new THREE.CylinderGeometry(0.07, 0.08, 0.1, 10), pele, 0, 1.42, 0, null, 0));
+  // cabeça grandona de desenho
+  var cab = new THREE.Group(); cab.position.set(0, 1.72, 0); menino.add(cab);
+  cab.add(P(new THREE.SphereGeometry(0.29, 24, 18), pele, 0, 0, 0, null, 1.05));
+  var cabel = P(new THREE.SphereGeometry(0.305, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), cabelo, 0, 0.02, 0.02, null, 1.04); cabel.rotation.x = 0.35; cab.add(cabel);
+  var esp = new THREE.ConeGeometry(0.075, 0.22, 5);
+  [[-0.12, 0.25, 0.04, 0.5, 0.4], [0, 0.29, 0.02, 0.35, 0], [0.12, 0.25, 0.04, 0.5, -0.4], [-0.06, 0.26, 0.14, 0.9, 0.2], [0.07, 0.26, 0.14, 0.9, -0.2], [0, 0.2, 0.24, 1.4, 0]].forEach(function (s) {
+    var e = P(esp, cabelo, s[0], s[1], s[2], null, 1.12); e.rotation.set(s[3], 0, s[4]); cab.add(e);
+  });
+  var fr = new THREE.ConeGeometry(0.07, 0.17, 4);
+  [-0.11, 0, 0.11].forEach(function (x, i) { var f = P(fr, cabelo, x, 0.17, -0.23, null, 0); f.rotation.set(-2.3, 0, (i - 1) * 0.3); cab.add(f); });
+  cab.add(P(new THREE.SphereGeometry(0.07, 10, 8), pele, 0.285, -0.02, 0.02, [0.55, 1, 1])); cab.add(P(new THREE.SphereGeometry(0.07, 10, 8), pele, -0.285, -0.02, 0.02, [0.55, 1, 1]));
+  [-1, 1].forEach(function (l) {
+    cab.add(P(new THREE.SphereGeometry(0.068, 14, 10), olho, l * 0.1, 0.02, -0.245, [1, 1.25, 0.6], 1.15));
+    cab.add(P(new THREE.SphereGeometry(0.036, 10, 8), preto, l * 0.1, 0.01, -0.282, null, 0));
+    cab.add(P(new THREE.SphereGeometry(0.013, 6, 6), brilho, l * 0.1 - 0.012, 0.03, -0.31, null, 0));
+    var sb = P(new THREE.BoxGeometry(0.1, 0.022, 0.02), cabelo, l * 0.1, 0.125, -0.262, null, 0); sb.rotation.z = -l * 0.18; cab.add(sb);
+    cab.add(P(new THREE.SphereGeometry(0.045, 10, 8), rosa, l * 0.175, -0.07, -0.225, [1, 0.6, 0.4], 0));
+  });
+  cab.add(P(new THREE.SphereGeometry(0.035, 10, 8), pele, 0, -0.04, -0.29, null, 0));
+  var sorriso = P(new THREE.TorusGeometry(0.065, 0.016, 6, 14, Math.PI), boca, 0, -0.085, -0.262, null, 0); sorriso.rotation.z = Math.PI; cab.add(sorriso);
+  function braco(x) {
+    var b = new THREE.Group(); b.position.set(x, 1.33, 0);
+    b.add(P(new THREE.SphereGeometry(0.1, 12, 10), camisa, 0, -0.03, 0, [1, 1.15, 1]));
+    b.add(P(new THREE.CylinderGeometry(0.058, 0.052, 0.3, 10), pele, 0, -0.24, 0));
+    b.add(P(new THREE.SphereGeometry(0.066, 12, 10), pele, 0, -0.42, 0));
+    menino.add(b); return b;
+  }
+  bracoD = braco(0.3); bracoE = braco(-0.3);
   menino.position.set(-0.25, 0, 0);
   cena.add(menino);
 })();
@@ -344,11 +391,32 @@ var sombraM = new THREE.Mesh(new THREE.CircleGeometry(0.5, 16), sombraMat); somb
 // ---------------- BOLA ----------------
 var bola;
 (function () {
-  var c = document.createElement('canvas'); c.width = 256; c.height = 128; var g = c.getContext('2d');
-  g.fillStyle = '#ffffff'; g.fillRect(0, 0, 256, 128); g.fillStyle = '#16181d';
-  for (var i = 0; i < 10; i++) { var x = (i % 5) * 52 + (i < 5 ? 10 : 36), y = i < 5 ? 34 : 92; g.beginPath(); for (var k = 0; k < 5; k++) { var a = k / 5 * 6.283 - 1.57; g.lineTo(x + Math.cos(a) * 15, y + Math.sin(a) * 15); } g.fill(); }
-  var t = new THREE.CanvasTexture(c);
-  bola = new THREE.Mesh(new THREE.SphereGeometry(BOLA_R, 20, 14), new THREE.MeshLambertMaterial({ map: t }));
+  // bola de futebol de verdade: 12 gomos pretos (pentágonos) + 20 brancos (hexágonos), com as costuras
+  var F = (1 + Math.sqrt(5)) / 2, I = 1 / F, pts = [], q;
+  [[0, 1, F], [1, F, 0], [F, 0, 1]].forEach(function (b) { [-1, 1].forEach(function (s1) { [-1, 1].forEach(function (s2) {
+    var v = b.slice(); var nz = []; for (q = 0; q < 3; q++) if (v[q]) nz.push(q); v[nz[0]] *= s1; v[nz[1]] *= s2; pts.push(v); }); }); });
+  var hx = [];
+  [-1, 1].forEach(function (a) { [-1, 1].forEach(function (b) { [-1, 1].forEach(function (c) { hx.push([a, b, c]); }); }); });
+  [[0, I, F], [I, F, 0], [F, 0, I]].forEach(function (b) { [-1, 1].forEach(function (s1) { [-1, 1].forEach(function (s2) {
+    var v = b.slice(); var nz = []; for (q = 0; q < 3; q++) if (v[q]) nz.push(q); v[nz[0]] *= s1; v[nz[1]] *= s2; hx.push(v); }); }); });
+  pts = pts.concat(hx).map(function (v) { var l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; });
+  var W = 512, H = 256, c = document.createElement('canvas'); c.width = W; c.height = H; var g = c.getContext('2d'), img = g.createImageData(W, H), d = img.data;
+  for (var py = 0; py < H; py++) {
+    var th = (py + 0.5) / H * Math.PI, st = Math.sin(th), ct = Math.cos(th);
+    for (var px = 0; px < W; px++) {
+      var ph = (px + 0.5) / W * Math.PI * 2, x = -Math.cos(ph) * st, y = ct, z = Math.sin(ph) * st;
+      var b1 = -2, b2 = -2, i1 = 0;
+      for (q = 0; q < 32; q++) { var dt = x * pts[q][0] + y * pts[q][1] + z * pts[q][2]; if (dt > b1) { b2 = b1; b1 = dt; i1 = q; } else if (dt > b2) b2 = dt; }
+      var cor = i1 < 12 ? 28 : 246;
+      if (b1 - b2 < 0.012) cor = i1 < 12 ? 20 : 120;                         // costura
+      else if (i1 >= 12) cor -= Math.round((1 - b1) * 120);                  // sombrinha no gomo
+      var k = (py * W + px) * 4; d[k] = d[k + 1] = cor; d[k + 2] = Math.min(255, cor + 6); d[k + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  var t = new THREE.CanvasTexture(c); t.anisotropy = 4;
+  bola = new THREE.Mesh(new THREE.SphereGeometry(BOLA_R, 32, 24), new THREE.MeshPhongMaterial({ map: t, shininess: 70, specular: 0x555555 }));
+  var borda = new THREE.Mesh(bola.geometry, CONTORNO); borda.scale.setScalar(1.06); bola.add(borda);
   cena.add(bola);
 })();
 var sombraB = new THREE.Mesh(new THREE.CircleGeometry(BOLA_R, 16), sombraMat); sombraB.rotation.x = -Math.PI / 2; sombraB.position.y = 0.025; cena.add(sombraB);
@@ -514,7 +582,7 @@ function loop(t) {
     rastroGeo.attributes.position.needsUpdate = true; rastro.visible = Math.hypot(vZ, vY) > 12;
   } else rastro.visible = false;
   // câmera
-  if (estado === 'pronto' || estado === 'chutando') { camPos.set(3.6, 2, 5.2); camOlha.set(0, 0.7, -4); }
+  if (estado === 'pronto' || estado === 'chutando') { camPos.set(2.6, 1.5, 2.6); camOlha.set(-0.2, 0.95, -1.2); }
   else { var y = bY, af = Math.min(18, y * 0.12); camPos.set(5 + af, y + 2.2 + af * 0.5 + Math.min(4, vZ * 0.03), 8 + af); camOlha.set(0, y - Math.min(4, y * 0.1), -8); }
   cam.position.lerp(camPos, Math.min(1, dt * (estado === 'voando' ? 6 : 3)));
   tmpV.copy(camOlha); cam.lookAt(tmpV);
@@ -544,7 +612,7 @@ requestAnimationFrame(loop);
 
 // tudo pronto
 estado = 'pronto'; bY = BOLA_R; atualizaMundo(); hud(true);
-cam.position.set(3.6, 2, 5.2);
+cam.position.set(2.6, 1.5, 2.6);
 $('carregando').style.display = 'none';
 if (!save.chutes) setTimeout(function () { mostraBanner('Aperte CHUTAR!', 'quando a agulha estiver no verde ⚡'); }, 600);
 </script>
